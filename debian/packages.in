@@ -1,0 +1,44 @@
+## debian/packages for skytools
+
+Source: skytools
+Section: contrib/misc
+Priority: extra
+Maintainer: Marko Kreen <marko.kreen@skype.net>
+Standards-Version: 3.6.2
+Description: PostgreSQL
+Copyright: BSD
+ Copyright 2006 Marko Kreen
+Build: sh
+ PG_CONFIG=/usr/lib/postgresql/PGVER/bin/pg_config \
+ ./configure --prefix=/usr
+ make DESTDIR=$ROOT
+Clean: sh
+ make distclean || make clean || true
+Build-Depends: python-dev, postgresql-server-dev-PGVER
+
+Package: skytools
+Architecture: any
+Depends: python-psycopg | pythonPYVER-psycopg, skytools-modules-8.1 | skytools-modules-8.0, []
+Description: Skype database tools - Python parts
+ .
+ londiste - replication
+ pgqadm - generic event queue
+ walmgr - failover server scripts
+Install: sh
+ make python-install DESTDIR=$ROOT prefix=/usr
+
+Package: skytools-modules-PGVER
+Architecture: any
+Depends: postgresql-PGVER, []
+Conflicts: postgresql-extras-PGVER
+Description: Extra modules for PostgreSQL
+ It includes various extra modules for PostgreSQL:
+ .
+ txid - 8-byte transaction id's
+ logtriga - Trigger function to log change in SQL format.
+ logutriga - Trigger function to log change in urlencoded format.
+ londiste - Database parts of replication engine.
+ pgq - Generic queue in database.
+Install: sh
+ make modules-install DESTDIR=$ROOT
+

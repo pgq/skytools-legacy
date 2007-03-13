@@ -1,0 +1,31 @@
+[udata_dispatcher]
+job_name          = test_move
+
+src_db            = dbname=sourcedb_test
+dst_db            = dbname=dataminedb_test
+
+pgq_queue_name    = OrderLog
+
+logfile           = ~/log/%(job_name)s.log
+pidfile           = ~/pid/%(job_name)s.pid
+
+# where to put data.  when partitioning, will be used as base name
+dest_table = orders
+
+# date field with will be used for partitioning
+# special value: _EVTIME - event creation time
+part_column = start_date
+
+#fields = *
+#fields = id, name
+#fields = id:newid, name, bar:baz
+
+
+# template used for creating partition tables
+# _DEST_TABLE
+part_template     = 
+    create table _DEST_TABLE () inherits (orders);
+    alter table only _DEST_TABLE add constraint _DEST_TABLE_pkey primary key (id);
+    grant select on _DEST_TABLE to group reporting;
+
+

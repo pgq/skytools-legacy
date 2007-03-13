@@ -1,0 +1,14 @@
+[queue_mover]
+job_name          = queue_mover_test
+
+src_db            = dbname=sourcedb_test
+dst_db            = dbname=dataminedb_test
+
+pgq_queue_name    = source_queue
+dst_queue_name    = dest_queue
+
+logfile           = ~/log/%(job_name)s.log
+pidfile           = ~/pid/%(job_name)s.pid
+
+use_skylog        = 0
+

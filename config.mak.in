@@ -1,0 +1,10 @@
+
+prefix = @prefix@
+
+override PYTHON = @PYTHON@
+override PG_CONFIG = @PG_CONFIG@
+
+PGXS = $(shell $(PG_CONFIG) --pgxs)
+
+DESTDIR = /
+

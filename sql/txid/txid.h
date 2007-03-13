@@ -1,0 +1,43 @@
+#ifndef _TXID_H_
+#define _TXID_H_
+
+#define MAX_INT64  0x7FFFFFFFFFFFFFFFLL
+
+/* Use unsigned variant internally */
+typedef uint64 txid;
+
+typedef struct
+{
+    int32       varsz;
+    uint32      nxip;
+    txid xmin;
+    txid xmax;
+    txid xip[1];
+}   TxidSnapshot;
+
+
+typedef struct {
+	uint64		last_value;
+	uint64		epoch;
+}	TxidEpoch;
+
+/* internal functions */
+void	txid_load_epoch(TxidEpoch *state, int try_write);
+txid	txid_convert_xid(TransactionId xid, TxidEpoch *state);
+
+/* public functions */
+Datum       txid_current(PG_FUNCTION_ARGS);
+Datum       txid_current_snapshot(PG_FUNCTION_ARGS);
+
+Datum       txid_snapshot_in(PG_FUNCTION_ARGS);
+Datum       txid_snapshot_out(PG_FUNCTION_ARGS);
+
+Datum       txid_in_snapshot(PG_FUNCTION_ARGS);
+Datum       txid_not_in_snapshot(PG_FUNCTION_ARGS);
+Datum       txid_snapshot_xmin(PG_FUNCTION_ARGS);
+Datum       txid_snapshot_xmax(PG_FUNCTION_ARGS);
+Datum       txid_snapshot_active(PG_FUNCTION_ARGS);
+
+
+#endif /* _TXID_H_ */
+

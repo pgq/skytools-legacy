@@ -1,0 +1,64 @@
+
+
+== Config file ==
+
+{{{
+[londiste]
+job_name = test_to_subcriber
+
+# source database, where the queue resides
+provider_db = dbname=provider port=6000 host=127.0.0.1
+
+# destination database
+subscriber_db = dbname=subscriber port=6000 host=127.0.0.1
+
+# the queue where to listen on
+pgq_queue_name = londiste.replika
+
+# where to log
+logfile = ~/log/%(job_name)s.log
+
+# pidfile is used for avoiding duplicate processes
+pidfile = ~/pid/%(job_name)s.pid
+
+}}}
+
+== Command line overview ==
+
+{{{
+$ londiste.py --help
+usage: londiste.py [options] INI CMD [subcmd args]
+
+commands:
+  provider install           installs modules, creates queue
+  provider add TBL ...       add table to queue
+  provider remove TBL ...    remove table from queue
+  provider tables            show all tables linked to queue
+  subscriber install         installs schema
+  subscriber register        attaches subscriber to queue (also done by replay)
+  subscriber unregister      detach subscriber from queue
+  subscriber add TBL ...     add table to subscriber
+  subscriber remove TBL ...  remove table from subscriber
+  subscriber resync TBL ...  do full copy again
+  subscriber tables          list tables subscriber has attached to
+  subscriber missing         list tables subscriber has not yet attached to
+  subscriber check           compare table structure on both sides
+  subscriber fkeys           print out fkey drop/create commands
+  replay                     replay events to subscriber
+  copy                       full copy of table, internal cmd
+  compare [TBL ...]          compare table contents on both sides
+  repair [TBL ...]           repair data on subscriber
+
+options:
+  -h, --help      show this help message and exit
+  -q, --quiet     make program silent
+  -v, --verbose   make program verbose
+  -d, --daemon    go background
+  --expect-sync   no copy needed (for add command)
+  --force         ignore some warnings
+
+  control running process:
+    -r, --reload  reload config (send SIGHUP)
+    -s, --stop    stop program safely (send SIGINT)
+    -k, --kill    kill program immidiately (send SIGTERM)
+}}}

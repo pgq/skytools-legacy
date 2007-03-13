@@ -1,0 +1,44 @@
+
+web:
+ - walmgr
+ - pgqadm
+ - todo
+
+
+londiste link <qname>
+londiste unlink <qname>
+
+Immidiate
+=========
+
+* londiste swithcover support / deny triggers
+* deb: /etc/skylog.ini should be conffile
+* RemoteConsumer/SerialConsumer/pgq_ext sanity, too much duplication
+
+Near future
+============
+
+* londiste: create tables on subscriber
+* skytools: switch for silence for cron scripts
+* docs: londiste, pgq/python, pgq/sql, skytools
+* txid: decide on renaming functions
+* logtriga: way to switch off logging for some connection
+* pgq: separately installable fkeys for all tables for testing
+* logdb: hostname
+* pgq_ext: solve event tracking
+* contrib/*.sql loading from python - need to check db version
+* ideas from SlonyI:
+  - force timestamps to ISO
+  - when buffering queries, check their size
+* DBScript: failure to write pidfile should be logged (crontscripts)
+
+Just ideas
+===========
+
+* logtriga: use pgq.insert_event_directly?
+* pgq/sql: rewrite pgq.insert_event in C or logtriga in plpython?
+* skytools: config-less operation?
+* skytools: config from database?
+* skytools: partial sql parser for log processing
+* pgqadm ticker logic into db, to make easier other implementations?
+

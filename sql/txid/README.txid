@@ -1,0 +1,65 @@
+
+txid - 8 byte transaction ID's
+==============================
+
+Based on xxid module from Slony-I.  
+
+The goal is to make PostgreSQL internal transaction ID and snapshot
+data usable externally.  They cannot be used directly as the
+internal 4-byte value wraps around and thus breaks indexing.
+
+This module extends the internal value with wraparound cound (epoch).
+It uses relaxed method for wraparound check.  There is a table
+txid.epoch (epoch, last_value) which is used to check if the xid
+is in current, next or previous epoch.  It requires only occasional
+read-write access - ca. after 100k - 500k transactions.
+
+Also it contains type 'txid_snapshot' and following functions:
+
+
+get_current_txid() returns int8
+
+  Current transaction ID
+
+get_current_snapshot() returns txid_snapshot
+
+  Current snapshot
+
+get_snapshot_xmin( snap ) returns int8      -- 
+
+  Smallest TXID in snapshot.  TXID's smaller than this
+  are all visible in snapshot.
+
+get_snapshot_xmax( snap ) returns int8
+
+  Largest TXID in snapshot.  TXID's starting from this one are
+  all invisible in snapshot.
+	
+get_snapshot_values( snap ) setof int8
+
+  List of uncommitted TXID's in snapshot, that are invisible
+  in snapshot.  Values are between xmin and xmax.
+
+txid_in_snapshot(id, snap) returns bool
+
+  Is TXID visible in snapshot?
+
+txid_not_in_snapshot(id, snap) returns bool
+
+  Is TXID invisible in snapshot?
+
+
+Problems
+--------
+
+- it breaks when there are more than 2G tx'es between calls.
+  Fixed in 8.2
+ 
+- functions that create new txid's should be 'security definers'
+  thus better protecting txid_epoch table.
+
+- After loading database from backup you should do:
+
+  UPDATE txid.epoch SET epoch = epoch + 1,
+                        last_value = (get_current_txid() & 4294967295);
+

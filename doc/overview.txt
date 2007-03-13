@@ -1,0 +1,179 @@
+#pragma section-numbers 2
+
+= SkyTools =
+
+[[TableOfContents]]
+
+== Intro ==
+
+This is package of tools we use at Skype to manage our cluster of [http://www.postgresql.org PostgreSQL]
+servers.  They are put together for our own convinience and also because they build on each other,
+so managing them separately is pain.
+
+The code is hosted at [http://pgfoundry.org PgFoundry] site:
+
+ http://pgfoundry.org/projects/skytools/
+
+There are our [http://pgfoundry.org/frs/?group_id=1000206 downloads] and
+[http://lists.pgfoundry.org/mailman/listinfo/skytools-users mailing list].
+Also [http://pgfoundry.org/scm/?group_id=1000206 CVS]
+and [http://pgfoundry.org/tracker/?group_id=1000206 bugtracker].
+
+== High-level tools ==
+
+Those are script that are meant for end-user.
+In our case that means database administrators.
+
+=== Londiste ===
+
+Replication engine written in Python.  It uses PgQ as transport mechanism.
+Its main goals are robustness and easy usage.  Thus its not as complete
+and featureful as Slony-I.
+
+Docs: ./LondisteUsage
+
+''' Features '''
+
+ * Tables can be added one-by-one into set.
+ * Initial COPY for one table does not block event replay for other tables.
+ * Can compare tables on both sides.
+ * Easy installation.
+
+''' Missing features '''
+
+ * No support for sequences.  Thus its not possible to use it for keeping
+ failover server up-to-date.  We use WalMgr for that.
+
+ * Does not understand cascaded replication, when one subscriber acts
+ as provider to another one and it dies, the last one loses sync with the first one.
+ In other words - it understands only pair of servers.
+
+''' Sample usage '''
+{{{
+$ londiste.py replic.ini provider install
+$ londiste.py replic.ini subscriber install
+$ londiste.py replic.ini replay -d
+$ londiste.py replic.ini provider add users orders
+$ londiste.py replic.ini subscriber add users
+}}}
+
+=== PgQ ===
+
+Generic queue implementation.  Based on ideas from [http://www.slony1.info/ Slony-I] -
+snapshot based event batching.
+
+''' Features '''
+
+ * Generic multi-consumer, multi-producer queue.
+ * There can be several consumers on one queue.
+ * It is guaranteed that each of them sees a event at least once.
+ But it's not guaranteed that it sees it only once.
+ * The goal is to provide a clean API as SQL functions.  The frameworks
+ on top of that don't need to understand internal details.
+
+''' Technical design '''
+
+ * Events are batched using snapshots (like Slony-I).
+ * Consumers are poll-only, they don't need to do any administrative work.
+ * Queue administration is separate process from consumers.
+ * Tolerant of long transactions.
+ * Easy to monitor.
+
+''' Docs '''
+
+ * SQL API overview: ./PgQdocs
+ * SQL API detailed docs: http://skytools.projects.postgresql.org/pgq/
+ * Administrative tool usage: ./PgqAdm
+
+=== WalMgr ===
+
+Python script for hot failover.  Tries to make setup
+initial copy and later switch easy for admins.
+
+ * Docs: ./WalMgr
+
+Sample:
+
+{{{
+ [ .. prepare config .. ]
+
+ master$ walmgr setup
+ master$ walmgr backup
+ slave$ walmgr restore
+
+ [ .. main server down, switch failover server to normal mode: ]
+
+ slave$ walmgr restore
+}}}
+
+== Low-level tools ==
+
+Those are building blocks for the PgQ and Londiste.
+Useful for database developers.
+
+=== txid ===
+
+ Provides 8-byte transaction id-s for external usage.
+
+=== logtriga ===
+
+ Trigger function for table event logging in "partial SQL" format.
+ Based on Slony-I logtrigger.  Used in londiste for replication.
+
+=== logutriga ===
+
+ Trigger function for table event logging in urlencoded format.
+ Written in PL/Python. For cases where data manipulation is necessary.
+
+== Developement frameworks ==
+
+=== skytools - Python framework for database scripting ===
+
+This collect various utilities for Python scripts for databases.
+
+''' Topics '''
+
+ * Daemonization
+ * Logging
+ * Configuration.
+ * Skeleton class for scripts.
+ * Quoting (SQL/COPY)
+ * COPY helpers.
+ * Database object lookup.
+ * Table structure detection.
+
+Documentation: http://skytools.projects.postgresql.org/api/
+
+=== pgq - Python framework for PgQ consumers ===
+
+This builds on scripting framework above.
+
+Documentation: http://skytools.projects.postgresql.org/api/
+
+== Sample scripts ==
+
+Those are specialized script that are based on skytools/pgq framework.
+Can be considered examples, although they are used in production in Skype.
+
+=== Special data moving scripts ===
+
+There are couple of scripts for situations where regular replication
+does not fit.  They all operate on `logutriga()` urlencoded queues.
+
+ * `cube_dispatcher`: Multi-table partitioning on change date, with optional keep-all-row-versions mode.
+ * `table_dispatcher`: configurable partitioning for one table.
+ * `bulk_loader`: aggregates changes for slow databases. Instead of each change in separate statement,
+ does minimal amount of DELETE-s and then big COPY.
+
+|| Script || Supported operations || Number of tables || Partitioning ||
+|| table_dispatcher || INSERT || 1 || any ||
+|| cube_dispatcher || INSERT/UPDATE || any || change time ||
+|| bulk_loader || INSERT/UPDATE/DELETE || any || none ||
+
+=== queue_mover ===
+
+Simply copies all events from one queue to another.
+
+=== scriptmgr ===
+
+Allows to start and stop several scripts together.

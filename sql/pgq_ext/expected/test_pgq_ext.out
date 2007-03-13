@@ -1,0 +1,85 @@
+\set ECHO off
+--
+-- test batch tracking
+--
+select pgq_ext.is_batch_done('c', 1);
+ is_batch_done 
+---------------
+ f
+(1 row)
+
+select pgq_ext.set_batch_done('c', 1);
+ set_batch_done 
+----------------
+ t
+(1 row)
+
+select pgq_ext.is_batch_done('c', 1);
+ is_batch_done 
+---------------
+ t
+(1 row)
+
+select pgq_ext.set_batch_done('c', 1);
+ set_batch_done 
+----------------
+ f
+(1 row)
+
+select pgq_ext.is_batch_done('c', 2);
+ is_batch_done 
+---------------
+ f
+(1 row)
+
+select pgq_ext.set_batch_done('c', 2);
+ set_batch_done 
+----------------
+ t
+(1 row)
+
+--
+-- test event tracking
+--
+select pgq_ext.is_batch_done('c', 3);
+ is_batch_done 
+---------------
+ f
+(1 row)
+
+select pgq_ext.is_event_done('c', 3, 101);
+ is_event_done 
+---------------
+ f
+(1 row)
+
+select pgq_ext.set_event_done('c', 3, 101);
+ set_event_done 
+----------------
+ t
+(1 row)
+
+select pgq_ext.is_event_done('c', 3, 101);
+ is_event_done 
+---------------
+ t
+(1 row)
+
+select pgq_ext.set_event_done('c', 3, 101);
+ set_event_done 
+----------------
+ f
+(1 row)
+
+select pgq_ext.set_batch_done('c', 3);
+ set_batch_done 
+----------------
+ t
+(1 row)
+
+select * from pgq_ext.completed_event order by 1,2;
+ consumer_id | batch_id | event_id 
+-------------+----------+----------
+ c           |        3 |      101
+(1 row)
+
