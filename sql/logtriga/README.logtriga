@@ -1,0 +1,47 @@
+
+logtriga - generic table changes logger
+=======================================
+
+logtriga provides generic table changes logging trigger.
+It prepares partial SQL statement about a change and
+gives it to user query.
+
+Usage
+-----
+
+   CREATE TRIGGER foo_log AFTER INSERT OR UPDATE OR DELETE ON foo_tbl
+   FOR EACH ROW EXECUTE PROCEDURE logtriga(column_types, query);
+
+Where column_types is a string where each charater defines type of
+that column.  Known types:
+
+ * k - one of primary key columns for table.
+ * v - data column
+ * i - uninteresting column, to be ignored.
+
+Trigger function prepares 2 string arguments for query and executes it.
+
+ * $1 - Operation type: I/U/D.
+ * $2 - Partial SQL for event playback.
+
+   * INSERT INTO FOO_TBL (field, list) values (val1, val2)
+   * UPDATE FOO_TBL SET field1 = val1, field2 = val2 where key1 = kval1
+   * DELETE FROM FOO_TBL WHERE key1 = keyval1
+
+The upper-case part is left out.
+
+Example
+-------
+
+Following query emulates Slony-I behaviour:
+
+   insert into SL_SCHEMA.sl_log_1
+          (log_origin, log_xid, log_tableid,
+           log_actionseq, log_cmdtype, log_cmddata)
+   values (CLUSTER_IDENT, SL_SCHEMA.getCurrentXid(), TABLE_OID,
+           nextval('SL_SCHEMA.sl_action_seq'), $1, $2)
+
+The upper-case strings should be replaced with actual values
+on trigger creation.
+
+

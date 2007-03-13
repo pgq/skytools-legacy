@@ -1,0 +1,128 @@
+set client_min_messages = 'warning';
+create table testdata (
+    id serial primary key,
+    data text
+);
+--
+-- tables
+--
+select londiste.subscriber_add_table('pqueue', 'public.testdata_nopk');
+ subscriber_add_table 
+----------------------
+                    0
+(1 row)
+
+select londiste.subscriber_add_table('pqueue', 'public.testdata');
+ subscriber_add_table 
+----------------------
+                    0
+(1 row)
+
+select pgq.create_queue('pqueue');
+ create_queue 
+--------------
+            1
+(1 row)
+
+select londiste.subscriber_add_table('pqueue', 'public.testdata');
+ERROR:  duplicate key violates unique constraint "subscriber_table_pkey"
+CONTEXT:  SQL statement "INSERT INTO londiste.subscriber_table (queue_name, table_name) values ( $1 ,  $2 )"
+PL/pgSQL function "subscriber_add_table" line 2 at SQL statement
+select londiste.subscriber_add_table('pqueue', 'public.testdata');
+ERROR:  duplicate key violates unique constraint "subscriber_table_pkey"
+CONTEXT:  SQL statement "INSERT INTO londiste.subscriber_table (queue_name, table_name) values ( $1 ,  $2 )"
+PL/pgSQL function "subscriber_add_table" line 2 at SQL statement
+select * from londiste.subscriber_get_table_list('pqueue');
+      table_name      | merge_state | snapshot | trigger_name 
+----------------------+-------------+----------+--------------
+ public.testdata_nopk |             |          | 
+ public.testdata      |             |          | 
+(2 rows)
+
+select londiste.subscriber_remove_table('pqueue', 'public.nonexist');
+ERROR:  no such table
+select londiste.subscriber_remove_table('pqueue', 'public.testdata');
+ subscriber_remove_table 
+-------------------------
+                       0
+(1 row)
+
+select * from londiste.subscriber_get_table_list('pqueue');
+      table_name      | merge_state | snapshot | trigger_name 
+----------------------+-------------+----------+--------------
+ public.testdata_nopk |             |          | 
+(1 row)
+
+--
+-- seqs
+--
+select * from londiste.subscriber_get_seq_list('pqueue');
+ subscriber_get_seq_list 
+-------------------------
+(0 rows)
+
+select londiste.subscriber_add_seq('pqueue', 'public.no_seq');
+ subscriber_add_seq 
+--------------------
+                  0
+(1 row)
+
+select londiste.subscriber_add_seq('pqueue', 'public.testdata_id_seq');
+ subscriber_add_seq 
+--------------------
+                  0
+(1 row)
+
+select londiste.subscriber_add_seq('pqueue', 'public.testdata_id_seq');
+ERROR:  duplicate key violates unique constraint "subscriber_seq_pkey"
+CONTEXT:  SQL statement "INSERT INTO londiste.subscriber_seq (queue_name, seq_name) values ( $1 ,  $2 )"
+PL/pgSQL function "subscriber_add_seq" line 4 at SQL statement
+select * from londiste.subscriber_get_seq_list('pqueue');
+ subscriber_get_seq_list 
+-------------------------
+ public.no_seq
+ public.testdata_id_seq
+(2 rows)
+
+select londiste.subscriber_remove_seq('pqueue', 'public.testdata_id_seq');
+ subscriber_remove_seq 
+-----------------------
+                     0
+(1 row)
+
+select londiste.subscriber_remove_seq('pqueue', 'public.testdata_id_seq');
+ERROR:  no such seq?
+select * from londiste.subscriber_get_seq_list('pqueue');
+ subscriber_get_seq_list 
+-------------------------
+ public.no_seq
+(1 row)
+
+--
+-- linked queue
+--
+select londiste.subscriber_add_table('pqueue', 'public.testdata');
+ subscriber_add_table 
+----------------------
+                    0
+(1 row)
+
+insert into londiste.link (source, dest) values ('mqueue', 'pqueue');
+select londiste.subscriber_add_table('pqueue', 'public.testdata');
+ERROR:  duplicate key violates unique constraint "subscriber_table_pkey"
+CONTEXT:  SQL statement "INSERT INTO londiste.subscriber_table (queue_name, table_name) values ( $1 ,  $2 )"
+PL/pgSQL function "subscriber_add_table" line 2 at SQL statement
+select londiste.subscriber_remove_table('pqueue', 'public.testdata');
+ subscriber_remove_table 
+-------------------------
+                       0
+(1 row)
+
+select londiste.subscriber_add_seq('pqueue', 'public.testdata_id_seq');
+ subscriber_add_seq 
+--------------------
+                  0
+(1 row)
+
+select londiste.subscriber_remove_seq('pqueue', 'public.testdata_seq');
+ERROR:  no such seq?

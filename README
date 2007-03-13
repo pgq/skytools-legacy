@@ -1,0 +1,47 @@
+
+SkyTools - tools for PostgreSQL
+===============================
+
+This is a package of tools in use in Skype for replication and
+failover.  Also it includes a generic queuing mechanism PgQ and
+utility library for Python scripts.
+
+It contains following tools:
+
+PgQ
+---
+
+This is the queue machanism we use.  Consists of PL/pgsql, PL/python
+and C code in database, with Python framework on top of it.  It is
+based on snapshot based event handling ideas from Slony-I,
+written for general usage.
+
+Features:
+
+  * There can be several queues in database.
+  * There can be several producers than can insert into any queue.
+  * There can be several consumers on one queue and all consumers
+    see all events.
+
+
+Londiste
+--------
+
+Replication tool written in Python, using PgQ as event transport.
+
+Features:
+- Tables can be added one-by-one into set.
+- Initial COPY for one table does not block event replay
+  for other tables.
+- Can compare tables on both sides.
+
+
+walmgr
+------
+
+This script will setup WAL archiving, does initial backup and
+runtime WAL archive and restore.
+
+
+
+

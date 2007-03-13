@@ -1,0 +1,29 @@
+
+londiste database backend
+--------------------------
+
+Provider side:
+--------------
+
+londiste.provider_table
+londiste.provider_seq
+
+
+Subscriber side
+---------------
+
+table londiste.completed
+table londiste.subscriber_table
+table londiste.subscriber_seq
+
+
+Open issues
+------------
+
+- notify behaviour
+- should notify-s given to db for processing?
+- link init functions
+- switchover
+- are set_last_tick()/get_last_tick() functions needed anymore?
+- typecheck for add_table()?
+

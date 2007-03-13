@@ -1,0 +1,40 @@
+create table denytest ( val integer);
+insert into denytest values (1);
+create trigger xdeny after insert or update or delete
+on denytest for each row execute procedure londiste.deny_trigger();
+insert into denytest values (2);
+ERROR:  ('Changes no allowed on this table',)
+update denytest set val = 2;
+ERROR:  ('Changes no allowed on this table',)
+delete from denytest;
+ERROR:  ('Changes no allowed on this table',)
+select londiste.disable_deny_trigger(true);
+ disable_deny_trigger 
+----------------------
+ t
+(1 row)
+
+update denytest set val = 2;
+select londiste.disable_deny_trigger(true);
+ disable_deny_trigger 
+----------------------
+ t
+(1 row)
+
+update denytest set val = 2;
+select londiste.disable_deny_trigger(false);
+ disable_deny_trigger 
+----------------------
+ f
+(1 row)
+
+update denytest set val = 2;
+ERROR:  ('Changes no allowed on this table',)
+select londiste.disable_deny_trigger(false);
+ disable_deny_trigger 
+----------------------
+ f
+(1 row)
+
+update denytest set val = 2;
+ERROR:  ('Changes no allowed on this table',)

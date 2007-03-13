@@ -1,0 +1,13 @@
+[bulk_loader]
+job_name = bizgres_loader
+
+src_db = dbname=bulksrc
+dst_db = dbname=bulkdst
+
+pgq_queue_name = xx
+
+use_skylog = 1
+
+logfile = ~/log/%(job_name)s.log
+pidfile = ~/pid/%(job_name)s.pid
+

@@ -1,0 +1,43 @@
+
+[scriptmgr]
+job_name = scriptmgr_cphdb5
+config_list = ~/dbscripts/conf/*.ini, ~/random/conf/*.ini
+logfile = ~/log/%(job_name)s.log
+pidfile = ~/pid/%(job_name)s.pid
+#use_skylog = 1
+
+#
+# defaults for services
+#
+[DEFAULT]
+cwd = ~/dbscripts
+args = -v
+
+#
+# service descriptions
+#
+
+[cube_dispatcher]
+script = cube_dispatcher.py
+
+[table_dispatcher]
+script = table_dispatcher.py
+
+[bulk_loader]
+script = bulk_loader.py
+
+[londiste]
+script = londiste.py
+args = replay
+
+[pgqadm]
+script = pgqadm.py
+args = ticker
+
+#
+# services to be ignored
+#
+
+[log_checker]
+disabled = 1
+
