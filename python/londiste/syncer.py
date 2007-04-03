@@ -112,13 +112,21 @@ class Syncer(skytools.DBScript):
         self.log.info('Syncing %s' % tbl)
 
         # consumer must get futher than this tick
-        src_curs.execute("select pgq.ticker(%s)", [self.pgq_queue_name])
+        # also, bump event_id_seq to force ticker to tick
+        q = "select nextval(queue_tick_seq) as tick_pos,"\
+            "       setval(queue_event_seq, nextval(queue_event_seq) + 2000)"\
+            "  from pgq.queue where queue_name = %s"
+        src_curs.execute(q, [self.pgq_queue_name])
         tick_id = src_curs.fetchone()[0]
         src_db.commit()
-        # avoid depending on ticker by inserting second tick also
-        time.sleep(0.1)
-        src_curs.execute("select pgq.ticker(%s)", [self.pgq_queue_name])
+        # try to force second tick also
+        time.sleep(0.5)
+        q = "select setval(queue_event_seq, nextval(queue_event_seq) + 2000)"\
+            "  from pgq.queue where queue_name = %s"
+        src_curs.execute(q, [self.pgq_queue_name])
         src_db.commit()
+
+        # take server time
         src_curs.execute("select to_char(now(), 'YYYY-MM-DD HH24:MI:SS.MS')")
         tpos = src_curs.fetchone()[0]
         src_db.commit()
