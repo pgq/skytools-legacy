@@ -1,3 +1,9 @@
+skytools (2.1.1) unstable; urgency=low
+
+  * bugfixes
+
+ -- Marko Kreen <marko.kreen@skype.net>  Tue, 03 Apr 2007 15:03:28 +0300
+
 skytools (2.1) unstable; urgency=low
 
   * cleanup
