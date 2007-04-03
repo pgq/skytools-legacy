@@ -26,14 +26,11 @@ class Syncer(skytools.DBScript):
         src_curs = src_db.cursor()
         
         # before locking anything check if consumer is working ok
-        q = "select extract(epoch from ticker_lag) from pgq.get_queue_list()"\
-                " where queue_name = %s"
+        q = "select extract(epoch from ticker_lag) from pgq.get_queue_info(%s)"
         src_curs.execute(q, [self.pgq_queue_name])
         ticker_lag = src_curs.fetchone()[0]
         q = "select extract(epoch from lag)"\
-            " from pgq.get_consumer_list()"\
-            " where queue_name = %s"\
-            "   and consumer_name = %s"
+            " from pgq.get_consumer_info(%s, %s)"
         src_curs.execute(q, [self.pgq_queue_name, self.pgq_consumer_id])
         res = src_curs.fetchall()
         src_db.commit()
@@ -129,11 +126,9 @@ class Syncer(skytools.DBScript):
         while 1:
             time.sleep(0.2)
 
-            q = """select now() - lag > %s, now(), lag
-                     from pgq.get_consumer_list()
-                   where consumer_name = %s
-                     and queue_name = %s"""
-            src_curs.execute(q, [tpos, self.pgq_consumer_id, self.pgq_queue_name])
+            q = "select now() - lag > %s, now(), lag"\
+                " from pgq.get_consumer_info(%s, %s)"
+            src_curs.execute(q, [tpos, self.pgq_queue_name, self.pgq_consumer_id])
             res = src_curs.fetchall()
             src_db.commit()
 
