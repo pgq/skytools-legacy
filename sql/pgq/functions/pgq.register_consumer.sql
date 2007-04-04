@@ -82,10 +82,10 @@ begin
         where sub_consumer = x_consumer_id
           and sub_queue  = x_queue_id;
     if found then
-        if sub.sub_batch is not null then
-            raise exception 'reposition while active not allowed';
-        end if;
         if x_tick_pos is not null then
+            if sub.sub_batch is not null then
+                raise exception 'reposition while active not allowed';
+            end if;
             -- update tick pos if requested
             update pgq.subscription
                 set sub_last_tick = x_tick_pos
