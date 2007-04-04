@@ -1,6 +1,6 @@
 
 DOCS = README.pgq
-DATA_built = pgq.sql
+DATA_built = pgq.sql pgq.upgrade.sql
 DATA = structure/uninstall_pgq.sql
 
 SRCS = $(wildcard structure/*.sql) \
@@ -19,6 +19,9 @@ CATSQL = ../../scripts/catsql.py
 
 pgq.sql: $(SRCS)
 	$(CATSQL) structure/install.sql > $@
+
+pgq.upgrade.sql: $(SRCS)
+	$(CATSQL) structure/func_internal.sql structure/func_public.sql > $@
 
 dox: cleandox
 	mkdir -p docs/html
