@@ -30,18 +30,19 @@ class PGQStatus(skytools.DBScript):
         qver = cx.fetchone()[0]
         print "Postgres version: %s   PgQ version: %s" % (pgver, qver)
 
-        q = """select f.queue_name, f.num_tables, %s, %s, %s,
-                      q.queue_ticker_max_lag, q.queue_ticker_max_amount,
-                      q.queue_ticker_idle_interval
-               from pgq.get_queue_info() f, pgq.queue q
+        q = """select f.queue_name, f.queue_ntables, %s, %s,
+                      %s, %s, q.queue_ticker_max_count
+                from pgq.get_queue_info() f, pgq.queue q
                where q.queue_name = f.queue_name""" % (
-                    ival('f.rotation_delay'),
+                    ival('f.queue_rotation_period'),
                     ival('f.ticker_lag'),
+                    ival('q.queue_ticker_max_lag'),
+                    ival('q.queue_ticker_idle_period'),
                )
         cx.execute(q)
         event_rows = cx.dictfetchall()
 
-        q = """select queue_name, consumer_name, %s, %s, %s
+        q = """select queue_name, consumer_name, %s, %s
                from pgq.get_consumer_info()""" % (
                 ival('lag'),
                 ival('last_seen'),
@@ -49,22 +50,22 @@ class PGQStatus(skytools.DBScript):
         cx.execute(q)
         consumer_rows = cx.dictfetchall()
 
-        print "\n%-32s %s %9s %13s %6s" % ('Event queue',
+        print "\n%-45s %9s %13s %6s" % ('Event queue',
                             'Rotation', 'Ticker', 'TLag')
         print '-' * 78
         for ev_row in event_rows:
-            tck = "%s/%ss/%ss" % (ev_row['queue_ticker_max_amount'],
+            tck = "%s/%s/%s" % (ev_row['queue_ticker_max_count'],
                     ev_row['queue_ticker_max_lag'],
-                    ev_row['queue_ticker_idle_interval'])
+                    ev_row['queue_ticker_idle_period'])
             rot = "%s/%s" % (ev_row['queue_ntables'], ev_row['queue_rotation_period'])
-            print   "%-39s%7s %9s %13s %6s" % (
+            print   "%-45s %9s %13s %6s" % (
                 ev_row['queue_name'],
                 rot,
                 tck,
                 ev_row['ticker_lag'],
             )
         print '-' * 78
-        print "\n%-42s %9s %9s" % (
+        print "\n%-56s %9s %9s" % (
                 'Consumer', 'Lag', 'LastSeen')
         print '-' * 78
         for ev_row in event_rows:
@@ -74,7 +75,7 @@ class PGQStatus(skytools.DBScript):
         db.commit()
 
     def show_consumer(self, cons):
-        print "  %-48s %9s %9s" % (
+        print "  %-54s %9s %9s" % (
                     cons['consumer_name'],
                     cons['lag'], cons['last_seen'])
     def show_queue(self, ev_row, consumer_rows):
