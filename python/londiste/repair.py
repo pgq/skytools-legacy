@@ -208,7 +208,7 @@ class Repairer(Syncer):
                 tbl, ", ".join(set_list), " and ".join(whe_list))
         self.show_fix(tbl, q, 'update')
 
-    def got_missed_delete(self, tbl, dst_row, pkey_list):
+    def got_missed_delete(self, tbl, dst_row):
         self.cnt_delete += 1
         whe_list = []
         for f in self.pkey_list:
