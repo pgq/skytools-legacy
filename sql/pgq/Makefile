@@ -7,7 +7,7 @@ SRCS = $(wildcard structure/*.sql) \
        $(wildcard functions/*.sql) \
        $(wildcard triggers/*.sql)
 
-REGRESS = pgq_init logutriga sqltriga
+REGRESS = pgq_init pgq_core logutriga sqltriga
 REGRESS_OPTS = --load-language=plpythonu --load-language=plpgsql
 
 PGXS = $(shell pg_config --pgxs)

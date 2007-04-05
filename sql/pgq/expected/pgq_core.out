@@ -1,0 +1,267 @@
+select * from pgq.maint_tables_to_vacuum();
+ maint_tables_to_vacuum 
+------------------------
+ pgq.subscription
+ pgq.consumer
+ pgq.queue
+ pgq.tick
+ pgq.retry_queue
+(5 rows)
+
+select * from pgq.maint_retry_events();
+ maint_retry_events 
+--------------------
+                  0
+(1 row)
+
+select pgq.create_queue('tmpqueue');
+ create_queue 
+--------------
+            1
+(1 row)
+
+select pgq.register_consumer('tmpqueue', 'consumer');
+ register_consumer 
+-------------------
+                 1
+(1 row)
+
+select pgq.unregister_consumer('tmpqueue', 'consumer');
+ unregister_consumer 
+---------------------
+                   1
+(1 row)
+
+select pgq.drop_queue('tmpqueue');
+ drop_queue 
+------------
+          1
+(1 row)
+
+select pgq.create_queue('myqueue');
+ create_queue 
+--------------
+            1
+(1 row)
+
+select pgq.register_consumer('myqueue', 'consumer');
+ register_consumer 
+-------------------
+                 1
+(1 row)
+
+select pgq.next_batch('myqueue', 'consumer');
+ next_batch 
+------------
+           
+(1 row)
+
+select pgq.next_batch('myqueue', 'consumer');
+ next_batch 
+------------
+           
+(1 row)
+
+select pgq.ticker();
+ ticker 
+--------
+      1
+(1 row)
+
+select pgq.next_batch('myqueue', 'consumer');
+ next_batch 
+------------
+          1
+(1 row)
+
+select pgq.next_batch('myqueue', 'consumer');
+ next_batch 
+------------
+          1
+(1 row)
+
+select queue_name, consumer_name, prev_tick_id, tick_id, lag from pgq.get_batch_info(1);
+ queue_name | consumer_name | prev_tick_id | tick_id |     lag     
+------------+---------------+--------------+---------+-------------
+ myqueue    | consumer      |            1 |       2 | @ 0.00 secs
+(1 row)
+
+select queue_name from pgq.get_queue_info() limit 0;
+ queue_name 
+------------
+(0 rows)
+
+select queue_name, consumer_name from pgq.get_consumer_info() limit 0;
+ queue_name | consumer_name 
+------------+---------------
+(0 rows)
+
+select pgq.finish_batch(1);
+ finish_batch 
+--------------
+            1
+(1 row)
+
+select pgq.finish_batch(1);
+WARNING:  finish_batch: batch 1 not found
+ finish_batch 
+--------------
+            0
+(1 row)
+
+select pgq.ticker();
+ ticker 
+--------
+      1
+(1 row)
+
+select pgq.next_batch('myqueue', 'consumer');
+ next_batch 
+------------
+          2
+(1 row)
+
+select * from pgq.batch_event_tables(2);
+ batch_event_tables 
+--------------------
+ pgq.event_2_0
+(1 row)
+
+select * from pgq.get_batch_events(2);
+ ev_id | ev_time | ev_txid | ev_retry | ev_type | ev_data | ev_extra1 | ev_extra2 | ev_extra3 | ev_extra4 
+-------+---------+---------+----------+---------+---------+-----------+-----------+-----------+-----------
+(0 rows)
+
+select pgq.finish_batch(2);
+ finish_batch 
+--------------
+            1
+(1 row)
+
+select pgq.insert_event('myqueue', 'r1', 'data');
+ insert_event 
+--------------
+            1
+(1 row)
+
+select pgq.insert_event('myqueue', 'r2', 'data');
+ insert_event 
+--------------
+            2
+(1 row)
+
+select pgq.insert_event('myqueue', 'r3', 'data');
+ insert_event 
+--------------
+            3
+(1 row)
+
+select pgq.current_event_table('myqueue');
+ current_event_table 
+---------------------
+ pgq.event_2_0
+(1 row)
+
+select pgq.ticker();
+ ticker 
+--------
+      1
+(1 row)
+
+select pgq.next_batch('myqueue', 'consumer');
+ next_batch 
+------------
+          3
+(1 row)
+
+select ev_id,ev_retry,ev_type,ev_data,ev_extra1,ev_extra2,ev_extra3,ev_extra4 from pgq.get_batch_events(3);
+ ev_id | ev_retry | ev_type | ev_data | ev_extra1 | ev_extra2 | ev_extra3 | ev_extra4 
+-------+----------+---------+---------+-----------+-----------+-----------+-----------
+     1 |          | r1      | data    |           |           |           | 
+     2 |          | r2      | data    |           |           |           | 
+     3 |          | r3      | data    |           |           |           | 
+(3 rows)
+
+select * from pgq.failed_event_list('myqueue', 'consumer');
+ ev_failed_reason | ev_failed_time | ev_id | ev_time | ev_txid | ev_owner | ev_retry | ev_type | ev_data | ev_extra1 | ev_extra2 | ev_extra3 | ev_extra4 
+------------------+----------------+-------+---------+---------+----------+----------+---------+---------+-----------+-----------+-----------+-----------
+(0 rows)
+
+select pgq.event_failed(3, 1, 'failure test');
+ event_failed 
+--------------
+            1
+(1 row)
+
+select pgq.event_failed(3, 1, 'failure test');
+ event_failed 
+--------------
+            0
+(1 row)
+
+select pgq.event_retry(3, 2, 0);
+ event_retry 
+-------------
+           1
+(1 row)
+
+select pgq.event_retry(3, 2, 0);
+ event_retry 
+-------------
+           0
+(1 row)
+
+select pgq.finish_batch(3);
+ finish_batch 
+--------------
+            1
+(1 row)
+
+select ev_failed_reason, ev_id, ev_txid, ev_retry, ev_type, ev_data
+  from pgq.failed_event_list('myqueue', 'consumer');
+ ev_failed_reason | ev_id | ev_txid | ev_retry | ev_type | ev_data 
+------------------+-------+---------+----------+---------+---------
+ failure test     |     1 |         |        0 | r1      | data
+(1 row)
+
+select ev_failed_reason, ev_id, ev_txid, ev_retry, ev_type, ev_data
+  from pgq.failed_event_list('myqueue', 'consumer', 0, 1);
+ ev_failed_reason | ev_id | ev_txid | ev_retry | ev_type | ev_data 
+------------------+-------+---------+----------+---------+---------
+(0 rows)
+
+select * from pgq.failed_event_count('myqueue', 'consumer');
+ failed_event_count 
+--------------------
+                  1
+(1 row)
+
+select * from pgq.failed_event_delete('myqueue', 'consumer', 0);
+ERROR:  event not found
+select pgq.event_retry_raw('myqueue', 'consumer', now(), 666, now(), 0,
+        'rawtest', 'data', null, null, null, null);
+ event_retry_raw 
+-----------------
+             666
+(1 row)
+
+select pgq.ticker();
+ ticker 
+--------
+      1
+(1 row)
+
+-- test maint
+update pgq.queue set queue_rotation_period = '0 seconds';
+select queue_name, pgq.maint_rotate_tables_step1(queue_name) from pgq.queue;
+ queue_name | maint_rotate_tables_step1 
+------------+---------------------------
+ myqueue    |                         1
+(1 row)
+
+select pgq.maint_rotate_tables_step2();
+ maint_rotate_tables_step2 
+---------------------------
+                         1
+(1 row)
+
