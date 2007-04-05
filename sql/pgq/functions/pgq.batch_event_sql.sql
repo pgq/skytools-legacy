@@ -2,13 +2,40 @@ create or replace function pgq.batch_event_sql(x_batch_id bigint)
 returns text as $$
 -- ----------------------------------------------------------------------
 -- Function: pgq.batch_event_sql(1)
---     Creates SELECT statement that fetches events for this batch.
+--      Creates SELECT statement that fetches events for this batch.
 --
 -- Parameters:
---     x_batch_id    - ID of a active batch.
+--      x_batch_id    - ID of a active batch.
 --
 -- Returns:
---     SQL statement
+--      SQL statement.
+-- ----------------------------------------------------------------------
+
+-- ----------------------------------------------------------------------
+-- Algorithm description:
+--      Given 2 snapshots, sn1 and sn2 with sn1 having xmin1, xmax1
+--      and sn2 having xmin2, xmax2 create expression that filters
+--      right txid's from event table.
+--
+--      Simplest solution would be
+--      > WHERE ev_txid >= xmin1 AND ev_txid <= xmax2
+--      >   AND NOT txid_in_snapshot(ev_txid, sn1)
+--      >   AND txid_in_snapshot(ev_txid, sn2)
+--
+--      The simple solution has a problem with long transactions (xmin1 very low).
+--      All the batches that happen when the long tx is active will need
+--      to scan all events in that range.  Here is 2 optimizations used:
+--
+--      1)  Use [xmax1..xmax2] for range scan.  That limits the range to
+--      txids that actually happened between two snapshots.  For txids
+--      in the range [xmin1..xmax1] look which ones were actually
+--      committed between snapshots and search for them using exact
+--      values using IN (..) list.
+--
+--      2) As most TX are short, there could be lot of them that were
+--      just below xmax1, but were committed before xmax2.  So look
+--      if there are ID's near xmax1 and lower the range to include
+--      them, thus decresing size of IN (..) list.
 -- ----------------------------------------------------------------------
 declare
     rec             record;
