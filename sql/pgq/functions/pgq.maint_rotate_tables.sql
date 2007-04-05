@@ -48,7 +48,7 @@ begin
     if nr = cf.queue_ntables then
         nr := 0;
     end if;
-    tbl := cf.table_name || '_' || nr;
+    tbl := cf.queue_data_pfx || '_' || nr;
 
     -- there may be long lock on the table from pg_dump,
     -- detect it and skip rotate then
@@ -72,7 +72,7 @@ begin
     -- clean ticks - avoid partial batches
     delete from pgq.tick
         where tick_queue = cf.queue_id
-          and get_snapshot_xmin(snapshot) < cf.last_switch_step2;
+          and get_snapshot_xmin(tick_snapshot) < cf.queue_switch_step2;
 
     return 1;
 end;
