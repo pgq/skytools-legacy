@@ -143,10 +143,11 @@ class SmartTicker(skytools.DBScript):
     def work(self):
         db = self.get_database("db", autocommit = 1)
         cx = db.cursor()
+        queue_refresh = self.cf.getint('queue_refresh_period', 30)
 
         cur_time = time.time()
 
-        if cur_time >= self.refresh_time + 30:
+        if cur_time >= self.refresh_time + queue_refresh:
             self.refresh_queues(cx)
 
         if not self.seq_query:
