@@ -44,7 +44,10 @@ class MaintenanceJob(skytools.DBScript):
         # force loop_delay
         self.loop_delay = 5
 
-        self.maint_delay = 60 * self.cf.getfloat('maint_delay_min', 5)
+        # compat var
+        self.maint_delay = 60 * self.cf.getfloat('maint_delay_min', -1)
+        if self.maint_delay < 0:
+            self.maint_delay = self.cf.getfloat('maint_delay', 5*60)
         self.maint_delay = self.cf.getfloat('maint_delay', self.maint_delay)
 
     def work(self):
