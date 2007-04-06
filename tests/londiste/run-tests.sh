@@ -1,14 +1,23 @@
 #! /bin/sh
 
-. ./env.sh
+. ../env.sh
+
+./gendb.sh
 
 script=londiste.py
+
+mwait () {
+  echo "Waiting $1 seconds..."
+  sleep $1
+  shift
+  echo "$@"
+}
 
 set -e
 
 $script  conf/replic.ini provider install
 
-psql -c "update pgq.queue set queue_ticker_idle_period = '3', queue_ticker_max_lag = '2'" provider
+psql -c "update pgq.queue set queue_ticker_idle_period = '15', queue_ticker_max_lag = '5'" provider
 
 pgqadm.py -d conf/ticker.ini ticker
 
@@ -18,7 +27,7 @@ $script  conf/replic.ini subscriber register
 $script  conf/replic.ini subscriber unregister
 
 $script -v -d conf/replic.ini replay
-$script -v -d conf/fwrite.ini replay
+#$script -v -d conf/fwrite.ini replay
 
 sleep 2
 
@@ -54,5 +63,44 @@ sleep 2
 $script  conf/replic.ini subscriber add data2
 sleep 2
 
-./testing.py conf/tester.ini
+echo "starting data gen script"
+
+./testing.py -d conf/tester.ini
+
+mwait 30 "vacuuming"
+psql -c "vacuum analyze" provider
+mwait 30 "vacuuming"
+psql -c "vacuum analyze" provider
+
+#echo "stopping script for a moment"
+#$script conf/replic.ini -s
+#mwait 15 "starting replica again"
+#$script conf/replic.ini replay -d -v
+
+mwait 90 "stopping tester skript"
+./testing.py -s conf/tester.ini
+
+#exit 0
+
+mwait 20 "comparing tables"
+$script conf/replic.ini compare --force -v
+$script conf/replic.ini repair --force -v
+
+mwait 10 "stopping replica"
+$script -v -s conf/replic.ini
+#$script -v -s conf/fwrite.ini
+
+mwait 10 "stopping ticker"
+pgqadm.py -s -v conf/ticker.ini 
+
+test -f sys/pid.replic.copy && {
+  echo "copy failed, still running"
+  kill `cat sys/pid.replic.copy`
+  sleep 3
+}
+
+echo "done?"
+ps aux|grep python
+
+
 

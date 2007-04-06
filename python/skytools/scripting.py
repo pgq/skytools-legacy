@@ -396,13 +396,14 @@ class DBScript(object):
         self.stat_dict = {}
 
     def get_database(self, dbname, autocommit = 0, isolation_level = -1,
-                     cache = None, max_age = DEF_CONN_AGE):
+                     cache = None):
         """Load cached database connection.
         
         User must not store it permanently somewhere,
         as all connections will be invalidated on reset.
         """
 
+        max_age = self.cf.getint('connection_lifetime', DEF_CONN_AGE)
         if not cache:
             cache = dbname
         if cache in self.db_cache:
@@ -506,7 +507,11 @@ class DBScript(object):
                 return 1
 
     def work(self):
-        "Here should user's processing happen."
+        """Here should user's processing happen.
+
+        Return value is taken as boolean - if true, the next loop
+        starts immidiately.  If false, DBScript sleeps for a loop_delay.
+        """
         raise Exception("Nothing implemented?")
 
     def startup(self):
