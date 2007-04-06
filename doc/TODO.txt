@@ -7,6 +7,11 @@ web:
 
 londiste link <qname>
 londiste unlink <qname>
+londiste add --skip-truncate (needs new field in table_state)
+
+pgqadm reg-copy que cons1 cons2
+pgqadm reg-move que cons1 cons2
+
 
 Immidiate
 =========
@@ -16,9 +21,12 @@ Immidiate
 * RemoteConsumer/SerialConsumer/pgq_ext sanity, too much duplication
 * londiste * remove tbl should work also if table is already dropped
 
+* backend modules need to be ported to 8.3
+
 Near future
 ============
 
+* pgqadm: separate priod for retry queue processing
 * londiste: create tables on subscriber
 * skytools: switch for silence for cron scripts
 * docs: londiste, pgq/python, pgq/sql, skytools
