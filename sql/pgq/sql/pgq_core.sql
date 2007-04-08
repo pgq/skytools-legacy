@@ -16,8 +16,8 @@ select pgq.next_batch('myqueue', 'consumer');
 select pgq.next_batch('myqueue', 'consumer');
 
 select queue_name, consumer_name, prev_tick_id, tick_id, lag from pgq.get_batch_info(1);
-select queue_name from pgq.get_queue_info() limit 0;
-select queue_name, consumer_name from pgq.get_consumer_info() limit 0;
+select queue_name from pgq.get_queue_info() order by 1;
+select queue_name, consumer_name from pgq.get_consumer_info() order by 1, 2;
 
 select pgq.finish_batch(1);
 select pgq.finish_batch(1);
