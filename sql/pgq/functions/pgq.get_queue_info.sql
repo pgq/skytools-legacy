@@ -9,13 +9,13 @@ returns setof pgq.ret_queue_info as $$
 --      List of pgq.ret_queue_info records.
 -- ----------------------------------------------------------------------
 declare
-    qname text;
+    q     record;
     ret   pgq.ret_queue_info%rowtype;
 begin
-    for qname in
+    for q in
         select queue_name from pgq.queue order by 1
     loop
-        select * into ret from pgq.get_queue_info(qname);
+        select * into ret from pgq.get_queue_info(q.queue_name);
         return next ret;
     end loop;
     return;
