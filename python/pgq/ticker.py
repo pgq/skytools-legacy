@@ -109,8 +109,10 @@ class SmartTicker(skytools.DBScript):
         t.start()
 
     def refresh_queues(self, cx):
-        q = "select queue_name, queue_event_seq, queue_ticker_idle_period,"\
-            " queue_ticker_max_lag, queue_ticker_max_count"\
+        q = "select queue_name, queue_event_seq,"\
+            " extract('epoch' from queue_ticker_idle_period) as queue_ticker_idle_period,"\
+            " extract('epoch' from queue_ticker_max_lag) as queue_ticker_max_lag,"\
+            " queue_ticker_max_count"\
             " from pgq.queue"\
             " where not queue_external_ticker"
         cx.execute(q)
