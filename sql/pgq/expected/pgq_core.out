@@ -86,15 +86,17 @@ select queue_name, consumer_name, prev_tick_id, tick_id, lag from pgq.get_batch_
  myqueue    | consumer      |            1 |       2 | @ 0.00 secs
 (1 row)
 
-select queue_name from pgq.get_queue_info() limit 0;
+select queue_name from pgq.get_queue_info() order by 1;
  queue_name 
 ------------
-(0 rows)
+ myqueue
+(1 row)
 
-select queue_name, consumer_name from pgq.get_consumer_info() limit 0;
+select queue_name, consumer_name from pgq.get_consumer_info() order by 1, 2;
  queue_name | consumer_name 
 ------------+---------------
-(0 rows)
+ myqueue    | consumer
+(1 row)
 
 select pgq.finish_batch(1);
  finish_batch 
