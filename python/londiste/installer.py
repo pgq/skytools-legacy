@@ -6,6 +6,8 @@ import os, skytools
 __all__ = ['install_provider', 'install_subscriber']
 
 provider_object_list = [
+    skytools.DBLanguage("plpgsql"),
+    skytools.DBLanguage("plpythonu"),
     skytools.DBFunction('logtriga', 0, sql_file = "logtriga.sql"),
     skytools.DBFunction('get_current_snapshot', 0, sql_file = "txid.sql"),
     skytools.DBSchema('pgq', sql_file = "pgq.sql"),
@@ -13,6 +15,8 @@ provider_object_list = [
 ]
 
 subscriber_object_list = [
+    skytools.DBLanguage("plpgsql"),
+    skytools.DBLanguage("plpythonu"),
     skytools.DBSchema('londiste', sql_file = "londiste.sql")
 ]
 
