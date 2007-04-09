@@ -511,13 +511,6 @@ class Replicator(pgq.SerialConsumer):
             t.changed = 0
             got_changes = 1
 
-        # if state changes, request immidiate tick from pgqadm,
-        # to make state juggling faster.  on mostly idle db-s
-        # each step may take tickers idle_timeout secs, which is pain.
-        if got_changes:
-            q = "select pgq.force_tick(%s)"
-            curs.execute(q, [self.pgq_queue_name])
-
     def change_table_state(self, dst_db, tbl, state, tick_id = None):
         tbl.change_state(state, tick_id)
         self.save_table_state(dst_db.cursor())
