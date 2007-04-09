@@ -50,4 +50,17 @@ select londiste.subscriber_remove_table('pqueue', 'public.testdata');
 select londiste.subscriber_add_seq('pqueue', 'public.testdata_id_seq');
 select londiste.subscriber_remove_seq('pqueue', 'public.testdata_seq');
 
+--
+-- skip-truncate, set_table_state
+--
+
+select londiste.subscriber_add_table('pqueue', 'public.skiptest');
+select skip_truncate from londiste.subscriber_table where table_name = 'public.skiptest';
+select londiste.subscriber_set_skip_truncate('pqueue', 'public.skiptest', true);
+select skip_truncate from londiste.subscriber_table where table_name = 'public.skiptest';
+select londiste.subscriber_set_table_state('pqueue', 'public.skiptest', 'snap1', 'in-copy');
+select skip_truncate, snapshot from londiste.subscriber_table where table_name = 'public.skiptest';
+select londiste.subscriber_set_table_state('pqueue', 'public.skiptest', null, 'ok');
+select skip_truncate, snapshot from londiste.subscriber_table where table_name = 'public.skiptest';
+
 

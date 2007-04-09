@@ -126,3 +126,54 @@ select londiste.subscriber_add_seq('pqueue', 'public.testdata_id_seq');
 
 select londiste.subscriber_remove_seq('pqueue', 'public.testdata_seq');
 ERROR:  no such seq?
+--
+-- skip-truncate, set_table_state
+--
+select londiste.subscriber_add_table('pqueue', 'public.skiptest');
+ subscriber_add_table 
+----------------------
+                    0
+(1 row)
+
+select skip_truncate from londiste.subscriber_table where table_name = 'public.skiptest';
+ skip_truncate 
+---------------
+ 
+(1 row)
+
+select londiste.subscriber_set_skip_truncate('pqueue', 'public.skiptest', true);
+ subscriber_set_skip_truncate 
+------------------------------
+                            1
+(1 row)
+
+select skip_truncate from londiste.subscriber_table where table_name = 'public.skiptest';
+ skip_truncate 
+---------------
+ t
+(1 row)
+
+select londiste.subscriber_set_table_state('pqueue', 'public.skiptest', 'snap1', 'in-copy');
+ subscriber_set_table_state 
+----------------------------
+                          1
+(1 row)
+
+select skip_truncate, snapshot from londiste.subscriber_table where table_name = 'public.skiptest';
+ skip_truncate | snapshot 
+---------------+----------
+ t             | snap1
+(1 row)
+
+select londiste.subscriber_set_table_state('pqueue', 'public.skiptest', null, 'ok');
+ subscriber_set_table_state 
+----------------------------
+                          1
+(1 row)
+
+select skip_truncate, snapshot from londiste.subscriber_table where table_name = 'public.skiptest';
+ skip_truncate | snapshot 
+---------------+----------
+               | 
+(1 row)
+
