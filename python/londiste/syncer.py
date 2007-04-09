@@ -77,6 +77,7 @@ class Syncer(skytools.DBScript):
             tlist = full_list
 
         for tbl in tlist:
+            tbl = skytools.fq_name(tbl)
             if not tbl in state_map:
                 self.log.warning('Table not subscribed: %s' % tbl)
                 continue
