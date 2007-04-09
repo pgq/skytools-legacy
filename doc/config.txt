@@ -1,0 +1,29 @@
+
+== Common options ==
+
+job_name
+pidfile
+logfile
+
+loop_delay
+connection_lifetime
+
+use_skylog
+
+== Common to PGQ scripts ==
+
+pgq_queue_name
+
+pgq_consumer_id
+
+== Londiste ==
+
+provider_db = 
+subscriber_db =
+
+== PgqAdm ==
+
+maint_delay = 
+queue_refresh_period
+ticker_log_delay
+
