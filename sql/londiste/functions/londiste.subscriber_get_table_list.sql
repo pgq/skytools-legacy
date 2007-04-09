@@ -5,7 +5,7 @@ declare
     rec londiste.ret_subscriber_table%rowtype;
 begin
     for rec in
-        select table_name, merge_state, snapshot, trigger_name
+        select table_name, merge_state, snapshot, trigger_name, skip_truncate
           from londiste.subscriber_table
          where queue_name = i_queue_name
          order by nr
