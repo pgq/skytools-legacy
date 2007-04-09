@@ -77,6 +77,13 @@ class CopyTable(Replicator):
         self.save_table_state(dst_curs)
         dst_db.commit()
 
+        # if copy done, request immidiate tick from pgqadm,
+        # to make state juggling faster.  on mostly idle db-s
+        # each step may take tickers idle_timeout secs, which is pain.
+        q = "select pgq.force_tick(%s)"
+        srccurs.execute(q, [self.pgq_queue_name])
+        src_db.commit()
+
     def real_copy(self, srccurs, dstcurs, tbl_stat):
         "Main copy logic."
 
@@ -95,6 +102,7 @@ class CopyTable(Replicator):
         if stats:
             self.log.info("%s: copy finished: %d bytes, %d rows" % (
                           tablename, stats[0], stats[1]))
+
 
 if __name__ == '__main__':
     script = CopyTable(sys.argv[1:])
