@@ -122,6 +122,8 @@ class Repairer(Syncer):
         self.log.info('Got %d bytes' % size)
 
     def get_row(self, ln):
+        if not ln:
+            return None
         t = ln[:-1].split('\t')
         row = {}
         for i in range(len(self.common_fields)):
