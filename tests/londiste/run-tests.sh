@@ -72,10 +72,9 @@ psql -c "vacuum analyze" provider
 mwait 30 "vacuuming"
 psql -c "vacuum analyze" provider
 
-#echo "stopping script for a moment"
-#$script conf/replic.ini -s
-#mwait 15 "starting replica again"
-#$script conf/replic.ini replay -d -v
+$script  conf/replic.ini provider add expect_test skip_test
+$script  conf/replic.ini subscriber add --expect-sync expect_test
+$script  conf/replic.ini subscriber add --skip-truncate skip_test
 
 mwait 90 "stopping tester skript"
 ./testing.py -s conf/tester.ini
@@ -83,6 +82,11 @@ mwait 90 "stopping tester skript"
 #exit 0
 
 mwait 20 "comparing tables"
+
+psql subscriber -c "select * from expect_test"
+psql subscriber -c "select * from skip_test"
+
+# those should give errors on expect_test and skip_test tables, thats expected
 $script conf/replic.ini compare --force -v
 $script conf/replic.ini repair --force -v
 
