@@ -21,6 +21,7 @@ clean:
 	$(PYTHON) setup.py clean
 	rm -rf build
 	find python -name '*.py[oc]' -print | xargs rm -f
+	rm -f python/skytools/installer_config.py
 
 install: python-install modules-install
 
@@ -61,7 +62,7 @@ deb82:
 	yada rebuild
 	debuild -uc -us -b
 
-tgz: config.mak
+tgz: config.mak clean
 	$(PYTHON) setup.py sdist -t source.cfg -m source.list
 
 debclean: distclean
