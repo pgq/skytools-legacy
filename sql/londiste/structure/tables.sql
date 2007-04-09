@@ -26,8 +26,8 @@ create table londiste.completed (
 );
 
 create table londiste.link (
-    source text not null,
-    dest text not null,
+    source    text not null,
+    dest      text not null,
     primary key (source),
     unique (dest)
 );
@@ -48,7 +48,7 @@ create table londiste.subscriber_table (
 create table londiste.subscriber_seq (
     nr                  serial not null,
     queue_name          text not null,
-    seq_name          text not null,
+    seq_name            text not null,
 
     primary key (queue_name, seq_name)
 );
