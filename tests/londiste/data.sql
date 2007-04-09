@@ -22,3 +22,18 @@ create index idx_data2_rand on data2 (id, data);
 
 create sequence test_seq;
 select setval('test_seq', 50);
+
+
+
+create table expect_test (
+    dbname text primary key
+);
+insert into expect_test values (current_database());
+
+create table skip_test (
+    id serial not null,
+    dbname text not null,
+    primary key (id, dbname)
+);
+insert into skip_test (dbname) values (current_database());
+
