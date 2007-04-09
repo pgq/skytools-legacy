@@ -367,15 +367,8 @@ class DBObject(object):
         if self.sql_file[0] == "/":
             full_fn = self.sql_file
         else:
-            dir_list = skytools.installer_config.dir_list
-            contrib_list = [
-                "/opt/pgsql/share/contrib",
-                "/usr/share/postgresql/8.0/contrib",
-                "/usr/share/postgresql/8.0/contrib",
-                "/usr/share/postgresql/8.1/contrib",
-                "/usr/share/postgresql/8.2/contrib",
-            ]
-            for dir in contrib_list:
+            dir_list = skytools.installer_config.sql_locations
+            for dir in dir_list:
                 fn = os.path.join(dir, self.sql_file)
                 if os.path.isfile(fn):
                     full_fn = fn
