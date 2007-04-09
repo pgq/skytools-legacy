@@ -1,3 +1,16 @@
+2007-04-09  -  SkyTools 2.1.2  -  "Help screen works"
+
+    Most fallout from reorg is hopefully cleaned now.
+
+    * Dumb bug in ticker wich made it almost non-working,
+      except it managed to complete the regression test...
+    * Move --skip-truncate switch from 'copy' to 'londiste add'.
+    * 'londiste install' also installs plpgsql+plpythonu.
+    * SQL installer logs full path to file it found.
+    * Change pgq.get_queue_info() FOR loop variable to record
+      instead text that was reported to fail, although it did work here.
+    * Remember where the SQL files were installed.
+
 2007-04-06  -  SkyTools 2.1.1  -  "Needs more thrust to fly"
 
     SkyTools got big reorg before release, but with the hoopla
