@@ -18,3 +18,6 @@ londiste.sql: $(SRCS)
 londiste.upgrade.sql: $(FUNCS)
 	cat $(FUNCS) > $@
 
+test: londiste.sql
+	make installcheck || { less regression.diffs; exit 1; }
+

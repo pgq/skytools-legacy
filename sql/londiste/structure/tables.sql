@@ -40,6 +40,8 @@ create table londiste.subscriber_table (
     merge_state         text,
     trigger_name        text,
 
+    skip_truncate       bool,
+
     primary key (queue_name, table_name)
 );
 
