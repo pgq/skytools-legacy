@@ -22,6 +22,9 @@ clean:
 	rm -rf build
 	find python -name '*.py[oc]' -print | xargs rm -f
 	rm -f python/skytools/installer_config.py
+	rm -rf tests/londiste/sys
+	rm -rf tests/londiste/file_logs
+	rm -rf tests/londiste/fix.*
 
 install: python-install modules-install
 
