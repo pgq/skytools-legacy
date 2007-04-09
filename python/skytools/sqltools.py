@@ -3,7 +3,17 @@
 
 import os
 from cStringIO import StringIO
-from quoting import quote_copy, quote_literal
+from skytools.quoting import quote_copy, quote_literal
+import skytools.installer_config
+
+__all__ = [
+    "fq_name_parts", "fq_name", "get_table_oid", "get_table_pkeys",
+    "get_table_columns", "exists_schema", "exists_table", "exists_type",
+    "exists_function", "exists_language", "Snapshot", "magic_insert",
+    "db_copy_from_dict", "db_copy_from_list", "CopyPipe", "full_copy",
+    "DBObject", "DBSchema", "DBTable", "DBFunction", "DBLanguage",
+    "db_install"
+]
 
 #
 # Fully qualified table name
@@ -357,6 +367,7 @@ class DBObject(object):
         if self.sql_file[0] == "/":
             full_fn = self.sql_file
         else:
+            dir_list = skytools.installer_config.dir_list
             contrib_list = [
                 "/opt/pgsql/share/contrib",
                 "/usr/share/postgresql/8.0/contrib",
