@@ -115,7 +115,7 @@ class Londiste(skytools.DBScript):
         g.add_option("--expect-sync", action="store_true", dest="expect_sync",
                 help = "add: no copy needed", default=False)
         g.add_option("--skip-truncate", action="store_true", dest="skip_truncate",
-                help = "copy: keep old data", default=False)
+                help = "add: keep old data", default=False)
         g.add_option("--rewind", action="store_true",
                 help = "replay: sync queue pos with subscriber")
         g.add_option("--reset", action="store_true",

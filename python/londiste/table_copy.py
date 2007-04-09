@@ -21,12 +21,6 @@ class CopyTable(Replicator):
             self.consumer_id += "_copy"
             self.copy_thread = 1
 
-    def init_optparse(self, parser=None):
-        p = Replicator.init_optparse(self, parser)
-        p.add_option("--skip-truncate", action="store_true", dest="skip_truncate",
-                    help = "avoid truncate", default=False)
-        return p
-
     def do_copy(self, tbl_stat):
         src_db = self.get_database('provider_db')
         dst_db = self.get_database('subscriber_db')
@@ -36,7 +30,7 @@ class CopyTable(Replicator):
         dst_db.commit()
 
         # change to SERIALIZABLE isolation level
-        src_db.set_isolation_level(2)
+        src_db.set_isolation_level(skytools.I_SERIALIZABLE)
         src_db.commit()
 
         # initial sync copy
@@ -60,7 +54,7 @@ class CopyTable(Replicator):
         dst_struct.drop(dst_curs, objs, log = self.log)
 
         # do truncate & copy
-        self.real_copy(src_curs, dst_curs, tbl_stat.name)
+        self.real_copy(src_curs, dst_curs, tbl_stat)
 
         # get snapshot
         src_curs.execute("select get_current_snapshot()")
@@ -83,11 +77,12 @@ class CopyTable(Replicator):
         self.save_table_state(dst_curs)
         dst_db.commit()
 
-    def real_copy(self, srccurs, dstcurs, tablename):
+    def real_copy(self, srccurs, dstcurs, tbl_stat):
         "Main copy logic."
 
+        tablename = tbl_stat.name
         # drop data
-        if self.options.skip_truncate:
+        if tbl_stat.skip_truncate:
             self.log.info("%s: skipping truncate" % tablename)
         else:
             self.log.info("%s: truncating" % tablename)

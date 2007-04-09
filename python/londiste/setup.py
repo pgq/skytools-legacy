@@ -120,6 +120,8 @@ class CommonSetup(skytools.DBScript):
         p = skytools.DBScript.init_optparse(self, parser)
         p.add_option("--expect-sync", action="store_true", dest="expect_sync",
                     help = "no copy needed", default=False)
+        p.add_option("--skip-truncate", action="store_true", dest="skip_truncate",
+                    help = "dont delete old data", default=False)
         p.add_option("--force", action="store_true",
                     help="force", default=False)
         return p
@@ -459,13 +461,16 @@ class SubscriberSetup(CommonSetup):
             else:
                 sys.exit(1)
 
+        dst_db = self.get_database('subscriber_db')
+        dst_curs = dst_db.cursor()
         for tbl in table_list:
             tbl = skytools.fq_name(tbl)
             if tbl in subscriber_tables:
                 self.log.info("Table %s already added" % tbl)
             else:
                 self.log.info("Adding %s" % tbl)
-                self.subscriber_add_one_table(tbl)
+                self.subscriber_add_one_table(dst_curs, tbl)
+            dst_db.commit()
 
     def subscriber_remove_tables(self, table_list):
         subscriber_tables = self.get_subscriber_table_list()
@@ -497,16 +502,19 @@ class SubscriberSetup(CommonSetup):
                 dst_curs.execute(q, [self.pgq_queue_name, tbl])
         dst_db.commit()
 
-    def subscriber_add_one_table(self, tbl):
+    def subscriber_add_one_table(self, dst_curs, tbl):
         q = "select londiste.subscriber_add_table(%s, %s)"
 
-        dst_db = self.get_database('subscriber_db')
-        dst_curs = dst_db.cursor()
         dst_curs.execute(q, [self.pgq_queue_name, tbl])
-        if self.options.expect_sync:
+        if self.options.expect_sync and self.options.skip_truncate:
+            self.log.error("Too many options: --expect-sync and --skip-truncate")
+            sys.exit(1)
+        elif self.options.expect_sync:
             q = "select londiste.subscriber_set_table_state(%s, %s, null, 'ok')"
             dst_curs.execute(q, [self.pgq_queue_name, tbl])
-        dst_db.commit()
+        elif self.options.skip_truncate:
+            q = "select londiste.subscriber_set_skip_truncate(%s, %s, true)"
+            dst_curs.execute(q, [self.pgq_queue_name, tbl])
 
     def subscriber_remove_one_table(self, tbl):
         q = "select londiste.subscriber_remove_table(%s, %s)"
