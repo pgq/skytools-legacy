@@ -337,28 +337,42 @@ class DBObject(object):
         self.name = name
         self.sql = sql
         self.sql_file = sql_file
-    def get_sql(self):
+
+    def create(self, curs, log = None):
+        if log:
+            log.info('Installing %s' % self.name)
         if self.sql:
-            return self.sql
-        if self.sql_file:
-            if self.sql_file[0] == "/":
-                fn = self.sql_file
-            else:
-                contrib_list = [
-                    "/opt/pgsql/share/contrib",
-                    "/usr/share/postgresql/8.0/contrib",
-                    "/usr/share/postgresql/8.0/contrib",
-                    "/usr/share/postgresql/8.1/contrib",
-                    "/usr/share/postgresql/8.2/contrib",
-                ]
-                for dir in contrib_list:
-                    fn = os.path.join(dir, self.sql_file)
-                    if os.path.isfile(fn):
-                        return open(fn, "r").read()
-                raise Exception('File not found: '+self.sql_file)
-        raise Exception('object not defined')
-    def create(self, curs):
-        curs.execute(self.get_sql())
+            sql = self.sql
+        elif self.sql_file:
+            fn = self.find_file()
+            if log:
+                log.info("  Reading from %s" % fn)
+            sql = open(fn, "r").read()
+        else:
+            raise Exception('object not defined')
+        curs.execute(sql)
+
+    def find_file(self):
+        full_fn = None
+        if self.sql_file[0] == "/":
+            full_fn = self.sql_file
+        else:
+            contrib_list = [
+                "/opt/pgsql/share/contrib",
+                "/usr/share/postgresql/8.0/contrib",
+                "/usr/share/postgresql/8.0/contrib",
+                "/usr/share/postgresql/8.1/contrib",
+                "/usr/share/postgresql/8.2/contrib",
+            ]
+            for dir in contrib_list:
+                fn = os.path.join(dir, self.sql_file)
+                if os.path.isfile(fn):
+                    full_fn = fn
+                    break
+
+        if not full_fn:
+            raise Exception('File not found: '+self.sql_file)
+        return full_fn
 
 class DBSchema(DBObject):
     """Handles db schema."""
@@ -389,9 +403,7 @@ def db_install(curs, list, log = None):
     """Installs list of objects into db."""
     for obj in list:
         if not obj.exists(curs):
-            if log:
-                log.info('Installing %s' % obj.name)
-            obj.create(curs)
+            obj.create(curs, log)
         else:
             if log:
                 log.info('%s is installed' % obj.name)
