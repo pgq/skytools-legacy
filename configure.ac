@@ -19,6 +19,17 @@ AC_ARG_WITH(pgconfig, [  --with-pgconfig=PG_CONFIG    path to pg_config (default
 [ AC_PATH_PROGS(PG_CONFIG, pg_config) ])
 test -n "$PG_CONFIG" || AC_MSG_ERROR([Cannot continue without pg_config])
 
+AC_MSG_CHECKING(where PostgreSQL SQL extensions are installed)
+cat > conftest.mak <<EOF
+PGXS = \$(shell $PG_CONFIG --pgxs)
+include \$(PGXS)
+finddir:
+	echo "\$(datadir)/contrib"
+EOF
+SQLDIR=`make -s -f conftest.mak finddir`
+AC_MSG_RESULT($SQLDIR)
+AC_SUBST(SQLDIR)
+
 dnl Write result
-AC_OUTPUT([config.mak])
+AC_OUTPUT([config.mak python/skytools/installer_config.py])
 

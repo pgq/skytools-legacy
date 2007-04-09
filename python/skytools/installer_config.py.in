@@ -1,0 +1,4 @@
+
+sql_locations = [
+    "@SQLDIR@",
+]
