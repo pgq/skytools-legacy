@@ -27,7 +27,7 @@ begin
     -- bump seq and get queue id
     select queue_id,
            setval(queue_event_seq, nextval(queue_event_seq)
-                                   + queue_tick_max_count * 2) as tmp
+                                   + queue_ticker_max_count * 2) as tmp
       into q from pgq.queue
      where queue_name = i_queue_name
        and not queue_external_ticker;

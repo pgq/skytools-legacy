@@ -267,3 +267,22 @@ select pgq.maint_rotate_tables_step2();
                          1
 (1 row)
 
+-- test extra
+select nextval(queue_event_seq) from pgq.queue where queue_name = 'myqueue';
+ nextval 
+---------
+       4
+(1 row)
+
+select pgq.force_tick('myqueue');
+ force_tick 
+------------
+          5
+(1 row)
+
+select nextval(queue_event_seq) from pgq.queue where queue_name = 'myqueue';
+ nextval 
+---------
+    1006
+(1 row)
+

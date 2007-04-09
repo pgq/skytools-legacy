@@ -64,3 +64,8 @@ update pgq.queue set queue_rotation_period = '0 seconds';
 select queue_name, pgq.maint_rotate_tables_step1(queue_name) from pgq.queue;
 select pgq.maint_rotate_tables_step2();
 
+-- test extra
+select nextval(queue_event_seq) from pgq.queue where queue_name = 'myqueue';
+select pgq.force_tick('myqueue');
+select nextval(queue_event_seq) from pgq.queue where queue_name = 'myqueue';
+
