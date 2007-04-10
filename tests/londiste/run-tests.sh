@@ -106,5 +106,5 @@ test -f sys/pid.replic.copy && {
 echo "done?"
 ps aux|grep python
 
-
+grep -E 'WARN|ERR' sys/*
 
