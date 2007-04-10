@@ -81,7 +81,7 @@ class CopyTable(Replicator):
         # to make state juggling faster.  on mostly idle db-s
         # each step may take tickers idle_timeout secs, which is pain.
         q = "select pgq.force_tick(%s)"
-        srccurs.execute(q, [self.pgq_queue_name])
+        src_curs.execute(q, [self.pgq_queue_name])
         src_db.commit()
 
     def real_copy(self, srccurs, dstcurs, tbl_stat):
