@@ -10,14 +10,17 @@ SUBDIRS = sql
 all: python-all modules-all
 
 modules-all: config.mak
-	make -C sql all
+	$(MAKE) -C sql all
+
+x$(MAKE):
+	echo $(MAKE)
 
 python-all: config.mak
 	$(PYTHON) setup.py build
 
 clean:
-	make -C sql clean
-	make -C doc clean
+	$(MAKE) -C sql clean
+	$(MAKE) -C doc clean
 	$(PYTHON) setup.py clean
 	rm -rf build
 	find python -name '*.py[oc]' -print | xargs rm -f
@@ -29,19 +32,19 @@ clean:
 install: python-install modules-install
 
 installcheck:
-	make -C sql installcheck
+	$(MAKE) -C sql installcheck
 
 modules-install: config.mak
-	make -C sql install DESTDIR=$(DESTDIR)
-	test \! -d compat || make -C compat $@ DESTDIR=$(DESTDIR)
+	$(MAKE) -C sql install DESTDIR=$(DESTDIR)
+	test \! -d compat || $(MAKE) -C compat $@ DESTDIR=$(DESTDIR)
 
 python-install: config.mak
 	$(PYTHON) setup.py install --prefix=$(prefix) --root=$(DESTDIR)/
-	test \! -d compat || make -C compat $@ DESTDIR=$(DESTDIR)
+	test \! -d compat || $(MAKE) -C compat $@ DESTDIR=$(DESTDIR)
 
 distclean: clean
-	for dir in $(SUBDIRS); do make -C $$dir $@ || exit 1; done
-	make -C doc $@
+	for dir in $(SUBDIRS); do $(MAKE) -C $$dir $@ || exit 1; done
+	$(MAKE) -C doc $@
 	rm -rf source.list dist skytools-*
 	find python -name '*.pyc' | xargs rm -f
 	rm -rf dist build

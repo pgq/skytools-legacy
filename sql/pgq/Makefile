@@ -41,11 +41,11 @@ test:
 	#-dropdb pgq
 	#createdb pgq
 	#psql -f structure/pgq.sql pgq
-	make installcheck || { less regression.diffs; exit 1; }
+	$(MAKE) installcheck || { less regression.diffs; exit 1; }
 
 upload: dox
 	rsync -az docs/html structure functions data1:public_html/pgq/
-	make cleandox
+	$(MAKE) cleandox
 	rsync -az catsql.py Makefile docs data1:public_html/pgq/
-	make dox
+	$(MAKE) dox
 

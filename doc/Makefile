@@ -29,7 +29,7 @@ apidoc:
 	cd ../python && epydoc3 -o ../doc/api --html --no-private $(PY_PKGS)
 
 apiupload: apidoc
-	cd ../sql/pgq && rm -rf docs/pgq && make dox && mv docs/html docs/pgq
+	cd ../sql/pgq && rm -rf docs/pgq && $(MAKE) dox && mv docs/html docs/pgq
 	rsync -rtlz api $(web)
 	rsync -rtlz ../sql/pgq/docs/pgq $(web)
 
