@@ -19,6 +19,16 @@ AC_ARG_WITH(pgconfig, [  --with-pgconfig=PG_CONFIG    path to pg_config (default
 [ AC_PATH_PROGS(PG_CONFIG, pg_config) ])
 test -n "$PG_CONFIG" || AC_MSG_ERROR([Cannot continue without pg_config])
 
+dnl Find GNU make
+AC_PATH_PROGS(MAKE, gmake make)
+AC_MSG_CHECKING(if $MAKE is GNU make)
+if $MAKE --version 2>&1 | grep -q GNU; then
+  AC_MSG_RESULT(yes)
+else
+  AC_MSG_ERROR(no, cannot proceed)
+fi
+
+dnl Find location of /contrib SQL
 AC_MSG_CHECKING(where PostgreSQL SQL extensions are installed)
 cat > conftest.mak <<EOF
 PGXS = \$(shell $PG_CONFIG --pgxs)
@@ -26,7 +36,7 @@ include \$(PGXS)
 finddir:
 	echo "\$(datadir)/contrib"
 EOF
-SQLDIR=`make -s -f conftest.mak finddir`
+SQLDIR=`$MAKE -s -f conftest.mak finddir`
 AC_MSG_RESULT($SQLDIR)
 AC_SUBST(SQLDIR)
 
