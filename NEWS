@@ -1,3 +1,10 @@
+2007-04-10  -  SkyTools 2.1.3  -  "Brown Paper Bag"
+
+    Still managed to sneak in a last-minute typo.
+
+    * Fix copy-paste error in table_copy.py
+    * Remember to bump version in pgq.version()
+
 2007-04-09  -  SkyTools 2.1.2  -  "Help screen works"
 
     Most fallout from reorg is hopefully cleaned now.
