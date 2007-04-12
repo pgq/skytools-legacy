@@ -432,6 +432,7 @@ Datum logtriga(PG_FUNCTION_ARGS)
 	Datum		argv[2];
 	int			rc;
 	ArgCache	*cs;
+	int			attcnt;
 	char		*attkind;
 	char		*kpos;
 	char		*query;
@@ -471,11 +472,23 @@ Datum logtriga(PG_FUNCTION_ARGS)
 	attkind = tg->tg_trigger->tgargs[0];
 	query = tg->tg_trigger->tgargs[1];
 
-	/* make sure there is 'k' and all key columns exists */
+	/*
+	 * Count number of active columns
+	 */
+	for (i = 0, attcnt = 0; i < tg->tg_relation->rd_att->natts; i++)
+	{
+		if (tupdesc->attrs[i]->attisdropped)
+			continue;
+		attcnt++;
+	}
+
+	/*
+	 * Make sure all 'k' columns exist and there is at least one of them.
+	 */
 	kpos = strrchr(attkind, 'k');
 	if (kpos == NULL)
 		elog(ERROR, "logtriga: need at least one key column");
-	if (kpos - attkind >= tg->tg_relation->rd_att->natts)
+	if (kpos - attkind >= attcnt)
 		elog(ERROR, "logtriga: key column does not exist");
 
 	/*
