@@ -432,6 +432,8 @@ Datum logtriga(PG_FUNCTION_ARGS)
 	Datum		argv[2];
 	int			rc;
 	ArgCache	*cs;
+	TupleDesc	tupdesc;
+	int			i;
 	int			attcnt;
 	char		*attkind;
 	char		*kpos;
@@ -444,6 +446,7 @@ Datum logtriga(PG_FUNCTION_ARGS)
 	if (!CALLED_AS_TRIGGER(fcinfo))
 		elog(ERROR, "logtriga not called as trigger");
 	tg = (TriggerData *) (fcinfo->context);
+	tupdesc = tg->tg_relation->rd_att;
 
 	/*
 	 * Check all logTrigger() calling conventions
