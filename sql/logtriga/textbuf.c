@@ -190,7 +190,7 @@ static int quote_literal(char *dst, const uint8 *src, int srclen)
 	*cp2++ = '\'';
 	while (srclen > 0)
 	{
-		if ((wl = pg_mblen(cp1)) != 1)
+		if ((wl = pg_mblen((const char *)cp1)) != 1)
 		{
 			srclen -= wl;
 
