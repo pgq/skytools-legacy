@@ -370,10 +370,10 @@ static int process_update(ArgCache *cs, TriggerData *tg, char *attkind)
 			continue;
 
 		attkind_idx++;
-		if (attkind[attkind_idx] != 'k')
-			continue;
 		if (attkind[attkind_idx] == '\0')
 			break;
+		if (attkind[attkind_idx] != 'k')
+			continue;
 		col_ident = SPI_fname(tupdesc, i + 1);
 		col_value = SPI_getvalue(old_row, tupdesc, i + 1);
 
@@ -410,10 +410,10 @@ static void process_delete(ArgCache *cs, TriggerData *tg, char *attkind)
 			continue;
 
 		attkind_idx++;
-		if (attkind[attkind_idx] != 'k')
-			continue;
 		if (attkind[attkind_idx] == '\0')
 			break;
+		if (attkind[attkind_idx] != 'k')
+			continue;
 		col_ident = SPI_fname(tupdesc, i + 1);
 		col_value = SPI_getvalue(old_row, tupdesc, i + 1);
 
@@ -433,6 +433,7 @@ Datum logtriga(PG_FUNCTION_ARGS)
 	int			rc;
 	ArgCache	*cs;
 	char		*attkind;
+	char		*kpos;
 	char		*query;
 	int			need_event = 1;
 
@@ -470,8 +471,12 @@ Datum logtriga(PG_FUNCTION_ARGS)
 	attkind = tg->tg_trigger->tgargs[0];
 	query = tg->tg_trigger->tgargs[1];
 
-	if (strchr(attkind, 'k') == NULL)
+	/* make sure there is 'k' and all key columns exists */
+	kpos = strrchr(attkind, 'k');
+	if (kpos == NULL)
 		elog(ERROR, "logtriga: need at least one key column");
+	if (kpos - attkind >= tg->tg_relation->rd_att->natts)
+		elog(ERROR, "logtriga: key column does not exist");
 
 	/*
 	 * Determine cmdtype and op_data depending on the command type
