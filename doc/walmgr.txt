@@ -20,23 +20,23 @@
 
 === Start archival process ===
 
-     master$ ./walmgr.py setup
+     master$ ./walmgr.py master.ini setup
      
 === Do full backup+restore ===
 
-    master$ ./walmgr.py backup
-    slave$ ./walmgr.py restore
+    master$ ./walmgr.py master.ini backup
+    slave$ ./walmgr.py slave.ini restore
 
    'walmgr.py restore' moves data in place and starts postmaster,
    that starts replaying logs as they appear.
 
 === In-progress WAL segments can be backup by command: ===
 
-    master$ ./walmgr.py sync
+    master$ ./walmgr.py master.ini sync
 
 === If need to stop replay on slave and boot into normal mode, do: ===
 
-     slave$ ./walmgr.py boot
+    slave$ ./walmgr.py slave.ini boot
 
 == Configuration ==
 
