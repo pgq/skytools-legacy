@@ -97,13 +97,13 @@ Sample:
 {{{
  [ .. prepare config .. ]
 
- master$ walmgr setup
- master$ walmgr backup
- slave$ walmgr restore
+ master$ walmgr master.ini setup
+ master$ walmgr master.ini backup
+ slave$ walmgr slave.ini restore
 
  [ .. main server down, switch failover server to normal mode: ]
 
- slave$ walmgr restore
+ slave$ walmgr slave.ini boot
 }}}
 
 == Low-level tools ==
