@@ -159,7 +159,7 @@ class WalMgr(skytools.DBScript):
         self.args = self.args[2:]
 
         cmdtab = {
-            'setup':        self.master_setup,
+            'setup':        self.walmgr_setup,
             'stop':         self.master_stop,
             'backup':       self.run_backup,
             'listbackups':  self.list_backups,
@@ -289,15 +289,27 @@ class WalMgr(skytools.DBScript):
         except:
             self.log.fatal("Cannot write to %s" % fn)
 
-    def master_setup(self):
-        self.assert_valid_role(MASTER)
-        self.log.info("Configuring WAL archiving")
+    def walmgr_setup(self):
+        if self.wtype == MASTER:
+            self.log.info("Configuring WAL archiving")
 
-        script = os.path.abspath(sys.argv[0])
-        cf_file = os.path.abspath(self.cf.filename)
-        cf_val = "%s %s %s" % (script, cf_file, "xarchive %p %f")
+            script = os.path.abspath(sys.argv[0])
+            cf_file = os.path.abspath(self.cf.filename)
+            cf_val = "%s %s %s" % (script, cf_file, "xarchive %p %f")
 
-        self.master_configure_archiving(cf_val)
+            self.master_configure_archiving(cf_val)
+            # ask slave to init
+            self.remote_walmgr("setup")
+        else:
+            # create slave directory structure
+            def mkdir(dir):
+                if not os.path.exists(dir):
+                    self.log.debug("Creating directory %s" % dir)
+                    os.mkdir(dir)
+            mkdir(self.cf.get("slave"))
+            mkdir(self.cf.get("completed_wals"))
+            mkdir(self.cf.get("partial_wals"))
+            mkdir(self.cf.get("full_backup"))
 
     def master_stop(self):
         self.assert_valid_role(MASTER)
@@ -387,7 +399,7 @@ class WalMgr(skytools.DBScript):
             raise Exception("cannot find slave hostname")
         else:
             host, path = tmp
-            cmdline = [ "ssh", "-nT", host, os.path.abspath(sys.argv[0]) ]
+            cmdline = [ "ssh", "-T", host, os.path.abspath(sys.argv[0]) ]
 
         if slave_config:
             cmdline += [ slave_config ]
