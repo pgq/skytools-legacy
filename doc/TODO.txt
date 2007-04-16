@@ -12,6 +12,9 @@ londiste add --skip-truncate (needs new field in table_state)
 pgqadm reg-copy que cons1 cons2
 pgqadm reg-move que cons1 cons2
 
+queue-rename
+show-batch-events
+del-event
 
 Immidiate
 =========
@@ -40,6 +43,8 @@ Near future
   - force timestamps to ISO
   - when buffering queries, check their size
 * DBScript: failure to write pidfile should be logged (crontscripts)
+* logtriga/textbuf.c should be converted to StringInfo to get rid of
+  buffer management code.
 
 Just ideas
 ===========
