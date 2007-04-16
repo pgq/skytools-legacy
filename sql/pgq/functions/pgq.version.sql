@@ -1,10 +1,11 @@
+create or replace function pgq.version()
+returns text as $$
 -- ----------------------------------------------------------------------
 -- Function: pgq.version(0)
 --
---      Returns verison string for pgq.
+--      Returns verison string for pgq.  ATM its SkyTools version
+--      that is only bumped when PGQ database code changes.
 -- ----------------------------------------------------------------------
-create or replace function pgq.version()
-returns text as $$
 begin
     return '2.1.4';
 end;
