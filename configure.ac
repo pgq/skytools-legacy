@@ -20,13 +20,21 @@ AC_ARG_WITH(pgconfig, [  --with-pgconfig=PG_CONFIG    path to pg_config (default
 test -n "$PG_CONFIG" || AC_MSG_ERROR([Cannot continue without pg_config])
 
 dnl Find GNU make
-AC_PATH_PROGS(MAKE, gmake make)
-AC_MSG_CHECKING(if $MAKE is GNU make)
-if $MAKE --version 2>&1 | grep -q GNU; then
-  AC_MSG_RESULT(yes)
-else
-  AC_MSG_ERROR(no, cannot proceed)
+AC_MSG_CHECKING(for GNU make)
+if test -n "$MAKE"; then
+  for a in make gmake gnumake; do
+    if "$a" --version 2>&1 | grep -q GNU; then
+      MAKE="$a"
+      break
+    fi
+  done
 fi
+if test -n "$MAKE"; then
+  AC_MSG_ERROR([GNU make is not found])
+else
+  AC_MSG_RESULT($MAKE)
+fi
+AC_SUBST(MAKE)
 
 dnl Find location of /contrib SQL
 AC_MSG_CHECKING(where PostgreSQL SQL extensions are installed)
