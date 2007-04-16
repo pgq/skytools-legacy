@@ -5,13 +5,10 @@ returns setof pgq.ret_consumer_info as $$
 -- ----------------------------------------------------------------------
 -- Function: pgq.get_consumer_info(0)
 --
---      Desc
---
--- Parameters:
---      arg - desc
+--      Returns info about all consumers on all queues.
 --
 -- Returns:
---      desc
+--      See pgq.get_consumer_info(2)
 -- ----------------------------------------------------------------------
 declare
     ret  pgq.ret_consumer_info%rowtype;
@@ -36,13 +33,13 @@ returns setof pgq.ret_consumer_info as $$
 -- ----------------------------------------------------------------------
 -- Function: pgq.get_consumer_info(1)
 --
---      Desc
+--      Returns info about consumers on one particular queue.
 --
 -- Parameters:
---      arg - desc
+--      x_queue_name    - Queue name
 --
 -- Returns:
---      desc
+--      See pgq.get_consumer_info(2)
 -- ----------------------------------------------------------------------
 declare
     ret  pgq.ret_consumer_info%rowtype;
@@ -82,7 +79,13 @@ returns setof pgq.ret_consumer_info as $$
 --      x_consumer_name     - name of a consumer
 --
 -- Returns:
---      info
+--      queue_name          - Queue name
+--      consumer_name       - Consumer name
+--      lag                 - How old are events the consumer is processing
+--      last_seen           - When the consumer seen by pgq
+--      last_tick           - Tick ID of last processed tick
+--      current_batch       - Current batch ID, if one is active or NULL
+--      next_tick           - If batch is active, then its final tick.
 -- ----------------------------------------------------------------------
 declare
     ret  pgq.ret_consumer_info%rowtype;
@@ -90,7 +93,10 @@ begin
     for ret in 
         select queue_name, co_name,
                current_timestamp - tick_time as lag,
-               current_timestamp - sub_active as last_seen
+               current_timestamp - sub_active as last_seen,
+               sub_last_tick as last_tick,
+               sub_batch as current_batch,
+               sub_next_tick as next_tick
           from pgq.subscription, pgq.tick, pgq.queue, pgq.consumer
          where tick_id = sub_last_tick
            and queue_id = sub_queue

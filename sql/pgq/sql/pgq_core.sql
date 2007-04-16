@@ -16,8 +16,16 @@ select pgq.next_batch('myqueue', 'consumer');
 select pgq.next_batch('myqueue', 'consumer');
 
 select queue_name, consumer_name, prev_tick_id, tick_id, lag from pgq.get_batch_info(1);
-select queue_name from pgq.get_queue_info() order by 1;
-select queue_name, consumer_name from pgq.get_consumer_info() order by 1, 2;
+
+select queue_name, queue_ntables, queue_cur_table, queue_rotation_period,
+       queue_switch_time <= now() as switch_time_exists,
+       queue_external_ticker, queue_ticker_max_count, queue_ticker_max_lag,
+       queue_ticker_idle_period, ticker_lag < '2 hours' as ticker_lag_exists
+  from pgq.get_queue_info() order by 1;
+select queue_name, consumer_name, lag < '30 seconds' as lag_exists,
+       last_seen < '30 seconds' as last_seen_exists,
+       last_tick, current_batch, next_tick
+  from pgq.get_consumer_info() order by 1, 2;
 
 select pgq.finish_batch(1);
 select pgq.finish_batch(1);
