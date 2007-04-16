@@ -6,7 +6,7 @@
 create or replace function pgq.version()
 returns text as $$
 begin
-    return '2.1.3';
+    return '2.1.4';
 end;
 $$ language plpgsql;
 
