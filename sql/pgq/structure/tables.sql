@@ -1,15 +1,23 @@
 -- ----------------------------------------------------------------------
 -- Section: Internal Tables
 --
--- Map to Slony-I:
+-- Overview:
+--      pgq.queue                   - Queue configuration
+--      pgq.consumer                - Consumer names
+--      pgq.subscription            - Consumer registrations
+--      pgq.tick                    - Per-queue snapshots (ticks)
+--      pgq.event_*                 - Data tables
+--      pgq.retry_queue             - Events to be retried later
+--      pgq.failed_queue            - Events whose processing failed
+--
+-- Its basically generalized and simplified Slony-I structure:
 --      sl_node                     - pgq.consumer
 --      sl_set                      - pgq.queue
 --      sl_subscriber + sl_confirm  - pgq.subscription
 --      sl_event                    - pgq.tick
 --      sl_setsync                  - pgq_ext.completed_*
 --      sl_log_*                    - slony1 has per-cluster data tables,
---                                    here we do redirection in pgq.queue
---                                    to have per-queue data tables.
+--                                    pgq has per-queue data tables.
 -- ----------------------------------------------------------------------
 
 set client_min_messages = 'warning';
