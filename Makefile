@@ -28,6 +28,7 @@ clean:
 	rm -rf tests/londiste/sys
 	rm -rf tests/londiste/file_logs
 	rm -rf tests/londiste/fix.*
+	rm -rf tests/scripts/sys
 
 install: python-install modules-install
 

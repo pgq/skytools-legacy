@@ -2,7 +2,6 @@
 
 . ./env.sh
 
-contrib=/usr/share/postgresql/8.1/contrib
 contrib=/opt/pgsql/share/contrib
 
 mkdir -p sys
@@ -25,7 +24,6 @@ pgqadm.py conf/ticker.ini install
 #psql -q $db -f $contrib/txid.sql
 #psql -q $db -f $contrib/pgq.sql
 psql -q $db -f $contrib/pgq_ext.sql
-psql -q $db -f $contrib/logutriga.sql
 psql -q $db -f data.sql
 psql -q $db -f install.sql
 
