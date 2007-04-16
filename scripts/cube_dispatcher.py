@@ -39,7 +39,7 @@ class CubeDispatcher(pgq.SerialConsumer):
         src_db.commit()
         return curs.fetchone()[0]
 
-    def process_remote_batch(self, batch_id, ev_list, dst_db):
+    def process_remote_batch(self, src_db, batch_id, ev_list, dst_db):
         
         # actual processing
         date_str = self.get_part_date(batch_id)

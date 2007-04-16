@@ -136,7 +136,7 @@ class BulkLoader(pgq.SerialConsumer):
     def __init__(self, args):
         pgq.SerialConsumer.__init__(self, "bulk_loader", "src_db", "dst_db", args)
 
-    def process_remote_batch(self, batch_id, ev_list, dst_db):
+    def process_remote_batch(self, src_db, batch_id, ev_list, dst_db):
         """Content dispatcher."""
 
         # add events to per-table caches
