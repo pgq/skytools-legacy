@@ -86,7 +86,7 @@ class CubeDispatcher(pgq.SerialConsumer):
         inf = {
             'parent': ev.extra1,
             'table': tbl,
-            'key_list': ev.type.split(':')[1]
+            'key_list': ev.extra2,
         }
         return inf
 
@@ -97,8 +97,8 @@ class CubeDispatcher(pgq.SerialConsumer):
         data = skytools.db_urldecode(ev.data)
             
         # parse tbl info
-        op, keys = ev.type.split(':')
-        key_list = keys.split(',')
+        op = ev.type
+        key_list = ev.extra2.split(',')
         if self.keep_latest and len(key_list) == 0: 
             raise Exception('No pkey on table %s' % tbl)
 
