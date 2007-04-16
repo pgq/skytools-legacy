@@ -21,7 +21,7 @@ test -n "$PG_CONFIG" || AC_MSG_ERROR([Cannot continue without pg_config])
 
 dnl Find GNU make
 AC_MSG_CHECKING(for GNU make)
-if test -n "$MAKE"; then
+if test ! -n "$MAKE"; then
   for a in make gmake gnumake; do
     if "$a" --version 2>&1 | grep -q GNU; then
       MAKE="$a"
@@ -30,9 +30,9 @@ if test -n "$MAKE"; then
   done
 fi
 if test -n "$MAKE"; then
-  AC_MSG_ERROR([GNU make is not found])
-else
   AC_MSG_RESULT($MAKE)
+else
+  AC_MSG_ERROR([GNU make is not found])
 fi
 AC_SUBST(MAKE)
 
