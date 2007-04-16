@@ -30,7 +30,7 @@ class TableDispatcher(pgq.SerialConsumer):
                 else:
                     self.field_map[tmp[0]] = tmp[1]
 
-    def process_remote_batch(self, batch_id, ev_list, dst_db):
+    def process_remote_batch(self, src_db, batch_id, ev_list, dst_db):
         if len(ev_list) == 0:
             return
 
