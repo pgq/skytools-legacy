@@ -300,8 +300,8 @@ class SubscriberSetup(CommonSetup):
         q = "SELECT n.nspname || '.' || t.relname as tbl, c.conname as con,"\
             "       pg_get_constraintdef(c.oid) as def"\
             "  FROM pg_constraint c, pg_class t, pg_namespace n"\
-            " WHERE c.contype = 'f' and c.conrelid in (%s)"\
-            "   AND t.oid = c.conrelid AND n.oid = t.relnamespace" % oid_str
+            " WHERE c.contype = 'f' and (c.conrelid in (%s) or c.confrelid in (%s))"\
+            "   AND t.oid = c.conrelid AND n.oid = t.relnamespace" % (oid_str, oid_str)
         dst_curs.execute(q)
         res = dst_curs.dictfetchall()
         dst_db.commit()
