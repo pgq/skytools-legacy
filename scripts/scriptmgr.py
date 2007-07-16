@@ -119,6 +119,9 @@ class ScriptMgr(skytools.DBScript):
             print job
 
     def cmd_start(self, job_name):
+        if job_name not in self.job_map:
+            self.log.error('Unknown job: '+job_name)
+            return 1
         job = self.job_map[job_name]
         if job['disabled']:
             self.log.info("Skipping %s" % job_name)
@@ -139,6 +142,9 @@ class ScriptMgr(skytools.DBScript):
             return 0
 
     def cmd_stop(self, job_name):
+        if job_name not in self.job_map:
+            self.log.error('Unknown job: '+job_name)
+            return
         job = self.job_map[job_name]
         if job['disabled']:
             self.log.info("Skipping %s" % job_name)
@@ -147,6 +153,9 @@ class ScriptMgr(skytools.DBScript):
         self.signal_job(job, signal.SIGINT)
 
     def cmd_reload(self, job_name):
+        if job_name not in self.job_map:
+            self.log.error('Unknown job: '+job_name)
+            return
         job = self.job_map[job_name]
         if job['disabled']:
             self.log.info("Skipping %s" % job_name)
@@ -159,7 +168,10 @@ class ScriptMgr(skytools.DBScript):
         pidfile = job['pidfile']
         if os.path.isfile(pidfile):
             pid = int(open(pidfile).read())
-            os.kill(pid, sig)
+            try:
+                os.kill(pid, sig)
+            except Exception, det:
+                self.log.warning("Signaling %s failed: %s" % (job['job_name'], str(det)))
         else:
             self.log.warning("Job %s not running" % job['job_name'])
 
