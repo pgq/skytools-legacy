@@ -1,10 +1,11 @@
 
 """Useful functions and classes for database scripts."""
 
-import sys, os, signal, psycopg, optparse, traceback, time
+import sys, os, signal, optparse, traceback, time
 import logging, logging.handlers, logging.config
 
 from skytools.config import *
+from skytools.sqltools import connect_database
 import skytools.skylog
 
 __all__ = ['daemonize', 'run_single_process', 'DBScript',
@@ -178,7 +179,7 @@ class DBCachedConn(object):
         # new conn?
         if not self.conn:
             self.isolation_level = isolation_level
-            self.conn = psycopg.connect(self.loc)
+            self.conn = connect_database(self.loc)
 
             self.conn.set_isolation_level(isolation_level)
             self.conn_time = time.time()

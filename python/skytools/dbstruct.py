@@ -364,8 +364,8 @@ class TableStruct(object):
         return res
 
 def test():
-    import psycopg
-    db = psycopg.connect("dbname=fooz")
+    from skytools import connect_database
+    db = connect_database("dbname=fooz")
     curs = db.cursor()
     
     s = TableStruct(curs, "public.data1")
