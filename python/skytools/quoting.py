@@ -2,7 +2,12 @@
 
 """Various helpers for string quoting/unquoting."""
 
-import psycopg, urllib, re
+import urllib, re
+
+try:
+    from psycopg2.extensions import QuotedString
+except:
+    from psycopg import QuotedString
 
 __all__ = [
     "quote_literal", "quote_copy", "quote_bytea_raw",
@@ -23,7 +28,7 @@ def quote_literal(s):
 
     if s == None:
         return "null"
-    s = psycopg.QuotedString(str(s))
+    s = QuotedString(str(s))
     return str(s)
 
 def quote_copy(s):

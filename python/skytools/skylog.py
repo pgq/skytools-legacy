@@ -1,10 +1,12 @@
 """Our log handlers for Python's logging package.
 """
 
-import sys, os, time, socket, psycopg
+import sys, os, time, socket
 import logging, logging.handlers
 
-from quoting import quote_json
+from skytools.quoting import quote_json
+from skytools.sqltools import connect_database
+
 
 # configurable file logger
 class EasyRotatingFileHandler(logging.handlers.RotatingFileHandler):
@@ -93,9 +95,9 @@ class LogDBHandler(logging.handlers.SocketHandler):
 
     def makeSocket(self):
         """Create server connection.
-        In this case its not socket but psycopg conection."""
+        In this case its not socket but database connection."""
 
-        db = psycopg.connect(self.connect_string)
+        db = connect_database(self.connect_string)
         db.autocommit(1)
         return db
 
