@@ -5,7 +5,7 @@ Walks tables by primary key and searcher
 missing inserts/updates/deletes.
 """
 
-import sys, os, time, psycopg, skytools
+import sys, os, time, skytools
 
 from syncer import Syncer
 
