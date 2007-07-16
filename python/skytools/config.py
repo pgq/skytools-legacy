@@ -13,7 +13,7 @@ class Config(object):
      - Acceps defaults in get() functions.
      - List value support.
     """
-    def __init__(self, main_section, filename, sane_config = 1):
+    def __init__(self, main_section, filename, sane_config = 1, user_defs = {}):
         """Initialize Config and read from file.
 
         @param sane_config:  chooses between ConfigParser/SafeConfigParser.
@@ -23,23 +23,30 @@ class Config(object):
             'service_name': main_section,
             'host_name': socket.gethostname(),
         }
-        if not os.path.isfile(filename):
-            raise Exception('Config file not found: '+filename)
+        defs.update(user_defs)
 
+        self.main_section = main_section
         self.filename = filename
         self.sane_config = sane_config
         if sane_config:
             self.cf = ConfigParser.SafeConfigParser(defs)
         else:
             self.cf = ConfigParser.ConfigParser(defs)
+
+        if filename is None:
+            self.cf.add_section(main_section)
+            return
+
+        if not os.path.isfile(filename):
+            raise Exception('Config file not found: '+filename)
         self.cf.read(filename)
-        self.main_section = main_section
         if not self.cf.has_section(main_section):
             raise Exception("Wrong config file, no section '%s'"%main_section)
 
     def reload(self):
         """Re-reads config file."""
-        self.cf.read(self.filename)
+        if self.filename:
+            self.cf.read(self.filename)
 
     def get(self, key, default=None):
         """Reads string value, if not set then default."""
