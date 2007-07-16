@@ -137,6 +137,7 @@ create table pgq.subscription (
         sub_next_tick                   bigint,
 
 	constraint subscription_pkey primary key (sub_id),
+	constraint subscription_ukey unique (sub_queue, sub_consumer),
         constraint sub_queue_fkey foreign key (sub_queue)
                                    references pgq.queue (queue_id),
         constraint sub_consumer_fkey foreign key (sub_consumer)
@@ -198,6 +199,7 @@ create table pgq.retry_queue (
 alter table pgq.retry_queue alter column ev_owner set not null;
 alter table pgq.retry_queue alter column ev_txid drop not null;
 create index rq_retry_idx on pgq.retry_queue (ev_retry_after);
+create index rq_retry_owner_idx on pgq.retry_queue (ev_owner, ev_id);
 
 -- ----------------------------------------------------------------------
 -- Table: pgq.failed_queue

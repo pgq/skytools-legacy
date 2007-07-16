@@ -21,7 +21,7 @@ declare
     errmsg          text;
     sub             record;
 begin
-    select sub_queue, sub_id, sub_last_tick, sub_batch into sub
+    select sub_queue, sub_consumer, sub_id, sub_last_tick, sub_batch into sub
         from pgq.queue q, pgq.consumer c, pgq.subscription s
         where q.queue_name = x_queue_name
           and c.co_name = x_consumer_name
@@ -58,7 +58,8 @@ begin
         set sub_batch = next_batch,
             sub_next_tick = next_tick,
             sub_active = now()
-        where sub_id = sub.sub_id;
+        where sub_queue = sub.sub_queue
+          and sub_consumer = sub.sub_consumer;
     return next_batch;
 end;
 $$ language plpgsql security definer;
