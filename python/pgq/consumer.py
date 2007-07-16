@@ -334,6 +334,8 @@ class SerialConsumer(Consumer):
             return False
 
         if prev_tick < dst_tick:
+            if dst_tick - prev_tick > 5:
+                 raise Exception('Difference too big, skipping dangerous')
             self.log.warning('Got tick %d, dst has %d - skipping' % (prev_tick, dst_tick))
             return True
         else:
