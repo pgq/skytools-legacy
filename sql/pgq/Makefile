@@ -44,8 +44,5 @@ test:
 	$(MAKE) installcheck || { less regression.diffs; exit 1; }
 
 upload: dox
-	rsync -az docs/html structure functions data1:public_html/pgq/
-	$(MAKE) cleandox
-	rsync -az catsql.py Makefile docs data1:public_html/pgq/
-	$(MAKE) dox
+	rsync -az --delete docs/html/* data1:public_html/pgq-new/
 
