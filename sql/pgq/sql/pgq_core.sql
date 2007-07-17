@@ -37,7 +37,7 @@ select * from pgq.get_batch_events(2);
 select pgq.finish_batch(2);
 
 select pgq.insert_event('myqueue', 'r1', 'data');
-select pgq.insert_event('myqueue', 'r2', 'data');
+select pgq.insert_event('myqueue', 'r2', 'data', 'extra1', 'extra2', 'extra3', 'extra4');
 select pgq.insert_event('myqueue', 'r3', 'data');
 select pgq.current_event_table('myqueue');
 select pgq.ticker();
