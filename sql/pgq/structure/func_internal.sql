@@ -7,7 +7,7 @@
 \i functions/pgq.event_retry_raw.sql
 
 -- \i functions/pgq.insert_event_raw.sql
-\i pgq_insert.sql
+\i lowlevel/pgq_lowlevel.sql
 
 -- Group: Ticker
 
