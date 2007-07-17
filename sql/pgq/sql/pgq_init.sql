@@ -1,7 +1,7 @@
 
 \set ECHO none
 \i ../txid/txid.sql
-\i structure/install.sql
+\i pgq.sql
 
 \set ECHO all
 

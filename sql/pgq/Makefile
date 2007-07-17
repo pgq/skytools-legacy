@@ -1,11 +1,14 @@
 
+MODULES = pgq_insert
+
 DOCS = README.pgq
-DATA_built = pgq.sql pgq.upgrade.sql
+DATA_built = pgq.sql pgq.upgrade.sql pgq_insert.sql
 DATA = structure/uninstall_pgq.sql
 
 SRCS = $(wildcard structure/*.sql) \
        $(wildcard functions/*.sql) \
-       $(wildcard triggers/*.sql)
+       $(wildcard triggers/*.sql) \
+       pgq_insert.sql
 
 REGRESS = pgq_init pgq_core logutriga sqltriga
 REGRESS_OPTS = --load-language=plpythonu --load-language=plpgsql
@@ -37,11 +40,11 @@ cleandox:
 
 clean: cleandox
 
-test:
-	#-dropdb pgq
-	#createdb pgq
-	#psql -f structure/pgq.sql pgq
+test: pgq.sql
 	$(MAKE) installcheck || { less regression.diffs; exit 1; }
+
+ack:
+	cp results/*.out expected/
 
 upload: dox
 	rsync -az --delete docs/html/* data1:public_html/pgq-new/

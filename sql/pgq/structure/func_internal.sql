@@ -5,7 +5,9 @@
 \i functions/pgq.batch_event_sql.sql
 \i functions/pgq.batch_event_tables.sql
 \i functions/pgq.event_retry_raw.sql
-\i functions/pgq.insert_event_raw.sql
+
+-- \i functions/pgq.insert_event_raw.sql
+\i pgq_insert.sql
 
 -- Group: Ticker
 
