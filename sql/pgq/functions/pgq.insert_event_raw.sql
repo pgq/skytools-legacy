@@ -6,12 +6,16 @@ returns bigint as $$
 # -- ----------------------------------------------------------------------
 # -- Function: pgq.insert_event_raw(11)
 # --
-# --      Actual event insertion.  Used also by retry queue maintenance.
+# --    Deprecated function, replaced by C code in pgq_lowlevel.so.
+# --    
+# --    Actual event insertion.  Used also by retry queue maintenance.
 # --
 # -- Parameters:
 # --      queue_name      - Name of the queue
 # --      ev_id           - Event ID.  If NULL, will be taken from seq.
 # --      ev_time         - Event creation time.
+# --      ev_owner        - Subscription ID when retry event. If NULL, the event is for everybody.
+# --      ev_retry        - Retry count. NULL for first-time events.
 # --      ev_type         - user data
 # --      ev_data         - user data
 # --      ev_extra1       - user data

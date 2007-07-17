@@ -5,7 +5,8 @@ DATA = structure/uninstall_pgq.sql
 
 SRCS = $(wildcard structure/*.sql) \
        $(wildcard functions/*.sql) \
-       $(wildcard triggers/*.sql)
+       $(wildcard triggers/*.sql) \
+       lowlevel/pgq_lowlevel.sql
 
 REGRESS = pgq_init pgq_core logutriga sqltriga
 REGRESS_OPTS = --load-language=plpythonu --load-language=plpgsql
@@ -25,6 +26,8 @@ distclean: low-distclean
 low-all low-install low-clean low-distclean:
 	$(MAKE) -C lowlevel $(subst low-,,$@) DESTDIR=$(DESTDIR) 
 
+lowlevel/pgq_lowlevel.sql: low-all
+
 #
 # combined SQL files
 #
@@ -38,7 +41,7 @@ pgq.upgrade.sql: $(SRCS)
 #
 # docs
 #
-dox: cleandox
+dox: cleandox $(SRCS)
 	mkdir -p docs/html
 	mkdir -p docs/sql
 	$(CATSQL) --ndoc structure/tables.sql structure/types.sql > docs/sql/schema.sql
