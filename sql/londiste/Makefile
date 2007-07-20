@@ -21,3 +21,6 @@ londiste.upgrade.sql: $(FUNCS)
 test: londiste.sql
 	$(MAKE) installcheck || { less regression.diffs; exit 1; }
 
+ack:
+	cp results/* expected/
+

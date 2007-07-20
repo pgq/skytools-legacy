@@ -177,3 +177,48 @@ select skip_truncate, snapshot from londiste.subscriber_table where table_name =
                | 
 (1 row)
 
+--
+-- test tick tracking
+--
+select londiste.get_last_tick('c');
+ get_last_tick 
+---------------
+              
+(1 row)
+
+select londiste.set_last_tick('c', 1);
+ set_last_tick 
+---------------
+             1
+(1 row)
+
+select londiste.get_last_tick('c');
+ get_last_tick 
+---------------
+             1
+(1 row)
+
+select londiste.set_last_tick('c', 2);
+ set_last_tick 
+---------------
+             1
+(1 row)
+
+select londiste.get_last_tick('c');
+ get_last_tick 
+---------------
+             2
+(1 row)
+
+select londiste.set_last_tick('c', NULL);
+ set_last_tick 
+---------------
+             1
+(1 row)
+
+select londiste.get_last_tick('c');
+ get_last_tick 
+---------------
+              
+(1 row)
+
