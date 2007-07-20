@@ -63,4 +63,14 @@ select skip_truncate, snapshot from londiste.subscriber_table where table_name =
 select londiste.subscriber_set_table_state('pqueue', 'public.skiptest', null, 'ok');
 select skip_truncate, snapshot from londiste.subscriber_table where table_name = 'public.skiptest';
 
+--
+-- test tick tracking
+--
+select londiste.get_last_tick('c');
+select londiste.set_last_tick('c', 1);
+select londiste.get_last_tick('c');
+select londiste.set_last_tick('c', 2);
+select londiste.get_last_tick('c');
+select londiste.set_last_tick('c', NULL);
+select londiste.get_last_tick('c');
 
