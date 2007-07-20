@@ -83,3 +83,48 @@ select * from pgq_ext.completed_event order by 1,2;
  c           |        3 |      101
 (1 row)
 
+--
+-- test tick tracking
+--
+select pgq_ext.get_last_tick('c');
+ get_last_tick 
+---------------
+              
+(1 row)
+
+select pgq_ext.set_last_tick('c', 1);
+ set_last_tick 
+---------------
+ t
+(1 row)
+
+select pgq_ext.get_last_tick('c');
+ get_last_tick 
+---------------
+             1
+(1 row)
+
+select pgq_ext.set_last_tick('c', 2);
+ set_last_tick 
+---------------
+ t
+(1 row)
+
+select pgq_ext.get_last_tick('c');
+ get_last_tick 
+---------------
+             2
+(1 row)
+
+select pgq_ext.set_last_tick('c', NULL);
+ set_last_tick 
+---------------
+ t
+(1 row)
+
+select pgq_ext.get_last_tick('c');
+ get_last_tick 
+---------------
+              
+(1 row)
+
