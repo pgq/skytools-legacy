@@ -1,3 +1,33 @@
+2007-07-xx  -  SkyTools 2.1.5  -  ""
+
+    = Fixes =
+
+    * londiste fkeys: look also at dependers not only dependencies.
+    * pgq.consumer: make queue seeking in case of failover more strict.
+    * scriptmgr: dont die on user error.
+    * pgq: there was still fallout from reorg - 2 missing indexes.
+    * Due to historical reasons SerialConsumer (and thus Londiste)
+      accessed completed tick table directly, not via functions.
+      Make it use functions again.
+
+    = Features =
+
+    * Support psycopg2, preferring it to psycopg1.
+    * Improved bulk_loader, using temp tables exclusively.
+    * skytools.config: API change to allow usage without config file.
+    * quote_ident(), quote_fqident()
+    * Rewrite pgq.insert_event() in C, thus PgQ core is not
+      dependant on PL/Python anymore.
+
+    = Upgrade procedure for database code =
+
+    * PgQ (used on Londiste provider side)
+      XXX
+    * Londiste (both provider and subscriber side)
+      XXX
+    * pgq_ext
+      XXX
+
 2007-04-16  -  SkyTools 2.1.4  -  "Sweets from last Christmas"
 
     = Fixes =
