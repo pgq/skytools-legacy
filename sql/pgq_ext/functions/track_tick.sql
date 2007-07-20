@@ -12,7 +12,7 @@ end;
 $$ language plpgsql security definer;
 
 create or replace function pgq_ext.set_last_tick(a_consumer text, a_tick_id bigint)
-returns boolean as $$
+returns integer as $$
 begin
     if a_tick_id is null then
         delete from pgq_ext.completed_tick
@@ -27,7 +27,7 @@ begin
         end if;
     end if;
 
-    return true;
+    return 1;
 end;
 $$ language plpgsql security definer;
 
