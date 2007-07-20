@@ -23,8 +23,20 @@ try:
 
     ## only backwards compat thing we need is dict* methods
     import psycopg2.extensions, psycopg2.extras
+    class _CompatRow(psycopg2.extras.DictRow):
+        def __setitem__(self, k, v):
+            if type(k) != int:
+                if k not in self._index:
+                    self._index[k] = len(self._index)
+                k = self._index[k]
+                while k >= len(self):
+                    self.append(None)
+            return list.__setitem__(self, k, v)
     class _CompatCursor(psycopg2.extras.DictCursor):
         """Regular psycopg2 DictCursor with dict* methods."""
+        def __init__(self, *args, **kwargs):
+            psycopg2.extras.DictCursor.__init__(self, *args, **kwargs)
+            self.row_factory = _CompatRow
         dictfetchone = psycopg2.extras.DictCursor.fetchone
         dictfetchall = psycopg2.extras.DictCursor.fetchall
         dictfetchmany = psycopg2.extras.DictCursor.fetchmany
