@@ -4,10 +4,7 @@
 
 import urllib, re
 
-try:
-    from psycopg2.extensions import QuotedString
-except:
-    from psycopg import QuotedString
+from skytools.psycopgwrapper import QuotedString
 
 __all__ = [
     "quote_literal", "quote_copy", "quote_bytea_raw",

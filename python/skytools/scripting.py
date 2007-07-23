@@ -5,7 +5,7 @@ import sys, os, signal, optparse, traceback, time
 import logging, logging.handlers, logging.config
 
 from skytools.config import *
-from skytools.sqltools import connect_database
+from skytools.psycopgwrapper import connect_database
 import skytools.skylog
 
 __all__ = ['daemonize', 'run_single_process', 'DBScript',
