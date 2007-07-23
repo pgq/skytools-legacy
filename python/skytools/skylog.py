@@ -4,8 +4,8 @@
 import sys, os, time, socket
 import logging, logging.handlers
 
+from skytools.psycopgwrapper import connect_database
 from skytools.quoting import quote_json
-from skytools.sqltools import connect_database
 
 
 # configurable file logger

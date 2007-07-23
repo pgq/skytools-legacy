@@ -12,44 +12,9 @@ __all__ = [
     "exists_function", "exists_language", "Snapshot", "magic_insert",
     "db_copy_from_dict", "db_copy_from_list", "CopyPipe", "full_copy",
     "DBObject", "DBSchema", "DBTable", "DBFunction", "DBLanguage",
-    "db_install", "connect_database"
+    "db_install",
 ]
 
-
-try:
-    ##from psycopg2.psycopg1 import connect as _pgconnect
-    # psycopg2.psycopg1.cursor is too backwards compatible,
-    # to the point of avoiding optimized access.
-
-    ## only backwards compat thing we need is dict* methods
-    import psycopg2.extensions, psycopg2.extras
-    class _CompatRow(psycopg2.extras.DictRow):
-        def __setitem__(self, k, v):
-            if type(k) != int:
-                if k not in self._index:
-                    self._index[k] = len(self._index)
-                k = self._index[k]
-                while k >= len(self):
-                    self.append(None)
-            return list.__setitem__(self, k, v)
-    class _CompatCursor(psycopg2.extras.DictCursor):
-        """Regular psycopg2 DictCursor with dict* methods."""
-        def __init__(self, *args, **kwargs):
-            psycopg2.extras.DictCursor.__init__(self, *args, **kwargs)
-            self.row_factory = _CompatRow
-        dictfetchone = psycopg2.extras.DictCursor.fetchone
-        dictfetchall = psycopg2.extras.DictCursor.fetchall
-        dictfetchmany = psycopg2.extras.DictCursor.fetchmany
-    class _CompatConnection(psycopg2.extensions.connection):
-        """Connection object that uses _CompatCursor."""
-        def cursor(self):
-            return psycopg2.extensions.connection.cursor(self, cursor_factory = _CompatCursor)
-    def _pgconnect(cstr):
-        """Create a psycopg2 connection."""
-        return _CompatConnection(cstr)
-except ImportError:
-    # use psycopg 1
-    from psycopg import connect as _pgconnect
 
 #
 # Fully qualified table name
@@ -447,17 +412,4 @@ def db_install(curs, list, log = None):
         else:
             if log:
                 log.info('%s is installed' % obj.name)
-
-def connect_database(connstr):
-    """Create a db connection with connect_timeout option.
-    
-    Default connect_timeout is 15, to change put it directly into dsn.
-    """
-
-    # allow override
-    if connstr.find("connect_timeout") < 0:
-        connstr += " connect_timeout=15"
-
-    # create connection
-    return _pgconnect(connstr)
 

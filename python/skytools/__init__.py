@@ -1,6 +1,7 @@
 
 """Tools for Python database scripts."""
 
+from psycopgwrapper import *
 from config import *
 from dbstruct import *
 from gzlog import *
