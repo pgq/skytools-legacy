@@ -317,6 +317,7 @@ class SerialConsumer(Consumer):
         in external database.
         """
 
+        cur_tick = self.cur_batch_info['tick_id']
         prev_tick = self.cur_batch_info['prev_tick_id']
 
         dst_tick = self.get_last_tick(dst_curs)
