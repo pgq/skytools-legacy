@@ -1,58 +1,65 @@
 
-web:
- - walmgr
- - pgqadm
- - todo
-
-
-londiste link <qname>
-londiste unlink <qname>
-londiste add --skip-truncate (needs new field in table_state)
-
-pgqadm reg-copy que cons1 cons2
-pgqadm reg-move que cons1 cons2
-
-queue-rename
-show-batch-events
-del-event
-
-Immidiate
-=========
-
-* londiste swithcover support / deny triggers
-* deb: /etc/skylog.ini should be conffile
-* RemoteConsumer/SerialConsumer/pgq_ext sanity, too much duplication
-* londiste * remove tbl should work also if table is already dropped
-
-* backend modules need to be ported to 8.3
-
-Near future
+High-prority
 ============
 
+* docs: londiste, pgq/python, pgq/sql, skytools, walmgr
+
+Larger things
+-------------
+* chained replication, switchover
+* Write PgQ triggers in C
+
+Smaller things
+--------------
+* londiste * remove tbl should work also if table is already dropped
+* RemoteConsumer/SerialConsumer/pgq_ext sanity, too much duplication
+* backend modules need to be ported to 8.3
 * pgqadm: separate priod for retry queue processing
 * londiste: create tables on subscriber
+* pgqadm: Utility commands:
+  reg-copy que cons1 cons2
+  reg-move que cons1 cons2
+  queue-rename
+  show-batch-events
+  del-event
+
+Low-priority
+============
+
+Larger things
+-------------
+* denytriggers on subscriber
+* Quote SQL identifiers, keep combined name, rule will be "Split schema as first dot"
+* londiste: good fkey support:
+    store them in subscriber db and apply when both tables are in sync.
+* skylog/logdb: publish sample logdb schema, with some tools
+* londiste: allow table redirection on subscriber side
+
+Smaller things
+--------------
 * skytools: switch for silence for cron scripts
-* docs: londiste, pgq/python, pgq/sql, skytools
-* txid: decide on renaming functions
-* logtriga: way to switch off logging for some connection
-* pgq: separately installable fkeys for all tables for testing
+* pgq: drop_fkeys.sql for live envs
 * logdb: hostname
-* pgq_ext: solve event tracking
 * contrib/*.sql loading from python - need to check db version
+* DBScript: failure to write pidfile should be logged (crontscripts)
 * ideas from SlonyI:
   - force timestamps to ISO
   - when buffering queries, check their size
-* DBScript: failure to write pidfile should be logged (crontscripts)
-* logtriga/textbuf.c should be converted to StringInfo to get rid of
-  buffer management code.
 
 Just ideas
 ===========
 
-* logtriga: use pgq.insert_event_directly?
-* pgq/sql: rewrite pgq.insert_event in C or logtriga in plpython?
 * skytools: config-less operation?
 * skytools: config from database?
 * skytools: partial sql parser for log processing
-* pgqadm ticker logic into db, to make easier other implementations?
+
+Dropped
+-------
+* txid: decide on renaming functions
+
+walmgr
+======
+
+- copy master config to slave
+- slave needs to decide which config to use
 
