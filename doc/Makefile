@@ -10,7 +10,8 @@ all:
 
 upload:
 	devupload.sh overview.txt $(wiki)
-	devupload.sh londiste.txt $(wiki)/LondisteUsage
+	#devupload.sh londiste.txt $(wiki)/LondisteUsage
+	devupload.sh londiste.ref.txt $(wiki)/LondisteReference
 	devupload.sh pgq-sql.txt $(wiki)/PgQdocs
 	devupload.sh pgq-nodupes.txt $(wiki)/PgqNoDupes
 	devupload.sh walmgr.txt $(wiki)/WalMgr

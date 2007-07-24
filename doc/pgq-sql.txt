@@ -188,4 +188,3 @@ When all done, notify core about it:
 {{{
     select pgq.finish_batch(batch_id)
 }}}
-

@@ -30,19 +30,19 @@ Replication engine written in Python.  It uses PgQ as transport mechanism.
 Its main goals are robustness and easy usage.  Thus its not as complete
 and featureful as Slony-I.
 
-Docs: ./LondisteUsage
+[http://pgsql.tapoueh.org/londiste.html Tutorial] written by Dimitri Fontaine.
+
+Reference Docs: ./LondisteReference
 
 ''' Features '''
 
  * Tables can be added one-by-one into set.
  * Initial COPY for one table does not block event replay for other tables.
  * Can compare tables on both sides.
+ * Supports sequences.
  * Easy installation.
 
 ''' Missing features '''
-
- * No support for sequences.  Thus its not possible to use it for keeping
- failover server up-to-date.  We use WalMgr for that.
 
  * Does not understand cascaded replication, when one subscriber acts
  as provider to another one and it dies, the last one loses sync with the first one.
@@ -50,10 +50,25 @@ Docs: ./LondisteUsage
 
 ''' Sample usage '''
 {{{
+## install pgq on provider:
+$ pgqadm.py provider_ticker.ini install
+
+## run ticker on provider:
+$ pgqadm.py provider_ticker.ini ticker -d
+
+## install Londiste in provider
 $ londiste.py replic.ini provider install
+
+## install Londiste in subscriber
 $ londiste.py replic.ini subscriber install
+
+## start replication daemon
 $ londiste.py replic.ini replay -d
+
+## activate tables on provider
 $ londiste.py replic.ini provider add users orders
+
+## add tables to subscriber
 $ londiste.py replic.ini subscriber add users
 }}}
 
