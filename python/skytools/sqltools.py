@@ -23,7 +23,7 @@ __all__ = [
 def fq_name_parts(tbl):
     "Return fully qualified name parts."
 
-    tmp = tbl.split('.')
+    tmp = tbl.split('.', 1)
     if len(tmp) == 1:
         return ('public', tbl)
     elif len(tmp) == 2:
