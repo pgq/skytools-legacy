@@ -19,6 +19,8 @@ There are our [http://pgfoundry.org/frs/?group_id=1000206 downloads] and
 Also [http://pgfoundry.org/scm/?group_id=1000206 CVS]
 and [http://pgfoundry.org/tracker/?group_id=1000206 bugtracker].
 
+Combined todo list for all the modules: ./ToDo
+
 == High-level tools ==
 
 Those are script that are meant for end-user.
