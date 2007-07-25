@@ -70,6 +70,7 @@ Equivalent to doing following by hand:
 CREATE LANGUAGE plpgsql;
 CREATE LANGUAGE plpython;
 \i .../contrib/txid.sql
+\i .../contrib/logtriga.sql
 \i .../contrib/pgq.sql
 \i .../contrib/londiste.sql
 select pgq.create_queue(queue name);
