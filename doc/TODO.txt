@@ -1,68 +1,79 @@
 
-High-prority
-============
+[[TableOfContents]]
 
-* docs: londiste, pgq/python, pgq/sql, skytools, walmgr
+= Next release - 2.1.5 =
 
-Larger things
--------------
-* chained replication, switchover
-* Write PgQ triggers in C
+ * londiste: remove tbl should work also if table is already dropped
+ * install .sql files under share/skytools in addition to contrib/
+ * add <seq>, remove <seq>
+ * londiste: install <modulename> --connstr=<xxx>
 
-Smaller things
---------------
-* londiste * remove tbl should work also if table is already dropped
-* RemoteConsumer/SerialConsumer/pgq_ext sanity, too much duplication
-* backend modules need to be ported to 8.3
-* pgqadm: separate priod for retry queue processing
-* londiste: create tables on subscriber
-* pgqadm: Utility commands:
-  reg-copy que cons1 cons2
-  reg-move que cons1 cons2
-  queue-rename
-  show-batch-events
-  del-event
-* install .sql files under share/skytools in addition to contrib/
+= High-prority =
 
-Low-priority
-============
+ * docs: londiste, pgq/python, pgq/sql, skytools, walmgr
 
-Larger things
--------------
-* denytriggers on subscriber
-* Quote SQL identifiers, keep combined name, rule will be "Split schema as first dot"
-* londiste: good fkey support:
-    store them in subscriber db and apply when both tables are in sync.
-* skylog/logdb: publish sample logdb schema, with some tools
-* londiste: allow table redirection on subscriber side
-* sequence registration on provider
-* trigger handling
+== Larger things ==
 
-Smaller things
---------------
-* skytools: switch for silence for cron scripts
-* pgq: drop_fkeys.sql for live envs
-* logdb: hostname
-* contrib/*.sql loading from python - need to check db version
-* DBScript: failure to write pidfile should be logged (crontscripts)
-* ideas from SlonyI:
-  - force timestamps to ISO
-  - when buffering queries, check their size
+ * chained replication, switchover
+ * Write PgQ triggers (pgq.logtriga(), pgq.logutriga(), pgq.sqltriga()) in C
 
-Just ideas
-===========
+== Smaller things ==
 
-* skytools: config-less operation?
-* skytools: config from database?
-* skytools: partial sql parser for log processing
+ * pgq: RemoteConsumer/SerialConsumer/pgq_ext sanity, too much duplication
+ * backend modules need to be ported to 8.3
+ * londiste: create tables on subscriber
+ * pgqadm: Utility commands:
+  * reg-copy que cons1 cons2
+  * reg-move que cons1 cons2
+  * queue-rename
+  * show-batch-events
+  * del-event
+ * londiste: londiste status cmd
+  * check what modules are installed
+  * check if replay is running (lag?)
+  * check if copy is running (lag?)
+  * count of tables done, count of unsynced
+  * table in the middle of copy
 
-Dropped
--------
-* txid: decide on renaming functions
+= Low-priority =
 
-walmgr
-======
+== Larger things ==
 
-- copy master config to slave
-- slave needs to decide which config to use
+ * londiste: denytriggers on subscriber
+ * londiste: Quote SQL identifiers, keep combined name, rule will be "Split schema as first dot"
+ * londiste: good fkey support: store them in subscriber db and apply when both tables are in sync.
+ * skylog: publish sample logdb schema, with some tools
+ * londiste: allow table redirection on subscriber side
+ * londiste: trigger handling - switches to "subscriber add"
+ * londiste: "triggers" command that prints create/drop sql
 
+== Smaller things ==
+
+ * pgqadm: separate priod for retry queue processing
+ * skytools: switch for silence for cron scripts
+ * pgq: drop_fkeys.sql for live envs
+ * logdb: hostname
+ * DBScript: failure to write pidfile should be logged (crontscripts)
+ * ideas from SlonyI:
+  * force timestamps to ISO
+  * when buffering queries, check their size
+ * pgqadm: show count of events to be processed [--count switch].
+ it should be relatively cheap with optimized query if consumers are not lagging.
+  * exact method - `SELECT count(*) FROM pgq.event_X WHERE NOT txid_in_snapshot(ev_txid, last_tick_snapshot) AND ev_txid > xmin;`
+   * can be optimized: `(ev_txid > xmax OR ev_txid IN get_snapshot_active())`
+   * several consumer can be done in one go if spread out to separate columns
+  * inexact method: take ev_id near xmax and compare with value from sequence
+   * broken by retry events, rollbacked transactions and use of force_tick()
+
+= Just ideas =
+
+ * skytools: config-less operation?
+ * skytools: config from database?
+ * skytools: partial sql parser for log processing
+
+= walmgr =
+
+(walmgr needs thorough review of pending issues)
+
+ * copy master config to slave
+ * slave needs to decide which config to use
