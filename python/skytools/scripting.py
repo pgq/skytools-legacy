@@ -8,8 +8,8 @@ from skytools.config import *
 from skytools.psycopgwrapper import connect_database
 import skytools.skylog
 
-__all__ = ['daemonize', 'run_single_process', 'DBScript',
-    'I_AUTOCOMMIT', 'I_READ_COMMITTED', 'I_SERIALIZABLE']
+__all__ = ['DBScript', 'I_AUTOCOMMIT', 'I_READ_COMMITTED', 'I_SERIALIZABLE']
+#__all__ += ['daemonize', 'run_single_process']
 
 #
 # daemon mode
