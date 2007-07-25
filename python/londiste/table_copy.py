@@ -33,6 +33,8 @@ class CopyTable(Replicator):
         src_db.set_isolation_level(skytools.I_SERIALIZABLE)
         src_db.commit()
 
+        self.sync_database_encodings(src_db, dst_db)
+
         # initial sync copy
         src_curs = src_db.cursor()
         dst_curs = dst_db.cursor()
