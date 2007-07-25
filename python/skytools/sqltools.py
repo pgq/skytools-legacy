@@ -10,9 +10,8 @@ __all__ = [
     "fq_name_parts", "fq_name", "get_table_oid", "get_table_pkeys",
     "get_table_columns", "exists_schema", "exists_table", "exists_type",
     "exists_function", "exists_language", "Snapshot", "magic_insert",
-    "db_copy_from_dict", "db_copy_from_list", "CopyPipe", "full_copy",
-    "DBObject", "DBSchema", "DBTable", "DBFunction", "DBLanguage",
-    "db_install",
+    "CopyPipe", "full_copy", "DBObject", "DBSchema", "DBTable", "DBFunction",
+    "DBLanguage", "db_install",
 ]
 
 
@@ -229,50 +228,6 @@ def magic_insert(curs, tablename, data, fields = None, use_insert = 0):
         buf.seek(0)
         hdr = "%s (%s)" % (tablename, ",".join(fields))
         curs.copy_from(buf, hdr)
-
-def db_copy_from_dict(curs, tablename, dict_list, fields = None):
-    """Do a COPY FROM STDIN using list of dicts as source."""
-
-    if len(dict_list) == 0:
-        return
-
-    if fields == None:
-        fields = dict_list[0].keys()
-
-    buf = StringIO()
-    for dat in dict_list:
-        row = []
-        for k in fields:
-            row.append(quote_copy(dat[k]))
-        buf.write("\t".join(row))
-        buf.write("\n")
-
-    buf.seek(0)
-    hdr = "%s (%s)" % (tablename, ",".join(fields))
-
-    curs.copy_from(buf, hdr)
-
-def db_copy_from_list(curs, tablename, row_list, fields):
-    """Do a COPY FROM STDIN using list of lists as source."""
-
-    if len(row_list) == 0:
-        return
-
-    if fields == None or len(fields) == 0:
-        raise Exception('Need field list')
-
-    buf = StringIO()
-    for dat in row_list:
-        row = []
-        for i in range(len(fields)):
-            row.append(quote_copy(dat[i]))
-        buf.write("\t".join(row))
-        buf.write("\n")
-
-    buf.seek(0)
-    hdr = "%s (%s)" % (tablename, ",".join(fields))
-
-    curs.copy_from(buf, hdr)
 
 #
 # Full COPY of table from one db to another

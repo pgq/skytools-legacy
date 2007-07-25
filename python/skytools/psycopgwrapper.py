@@ -9,7 +9,7 @@ Interface provided is psycopg1:
 
 """
 
-__all__ = ["QuotedString", "connect_database"]
+__all__ = []
 
 try:
     ##from psycopg2.psycopg1 import connect as _pgconnect
