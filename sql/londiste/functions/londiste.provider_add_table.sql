@@ -44,5 +44,5 @@ begin
     return londiste.provider_add_table(i_queue_name, i_table_name,
         londiste.find_column_types(i_table_name));
 end;
-$$ language plpgsql;
+$$ language plpgsql security definer;
 

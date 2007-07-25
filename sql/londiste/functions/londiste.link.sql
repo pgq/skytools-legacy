@@ -41,7 +41,7 @@ begin
     end loop;
     return list1 = list2;
 end;
-$$ language plpgsql;
+$$ language plpgsql security definer;
 
 create or replace function londiste.link(i_source_name text, i_dest_name text, prov_tick_id bigint, prov_tbl_list text, prov_seq_list text)
 returns text as $$

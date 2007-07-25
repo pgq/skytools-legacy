@@ -22,5 +22,5 @@ begin
 
     return 1;
 end;
-$$ language plpgsql;
+$$ language plpgsql security definer;
 
