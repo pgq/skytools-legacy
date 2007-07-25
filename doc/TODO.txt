@@ -22,6 +22,7 @@ Smaller things
   queue-rename
   show-batch-events
   del-event
+* install .sql files under share/skytools in addition to contrib/
 
 Low-priority
 ============
@@ -34,6 +35,8 @@ Larger things
     store them in subscriber db and apply when both tables are in sync.
 * skylog/logdb: publish sample logdb schema, with some tools
 * londiste: allow table redirection on subscriber side
+* sequence registration on provider
+* trigger handling
 
 Smaller things
 --------------
