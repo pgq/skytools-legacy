@@ -253,6 +253,8 @@ class Replicator(pgq.SerialConsumer):
         # and the transaction must be kept open so that
         # the SerialConsumer can save last tick and commit.
 
+        self.sync_database_encodings(src_db, dst_db)
+
         self.handle_seqs(dst_curs)
         self.handle_events(dst_curs, ev_list)
         self.save_table_state(dst_curs)
@@ -558,6 +560,24 @@ class Replicator(pgq.SerialConsumer):
         self.log.debug("Launch args: "+repr(cmd))
         res = os.system(cmd)
         self.log.debug("Launch result: "+repr(res))
+
+    def sync_database_encodings(self, src_db, dst_db):
+        """Make sure client_encoding is same on both side."""
+
+        try:
+            # psycopg2
+            if src_db.encoding != dst_db.encoding:
+                dst_db.set_client_encoding(src_db.encoding)
+        except AttributeError:
+            # psycopg1
+            src_curs = src_db.cursor()
+            dst_curs = dst_db.cursor()
+            src_curs.execute("show client_encoding")
+            src_enc = src_curs.fetchone()[0]
+            dst_curs.execute("show client_encoding")
+            dst_enc = dst_curs.fetchone()[0]
+            if src_enc != dst_enc:
+                dst_curs.execute("set client_encoding = %s", [src_enc])
 
 if __name__ == '__main__':
     script = Replicator(sys.argv[1:])
