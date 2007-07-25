@@ -100,7 +100,7 @@ def quote_fqident(s):
     The '.' is taken as namespace separator and
     all parts are quoted separately
     """
-    return '.'.join(map(quote_ident, s.split('.')))
+    return '.'.join(map(quote_ident, s.split('.', 1)))
 
 #
 # quoting for JSON strings
