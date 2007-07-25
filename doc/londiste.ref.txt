@@ -6,7 +6,10 @@
 == PgQ daemon ==
 
 Londiste runs as a consumer on PgQ.  Thus `pgqadm.py ticker` must be running
-on provider database.
+on provider database.  It is preferable to run it in same machine, because
+it needs low latency, but that is not a requirement.
+
+For monitoring you can use `pgqadm.py status` command.
 
 == Table Names ==
 
@@ -193,12 +196,12 @@ Basic logic:
    on subscriber and are in sync.
    * Store tick_id on subscriber.
 
-== copy ==
+== copy (internal) ==
 
 Internal command for initial SYNC.  Launched by `replay` if it notices
 that some tables are not in sync.  The reason to do table copying in
 separate process is to avoid locking down main replay process for
-lond time.
+long time.
 
 Basic logic:
  * Register on the same queue in parallel with different name.
@@ -212,6 +215,23 @@ Basic logic:
  `replay` process but just for one table.
  * When it reaches queue end, when no more batches are immidiately
  available, it hands the table over to main `replay` process.
+
+State changes between `replay` and `copy`:
+
+|| State                  || Owner  || What is done ||
+|| `NULL`                 || replay || Changes state to `in-copy`, launches `londiste.py copy` process, continues with it's work ||
+|| `in-copy`              || copy   || drops indexes, truncates, copies data in, restores indexes, changes state to `catching-up` ||
+|| `catching-up`          || copy   || replay events for that table only until no more batches (means current moment), change state to `wanna-sync:<tick_id>` and wait for state to change ||
+|| `wanna-sync:<tick_id>` || replay || catch up to given tick_id, change state to 'do-sync:<tick_id>' and wait for state to change ||
+|| `do-sync:<tick_id>`    || copy   || catch up to given tick_id, both `replay` and `copy` must now be at same position. change state to `ok` and exit ||
+|| `ok`                   || replay || synced table, events can be applied ||
+
+Such state changes must guarantee that any process can die at any time and by just restarting it can
+continue where it left.
+
+"subscriber add" registers table with `NULL` state.  "subscriber add --expect-sync" registers table with `ok` state.
+
+"subscriber resync" sets table state to `NULL`.
 
 = Utility commands =
 
