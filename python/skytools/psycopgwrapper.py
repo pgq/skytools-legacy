@@ -30,6 +30,9 @@ try:
                 while k >= len(self):
                     self.append(None)
             return list.__setitem__(self, k, v)
+        def copy(self):
+            "Return regular dict"
+            return dict(self.items())
 
     class _CompatCursor(psycopg2.extras.DictCursor):
         """Regular psycopg2 DictCursor with dict* methods."""
