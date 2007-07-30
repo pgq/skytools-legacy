@@ -1,3 +1,9 @@
+skytools (2.1.5) unstable; urgency=low
+
+  * Various stuff.
+
+ -- Marko Kreen <marko.kreen@skype.net>  Mon, 16 Jul 2007 17:38:16 +0300
+
 skytools (2.1.4) unstable; urgency=low
 
   * Upgrade walmgr, some fixes.
