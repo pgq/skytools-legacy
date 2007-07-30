@@ -223,8 +223,9 @@ class Replicator(pgq.SerialConsumer):
     def __init__(self, args):
         pgq.SerialConsumer.__init__(self, 'londiste', 'provider_db', 'subscriber_db', args)
 
-        # tick table in dst for SerialConsumer().  keep londiste stuff under one schema
-        self.dst_completed_table = "londiste.completed"
+        # where get/set_last_tick() function reside for SerialConsumer().
+        # default is pgq_ext, but lets keep londiste code under one schema
+        self.dst_schema = "londiste"
 
         self.table_list = []
         self.table_map = {}
