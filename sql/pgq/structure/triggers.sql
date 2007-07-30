@@ -3,6 +3,6 @@
 
 -- Group: Trigger Functions
 
-\i triggers/pgq.logutriga.sql
-\i triggers/pgq.sqltriga.sql
+-- \i triggers/pgq.logutriga.sql
+\i triggers/pgq_triggers.sql
 

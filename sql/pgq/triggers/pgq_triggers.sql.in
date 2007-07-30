@@ -1,0 +1,81 @@
+
+-- ----------------------------------------------------------------------
+-- Function: pgq.logtriga()
+--
+--      Non-automatic SQL trigger.  It puts row data in partial SQL form into
+--      queue.  It does not aut-detect table structure, it needs to be passed
+--      as trigger arg.
+--
+-- Parameters:
+--      arg1 - queue name
+--      arg2 - columnt type spec string where each column corresponds to one char (k/v/i).
+--              if spec string is shorter than column list, rest of columns default to 'i'.
+--
+-- Column types:
+--      k   - pkey column
+--      v   - normal data column
+--      i   - ignore column
+--
+-- Queue event fields:
+--    ev_type     - I/U/D
+--    ev_data     - partial SQL statement
+--    ev_extra1   - table name
+--
+-- ----------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION pgq.logtriga() RETURNS trigger
+AS 'MODULE_PATHNAME', 'pgq_logtriga' LANGUAGE C;
+
+-- ----------------------------------------------------------------------
+-- Function: pgq.sqltriga()
+--
+--      Automatic SQL trigger.  It puts row data in partial SQL form into
+--      queue.  It autodetects table structure.
+--
+-- Parameters:
+--    arg1 - queue name
+--    argX - any number of optional arg, in any order
+--
+-- Optinal arguments:
+--      SKIP                - The actual operation should be skipped
+--      ignore=col1[,col2]  - don't look at the specified arguments
+--      pkey=col1[,col2]    - Set pkey fields for the table, autodetection will be skipped
+--
+-- Queue event fields:
+--    ev_type     - I/U/D
+--    ev_data     - partial SQL statement
+--    ev_extra1   - table name
+--
+-- ----------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION pgq.sqltriga() RETURNS trigger
+AS 'MODULE_PATHNAME', 'pgq_sqltriga' LANGUAGE C;
+
+-- ----------------------------------------------------------------------
+-- Function: pgq.logutriga()
+--
+--      Trigger function that puts row data in urlencoded into queue.
+--
+-- Trigger parameters:
+--      arg1 - queue name
+--      argX - any number of optional arg, in any order
+--
+-- Optinal arguments:
+--      SKIP                - The actual operation should be skipped
+--      ignore=col1[,col2]  - don't look at the specified arguments
+--      pkey=col1[,col2]    - Set pkey fields for the table, autodetection will be skipped
+--
+-- Queue event fields:
+--      ev_type      - I/U/D ':' pkey_column_list
+--      ev_data      - column values urlencoded
+--      ev_extra1    - table name
+--
+-- Regular listen trigger example:
+-- >  CREATE TRIGGER triga_nimi AFTER INSERT OR UPDATE ON customer
+-- >  FOR EACH ROW EXECUTE PROCEDURE pgq.logutriga('qname');
+--
+-- Redirect trigger example:
+-- >   CREATE TRIGGER triga_nimi AFTER INSERT OR UPDATE ON customer
+-- >   FOR EACH ROW EXECUTE PROCEDURE pgq.logutriga('qname', 'SKIP');
+-- ----------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION pgq.logutriga() RETURNS TRIGGER
+AS 'MODULE_PATHNAME', 'pgq_logutriga' LANGUAGE C;
+

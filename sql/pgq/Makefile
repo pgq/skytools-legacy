@@ -6,10 +6,11 @@ DATA = structure/uninstall_pgq.sql
 SRCS = $(wildcard structure/*.sql) \
        $(wildcard functions/*.sql) \
        $(wildcard triggers/*.sql) \
-       lowlevel/pgq_lowlevel.sql
+       lowlevel/pgq_lowlevel.sql \
+       triggers/pgq_triggers.sql
 
 REGRESS = pgq_init pgq_core logutriga sqltriga
-REGRESS_OPTS = --load-language=plpythonu --load-language=plpgsql
+REGRESS_OPTS = --load-language=plpgsql
 
 PGXS = $(shell pg_config --pgxs)
 include $(PGXS)
@@ -18,15 +19,20 @@ NDOC = NaturalDocs
 NDOCARGS = -r -o html docs/html -p docs -i docs/sql
 CATSQL = ../../scripts/catsql.py
 
-# PGXS does not have subdir support, thus hack to recurse into lowlevel/
-all: low-all
-install: low-install
-clean: low-clean
-distclean: low-distclean
-low-all low-install low-clean low-distclean:
-	$(MAKE) -C lowlevel $(subst low-,,$@) DESTDIR=$(DESTDIR) 
+SUBDIRS = lowlevel triggers
 
-lowlevel/pgq_lowlevel.sql: low-all
+# PGXS does not have subdir support, thus hack to recurse into lowlevel/
+all: sub-all
+install: sub-install
+clean: sub-clean
+distclean: sub-distclean
+sub-all sub-install sub-clean sub-distclean:
+	for dir in $(SUBDIRS); do \
+		$(MAKE) -C $$dir $(subst sub-,,$@) DESTDIR=$(DESTDIR); \
+	done
+
+lowlevel/pgq_lowlevel.sql: sub-all
+triggers/pgq_triggers.sql: sub-all
 
 #
 # combined SQL files

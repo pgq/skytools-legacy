@@ -30,14 +30,14 @@ update rtest set dat = 6;
 delete from rtest;
 
 -- test hashed pkey
-drop trigger rtest_triga on rtest;
-create trigger rtest_triga after insert or update or delete on rtest
-for each row execute procedure pgq.sqltriga('que2', 'ignore=dat2&pkey=dat,hashtext(dat)');
+-- drop trigger rtest_triga on rtest;
+-- create trigger rtest_triga after insert or update or delete on rtest
+-- for each row execute procedure pgq.sqltriga('que2', 'ignore=dat2','pkey=dat,hashtext(dat)');
 
-insert into rtest values (1, '666', 'newdat');
-update rtest set dat = 5, dat2 = 'newdat2';
-update rtest set dat = 6;
-delete from rtest;
+-- insert into rtest values (1, '666', 'newdat');
+-- update rtest set dat = 5, dat2 = 'newdat2';
+-- update rtest set dat = 6;
+-- delete from rtest;
 
 
 -- test wrong key

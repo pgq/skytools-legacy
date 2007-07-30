@@ -10,10 +10,3 @@ pgq.retry_queue		events to be retried
 pgq.failed_queue	events that have failed
 pgq.event_*		data tables
 
-Random ideas
-============
-
-- all ticker logic in DB (plpython)
-- more funcs in plpython
-- insert_event in C (way to get rid of plpython)
-
