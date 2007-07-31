@@ -7,6 +7,9 @@ pyver = $(shell $(PYTHON) -V 2>&1 | sed 's/^[^ ]* \([0-9]*\.[0-9]*\).*/\1/')
 
 SUBDIRS = sql
 
+# sql installation files we want to put into share/skytools
+SQLFILES = sql/txid/txid.sql sql/pgq/pgq.sql sql/londiste/londiste.sql sql/pgq_ext/pgq_ext.sql sql/logtriga/logtriga.sql
+
 all: python-all modules-all
 
 modules-all: config.mak
@@ -17,6 +20,8 @@ x$(MAKE):
 
 python-all: config.mak
 	$(PYTHON) setup.py build
+
+$(SQLFILES): modules-all
 
 clean:
 	$(MAKE) -C sql clean
@@ -39,9 +44,14 @@ modules-install: config.mak
 	$(MAKE) -C sql install DESTDIR=$(DESTDIR)
 	test \! -d compat || $(MAKE) -C compat $@ DESTDIR=$(DESTDIR)
 
-python-install: config.mak
+python-install: config.mak $(SQLFILES)
 	$(PYTHON) setup.py install --prefix=$(prefix) --root=$(DESTDIR)/
 	test \! -d compat || $(MAKE) -C compat $@ DESTDIR=$(DESTDIR)
+
+python-install python-all: python/skytools/installer_config.py
+python/skytools/installer_config.py: python/skytools/installer_config.py.in config.mak
+	sed -e 's!@SQLDIR@!$(SQLDIR)!g' $< > $@
+
 
 distclean: clean
 	for dir in $(SUBDIRS); do $(MAKE) -C $$dir $@ || exit 1; done

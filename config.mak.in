@@ -4,6 +4,8 @@ prefix = @prefix@
 override PYTHON = @PYTHON@
 override PG_CONFIG = @PG_CONFIG@
 
+SQLDIR = $(prefix)/share/skytools
+
 PGXS = $(shell $(PG_CONFIG) --pgxs)
 
 DESTDIR = /

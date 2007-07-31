@@ -20,7 +20,8 @@ setup(
                'scripts/cube_dispatcher.py', 'scripts/queue_mover.py',
                'scripts/table_dispatcher.py', 'scripts/bulk_loader.py',
                'scripts/scriptmgr.py', 'scripts/queue_splitter.py'],
-    data_files = [ ('share/doc/skytools/conf', [
+    data_files = [
+      ('share/doc/skytools/conf', [
         'python/conf/londiste.ini',
         'python/conf/pgqadm.ini',
         'python/conf/wal-master.ini',
@@ -31,6 +32,13 @@ setup(
         'scripts/table_dispatcher.ini.templ',
         'scripts/bulk_loader.ini.templ',
         'scripts/scriptmgr.ini.templ',
-        ])]
+        ]),
+      ('share/skytools', [
+        'sql/txid/txid.sql',
+        'sql/pgq/pgq.sql',
+        'sql/londiste/londiste.sql',
+        'sql/pgq_ext/pgq_ext.sql',
+        'sql/logtriga/logtriga.sql',
+        ])],
 )
 
