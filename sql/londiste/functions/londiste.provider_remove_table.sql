@@ -22,6 +22,8 @@ begin
     exception
         when undefined_table then
             raise notice 'table % does not exist', i_table_name;
+        when undefined_object then
+            raise notice 'trigger % does not exist on table %', tgname, i_table_name;
     end;
 
     delete from londiste.provider_table
