@@ -427,9 +427,18 @@ class SubscriberSetup(CommonSetup):
         src_db.commit()
 
     def subscriber_show_tables(self):
-        list = self.get_subscriber_table_list()
+        """print out subscriber table list, with state and snapshot"""
+        dst_db = self.get_database('subscriber_db')
+        dst_curs = dst_db.cursor()
+        list = self.fetch_subscriber_tables(dst_curs)
+        dst_db.commit()
+
+        format = "%-30s   %20s  %-20s"
+        print format % ("Table", "State", "Snapshot")
         for tbl in list:
-            print tbl
+            print format % (tbl['table_name'],
+                            tbl['merge_state'] or 'NEW',
+                            tbl['snapshot'] or '')
 
     def subscriber_missing_tables(self):
         provider_tables = self.get_provider_table_list()
