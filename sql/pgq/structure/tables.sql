@@ -21,10 +21,10 @@
 -- ----------------------------------------------------------------------
 
 set client_min_messages = 'warning';
+set default_with_oids = 'off';
 
 -- drop schema if exists pgq cascade;
 create schema pgq;
-grant usage on schema pgq to public;
 
 -- ----------------------------------------------------------------------
 -- Table: pgq.consumer

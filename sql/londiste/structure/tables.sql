@@ -1,7 +1,6 @@
 set default_with_oids = 'off';
 
 create schema londiste;
-grant usage on schema londiste to public;
 
 create table londiste.provider_table (
     nr                  serial not null,
