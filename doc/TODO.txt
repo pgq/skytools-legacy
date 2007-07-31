@@ -37,7 +37,7 @@
 
  * cascaded replication, switchover, failover [marko]
  * drop support for psycopg1
- * drop support for 8.1 (maybe even 8.2?)
+ * drop support for 8.1?
 
 = High-prority =
 
