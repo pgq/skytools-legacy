@@ -1,7 +1,7 @@
 
 [[TableOfContents]]
 
-= Next release - 2.1.5 =
+= Next minor release - 2.1.5 =
 
 == Done ==
 
@@ -20,22 +20,30 @@
  dependant on PL/Python anymore.
  * set client_encoding on subscriber same as on provider
  * Write PgQ triggers (pgq.logtriga(), pgq.logutriga(), pgq.sqltriga()) in C.
+ * londiste: remove tbl should work also if table is already dropped [dimitri]
+ * install .sql files under share/skytools in addition to contrib/ [marko]
+ * pgq: pgqadm also vacuums londiste and pgq_ext tables, if they exist
+ * londiste: provider add/remove --all [hans]
+ * londiste: remove denytrigger from source, thus no plpython anymore...
+ it was unused anyway.
+ * replace logtriga() with pgq.logtriga() for londiste trigger
 
 == To Do ==
 
- * londiste: remove tbl should work also if table is already dropped
- * install .sql files under share/skytools in addition to contrib/  [marko]
  * add <seq>, remove <seq> [marko]
- * londiste: install <modulename> --connstr=<xxx> [dimitri]
  * pgq/londiste/pgq_ext: schema upgrade scripts  [marko]
+
+= Next major release - 2.2 =
+
+ * cascaded replication, switchover, failover [marko]
+ * drop support for psycopg1
+ * drop support for 8.1 (maybe even 8.2?)
 
 = High-prority =
 
- * docs: londiste, pgq/python, pgq/sql, skytools, walmgr
-
 == Larger things ==
 
- * cascaded replication, switchover, failover [marko]
+ * docs: londiste, pgq/python, pgq/sql, skytools, walmgr
 
 == Smaller things ==
 
@@ -54,7 +62,6 @@
   * check if copy is running (lag?)
   * count of tables done, count of unsynced
   * table in the middle of copy
- * londiste: provider add/remove --all [hans]
 
 = Low-priority =
 
@@ -72,6 +79,10 @@
 
 == Smaller things ==
 
+ * londiste: make sure unprivileged provider connection works for ordinery replication,
+ but not for admin commands.  Need to remove SECURITY DEFINER from londiste
+ admin functions (both provider and subscriber, because londiste needs admin
+ rights on subscriber anyway).
  * pgqadm: separate priod for retry queue processing
  * skytools: switch for silence for cron scripts
  * pgq: drop_fkeys.sql for live envs
@@ -80,6 +91,8 @@
  * ideas from SlonyI:
   * force timestamps to ISO
   * when buffering queries, check their size
+  * store event_id with tick, thus making possible to guess the size of
+  upcoming batches.
  * pgqadm: show count of events to be processed [--count switch].
  it should be relatively cheap with optimized query if consumers are not lagging.
   * exact method - `SELECT count(*) FROM pgq.event_X WHERE NOT txid_in_snapshot(ev_txid, last_tick_snapshot) AND ev_txid > xmin;`
