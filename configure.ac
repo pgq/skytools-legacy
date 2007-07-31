@@ -36,18 +36,6 @@ else
 fi
 AC_SUBST(MAKE)
 
-dnl Find location of /contrib SQL
-AC_MSG_CHECKING(where PostgreSQL SQL extensions are installed)
-cat > conftest.mak <<EOF
-PGXS = \$(shell $PG_CONFIG --pgxs)
-include \$(PGXS)
-finddir:
-	echo "\$(datadir)/contrib"
-EOF
-SQLDIR=`$MAKE -s -f conftest.mak finddir`
-AC_MSG_RESULT($SQLDIR)
-AC_SUBST(SQLDIR)
-
 dnl Write result
-AC_OUTPUT([config.mak python/skytools/installer_config.py])
+AC_OUTPUT([config.mak])
 
