@@ -45,21 +45,6 @@ commands:
   subscriber unregister      detach subscriber from queue
 """
 
-"""switchover:
-goal is to launch a replay with reverse config
-
-- should link be required? (link should guarantee all tables/seqs same?)
-- should link auto-add tables for subscriber
-
-1. lock all tables on provider, in order specified by 'nr'
-2. wait until old replay is past the point
-3. sync seq
-4. replace queue triggers on provider with deny triggers
-5. replace deny triggers on subscriber with queue triggers
-6. sync pgq tick seqs?  change pgq config?
-
-"""
-
 class Londiste(skytools.DBScript):
     def __init__(self, args):
         skytools.DBScript.__init__(self, 'londiste', args)
