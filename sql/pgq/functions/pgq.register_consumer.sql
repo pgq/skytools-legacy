@@ -20,7 +20,7 @@ returns integer as $$
 begin
     return pgq.register_consumer(x_queue_name, x_consumer_id, NULL);
 end;
-$$ language plpgsql; -- no perms needed
+$$ language plpgsql security definer;
 
 
 create or replace function pgq.register_consumer(
