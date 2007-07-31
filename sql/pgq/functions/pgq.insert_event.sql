@@ -16,7 +16,7 @@ returns bigint as $$
 begin
     return pgq.insert_event(queue_name, ev_type, ev_data, null, null, null, null);
 end;
-$$ language plpgsql;  -- event inserting needs no special perms
+$$ language plpgsql security definer;
 
 
 
@@ -45,5 +45,5 @@ begin
     return pgq.insert_event_raw(queue_name, null, now(), null, null,
             ev_type, ev_data, ev_extra1, ev_extra2, ev_extra3, ev_extra4);
 end;
-$$ language plpgsql;  -- event inserting needs no special perms
+$$ language plpgsql security definer;
 

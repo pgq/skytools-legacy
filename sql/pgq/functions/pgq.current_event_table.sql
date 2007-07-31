@@ -3,13 +3,18 @@ returns text as $$
 -- ----------------------------------------------------------------------
 -- Function: pgq.current_event_table(1)
 --
---     Return active event table for particular queue.
+--      Return active event table for particular queue.
+--      Event can be added to it without going via functions,
+--      e.g. by COPY.
 --
 -- Note:
---     The result is valid only during current transaction.
+--      The result is valid only during current transaction.
+--
+-- Permissions:
+--      Actual insertion requires superuser access.
 --
 -- Parameters:
---     x_queue_name    - Queue name.
+--      x_queue_name    - Queue name.
 -- ----------------------------------------------------------------------
 declare
     res text;

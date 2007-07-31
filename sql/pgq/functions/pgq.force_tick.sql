@@ -10,9 +10,9 @@ returns bigint as $$
 --      Should be called in loop, with some delay until last tick
 --      changes or too much time is passed.
 --
---      Such function is needed because paraller calls o ticker() are
+--      Such function is needed because paraller calls of pgq.ticker() are
 --      dangerous, and cannot be protected with locks as snapshot
---      is taken before.
+--      is taken before locking.
 --
 -- Parameters:
 --      i_queue_name     - Name of the queue
