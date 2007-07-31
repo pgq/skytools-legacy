@@ -10,6 +10,9 @@ returns setof text as $$
 -- Returns:
 --      List of table names.
 -- ----------------------------------------------------------------------
+declare
+    tbl text;
+    scm text;
 begin
     return next 'pgq.subscription';
     return next 'pgq.consumer';
@@ -17,14 +20,23 @@ begin
     return next 'pgq.tick';
     return next 'pgq.retry_queue';
 
-    -- vacuum also txid.epoch, if exists
-    perform 1 from pg_class t, pg_namespace n
-        where t.relname = 'epoch'
-          and n.nspname = 'txid'
-          and n.oid = t.relnamespace;
-    if found then
-        return next 'txid.epoch';
-    end if;
+    -- include also txid, pgq_ext and londiste tables if they exist
+    for scm, tbl in 
+        select n.nspname, t.relname from pg_class t, pg_namespace n
+         where n.oid = t.relnamespace
+           and n.nspname = 'txid' and t.relname = 'epoch'
+        union all
+        select n.nspname, t.relname from pg_class t, pg_namespace n
+         where n.oid = t.relnamespace
+           and n.nspname = 'londiste' and t.relname = 'completed'
+        union all
+        select n.nspname, t.relname from pg_class t, pg_namespace n
+         where n.oid = t.relnamespace
+           and n.nspname = 'pgq_ext'
+           and t.relname in ('completed_tick', 'completed_batch', 'completed_event', 'partial_batch')
+    loop
+        return next scm || '.' || tbl;
+    end loop;
 
     return;
 end;
