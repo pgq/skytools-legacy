@@ -17,7 +17,12 @@ begin
         raise exception 'no such table registered';
     end if;
 
-    execute 'drop trigger ' || tgname || ' on ' || i_table_name;
+    begin
+        execute 'drop trigger ' || tgname || ' on ' || i_table_name;
+    exception
+        when undefined_table then
+            raise notice 'table % does not exist', i_table_name;
+    end;
 
     delete from londiste.provider_table
         where queue_name = i_queue_name
