@@ -8,7 +8,7 @@ typedef uint64 txid;
 
 typedef struct
 {
-    int32       varsz;
+    int32       __varsz;   /* should not be touched directly */
     uint32      nxip;
     txid xmin;
     txid xmax;

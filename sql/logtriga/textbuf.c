@@ -16,6 +16,10 @@
 
 #include "textbuf.h"
 
+#ifndef SET_VARSIZE
+#define SET_VARSIZE(x, len) VARATT_SIZEP(x) = (len)
+#endif
+
 struct TBuf {
 	text *data;
 	int size;
@@ -42,7 +46,7 @@ static inline char *get_endp(TBuf *tbuf)
 
 static inline void inc_used(TBuf *tbuf, int len)
 {
-	VARATT_SIZEP(tbuf->data) += len;
+	SET_VARSIZE(tbuf->data, VARSIZE(tbuf->data) + len);
 }
 
 static void tbuf_init(TBuf *tbuf, int start_size)
@@ -51,7 +55,7 @@ static void tbuf_init(TBuf *tbuf, int start_size)
 		start_size = VARHDRSZ;
 	tbuf->data = talloc(start_size);
 	tbuf->size = start_size;
-	VARATT_SIZEP(tbuf->data) = VARHDRSZ;
+	SET_VARSIZE(tbuf->data, VARHDRSZ);
 }
 
 TBuf *tbuf_alloc(int start_size)
@@ -76,7 +80,7 @@ int tbuf_get_size(TBuf *tbuf)
 
 void tbuf_reset(TBuf *tbuf)
 {
-	VARATT_SIZEP(tbuf->data) = VARHDRSZ;
+	SET_VARSIZE(tbuf->data, VARHDRSZ);
 }
 
 const text *tbuf_look_text(TBuf *tbuf)

@@ -52,3 +52,13 @@ create table londiste.subscriber_seq (
     primary key (queue_name, seq_name)
 );
 
+create table londiste.subscriber_pending_fkeys(
+    from_table          text not null,
+    to_table            text not null,
+    fkey_name           text not null,
+    fkey_def            text not null,
+    
+    primary key (from_table, to_table, fkey_name),
+    unique (to_table, from_table, fkey_name)
+);
+
