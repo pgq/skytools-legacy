@@ -27,6 +27,11 @@
 PG_MODULE_MAGIC;
 #endif
 
+#ifndef SET_VARSIZE
+#define SET_VARSIZE(x, len) VARATT_SIZEP(x) = len
+#endif
+
+
 /*
  * public functions
  */
@@ -135,7 +140,7 @@ parse_snapshot(const char *str)
 
 	size = offsetof(TxidSnapshot, xip) + sizeof(txid) * a_used;
 	snap = (TxidSnapshot *) palloc(size);
-	snap->varsz = size;
+	SET_VARSIZE(snap, size);
 	snap->xmin = xmin;
 	snap->xmax = xmax;
 	snap->nxip = a_used;
@@ -184,7 +189,7 @@ txid_current_snapshot(PG_FUNCTION_ARGS)
 	num = SerializableSnapshot->xcnt;
 	size = offsetof(TxidSnapshot, xip) + sizeof(txid) * num;
 	snap = palloc(size);
-	snap->varsz = size;
+	SET_VARSIZE(snap, size);
 	snap->xmin = txid_convert_xid(SerializableSnapshot->xmin, &state);
 	snap->xmax = txid_convert_xid(SerializableSnapshot->xmax, &state);
 	snap->nxip = num;
@@ -342,11 +347,11 @@ txid_snapshot_active(PG_FUNCTION_ARGS)
 		snap = (TxidSnapshot *) PG_GETARG_VARLENA_P(0);
 		
 		fctx = SRF_FIRSTCALL_INIT();
-		statelen = sizeof(*state) + snap->varsz;
+		statelen = sizeof(*state) + VARSIZE(snap);
 		state = MemoryContextAlloc(fctx->multi_call_memory_ctx, statelen);
 		state->pos = 0;
 		state->snap = (TxidSnapshot *)((char *)state + sizeof(*state));
-		memcpy(state->snap, snap, snap->varsz);
+		memcpy(state->snap, snap, VARSIZE(snap));
 		fctx->user_fctx = state;
 
 		PG_FREE_IF_COPY(snap, 0);
