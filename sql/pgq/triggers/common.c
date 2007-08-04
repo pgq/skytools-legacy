@@ -22,6 +22,7 @@
 #include <catalog/pg_type.h>
 #include <catalog/pg_namespace.h>
 #include <executor/spi.h>
+#include <lib/stringinfo.h>
 #include <utils/memutils.h>
 
 #include "common.h"

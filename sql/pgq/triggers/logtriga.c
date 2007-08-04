@@ -20,6 +20,7 @@
 
 #include <executor/spi.h>
 #include <commands/trigger.h>
+#include <lib/stringinfo.h>
 
 #include "common.h"
 #include "stringutil.h"
