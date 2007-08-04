@@ -21,6 +21,7 @@
 
 #include "catalog/pg_type.h"
 #include "executor/spi.h"
+#include "lib/stringinfo.h"
 #include "utils/builtins.h"
 #include "utils/hsearch.h"
 
