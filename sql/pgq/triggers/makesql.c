@@ -25,6 +25,7 @@
 #include <executor/spi.h>
 #include <commands/trigger.h>
 #include <catalog/pg_operator.h>
+#include <lib/stringinfo.h>
 #include <utils/typcache.h>
 
 #include "common.h"
