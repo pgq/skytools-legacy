@@ -17,7 +17,7 @@ returns bigint as $$
 -- ----------------------------------------------------------------------
 declare
     next_tick       bigint;
-    next_batch      bigint;
+    batch_id        bigint;
     errmsg          text;
     sub             record;
 begin
@@ -53,14 +53,14 @@ begin
     end if;
 
     -- get next batch
-    next_batch := nextval('pgq.batch_id_seq');
+    batch_id := nextval('pgq.batch_id_seq');
     update pgq.subscription
-        set sub_batch = next_batch,
+        set sub_batch = batch_id,
             sub_next_tick = next_tick,
             sub_active = now()
         where sub_queue = sub.sub_queue
           and sub_consumer = sub.sub_consumer;
-    return next_batch;
+    return batch_id;
 end;
 $$ language plpgsql security definer;
 
