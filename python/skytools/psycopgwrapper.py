@@ -55,6 +55,7 @@ try:
 except ImportError:
     # use psycopg 1
     from psycopg import connect as _pgconnect
+    from psycopg import QuotedString
 
 def connect_database(connstr):
     """Create a db connection with connect_timeout option.
