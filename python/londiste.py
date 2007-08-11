@@ -17,10 +17,12 @@ command_usage = """
 %prog [options] INI CMD [subcmd args]
 
 commands:
+  replay                     replay events to subscriber
+
   provider install           installs modules, creates queue
   provider add TBL ...       add table to queue
   provider remove TBL ...    remove table from queue
-  provider tables            show all tables linked to queue
+  provider tables            show all tables on provider
   provider seqs              show all sequences on provider
 
   subscriber install         installs schema
@@ -29,20 +31,14 @@ commands:
   subscriber tables          list tables subscriber has attached to
   subscriber seqs            list sequences subscriber is interested
   subscriber missing         list tables subscriber has not yet attached to
-  subscriber link QUE        create mirror queue
-  subscriber unlink          dont mirror queue
-
-  replay                     replay events to subscriber
-
-  switchover                 switch the roles between provider & subscriber
-  compare [TBL ...]          compare table contents on both sides
-  repair [TBL ...]           repair data on subscriber
-  copy                       full copy of table, internal cmd
   subscriber check           compare table structure on both sides
   subscriber fkeys           print out fkey drop/create commands
   subscriber resync TBL ...  do full copy again
-  subscriber register        attaches subscriber to queue (also done by replay)
-  subscriber unregister      detach subscriber from queue
+
+  compare [TBL ...]          compare table contents on both sides
+  repair [TBL ...]           repair data on subscriber
+
+  copy                       [internal command - copy table logic]
 """
 
 class Londiste(skytools.DBScript):

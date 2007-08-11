@@ -18,4 +18,3 @@ __all__ = (psycopgwrapper.__all__
         + sqltools.__all__
         + quoting.__all__ )
 
-del psycopgwrapper, config
