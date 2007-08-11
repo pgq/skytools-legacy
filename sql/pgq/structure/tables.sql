@@ -52,13 +52,19 @@ create table pgq.consumer (
 -- Columns:
 --      queue_id                    - queue id for internal usage
 --      queue_name                  - queue name visible outside
---      queue_data                  - parent table for actual data tables
+--      queue_ntables               - how many data tables the queue has
+--      queue_cur_table             - which data table is currently active
+--      queue_rotation_period       - period for data table rotation
 --      queue_switch_step1          - tx when rotation happened
 --      queue_switch_step2          - tx after rotation was committed
 --      queue_switch_time           - time when switch happened
+--      queue_external_ticker       - ticks come from some external sources
 --      queue_ticker_max_count      - batch should not contain more events
 --      queue_ticker_max_lag        - events should not age more
 --      queue_ticker_idle_period    - how often to tick when no events happen
+--      queue_data_pfx              - prefix for data table names
+--      queue_event_seq             - sequence for event id's
+--      queue_tick_seq              - sequence for tick id's
 -- ----------------------------------------------------------------------
 create table pgq.queue (
 	queue_id		    serial,
@@ -93,7 +99,7 @@ create table pgq.queue (
 --      tick_queue      - queue id whose tick it is
 --      tick_id         - ticks id (per-queue)
 --      tick_time       - time when tick happened
---      tick_snapshot
+--      tick_snapshot   - transaction state
 -- ----------------------------------------------------------------------
 create table pgq.tick (
         tick_queue                  int4            not null,
@@ -111,21 +117,21 @@ create table pgq.tick (
 --
 --      Sequence for batch id's.
 -- ----------------------------------------------------------------------
-
 create sequence pgq.batch_id_seq;
+
 -- ----------------------------------------------------------------------
 -- Table: pgq.subscription
 --
---      Consumer registration on a queue
+--      Consumer registration on a queue.
 --
 -- Columns:
 --
 --      sub_id          - subscription id for internal usage
 --      sub_queue       - queue id
 --      sub_consumer    - consumer's id
---      sub_tick        - last tick the consumer processed
+--      sub_last_tick   - last tick the consumer processed
 --      sub_batch       - shortcut for queue_id/consumer_id/tick_id
---      sub_next_tick   - 
+--      sub_next_tick   - batch end pos
 -- ----------------------------------------------------------------------
 create table pgq.subscription (
 	sub_id				serial      not null,
@@ -182,10 +188,12 @@ create table pgq.event_template (
 -- ----------------------------------------------------------------------
 -- Table: pgq.retry_queue
 --
---      Events to be retried
+--      Events to be retried.  When retry time reaches, they will
+--      be put back into main queue.
 --
 -- Columns:
 --      ev_retry_after          - time when it should be re-inserted to main queue
+--      *                       - same as pgq.event_template
 -- ----------------------------------------------------------------------
 create table pgq.retry_queue (
     ev_retry_after          timestamptz     not null,
@@ -204,11 +212,12 @@ create index rq_retry_owner_idx on pgq.retry_queue (ev_owner, ev_id);
 -- ----------------------------------------------------------------------
 -- Table: pgq.failed_queue
 --
---      Events whose processing failed
+--      Events whose processing failed.
 --
 -- Columns:
 --      ev_failed_reason               - consumer's excuse for not processing
 --      ev_failed_time                 - when it was tagged failed
+--      *                              - same as pgq.event_template
 -- ----------------------------------------------------------------------
 create table pgq.failed_queue (
     ev_failed_reason                   text,
