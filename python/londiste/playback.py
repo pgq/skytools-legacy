@@ -61,6 +61,7 @@ class TableState(object):
 
     def forget(self):
         self.state = TABLE_MISSING
+        self.last_snapshot_tick = None
         self.str_snapshot = None
         self.from_snapshot = None
         self.sync_tick_id = None
@@ -176,6 +177,39 @@ class TableState(object):
                 self.change_snapshot(None)
         return True
 
+    def gc_snapshot(self, copy_thread, prev_tick, cur_tick, no_lag):
+        """Remove attached snapshot if possible.
+        
+        If the event processing is in current moment. the snapshot
+        is not needed beyond next batch.
+
+        The logic is needed for mostly unchanging tables,
+        where the .ok_batch_count check in .interesting()
+        method can take a lot of time.
+        """
+
+        # check if gc is needed
+        if self.str_snapshot is None:
+            return
+
+        # check if allowed to modify
+        if copy_thread:
+            if self.state != TABLE_CATCHING_UP:
+                return
+        else:
+            if self.state != TABLE_OK:
+                return False
+
+        # aquire last tick
+        if not self.last_snapshot_tick:
+            if no_lag:
+                self.last_snapshot_tick = cur_tick
+            return
+
+        # reset snapshot if not needed anymore
+        if self.last_snapshot_tick < prev_tick:
+            self.change_snapshot(None)
+
 class SeqCache(object):
     def __init__(self):
         self.seq_list = []
@@ -249,6 +283,7 @@ class Replicator(pgq.SerialConsumer):
         self.load_table_state(dst_curs)
         self.sync_tables(dst_db)
 
+        self.copy_snapshot_cleanup(dst_db)
         self.restore_fkeys(dst_db)
 
         # now the actual event processing happens.
@@ -582,7 +617,21 @@ class Replicator(pgq.SerialConsumer):
             if src_enc != dst_enc:
                 dst_curs.execute("set client_encoding = %s", [src_enc])
 
+    def copy_snapshot_cleanup(self, dst_db):
+        """Remove unnecassary snapshot info from tables."""
+        no_lag = not self.work_state
+        changes = False
+        for t in self.table_list:
+            t.gc_snapshot(self.copy_thread, self.prev_tick, self.cur_tick, no_lag)
+            if t.changed:
+                changes = True
+
+        if changes:
+            self.save_table_state(dst_db.cursor())
+            dst_db.commit()
+
     def restore_fkeys(self, dst_db):
+        """Restore fkeys that have both tables on sync."""
         dst_curs = dst_db.cursor()
         # restore fkeys -- one at a time
         q = "select * from londiste.subscriber_get_queue_valid_pending_fkeys(%s)"
