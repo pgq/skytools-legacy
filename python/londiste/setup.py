@@ -293,7 +293,7 @@ class SubscriberSetup(CommonSetup):
         elif cmd == "check":
             self.check_tables(self.get_provider_table_list())
         elif cmd == "fkeys":
-            self.collect_fkeys(self.get_provider_table_list())
+            self.collect_fkeys(self.get_provider_table_list(), self.args[3:])
         elif cmd == "seqs":
             self.subscriber_list_seqs()
         elif cmd == "add-seq":
@@ -304,40 +304,41 @@ class SubscriberSetup(CommonSetup):
             self.log.error('bad subcommand: ' + cmd)
             sys.exit(1)
 
-    def collect_fkeys(self, table_list):
+    def collect_fkeys(self, table_list, args):
+        if args == []:
+            args = ['pending', 'active']
+            
         dst_db = self.get_database('subscriber_db')
         dst_curs = dst_db.cursor()
+        
+        subscriber_tables = self.get_subscriber_table_list()
 
-        oid_list = []
-        for tbl in table_list:
-            try:
-                oid = skytools.get_table_oid(dst_curs, tbl)
-                if oid:
-                    oid_list.append(str(oid))
-            except:
-                pass
-        if len(oid_list) == 0:
-            print "No tables"
-            return
-        oid_str = ",".join(oid_list)
-
-        q = "SELECT n.nspname || '.' || t.relname as tbl, c.conname as con,"\
-            "       pg_get_constraintdef(c.oid) as def"\
-            "  FROM pg_constraint c, pg_class t, pg_namespace n"\
-            " WHERE c.contype = 'f' and (c.conrelid in (%s) or c.confrelid in (%s))"\
-            "   AND t.oid = c.conrelid AND n.oid = t.relnamespace" % (oid_str, oid_str)
-        dst_curs.execute(q)
-        res = dst_curs.dictfetchall()
-        dst_db.commit()
-
-        print "-- dropping"
-        for row in res:
-            q = "ALTER TABLE ONLY %(tbl)s DROP CONSTRAINT %(con)s;"
-            print q % row
-        print "-- creating"
-        for row in res:
-            q = "ALTER TABLE ONLY %(tbl)s ADD CONSTRAINT %(con)s %(def)s;"
-            print q % row
+        fkeys = {'active_fkeys': [], 'pending_fkeys': []}
+        for type in args:
+            q = "select * from londiste.subscriber_get_table_%s_fkeys(%%s);" % type
+            for tbl in table_list:
+                if tbl not in subscriber_tables:
+                    continue
+                dst_curs.execute(q, [tbl])
+                fkeys['%s_fkeys' % type].extend(dst_curs.dictfetchall())
+        dst_db.commit()                    
+        
+        for type in args:
+            widths = [15,15,15]
+            for row in fkeys['%s_fkeys' % type]:
+                widths[0] = widths[0] > len(row[0]) and widths[0] or len(row[0])
+                widths[1] = widths[1] > len(row[1]) and widths[1] or len(row[1])
+                widths[2] = widths[2] > len(row[2]) and widths[2] or len(row[2])
+            widths[0] += 2; widths[1] += 2; widths[2] += 2
+            
+            fmt = '%%-%ds%%-%ds%%-%ds%%s' % tuple(widths)
+            print '%s fkeys:' % type
+            print fmt % ('from_table', 'to_table', 'fkey_name', 'fkey_def')
+            print fmt % ('----------', '--------', '---------', '--------')
+                
+            for row in fkeys['%s_fkeys' % type]:
+                print fmt % row.values()
+            print '\n'
 
     def check_tables(self, table_list):
         src_db = self.get_database('provider_db')
@@ -368,7 +369,7 @@ class SubscriberSetup(CommonSetup):
         if not oid:
             self.log.error('Table %s not found' % tbl)
             return 1
-        q = "select count(1) from pg_trigger where tgrelid = %s"
+        q = "select count(1) from pg_trigger where tgrelid = %s and tgisconstraint is not true"
         dst_curs.execute(q, [oid])
         got = dst_curs.fetchone()[0]
         if got:

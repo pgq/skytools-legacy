@@ -58,7 +58,6 @@ create table londiste.subscriber_pending_fkeys(
     fkey_name           text not null,
     fkey_def            text not null,
     
-    primary key (from_table, to_table, fkey_name),
-    unique (to_table, from_table, fkey_name)
+    primary key (from_table, fkey_name)
 );
 

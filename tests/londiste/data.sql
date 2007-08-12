@@ -13,7 +13,7 @@ create index idx_data1_rand on data1 (id, data);
 create table data2 (
     id serial primary key,
     data text,
-    -- old_id integer references data1,
+    ref1 integer references data1,
     constraint uq_data2 unique (data)
 );
 

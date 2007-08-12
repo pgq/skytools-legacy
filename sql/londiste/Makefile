@@ -5,7 +5,7 @@ DOCS = README.londiste
 FUNCS = $(wildcard functions/*.sql)
 SRCS = structure/tables.sql structure/grants.sql structure/types.sql $(FUNCS)
 
-REGRESS = londiste_install londiste_provider londiste_subscriber
+REGRESS = londiste_install londiste_provider londiste_subscriber londiste_fkeys
 # londiste_denytrigger
 REGRESS_OPTS = --load-language=plpythonu --load-language=plpgsql
 

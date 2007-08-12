@@ -25,11 +25,11 @@ select pgq.create_queue('pqueue');
 (1 row)
 
 select londiste.subscriber_add_table('pqueue', 'public.testdata');
-ERROR:  duplicate key violates unique constraint "subscriber_table_pkey"
+ERROR:  duplicate key value violates unique constraint "subscriber_table_pkey"
 CONTEXT:  SQL statement "INSERT INTO londiste.subscriber_table (queue_name, table_name) values ( $1 ,  $2 )"
 PL/pgSQL function "subscriber_add_table" line 2 at SQL statement
 select londiste.subscriber_add_table('pqueue', 'public.testdata');
-ERROR:  duplicate key violates unique constraint "subscriber_table_pkey"
+ERROR:  duplicate key value violates unique constraint "subscriber_table_pkey"
 CONTEXT:  SQL statement "INSERT INTO londiste.subscriber_table (queue_name, table_name) values ( $1 ,  $2 )"
 PL/pgSQL function "subscriber_add_table" line 2 at SQL statement
 select * from londiste.subscriber_get_table_list('pqueue');
@@ -74,7 +74,7 @@ select londiste.subscriber_add_seq('pqueue', 'public.testdata_id_seq');
 (1 row)
 
 select londiste.subscriber_add_seq('pqueue', 'public.testdata_id_seq');
-ERROR:  duplicate key violates unique constraint "subscriber_seq_pkey"
+ERROR:  duplicate key value violates unique constraint "subscriber_seq_pkey"
 CONTEXT:  SQL statement "INSERT INTO londiste.subscriber_seq (queue_name, seq_name) values ( $1 ,  $2 )"
 PL/pgSQL function "subscriber_add_seq" line 4 at SQL statement
 select * from londiste.subscriber_get_seq_list('pqueue');
@@ -109,7 +109,7 @@ select londiste.subscriber_add_table('pqueue', 'public.testdata');
 
 insert into londiste.link (source, dest) values ('mqueue', 'pqueue');
 select londiste.subscriber_add_table('pqueue', 'public.testdata');
-ERROR:  duplicate key violates unique constraint "subscriber_table_pkey"
+ERROR:  duplicate key value violates unique constraint "subscriber_table_pkey"
 CONTEXT:  SQL statement "INSERT INTO londiste.subscriber_table (queue_name, table_name) values ( $1 ,  $2 )"
 PL/pgSQL function "subscriber_add_table" line 2 at SQL statement
 select londiste.subscriber_remove_table('pqueue', 'public.testdata');
