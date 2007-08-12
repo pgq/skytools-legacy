@@ -1,5 +1,6 @@
 
 set client_min_messages = 'warning';
+\set VERBOSITY 'terse'
 
 --
 -- tables
