@@ -34,7 +34,6 @@
 
  * add <seq>, remove <seq> [marko]
  * pgq/londiste/pgq_ext: schema upgrade scripts  [marko]
- * fast copy snapshot cleanup [marko]
 
 = Next major release - 2.2 =
 
