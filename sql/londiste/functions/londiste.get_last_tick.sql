@@ -9,5 +9,5 @@ begin
      where consumer_id = i_consumer;
     return res;
 end;
-$$ language plpgsql security definer;
+$$ language plpgsql security definer strict stable;
 

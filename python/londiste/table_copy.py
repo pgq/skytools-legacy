@@ -50,6 +50,17 @@ class CopyTable(Replicator):
         for c in src_struct.get_column_list():
             if c not in dlist:
                 raise Exception('Column %s does not exist on dest side' % c)
+        
+        # drop all foreign keys to and from this table
+        # they need to be dropped one at a time to avoid deadlocks with user code
+        q = "select * from londiste.find_table_fkeys(%s)"
+        dst_curs.execute(q, [dst_struct.table_name])
+        list = dst_curs.dictfetchall()
+        for row in list:
+            self.log.info('Dropping fkey: %s' % row['fkey_name'])
+            q2 = "select londiste.subscriber_drop_table_fkey(%(from_table)s, %(fkey_name)s)"
+            dst_curs.execute(q2, row)
+            dst_db.commit()
 
         # drop unnecessary stuff
         objs = T_CONSTRAINT | T_INDEX | T_TRIGGER | T_RULE
@@ -69,13 +80,14 @@ class CopyTable(Replicator):
 
         # create previously dropped objects
         dst_struct.create(dst_curs, objs, log = self.log)
+        dst_db.commit()
 
         # set state
-        tbl_stat.change_snapshot(snapshot)
         if self.copy_thread:
             tbl_stat.change_state(TABLE_CATCHING_UP)
         else:
             tbl_stat.change_state(TABLE_OK)
+        tbl_stat.change_snapshot(snapshot)
         self.save_table_state(dst_curs)
         dst_db.commit()
 

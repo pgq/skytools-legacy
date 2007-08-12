@@ -74,7 +74,7 @@ class TConstraint(TElem):
     type = T_CONSTRAINT
     SQL = """
         SELECT conname as name, pg_get_constraintdef(oid) as def, contype
-          FROM pg_constraint WHERE conrelid = %(oid)s
+          FROM pg_constraint WHERE conrelid = %(oid)s AND contype != 'f'
     """
     def __init__(self, table_name, row):
         self.table_name = table_name

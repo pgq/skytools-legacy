@@ -22,5 +22,5 @@ begin
 
     return res;
 end;
-$$ language plpgsql;
+$$ language plpgsql strict stable;
 

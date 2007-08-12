@@ -31,19 +31,19 @@ begin
 
     return res;
 end;
-$$ language plpgsql;
+$$ language plpgsql strict stable;
 
 create or replace function londiste.find_table_oid(tbl text)
 returns oid as $$
 begin
     return londiste.find_rel_oid(tbl, 'r');
 end;
-$$ language plpgsql;
+$$ language plpgsql strict stable;
 
 create or replace function londiste.find_seq_oid(tbl text)
 returns oid as $$
 begin
     return londiste.find_rel_oid(tbl, 'S');
 end;
-$$ language plpgsql;
+$$ language plpgsql strict stable;
 

@@ -249,6 +249,8 @@ class Replicator(pgq.SerialConsumer):
         self.load_table_state(dst_curs)
         self.sync_tables(dst_db)
 
+        self.restore_fkeys(dst_db)
+
         # now the actual event processing happens.
         # they must be done all in one tx in dst side
         # and the transaction must be kept open so that
@@ -346,7 +348,7 @@ class Replicator(pgq.SerialConsumer):
         "Copy thread sync logic."
 
         #
-        # decide what to do - order is imortant
+        # decide what to do - order is important
         #
         if cnt.do_sync:
             # main thread is waiting, catch up, then handle over
@@ -580,6 +582,18 @@ class Replicator(pgq.SerialConsumer):
             if src_enc != dst_enc:
                 dst_curs.execute("set client_encoding = %s", [src_enc])
 
+    def restore_fkeys(self, dst_db):
+        dst_curs = dst_db.cursor()
+        # restore fkeys -- one at a time
+        q = "select * from londiste.subscriber_get_queue_valid_pending_fkeys(%s)"
+        dst_curs.execute(q, [self.pgq_queue_name])
+        list = dst_curs.dictfetchall()
+        for row in list:
+            self.log.info('Creating fkey: %(fkey_name)s (%(from_table)s --> %(to_table)s)' % row)
+            q2 = "select londiste.subscriber_restore_table_fkey(%(from_table)s, %(fkey_name)s)"
+            dst_curs.execute(q2, row)
+            dst_db.commit()
+        
 if __name__ == '__main__':
     script = Replicator(sys.argv[1:])
     script.start()
