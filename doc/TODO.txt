@@ -27,15 +27,19 @@
  * londiste: remove denytrigger from source, thus no plpython anymore...
  it was unused anyway.
  * replace logtriga() with pgq.logtriga() for londiste trigger
+ * backend modules need to be ported to 8.3
+ * londiste: good fkey support: store them in subscriber db and apply when both tables are in sync. [erik]
 
 == To Do ==
 
  * add <seq>, remove <seq> [marko]
  * pgq/londiste/pgq_ext: schema upgrade scripts  [marko]
+ * fast copy snapshot cleanup [marko]
 
 = Next major release - 2.2 =
 
  * cascaded replication, switchover, failover [marko]
+ * skytools: config from database
  * drop support for psycopg1
  * drop support for 8.1?
 
@@ -48,7 +52,6 @@
 == Smaller things ==
 
  * pgq: RemoteConsumer/SerialConsumer/pgq_ext sanity, too much duplication [marko]
- * backend modules need to be ported to 8.3
  * londiste: create tables on subscriber
  * pgqadm: Utility commands:
   * reg-copy que cons1 cons2
@@ -69,7 +72,6 @@
 
  * londiste: denytriggers on subscriber
  * londiste: Quote SQL identifiers, keep combined name, rule will be "Split schema as first dot"
- * londiste: good fkey support: store them in subscriber db and apply when both tables are in sync. [erik]
  * skylog: publish sample logdb schema, with some tools
  * londiste: allow table redirection on subscriber side
  * londiste: trigger handling
@@ -105,7 +107,6 @@
 = Just ideas =
 
  * skytools: config-less operation?
- * skytools: config from database?
  * skytools: partial sql parser for log processing
  * londiste: EXECUTE SCRIPT
  * londiste: somehow automatic sync of table structure/functions/...?

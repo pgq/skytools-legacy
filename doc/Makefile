@@ -3,8 +3,9 @@ wiki = https://developer.skype.com/SkypeGarage/DbProjects/SkyTools
 
 web = mkz@shell.pgfoundry.org:/home/pgfoundry.org/groups/skytools/htdocs/
 
-EPYARGS = --no-private -u "http://pgfoundry.org/projects/skytools/" \
-	-n "Skytools"
+EPYDOC = epydoc-py25
+EPYARGS = --no-private --url="http://pgfoundry.org/projects/skytools/" \
+	--name="Skytools" --html --no-private
 
 all:
 
@@ -18,22 +19,24 @@ upload:
 	devupload.sh walmgr.txt $(wiki)/WalMgr
 	devupload.sh pgq-admin.txt $(wiki)/PgqAdm
 
-PY_PKGS = skytools skytools.config skytools.dbstruct skytools.gzlog \
-	skytools.quoting skytools.scripting skytools.sqltools \
-	pgq pgq.consumer pgq.event pgq.maint pgq.producer pgq.status pgq.ticker \
-	londiste londiste.compare londiste.file_read londiste.file_write \
-	londiste.installer londiste.playback londiste.repair londiste.setup \
-	londiste.syncer londiste.table_copy
+PY_PKGS = skytools pgq londiste
+
+#	skytools.config skytools.dbstruct skytools.gzlog \
+#	skytools.quoting skytools.scripting skytools.sqltools \
+#	pgq pgq.consumer pgq.event pgq.maint pgq.producer pgq.status pgq.ticker \
+#	londiste londiste.compare londiste.file_read londiste.file_write \
+#	londiste.installer londiste.playback londiste.repair londiste.setup \
+#	londiste.syncer londiste.table_copy
 
 apidoc:
 	rm -rf api
 	mkdir -p api
-	cd ../python && epydoc3 -o ../doc/api --html --no-private $(PY_PKGS)
+	cd ../python && $(EPYDOC) $(EPYARGS) -o ../doc/api $(PY_PKGS)
 
 apiupload: apidoc
-	cd ../sql/pgq && rm -rf docs/pgq && $(MAKE) dox && mv docs/html docs/pgq
-	rsync -rtlz api $(web)
-	rsync -rtlz ../sql/pgq/docs/pgq $(web)
+	rsync -rtlz api/* $(web)/api
+	cd ../sql/pgq && rm -rf docs/html && $(MAKE) dox
+	rsync -rtlz ../sql/pgq/docs/html/* $(web)/pgq/
 
 clean:
 	rm -rf api
