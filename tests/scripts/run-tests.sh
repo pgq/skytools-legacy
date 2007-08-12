@@ -2,6 +2,8 @@
 
 . ./env.sh
 
+./gendb.sh
+
 pgqadm.py -d conf/ticker.ini ticker
 queue_mover.py -d conf/mover.ini
 cube_dispatcher.py -d conf/cube.ini
