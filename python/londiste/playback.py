@@ -284,7 +284,10 @@ class Replicator(pgq.SerialConsumer):
         self.sync_tables(dst_db)
 
         self.copy_snapshot_cleanup(dst_db)
-        self.restore_fkeys(dst_db)
+
+        # only main thread is allowed to restore fkeys
+        if not self.copy_thread:
+            self.restore_fkeys(dst_db)
 
         # now the actual event processing happens.
         # they must be done all in one tx in dst side
