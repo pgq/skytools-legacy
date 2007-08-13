@@ -52,15 +52,7 @@ class CopyTable(Replicator):
                 raise Exception('Column %s does not exist on dest side' % c)
         
         # drop all foreign keys to and from this table
-        # they need to be dropped one at a time to avoid deadlocks with user code
-        q = "select * from londiste.find_table_fkeys(%s)"
-        dst_curs.execute(q, [dst_struct.table_name])
-        list = dst_curs.dictfetchall()
-        for row in list:
-            self.log.info('Dropping fkey: %s' % row['fkey_name'])
-            q2 = "select londiste.subscriber_drop_table_fkey(%(from_table)s, %(fkey_name)s)"
-            dst_curs.execute(q2, row)
-            dst_db.commit()
+        self.drop_fkeys(dst_db, tbl_stat.name)
 
         # drop unnecessary stuff
         objs = T_CONSTRAINT | T_INDEX | T_TRIGGER | T_RULE
@@ -117,6 +109,18 @@ class CopyTable(Replicator):
             self.log.info("%s: copy finished: %d bytes, %d rows" % (
                           tablename, stats[0], stats[1]))
 
+    def drop_fkeys(self, dst_db, table_name):
+        # drop all foreign keys to and from this table
+        # they need to be dropped one at a time to avoid deadlocks with user code
+        dst_curs = dst_db.cursor()
+        q = "select * from londiste.find_table_fkeys(%s)"
+        dst_curs.execute(q, [table_name])
+        list = dst_curs.dictfetchall()
+        for row in list:
+            self.log.info('Dropping fkey: %s' % row['fkey_name'])
+            q2 = "select londiste.subscriber_drop_table_fkey(%(from_table)s, %(fkey_name)s)"
+            dst_curs.execute(q2, row)
+            dst_db.commit()
 
 if __name__ == '__main__':
     script = CopyTable(sys.argv[1:])
