@@ -370,6 +370,12 @@ class Replicator(pgq.SerialConsumer):
         elif cnt.missing:
             # seems there is no active copy thread, launch new
             t = self.get_table_by_state(TABLE_MISSING)
+
+            # drop all foreign keys to and from this table
+            self.drop_fkeys(dst_db, t.name)
+
+            # change state after fkeys are dropped thus allowing
+            # failure inbetween
             self.change_table_state(dst_db, t, TABLE_IN_COPY)
 
             # the copy _may_ happen immidiately
@@ -643,6 +649,19 @@ class Replicator(pgq.SerialConsumer):
         for row in list:
             self.log.info('Creating fkey: %(fkey_name)s (%(from_table)s --> %(to_table)s)' % row)
             q2 = "select londiste.subscriber_restore_table_fkey(%(from_table)s, %(fkey_name)s)"
+            dst_curs.execute(q2, row)
+            dst_db.commit()
+    
+    def drop_fkeys(self, dst_db, table_name):
+        # drop all foreign keys to and from this table
+        # they need to be dropped one at a time to avoid deadlocks with user code
+        dst_curs = dst_db.cursor()
+        q = "select * from londiste.find_table_fkeys(%s)"
+        dst_curs.execute(q, [table_name])
+        list = dst_curs.dictfetchall()
+        for row in list:
+            self.log.info('Dropping fkey: %s' % row['fkey_name'])
+            q2 = "select londiste.subscriber_drop_table_fkey(%(from_table)s, %(fkey_name)s)"
             dst_curs.execute(q2, row)
             dst_db.commit()
         
