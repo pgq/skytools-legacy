@@ -313,9 +313,11 @@ class SubscriberSetup(CommonSetup):
         
         subscriber_tables = self.get_subscriber_table_list()
 
+        qs = {'pending': "select * from londiste.subscriber_get_table_pending_fkeys(%s)",
+              'active' : "select * from londiste.find_table_fkeys(%s)"}
         fkeys = {'active_fkeys': [], 'pending_fkeys': []}
         for type in args:
-            q = "select * from londiste.subscriber_get_table_%s_fkeys(%%s);" % type
+            q = qs[type]
             for tbl in table_list:
                 if tbl not in subscriber_tables:
                     continue
@@ -326,18 +328,20 @@ class SubscriberSetup(CommonSetup):
         for type in args:
             widths = [15,15,15]
             for row in fkeys['%s_fkeys' % type]:
-                widths[0] = widths[0] > len(row[0]) and widths[0] or len(row[0])
-                widths[1] = widths[1] > len(row[1]) and widths[1] or len(row[1])
-                widths[2] = widths[2] > len(row[2]) and widths[2] or len(row[2])
+                widths = [widths[i] > len(row[i]) and widths[i] or len(row[i]) for i in [0,1,2]]
             widths[0] += 2; widths[1] += 2; widths[2] += 2
             
             fmt = '%%-%ds%%-%ds%%-%ds%%s' % tuple(widths)
             print '%s fkeys:' % type
             print fmt % ('from_table', 'to_table', 'fkey_name', 'fkey_def')
             print fmt % ('----------', '--------', '---------', '--------')
-                
+            
+            printed = []
             for row in fkeys['%s_fkeys' % type]:
+                if row in printed:
+                    continue
                 print fmt % row.values()
+                printed.append(row)
             print '\n'
 
     def check_tables(self, table_list):
