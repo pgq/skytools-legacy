@@ -6,7 +6,7 @@ returns integer as $$
 -- ----------------------------------------------------------------------
 -- Function: pgq.event_retry(3)
 --
---     Put the event into retry queue, to be processed later again.
+--     Put the event into retry queue, to be processed again later.
 --
 -- Parameters:
 --      x_batch_id      - ID of active batch.

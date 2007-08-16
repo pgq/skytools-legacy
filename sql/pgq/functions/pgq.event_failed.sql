@@ -6,7 +6,7 @@ returns integer as $$
 -- ----------------------------------------------------------------------
 -- Function: pgq.event_failed(3)
 --
---      Copies the event to failed queue.  Can be looked later.
+--      Copies the event to failed queue so it can be looked at later.
 --
 -- Parameters:
 --      x_batch_id      - ID of active batch.
