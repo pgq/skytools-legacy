@@ -3,12 +3,12 @@
 -- Function: pgq.logtriga()
 --
 --      Non-automatic SQL trigger.  It puts row data in partial SQL form into
---      queue.  It does not aut-detect table structure, it needs to be passed
+--      queue.  It does not auto-detect table structure, it needs to be passed
 --      as trigger arg.
 --
 -- Parameters:
 --      arg1 - queue name
---      arg2 - columnt type spec string where each column corresponds to one char (k/v/i).
+--      arg2 - column type spec string where each column corresponds to one char (k/v/i).
 --              if spec string is shorter than column list, rest of columns default to 'i'.
 --
 -- Column types:
@@ -52,7 +52,7 @@ AS 'MODULE_PATHNAME', 'pgq_sqltriga' LANGUAGE C;
 -- ----------------------------------------------------------------------
 -- Function: pgq.logutriga()
 --
---      Trigger function that puts row data in urlencoded into queue.
+--      Trigger function that puts row data in urlencoded form into queue.
 --
 -- Trigger parameters:
 --      arg1 - queue name
