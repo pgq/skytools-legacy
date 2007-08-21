@@ -1,0 +1,281 @@
+= londiste(1) =
+
+
+== NAME ==
+
+londiste - PostgreSQL replication engine written in python
+
+== SYNOPSIS ==
+
+  londiste.py [option] config.ini command [arguments]
+
+== DESCRIPTION ==
+
+Londiste is the PostgreSQL replication engine portion of the SkyTools suite, 
+by Skype. This suite includes packages implementing specific replication 
+tasks and/or solutions in layers, building upon each other.
+
+PgQ is a generic queue implementation based on ideas from Slony-I's
+snapshot based event batching. Londiste uses PgQ as its transport
+mechanism to implement a robust and easy to use replication solution.
+
+Londiste is an asynchronous master-slave(s) replication
+system. Asynchronous means that a transaction commited on the master is
+not guaranteed to have made it to any slave at the master's commit time; and
+master-slave means that data changes on slaves are not reported back to
+the master, it's the other way around only.
+
+The replication is trigger based, and you choose a set of tables to
+replicate from the provider to the subscriber(s). Any data changes
+occuring on the provider (in a replicated table) will fire the
+londiste trigger, which fills a queue of events for any subscriber(s) to
+care about.
+
+A replay process consumes the queue in batches, and applies all given
+changes to any subscriber(s). The initial replication step involves using the
+PostgreSQL's COPY command for efficient data loading.
+
+== QUICK-START ==
+
+Basic londiste setup and usage can be summarized by the following
+steps:
+
+ 1. create the subscriber database, with tables to replicate
+
+ 2. edit a londiste configuration file, say conf.ini, and a PgQ ticker
+    configuration file, say ticker.ini
+
+ 3. install londiste on the provider and subscriber nodes. This step
+    requires admin privileges on both provider and subscriber sides,
+    and both install commands can be run remotely:
+
+      $ londiste.py conf.ini provider install
+      $ londiste.py conf.ini subscriber install
+
+ 4. launch the PgQ ticker on the provider machine:
+
+      $ pgqadm.py -d ticker.ini ticker
+
+ 5. launch the londiste replay process:
+
+      $ londiste.py -d conf.ini replay
+
+ 6. add tables to replicate from the provider database:
+
+      $ londiste.py conf.ini provider add table1 table2 ...
+
+ 7. add tables to replicate to the subscriber database:
+
+      $ londiste.py conf.ini subscriber add table1 table2 ...
+
+To replicate to more than one subscriber database just repeat each of the
+described subscriber steps for each subscriber.
+
+Londiste will then consider updating data as needed. See the londiste
+reference for more information about syncronisation state details:
+https://developer.skype.com/SkypeGarage/DbProjects/SkyTools/LondisteReference[]
+
+== COMMANDS ==
+
+The londiste command is parsed globally, and has both options and
+subcommands. Some options are reserved to a subset of the commands,
+and others should be used without any command at all.
+
+== GENERAL OPTIONS ==
+
+This section presents options available to all and any londiste
+command.
+
+  -h, --help:
+	show this help message and exit
+
+  -q, --quiet:
+	make program silent
+
+  -v, --verbose:
+	make program more verbose
+
+
+== PROVIDER COMMANDS ==
+
+  londiste.py config.ini provider <command>
+
+Where command is one of:
+
+=== provider install ===
+
+Installs code into provider and subscriber database and creates
+queue. Equivalent to doing following by hand:
+
+    CREATE LANGUAGE plpgsql;
+    CREATE LANGUAGE plpython;
+    \i .../contrib/txid.sql
+    \i .../contrib/logtriga.sql
+    \i .../contrib/pgq.sql
+    \i .../contrib/londiste.sql
+    select pgq.create_queue(queue name);
+
+Notes:
+
+ * If the PostgreSQL modules are not installed on the same machine as
+   the Python scripts are, the commands need to be done by hand.
+
+ * The schema/tables are installed under user Londiste is configured
+   to run. If you prefer to run Londiste under non-admin user, they
+   should also be installed by hand.
+
+=== provider add <table name> ... ===
+
+Registers table(s) on the provider database and adds the londiste trigger to 
+the table(s) which will send events to the queue.  Table names can be schema 
+qualified with the schema name defaulting to public if not supplied.
+
+=== provider remove <table name> ... ===
+
+Unregisters table(s) on the provider side and removes the londiste triggers 
+from the table(s). The table removal event is also sent to the queue, so all 
+subscribers unregister the table(s) on their end as well.  Table names can be 
+schema qualified with the schema name defaulting to public if not supplied.
+
+=== provider tables ===
+
+Shows registered tables on provider side.
+
+=== provider seqs ===
+
+Shows registered sequences on provider side.
+
+== SUBSCRIBER COMMANDS ==
+
+  londiste.py config.ini subscriber <command>
+
+Where command is one of:
+
+=== subscriber install ===
+
+Installs code into subscriber database. Equivalent to doing following
+by hand:
+
+    CREATE LANGUAGE plpgsql;
+    \i .../contrib/londiste.sql
+
+This will be done under the Postgres Londiste user, if the tables should 
+be owned by someone else, it needs to be done by hand.
+
+=== subscriber add <table name> ... ===
+
+Registers table(s) on subscriber side. Table names can be schema qualified 
+with the schema name defaulting to `public` if not supplied.
+
+Switches (optional):
+
+  --excect-sync:
+        Table is tagged as in-sync so initial COPY is skipped. 
+  --skip-truncate:
+         When doing initial COPY, don't remove old data. 
+  --force:
+         Ignore table structure differences.
+
+=== subscriber remove <table name> ... ===
+
+Unregisters table(s) from subscriber. No events will be applied to
+the table anymore. Actual table will not be touched. Table names can be 
+schema qualified with the schema name defaulting to public if not supplied.
+
+=== subscriber resync <table name> ... ===
+
+Tags table(s) as "not synced". Later the replay process will notice this
+and launch copy process(es) to sync the table(s) again.
+
+=== subscriber tables ===
+
+Shows registered tables on the subscriber side, and the current state of
+each table. Possible state values are:
+
+NEW::
+  the table has not yet been considered by londiste.
+
+in-copy::
+  Full-table copy is in progress.
+
+catching-up::
+  Table is copied, missing events are replayed on to it.
+
+wanna-sync:<tick-id>::
+  The "copy" process catched up, wants to hand the table over to
+  "replay".
+
+do-sync:<tick_id>::
+  "replay" process is ready to accept it.
+
+ok::
+  table is in sync.
+
+
+== REPLICATION COMMANDS ==
+
+=== replay ===
+
+The actual replication process. Should be run as daemon with -d
+switch, because it needs to be always running.
+
+It's main task is to get batches of events from PgQ and apply
+them to subscriber database.
+
+
+Switches:
+
+  -d, --daemon:
+	go background
+
+  -r, --reload:
+	reload config (send SIGHUP)
+
+  -s, --stop:
+	stop program safely (send SIGINT)
+
+  -k, --kill:
+	kill program immidiately (send SIGTERM)
+
+== UTILITY COMMAND ==
+
+=== repair <table name> ... ===
+
+Attempts to achieve a state where the table(s) is/are in sync, compares 
+them, and writes out SQL statements that would fix differences.
+
+Syncing happens by locking provider tables against updates and then
+waiting until the replay process has applied all pending changes to 
+subscriber database. As this is dangerous operation, it has a hardwired 
+limit of 10 seconds for locking. If the replay process does not catch up 
+in that time, the locks are released and the repair operation is cancelled.
+
+Comparing happens by dumping out the table contents of both sides, 
+sorting  them and then comparing line-by-line. As this is a CPU and 
+memory-hungry operation, good practice is to run the repair command on a
+third machine to avoid consuming resources on either the provider or the
+subscriber.
+
+=== compare <table name> ... ===
+
+Syncs tables like repair, but just runs SELECT count(*) on both
+sides to get a little bit cheaper, but also less precise, way of
+checking if the tables are in sync.
+
+== CONFIGURATION ==
+
+Londiste and PgQ both use INI configuration files, your distribution of
+skytools include examples. You often just have to edit the database
+connection strings, namely db in PgQ ticker.ini and provider_db and
+subscriber_db in londiste conf.ini as well as logfile and pidfile to adapt to
+you system paths.
+
+See `londiste(5)`.
+
+
+== SEE ALSO ==
+
+`londiste(5)`
+
+https://developer.skype.com/SkypeGarage/DbProjects/SkyTools/[]
+

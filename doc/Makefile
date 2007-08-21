@@ -1,4 +1,6 @@
 
+include ../config.mak
+
 wiki = https://developer.skype.com/SkypeGarage/DbProjects/SkyTools
 
 web = mkz@shell.pgfoundry.org:/home/pgfoundry.org/groups/skytools/htdocs/
@@ -7,7 +9,16 @@ EPYDOC = epydoc-py25
 EPYARGS = --no-private --url="http://pgfoundry.org/projects/skytools/" \
 	--name="Skytools" --html --no-private
 
-all:
+all: man
+
+man: londiste.1 londiste.5
+html: londiste.cmdline.html londiste.config.html
+
+install: man
+	mkdir -p $(mandir)/man1
+	mkdir -p $(mandir)/man5
+	install -m 644 londiste.1 $(mandir)/man1
+	install -m 644 londiste.5 $(mandir)/man1
 
 upload:
 	devupload.sh overview.txt $(wiki)
@@ -39,8 +50,25 @@ apiupload: apidoc
 	rsync -rtlz ../sql/pgq/docs/html/* $(web)/pgq/
 
 clean:
-	rm -rf api
+	rm -rf api *.1 *.5 *.html *.xml
 
 distclean:
 	rm -rf ../sql/pgq/docs/pgq api
+
+londiste.1: londiste.cmdline.xml
+	xmlto man $<
+
+londiste.5: londiste.config.xml
+	xmlto man $<
+
+%.xml: %.txt
+	asciidoc -d manpage -b docbook $<
+
+%.html: %.txt
+	asciidoc $<
+
+manupload: londiste.1 londiste.1.html
+	rsync -avz londiste.1 londiste.1.html londiste.1.txt pgf:web/skytools/htdocs/man/
+
+
 
