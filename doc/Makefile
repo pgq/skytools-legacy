@@ -67,8 +67,8 @@ londiste.5: londiste.config.xml
 %.html: %.txt
 	asciidoc $<
 
-manupload: londiste.1 londiste.1.html
-	rsync -avz londiste.1 londiste.1.html londiste.1.txt pgf:web/skytools/htdocs/man/
+manupload: man html
+	rsync -avz londiste.[15] *.html *.txt pgf:web/skytools/htdocs/man/
 
 
 

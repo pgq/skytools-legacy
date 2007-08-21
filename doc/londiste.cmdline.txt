@@ -98,7 +98,7 @@ command.
 
 == PROVIDER COMMANDS ==
 
-  londiste.py config.ini provider <command>
+  $ londiste.py config.ini provider <command>
 
 Where command is one of:
 
@@ -110,19 +110,9 @@ queue. Equivalent to doing following by hand:
     CREATE LANGUAGE plpgsql;
     CREATE LANGUAGE plpython;
     \i .../contrib/txid.sql
-    \i .../contrib/logtriga.sql
     \i .../contrib/pgq.sql
     \i .../contrib/londiste.sql
     select pgq.create_queue(queue name);
-
-Notes:
-
- * If the PostgreSQL modules are not installed on the same machine as
-   the Python scripts are, the commands need to be done by hand.
-
- * The schema/tables are installed under user Londiste is configured
-   to run. If you prefer to run Londiste under non-admin user, they
-   should also be installed by hand.
 
 === provider add <table name> ... ===
 
