@@ -1,5 +1,7 @@
 
 prefix = @prefix@
+datarootdir = @datarootdir@
+mandir = @mandir@
 
 override PYTHON = @PYTHON@
 override PG_CONFIG = @PG_CONFIG@
