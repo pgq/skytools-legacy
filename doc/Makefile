@@ -9,10 +9,13 @@ EPYDOC = epydoc-py25
 EPYARGS = --no-private --url="http://pgfoundry.org/projects/skytools/" \
 	--name="Skytools" --html --no-private
 
+HTMLS = londiste.cmdline.html londiste.config.html README.html INSTALL.html \
+	londiste.ref.html TODO.html pgq-sql.html pgq-admin.html
+
 all: man
 
 man: londiste.1 londiste.5
-html: londiste.cmdline.html londiste.config.html
+html: $(HTMLS)
 
 install: man
 	mkdir -p $(mandir)/man1
@@ -20,7 +23,7 @@ install: man
 	install -m 644 londiste.1 $(mandir)/man1
 	install -m 644 londiste.5 $(mandir)/man1
 
-upload:
+old.wiki.upload:
 	devupload.sh overview.txt $(wiki)
 	devupload.sh TODO.txt $(wiki)/ToDo
 	#devupload.sh londiste.txt $(wiki)/LondisteUsage
@@ -65,10 +68,22 @@ londiste.5: londiste.config.xml
 	asciidoc -d manpage -b docbook $<
 
 %.html: %.txt
-	asciidoc $<
+	asciidoc -a toc $<
 
 manupload: man html
 	rsync -avz londiste.[15] *.html *.txt pgf:web/skytools/htdocs/man/
+
+README.html: ../README
+	cat $< \
+	| sed -e 's,doc/\([!-~]*\)[.]txt,link:\1.html[],g' \
+	      -e 's,http:[!-~]*,&[],g' \
+	| asciidoc -o $@ -
+
+INSTALL.html: ../INSTALL
+	asciidoc -o $@ $<
+
+web: $(HTMLS)
+	rsync -avz $(HTMLS)  pgf:web/skytools/htdocs/new/
 
 
 

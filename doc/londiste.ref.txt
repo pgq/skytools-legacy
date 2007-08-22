@@ -1,9 +1,9 @@
 
-[[TableOfContents]]
+= Londiste Reference =
 
-= Notes =
+== Notes ==
 
-== PgQ daemon ==
+=== PgQ daemon ===
 
 Londiste runs as a consumer on PgQ.  Thus `pgqadm.py ticker` must be running
 on provider database.  It is preferable to run it in same machine, because
@@ -11,29 +11,29 @@ it needs low latency, but that is not a requirement.
 
 For monitoring you can use `pgqadm.py status` command.
 
-== Table Names ==
+=== Table Names ===
 
 Londiste internally uses table names always fully schema-qualified.
 If table name without schema is given on command line, it just
 puts "public." in front of it, without looking at search_path.
 
-== PgQ events ==
+=== PgQ events ===
 
-''' Table change event '''
+==== Table change event ====
 
 Those events will be inserted by triggers on tables.
 
  * ev_type = 'I' / 'U' / 'D'
  * ev_data = partial SQL statement - the part between `[]` is removed:
-   * `[ INSERT INTO table ]  (column1, column2) values (value1, value2)`
-   * `[ UPDATE table SET ]  column2=value2 WHERE pkeycolumn1 = value1`
-   * `[ DELETE FROM table WHERE ]  pkeycolumn1 = value1`
+   -  `[ INSERT INTO table ]  (column1, column2) values (value1, value2)`
+   - `[ UPDATE table SET ]  column2=value2 WHERE pkeycolumn1 = value1`
+   - `[ DELETE FROM table WHERE ]  pkeycolumn1 = value1`
  * ev_extra1 = table name with schema
 
 Such partial SQL format is used for 2 reasons - to conserve space
 and to make possible to redirect events to another table.
 
-''' Registration change event '''
+==== Registration change event ====
 
 Those events will be inserted by `provider add` and `provider remove`
 commands.  Then full registered tables list will be sent to the queue
@@ -55,125 +55,104 @@ pairs between `{}`.  Their meaning:
  * ignored: how many of them was ignores - table not registered on subscriber or not yet in sync.
  * duration: how long the batch processing took.
 
-= Commands for managing provider database =
+Example:
 
-== provider install ==
+  {count: 110, duration: 0.88}
 
-{{{
-londiste.py <config.ini> provider install
-}}}
+== Commands for managing provider database ==
+
+=== provider install ===
+
+  londiste.py <config.ini> provider install
 
 Installs code into provider and subscriber database and creates queue.
 Equivalent to doing following by hand:
 
-{{{
-CREATE LANGUAGE plpgsql;
-CREATE LANGUAGE plpython;
-\i .../contrib/txid.sql
-\i .../contrib/logtriga.sql
-\i .../contrib/pgq.sql
-\i .../contrib/londiste.sql
-select pgq.create_queue(queue name);
-}}}
+    CREATE LANGUAGE plpgsql;
+    CREATE LANGUAGE plpython;
+    \i .../contrib/txid.sql
+    \i .../contrib/logtriga.sql
+    \i .../contrib/pgq.sql
+    \i .../contrib/londiste.sql
+    select pgq.create_queue(queue name);
 
 Notes:
-
- * If the PostgreSQL modules are not installed on same machine
- the Python scripts are, the commands need to be done by hand.
 
  * The schema/tables are installed under user Londiste is configured to run.
  If you prefer to run Londiste under non-admin user, they should also
  be installed by hand.
 
-== provider add ==
+=== provider add ===
 
-{{{
-londiste.py <config.ini> provider add <table name> ...
-}}}
+  londiste.py <config.ini> provider add <table name> ...
 
 Registers table on provider database and adds trigger to the table
 that will send events to the queue.
 
-== provider remove ==
+=== provider remove ===
 
-{{{
-londiste.py <config.ini> provider remove <table name> ...
-}}}
+  londiste.py <config.ini> provider remove <table name> ...
 
 Unregisters table on provider side and removes triggers on table.
 The event about table removal is also sent to the queue, so
 all subscriber unregister table from their end also.
 
-== provider tables ==
+=== provider tables ===
 
-{{{
-londiste.py <config.ini> provider tables
-}}}
+  londiste.py <config.ini> provider tables
 
 Shows registered tables on provider side.
 
-== provider seqs ==
+=== provider seqs ===
 
-{{{
-londiste.py <config.ini> provider seqs
-}}}
+  londiste.py <config.ini> provider seqs
 
 Shows registered sequences on provider side.
 
-= Commands for managing subscriber database =
+== Commands for managing subscriber database ==
 
-== subscriber install ==
+=== subscriber install ===
 
-{{{
-londiste.py <config.ini> subscriber install
-}}}
+  londiste.py <config.ini> subscriber install
 
 Installs code into subscriber database.
 Equivalent to doing following by hand:
 
-{{{
-CREATE LANGUAGE plpgsql;
-\i .../contrib/londiste.sql
-}}}
+    CREATE LANGUAGE plpgsql;
+    \i .../contrib/londiste.sql
 
 This will be done under Londiste user, if the tables should be
 owned by someone else, it needs to be done by hand.
 
-== subscriber add ==
+=== subscriber add ===
 
-{{{
-londiste.py <config.ini> subscriber add <table name> ... [--excect-sync | --skip-truncate | --force]
-}}}
+  londiste.py <config.ini> subscriber add <table name> ... [--excect-sync | --skip-truncate | --force]
 
 Registers table on subscriber side.  
 
 Switches
 
- * --excect-sync: Table is tagged as in-sync so initial COPY is skipped.
- * --skip-truncate: When doing initial COPY, don't remove old data.
- * --force: Ignore table structure differences.
+ --excect-sync:: Table is tagged as in-sync so initial COPY is skipped.
+ --skip-truncate:: When doing initial COPY, don't remove old data.
+ --force:: Ignore table structure differences.
 
-== subscriber remove ==
+=== subscriber remove ===
 
-{{{
-londiste.py <config.ini> subscriber remove <table name> ...
-}}}
+  londiste.py <config.ini> subscriber remove <table name> ...
 
 Unregisters the table from subscriber.  No events will be applied
 to the table anymore.  Actual table will not be touched.
 
-== subscriber resync ==
+=== subscriber resync ===
 
-{{{
-londiste.py <config.ini> subscriber resync <table name> ...
-}}}
+  londiste.py <config.ini> subscriber resync <table name> ...
 
 Tags tables are "not synced."  Later replay process will notice this
 and launch `copy` process to sync the table again.
 
-= Replication commands =
+== Replication commands ==
 
-== replay ==
+=== replay ===
 
 The actual replication process.  Should be run as daemon with `-d` switch,
 because it needs to be always running.
@@ -181,23 +160,24 @@ because it needs to be always running.
 It main task is to get a batches from PgQ and apply them in one transaction.
 
 Basic logic:
- * Get batch from PgQ queue on provider.  See if it is already applied to
- subsciber, skip the batch in that case.
- * Management actions, can do transactions on subscriber:
-   * Load table state from subscriber, to be up-to-date on registrations
-   and `copy` processes running in parallel.
-   * If a `copy` process wants to give table over to main process,
-   wait until `copy` process catches-up.
-   * If there is a table that is not synced and no `copy` process
-   is already running, launch new `copy` process.
-   * If there are sequences registered on subscriber, look latest state
-   of them on provider and apply it to subscriber.
- * Event replay, all in one transaction on subscriber:
-   * Apply events from the batch, only for tables that are registered
-   on subscriber and are in sync.
-   * Store tick_id on subscriber.
 
-== copy (internal) ==
+ * Get batch from PgQ queue on provider.  See if it is already applied to
+   subsciber, skip the batch in that case.
+ * Management actions, can do transactions on subscriber:
+   - Load table state from subscriber, to be up-to-date on registrations
+     and `copy` processes running in parallel.
+   - If a `copy` process wants to give table over to main process,
+     wait until `copy` process catches-up.
+   - If there is a table that is not synced and no `copy` process
+     is already running, launch new `copy` process.
+   - If there are sequences registered on subscriber, look latest state
+     of them on provider and apply it to subscriber.
+ * Event replay, all in one transaction on subscriber:
+   - Apply events from the batch, only for tables that are registered
+     on subscriber and are in sync.
+   - Store tick_id on subscriber.
+
+=== copy (internal) ===
 
 Internal command for initial SYNC.  Launched by `replay` if it notices
 that some tables are not in sync.  The reason to do table copying in
@@ -205,27 +185,30 @@ separate process is to avoid locking down main replay process for
 long time.
 
 Basic logic:
+
  * Register on the same queue in parallel with different name.
- * One transaction on :
-   * Drop constraints and indexes.
-   * Truncate table.
-   * COPY data in.
-   * Restore constraints and indexes.
-   * Tag the table as `catching-up`.
+ * One transaction on subscriber:
+   - Drop constraints and indexes.
+   - Truncate table.
+   - COPY data in.
+   - Restore constraints and indexes.
+   - Tag the table as `catching-up`.
  * When catching-up, the `copy` process acts as regular
- `replay` process but just for one table.
+   `replay` process but just for one table.
  * When it reaches queue end, when no more batches are immidiately
- available, it hands the table over to main `replay` process.
+   available, it hands the table over to main `replay` process.
 
 State changes between `replay` and `copy`:
 
-|| State                  || Owner  || What is done ||
-|| `NULL`                 || replay || Changes state to `in-copy`, launches `londiste.py copy` process, continues with it's work ||
-|| `in-copy`              || copy   || drops indexes, truncates, copies data in, restores indexes, changes state to `catching-up` ||
-|| `catching-up`          || copy   || replay events for that table only until no more batches (means current moment), change state to `wanna-sync:<tick_id>` and wait for state to change ||
-|| `wanna-sync:<tick_id>` || replay || catch up to given tick_id, change state to 'do-sync:<tick_id>' and wait for state to change ||
-|| `do-sync:<tick_id>`    || copy   || catch up to given tick_id, both `replay` and `copy` must now be at same position. change state to `ok` and exit ||
-|| `ok`                   || replay || synced table, events can be applied ||
+ State                | Owner  | What is done
+ ---------------------+--------+--------------------
+ NULL                 | replay | Changes state to "in-copy", launches londiste.py copy process, continues with it's work
+ in-copy              | copy   | drops indexes, truncates, copies data in, restores indexes, changes state to "catching-up"
+ catching-up          | copy   | replay events for that table only until no more batches (means current moment),
+                      |        | change state to "wanna-sync:<tick_id>" and wait for state to change
+ wanna-sync:<tick_id> | replay | catch up to given tick_id, change state to "do-sync:<tick_id>" and wait for state to change
+ do-sync:<tick_id>    | copy   | catch up to given tick_id, both replay and copy must now be at same position. change state to "ok" and exit
+ ok                   | replay | synced table, events can be applied
 
 Such state changes must guarantee that any process can die at any time and by just restarting it can
 continue where it left.
@@ -234,9 +217,9 @@ continue where it left.
 
 "subscriber resync" sets table state to `NULL`.
 
-= Utility commands =
+== Utility commands ==
 
-== repair ==
+=== repair ===
 
 it tries to achieve a state where tables should be in sync and then compares
 them and writes out SQL statements that would fix differences.
@@ -252,31 +235,29 @@ then comparing line-by-line.  As this is CPU and memory-hungry operation,
 good practice is to run the `repair` command on third machine, to avoid
 consuming resources on neither provider nor subscriber.
 
-== compare ==
+=== compare ===
 
 it syncs tables like repair, but just runs SELECT count(*) on both sides,
 to get a little bit cheaper but also less precise way of checking
 if tables are in sync.
 
-= Config file =
+== Config file ==
 
-{{{
-[londiste]
-job_name = test_to_subcriber
+    [londiste]
+    job_name = test_to_subcriber
+    
+    # source database, where the queue resides
+    provider_db = dbname=provider port=6000 host=127.0.0.1
+    
+    # destination database
+    subscriber_db = dbname=subscriber port=6000 host=127.0.0.1
+    
+    # the queue where to listen on
+    pgq_queue_name = londiste.replika
+    
+    # where to log
+    logfile = ~/log/%(job_name)s.log
+    
+    # pidfile is used for avoiding duplicate processes
+    pidfile = ~/pid/%(job_name)s.pid
 
-# source database, where the queue resides
-provider_db = dbname=provider port=6000 host=127.0.0.1
-
-# destination database
-subscriber_db = dbname=subscriber port=6000 host=127.0.0.1
-
-# the queue where to listen on
-pgq_queue_name = londiste.replika
-
-# where to log
-logfile = ~/log/%(job_name)s.log
-
-# pidfile is used for avoiding duplicate processes
-pidfile = ~/pid/%(job_name)s.pid
-
-}}}

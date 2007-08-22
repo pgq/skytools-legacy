@@ -2,41 +2,37 @@
 
 == Config ==
 
-{{{
-[pgqadm]
-job_name = pgqadm_somedb
-
-db = dbname=somedb
-
-# how often to run maintenance [minutes]
-maint_delay_min = 5
-
-# how often to check for activity [secs]
-loop_delay = 0.1
-
-logfile = ~/log/%(job_name)s.log
-pidfile = ~/pid/%(job_name)s.pid
-
-}}}
+  [pgqadm]
+  job_name = pgqadm_somedb
+  
+  db = dbname=somedb
+  
+  # how often to run maintenance [minutes]
+  maint_delay_min = 5
+  
+  # how often to check for activity [secs]
+  loop_delay = 0.1
+  
+  logfile = ~/log/%(job_name)s.log
+  pidfile = ~/pid/%(job_name)s.pid
 
 == Command line usage ==
 
-{{{
-$ pgqadm.py --help
-usage: pgqadm.py [options] INI CMD [subcmd args]
+  $ pgqadm.py --help
+  usage: pgqadm.py [options] INI CMD [subcmd args]
+  
+  commands:
+    ticker        start ticking & maintenance process
+    status        show overview of queue healt
+  
+  options:
+    -h, --help      show this help message and exit
+    -q, --quiet     make program silent
+    -v, --verbose   make program verbose
+    -d, --daemon    go background
+  
+    control running process:
+      -r, --reload  reload config (send SIGHUP)
+      -s, --stop    stop program safely (send SIGINT)
+      -k, --kill    kill program immidiately (send SIGTERM)
 
-commands:
-  ticker        start ticking & maintenance process
-  status        show overview of queue healt
-
-options:
-  -h, --help      show this help message and exit
-  -q, --quiet     make program silent
-  -v, --verbose   make program verbose
-  -d, --daemon    go background
-
-  control running process:
-    -r, --reload  reload config (send SIGHUP)
-    -s, --stop    stop program safely (send SIGINT)
-    -k, --kill    kill program immidiately (send SIGTERM)
-}}}
