@@ -1,0 +1,104 @@
+= SkyTools - tools for PostgreSQL =
+
+This is a package of tools in use in Skype for replication and
+failover.  Also it includes a generic queuing mechanism PgQ and
+utility library for Python scripts.
+
+== Dependencies ==
+
+Skytools modules use some other code to run, you need to install the
+following dependencies on the system where you want to build and run
+skytool applications.
+
+=== Build dependencies ===
+
+  libevent-dev postgresql-8.2 postgresql-server-dev-8.2 autoconf
+  devscripts yada
+
+=== Runtime dependencies ===
+
+  python
+  python-psycopg or python2.4-psycopg
+  skytools-modules-8.2 or the version matching your PostgreSQL installation
+  postgresql-plpython-8.2 (or your version of PostgreSQL)
+
+== Building a debian package ==
+
+The main Makefile provides a target for building a +.deb+ package
+suitable for installation. You need to install some packages to be
+able to build the debian package, the list is given in previous
+section.
+
+Then the build:
+
+  $ make deb82
+
+You can build skytools for older PostgreSQL systems by choosing one of
++deb81+ or +deb80+ targets.
+
+The build should give you two debian package files to install, such as
++skytools_2.1.5_i386.deb+ and
++skytools-modules-8.2_2.1.5_i386.deb+. See the Installation section
+for notes about where to install those packages.
+
+== Building for other systems ==
+
+The build and install from sources step are the following:
+
+  $ autoconf
+  $ ./configure [--prefix] [--with-python] [--with-pgconfig]
+  $ make
+  $ sudo make install
+
+The following configure options are available:
+
+--prefix::
+  path prefix where to install skytools files (default: UNKNOWN)
+  
+--with-python::
+  name of the Python executable (default: python)
+  
+--with-pgconfig::
+  path to pg_config (default: pg_config)
+
+
+== Documentation ==
+
+Skytools documentation consist of text files, some of them in the
+asciidoc format, from which you can produce man and html outputs:
+
+  $ cd doc
+  $ make man
+  $ make html
+
+You need asciidoc and xmlto packages for this to work.
+
+== Installation ==
+
+=== Skytools ===
+
+You have to install skytools on the machines where you want to run it,
+obviously. The installation of the skytools provides PgQ, Londiste and
+walmgr.
+
+=== Londiste ===
+
+In the londiste case, as the replication process will run on only one
+machine (either provider, subscriber or a tier box), things are not
+that straight anymore.
+
+But simple nonetheless: install PgQ on the machine where you want to
+run it, provider being the straightforward choice. Then install
+londiste only on the box from where you want to launch the replication
+process, a good default begin the subscriber box this time.
+
+You can then install londiste on provider from the subscriber box with
+the +londiste.py+ command line tool.
+
+== Usage ==
+
+Please refer to the documentation.
+
+
+
+
