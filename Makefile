@@ -5,28 +5,20 @@ PYTHON ?= python
 
 pyver = $(shell $(PYTHON) -V 2>&1 | sed 's/^[^ ]* \([0-9]*\.[0-9]*\).*/\1/')
 
-SUBDIRS = sql
-
-# sql installation files we want to put into share/skytools
-SQLFILES = sql/txid/txid.sql sql/pgq/pgq.sql sql/londiste/londiste.sql sql/pgq_ext/pgq_ext.sql sql/logtriga/logtriga.sql
+SUBDIRS = sql doc
 
 all: python-all modules-all
 
 modules-all: config.mak
 	$(MAKE) -C sql all
 
-x$(MAKE):
-	echo $(MAKE)
-
 python-all: config.mak
 	$(PYTHON) setup.py build
 
-$(SQLFILES): modules-all
-
 clean:
+	$(PYTHON) setup.py clean
 	$(MAKE) -C sql clean
 	$(MAKE) -C doc clean
-	$(PYTHON) setup.py clean
 	rm -rf build
 	find python -name '*.py[oc]' -print | xargs rm -f
 	rm -f python/skytools/installer_config.py
@@ -44,9 +36,9 @@ modules-install: config.mak
 	$(MAKE) -C sql install DESTDIR=$(DESTDIR)
 	test \! -d compat || $(MAKE) -C compat $@ DESTDIR=$(DESTDIR)
 
-python-install: config.mak $(SQLFILES)
+python-install: config.mak modules-all
 	$(PYTHON) setup.py install --prefix=$(prefix) --root=$(DESTDIR)/
-	test \! -d compat || $(MAKE) -C compat $@ DESTDIR=$(DESTDIR)
+	make -C doc install
 
 python-install python-all: python/skytools/installer_config.py
 python/skytools/installer_config.py: python/skytools/installer_config.py.in config.mak
