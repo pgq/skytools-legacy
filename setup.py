@@ -1,12 +1,20 @@
 #! /usr/bin/env python
 
+import sys, os.path, re
 from distutils.core import setup
 
-import re
+# check if configure has run
+if not os.path.isfile('config.mak'):
+    print "please run ./configure && make first"
+    print "Note: setup.py is suppsed to be run from Makefile"
+    sys.exit(1)
+
+# load version
 buf = open("configure.ac","r").read(256)
 m = re.search("AC_INIT[(][^,]*,\s+([^)]*)[)]", buf)
 ac_ver = m.group(1)
 
+# run actual setup
 setup(
     name = "skytools",
     license = "BSD",
