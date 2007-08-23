@@ -144,13 +144,9 @@ class ProviderSetup(CommonSetup):
         elif cmd == "remove":
             self.provider_remove_tables(self.args[3:])
         elif cmd == "add-seq":
-            for seq in self.args[3:]:
-                self.provider_add_seq(seq)
-            self.provider_notify_change()
+            self.provider_add_seq_list(self.args[3:])
         elif cmd == "remove-seq":
-            for seq in self.args[3:]:
-                self.provider_remove_seq(seq)
-            self.provider_notify_change()
+            self.provider_remove_seq_list(self.args[3:])
         elif cmd == "install":
             self.provider_install()
         elif cmd == "seqs":
@@ -167,6 +163,29 @@ class ProviderSetup(CommonSetup):
 
         for seq in list:
             print seq
+
+    def provider_get_all_seqs(self):
+        src_db = self.get_database('provider_db')
+        src_curs = src_db.cursor()
+        list = self.get_all_seqs(src_curs)
+        src_db.commit()
+        return list
+
+    def provider_add_seq_list(self, seq_list):
+        if not seq_list and self.options.all:
+            seq_list = self.provider_get_all_seqs()
+
+        for seq in self.args[3:]:
+            self.provider_add_seq(seq)
+        self.provider_notify_change()
+
+    def provider_remove_seq_list(self, seq_list):
+        if not seq_list and self.options.all:
+            seq_list = self.get_provider_seqs()
+
+        for seq in seq_list:
+            self.provider_remove_seq(seq)
+        self.provider_notify_change()
 
     def provider_install(self):
         src_db = self.get_database('provider_db')
@@ -474,7 +493,12 @@ class SubscriberSetup(CommonSetup):
         subscriber_tables = self.get_subscriber_table_list()
         for tbl in provider_tables:
             if tbl not in subscriber_tables:
-                print tbl
+                print "Table: %s" % tbl
+        provider_seqs = self.get_provider_seqs()
+        subscriber_seqs = self.get_subscriber_seq_list()
+        for seq in provider_seqs:
+            if seq not in subscriber_seqs:
+                print "Sequence: %s" % seq
 
     def subscriber_add_tables(self, table_list):
         provider_tables = self.get_provider_table_list()
@@ -600,10 +624,13 @@ class SubscriberSetup(CommonSetup):
         
         prov_list = self.get_provider_seqs(src_curs)
         src_db.commit()
-        
+
         full_list = self.get_all_seqs(dst_curs)
         cur_list = self.get_subscriber_seq_list()
 
+        if not seq_list and self.options.all:
+            seq_list = prov_list
+        
         for seq in seq_list:
             seq = skytools.fq_name(seq)
             if seq not in prov_list:
@@ -626,6 +653,9 @@ class SubscriberSetup(CommonSetup):
         dst_db = self.get_database('subscriber_db')
         dst_curs = dst_db.cursor()
         cur_list = self.get_subscriber_seq_list()
+
+        if not seq_list and self.options.all:
+            seq_list = cur_list
 
         for seq in seq_list:
             seq = skytools.fq_name(seq)
