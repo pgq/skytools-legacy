@@ -132,7 +132,7 @@ Registers table on subscriber side.
 
 Switches
 
- --excect-sync:: Table is tagged as in-sync so initial COPY is skipped.
+ --expect-sync:: Table is tagged as in-sync so initial COPY is skipped.
  --skip-truncate:: When doing initial COPY, don't remove old data.
  --force:: Ignore table structure differences.
 
