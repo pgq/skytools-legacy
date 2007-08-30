@@ -14,7 +14,7 @@ HTMLS = londiste.cmdline.html londiste.config.html README.html INSTALL.html \
 
 all: man
 
-man: londiste.1 londiste.5
+man: londiste.1 londiste.5 pgqadm.1
 html: $(HTMLS)
 
 install: man
@@ -64,8 +64,13 @@ londiste.1: londiste.cmdline.xml
 londiste.5: londiste.config.xml
 	xmlto man $<
 
+pgqadm.1: pgq-admin.xml
+	xmlto man $<
+
 %.xml: %.txt
-	asciidoc -d manpage -b docbook $<
+	#asciidoc -b docbook -d manpage -o - $< > $@
+	asciidoc -b docbook -d manpage -o - $< \
+	| python fixman.py > $@
 
 %.html: %.txt
 	asciidoc -a toc $<
