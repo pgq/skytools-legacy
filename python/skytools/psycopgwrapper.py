@@ -21,8 +21,16 @@ try:
     from psycopg2.extensions import QuotedString
 
     class _CompatRow(psycopg2.extras.DictRow):
-        """Allow setting fields by name."""
+        """Make DictRow more dict-like."""
+
         def __setitem__(self, k, v):
+            """Allow adding new key-value pairs.
+
+            Such operation adds new field to global _index.
+            But that is OK, as .description is unchanged, and access
+            to such fields before setting them should raise exception
+            anyway.
+            """
             if type(k) != int:
                 if k not in self._index:
                     self._index[k] = len(self._index)
@@ -30,9 +38,20 @@ try:
                 while k >= len(self):
                     self.append(None)
             return list.__setitem__(self, k, v)
+
+        def __contains__(self, k):
+            """Returns if such row has such column."""
+            return k in self._index
+
         def copy(self):
-            "Return regular dict"
+            """Return regular dict."""
             return dict(self.items())
+        
+        def iterkeys(self):
+            return self._index.iterkeys()
+
+        def __iter__(self):
+            return self._index.__iter__()
 
     class _CompatCursor(psycopg2.extras.DictCursor):
         """Regular psycopg2 DictCursor with dict* methods."""
