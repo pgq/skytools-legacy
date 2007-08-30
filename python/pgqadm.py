@@ -31,9 +31,12 @@ commands:
   config QNAME [VAR=VAL]   show or change queue config
 """
 
-config_allowed_list = [
-    'queue_ticker_max_lag', 'queue_ticker_max_count',
-    'queue_ticker_idle_period', 'queue_rotation_period']
+config_allowed_list = {
+    'queue_ticker_max_count': 'int',
+    'queue_ticker_max_lag': 'interval',
+    'queue_ticker_idle_period': 'interval',
+    'queue_rotation_period': 'interval',
+}
 
 class PGQAdmin(skytools.DBScript):
     def __init__(self, args):
@@ -118,12 +121,16 @@ class PGQAdmin(skytools.DBScript):
 
     def change_config(self):
         if len(self.args) < 3:
-            print "need queue name"
+            list = self.get_queue_list()
+            for qname in list:
+                self.show_config(qname)
             return
+
+        qname = self.args[2]
         if len(self.args) == 3:
-            qname = self.args[2]
             self.show_config(qname)
             return
+
         alist = []
         for el in self.args[3:]:
             k, v = el.split('=')
@@ -144,8 +151,16 @@ class PGQAdmin(skytools.DBScript):
         db.commit()
 
     def show_config(self, qname):
-        klist = ",".join(config_allowed_list)
-        q = "select * from pgq.queue where queue_name = %s"
+        fields = []
+        for f, kind in config_allowed_list.items():
+            if kind == 'interval':
+                sql = "extract('epoch' from %s)::text as %s" % (f, f)
+                fields.append(sql)
+            else:
+                fields.append(f)
+        klist = ", ".join(fields)
+        q = "select " + klist + " from pgq.queue where queue_name = %s"
+
         db = self.get_database('db')
         curs = db.cursor()
         curs.execute(q, [qname])
@@ -154,7 +169,19 @@ class PGQAdmin(skytools.DBScript):
 
         print qname
         for k in config_allowed_list:
-            print "    %s\t= %s" % (k, res[k])
+            print "    %s\t=%7s" % (k, res[k])
+
+    def get_queue_list(self):
+        db = self.get_database('db')
+        curs = db.cursor()
+        curs.execute("select queue_name from pgq.queue order by 1")
+        rows = curs.fetchall()
+        db.commit()
+        
+        list = []
+        for r in rows:
+            list.append(r[0])
+        return list
 
 if __name__ == '__main__':
     script = PGQAdmin(sys.argv[1:])
