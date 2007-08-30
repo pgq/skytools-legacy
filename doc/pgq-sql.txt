@@ -89,7 +89,7 @@ Remove an event from queue, or retry it.
 
 Get list of queues.
 
-Result: ()
+Result: (queue_name, queue_ntables, queue_cur_table, queue_rotation_period, queue_switch_time, queue_external_ticker, queue_ticker_max_count, queue_ticker_max_lag, queue_ticker_idle_period, ticker_lag)
 
     pgq.get_consumer_info()
     pgq.get_consumer_info(queue_name)
@@ -97,17 +97,17 @@ Result: ()
 
 Get list of active consumers.
 
-Result: ()
+Result: (queue_name, consumer_name, lag, last_seen, last_tick, current_batch, next_tick)
 
     pgq.get_batch_info(batch_id)
 
 Get info about batch.
 
-Result fields: ()
+Result fields: (queue_name, consumer_name, batch_start, batch_end, prev_tick_id, tick_id, lag)
 
 == Notes ==
 
-Consumer '''must''' be able to process same event several times.
+Consumer *must* be able to process same event several times.
 
 == Example ==
 
@@ -143,7 +143,7 @@ If a events failed or needs to be tried again, framework can call:
     select pgq.event_retry(batch_id, event_id, 60);
     select pgq.event_failed(batch_id, event_id, 'Record deleted');
 
-When all done, notify core about it:
+When all done, notify database about it:
 
     select pgq.finish_batch(batch_id)
 
