@@ -18,10 +18,10 @@ man: londiste.1 londiste.5
 html: $(HTMLS)
 
 install: man
-	mkdir -p $(mandir)/man1
-	mkdir -p $(mandir)/man5
-	install -m 644 londiste.1 $(mandir)/man1
-	install -m 644 londiste.5 $(mandir)/man1
+	mkdir -p $(DESTDIR)/$(mandir)/man1
+	mkdir -p $(DESTDIR)/$(mandir)/man5
+	install -m 644 londiste.1 $(DESTDIR)/$(mandir)/man1
+	install -m 644 londiste.5 $(DESTDIR)/$(mandir)/man1
 
 old.wiki.upload:
 	devupload.sh overview.txt $(wiki)

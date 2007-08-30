@@ -38,7 +38,7 @@ modules-install: config.mak
 
 python-install: config.mak modules-all
 	$(PYTHON) setup.py install --prefix=$(prefix) --root=$(DESTDIR)/
-	make -C doc install
+	make -C doc DESTDIR=$(DESTDIR) install
 
 python-install python-all: python/skytools/installer_config.py
 python/skytools/installer_config.py: python/skytools/installer_config.py.in config.mak
