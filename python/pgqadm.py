@@ -32,8 +32,8 @@ commands:
 """
 
 config_allowed_list = [
-    'queue_ticker_max_lag', 'queue_ticker_max_amount',
-    'queue_ticker_idle_interval', 'queue_rotation_period']
+    'queue_ticker_max_lag', 'queue_ticker_max_count',
+    'queue_ticker_idle_period', 'queue_rotation_period']
 
 class PGQAdmin(skytools.DBScript):
     def __init__(self, args):
@@ -85,7 +85,6 @@ class PGQAdmin(skytools.DBScript):
     def installer(self):
         objs = [
             skytools.DBLanguage("plpgsql"),
-            skytools.DBLanguage("plpythonu"),
             skytools.DBFunction("get_current_txid", 0, sql_file="txid.sql"),
             skytools.DBSchema("pgq", sql_file="pgq.sql"),
         ]
@@ -118,8 +117,11 @@ class PGQAdmin(skytools.DBScript):
         self.exec_sql("select pgq.unregister_consumer(%s, %s)", [qname, cons])
 
     def change_config(self):
-        qname = self.args[2]
+        if len(self.args) < 3:
+            print "need queue name"
+            return
         if len(self.args) == 3:
+            qname = self.args[2]
             self.show_config(qname)
             return
         alist = []
@@ -152,7 +154,7 @@ class PGQAdmin(skytools.DBScript):
 
         print qname
         for k in config_allowed_list:
-            print "  %s=%s" % (k, res[k])
+            print "    %s\t= %s" % (k, res[k])
 
 if __name__ == '__main__':
     script = PGQAdmin(sys.argv[1:])
