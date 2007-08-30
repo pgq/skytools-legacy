@@ -10,3 +10,7 @@ REGRESS = logtriga
 
 include $(PGXS)
 
+test: install
+	make installcheck || { less regression.diffs; exit 1; }
+
+	

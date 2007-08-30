@@ -28,3 +28,6 @@ endif
 txid.sql.in: $(TXID_SQL)
 	cat $(TXID_SQL) > $@
 
+test: install
+	make installcheck || { less regression.diffs; exit 1; }
+
