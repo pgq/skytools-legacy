@@ -21,7 +21,6 @@ commands:
   ticker                   start ticking & maintenance process
 
   status                   show overview of queue health
-  check                    show problematic consumers
 
   install                  install code into db
   create QNAME             create queue
@@ -61,8 +60,6 @@ class PGQAdmin(skytools.DBScript):
             script = SmartTicker(args)
         elif cmd == "status":
             script = PGQStatus(args)
-        elif cmd == "check":
-            script = PGQStatus(args, check = 1)
         elif cmd in int_cmds:
             script = None
             self.work = int_cmds[cmd]
