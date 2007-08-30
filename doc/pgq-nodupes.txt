@@ -7,27 +7,34 @@ First, consumer must guarantee that it processes all events in one tx.
 
 Consumer itself can tag events for retry, but then it must be able to handle them later.
 
- * If the PgQ queue and event data handling happen in same database,
- the consumer must simply call pgq.finish_batch() inside the event-processing
- transaction.
 
- * If the event processing happens in different database, the consumer
- must store the batch_id into destination database, inside the same
- transaction as the event processing happens.
+== Only one db ==
 
- Only after committing it, consumer can call pgq.finish_batch() in queue database
- and commit that.
+If the PgQ queue and event data handling happen in same database,
+the consumer must simply call pgq.finish_batch() inside the event-processing
+transaction.
 
- As the batches come in sequence, there's no need to remember full log of batch_id's,
- it's enough to keep the latest batch_id.
+== Several databases ==
 
- Then at the start of every batch, consumer can check if the batch_id already
- exists in destination database, and if it does, then just tag batch done,
- without processing.
+If the event processing happens in different database, the consumer
+must store the batch_id into destination database, inside the same
+transaction as the event processing happens.
+
+- Only after committing it, consumer can call pgq.finish_batch() in queue database
+  and commit that.
+
+- As the batches come in sequence, there's no need to remember full log of batch_id's,
+  it's enough to keep the latest batch_id.
+
+- Then at the start of every batch, consumer can check if the batch_id already
+  exists in destination database, and if it does, then just tag batch done,
+  without processing.
 
 With this, there's no need for consumer to check for already processed
 events.
 
-NB: This assumes the event processing is transaction-able - failures
+== Note ==
+
+This assumes the event processing is transaction-able - failures
 will be rollbacked.  If event processing includes communication with
 world outside database, eg. sending email, such handling won't work.

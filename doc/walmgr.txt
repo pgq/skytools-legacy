@@ -1,28 +1,33 @@
-#pragma section-numbers 2
 
-= WalMgr =
+= walmgr(1) =
 
-[[TableOfContents]]
+== NAME ==
+
+walmgr - tools for managing WAL-based replication for PostgreSQL.
+
+== SYNOPSIS ==
+
+  walmgr.py <config.ini> command
 
 == Step-by-step instructions ==
 
-=== no-password ssh access from one to other ===
+1. Set up no-password ssh access from one to other
 
      master$ test -f ~/.ssh/id_dsa.pub || ssh-keygen -t dsa
      master$ scp .ssh/id_dsa.pub slave:
      slave$ cat id_dsa.pub >> ~/.ssh/authorized_keys
 
-=== Configure paths ===
+2. Configure paths
 
      master$ edit master.ini
      slave$ edit slave.ini
      slave$ mkdir data.master logs.full logs.partial
 
-=== Start archival process ===
+3. Start archival process
 
      master$ ./walmgr.py master.ini setup
      
-=== Do full backup+restore ===
+4. Do full backup+restore
 
     master$ ./walmgr.py master.ini backup
     slave$ ./walmgr.py slave.ini restore
@@ -30,53 +35,49 @@
    'walmgr.py restore' moves data in place and starts postmaster,
    that starts replaying logs as they appear.
 
-=== In-progress WAL segments can be backup by command: ===
+5. In-progress WAL segments can be backup by command:
 
     master$ ./walmgr.py master.ini sync
 
-=== If need to stop replay on slave and boot into normal mode, do: ===
+6. If need to stop replay on slave and boot into normal mode, do:
 
     slave$ ./walmgr.py slave.ini boot
 
-== Configuration ==
+== CONFIGURATION ==
 
 === master.ini ===
 
-{{{
-[wal-master]
-logfile              = master.log
-use_skylog           = 0
+  [wal-master]
+  logfile              = master.log
+  use_skylog           = 0
 
-master_db            = dbname=template1
-master_data          = /var/lib/postgresql/8.0/main
-master_config        = /etc/postgresql/8.0/main/postgresql.conf
+  master_db            = dbname=template1
+  master_data          = /var/lib/postgresql/8.0/main
+  master_config        = /etc/postgresql/8.0/main/postgresql.conf
 
-slave = slave:/var/lib/postgresql/walshipping
+  slave = slave:/var/lib/postgresql/walshipping
 
-completed_wals       = %(slave)s/logs.complete
-partial_wals         = %(slave)s/logs.partial
-full_backup          = %(slave)s/data.master
+  completed_wals       = %(slave)s/logs.complete
+  partial_wals         = %(slave)s/logs.partial
+  full_backup          = %(slave)s/data.master
 
-# syncdaemon update frequency
-loop_delay           = 10.0
-
-}}}
+  # syncdaemon update frequency
+  loop_delay           = 10.0
 
 === slave.ini ===
 
-{{{
-[wal-slave]
-logfile              = slave.log
-use_skylog           = 0
+  [wal-slave]
+  logfile              = slave.log
+  use_skylog           = 0
 
-slave_data           = /var/lib/postgresql/8.0/main
-slave_stop_cmd       = /etc/init.d/postgresql-8.0 stop
-slave_start_cmd      = /etc/init.d/postgresql-8.0 start
+  slave_data           = /var/lib/postgresql/8.0/main
+  slave_stop_cmd       = /etc/init.d/postgresql-8.0 stop
+  slave_start_cmd      = /etc/init.d/postgresql-8.0 start
 
-slave = /var/lib/postgresql/walshipping
-completed_wals       = %(slave)s/logs.complete
-partial_wals         = %(slave)s/logs.partial
-full_backup          = %(slave)s/data.master
+  slave = /var/lib/postgresql/walshipping
+  completed_wals       = %(slave)s/logs.complete
+  partial_wals         = %(slave)s/logs.partial
+  full_backup          = %(slave)s/data.master
 
-keep_old_logs        = 0
-}}}
+  keep_old_logs        = 0
+

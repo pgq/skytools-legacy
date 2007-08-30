@@ -10,28 +10,31 @@ EPYARGS = --no-private --url="http://pgfoundry.org/projects/skytools/" \
 	--name="Skytools" --html --no-private
 
 HTMLS = londiste.cmdline.html londiste.config.html README.html INSTALL.html \
-	londiste.ref.html TODO.html pgq-sql.html pgq-admin.html
+	londiste.ref.html TODO.html pgq-sql.html pgq-admin.html pgq-nodupes.html \
+	walmgr.html
 
 all: man
 
-man: londiste.1 londiste.5 pgqadm.1
+man: londiste.1 londiste.5 pgqadm.1 walmgr.1
 html: $(HTMLS)
 
 install: man
 	mkdir -p $(DESTDIR)/$(mandir)/man1
 	mkdir -p $(DESTDIR)/$(mandir)/man5
 	install -m 644 londiste.1 $(DESTDIR)/$(mandir)/man1
-	install -m 644 londiste.5 $(DESTDIR)/$(mandir)/man1
+	install -m 644 londiste.5 $(DESTDIR)/$(mandir)/man5
+	install -m 644 pgqadm.1 $(DESTDIR)/$(mandir)/man1
+	install -m 644 walmgr.1 $(DESTDIR)/$(mandir)/man1
 
 old.wiki.upload:
 	devupload.sh overview.txt $(wiki)
-	devupload.sh TODO.txt $(wiki)/ToDo
+	#devupload.sh TODO.txt $(wiki)/ToDo
 	#devupload.sh londiste.txt $(wiki)/LondisteUsage
-	devupload.sh londiste.ref.txt $(wiki)/LondisteReference
-	devupload.sh pgq-sql.txt $(wiki)/PgQdocs
-	devupload.sh pgq-nodupes.txt $(wiki)/PgqNoDupes
-	devupload.sh walmgr.txt $(wiki)/WalMgr
-	devupload.sh pgq-admin.txt $(wiki)/PgqAdm
+	#devupload.sh londiste.ref.txt $(wiki)/LondisteReference
+	#devupload.sh pgq-sql.txt $(wiki)/PgQdocs
+	#devupload.sh pgq-nodupes.txt $(wiki)/PgqNoDupes
+	#devupload.sh walmgr.txt $(wiki)/WalMgr
+	#devupload.sh pgq-admin.txt $(wiki)/PgqAdm
 
 PY_PKGS = skytools pgq londiste
 
@@ -65,6 +68,9 @@ londiste.5: londiste.config.xml
 	xmlto man $<
 
 pgqadm.1: pgq-admin.xml
+	xmlto man $<
+
+walmgr.1: walmgr.xml
 	xmlto man $<
 
 %.xml: %.txt
