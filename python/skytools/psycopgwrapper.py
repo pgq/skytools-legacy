@@ -50,6 +50,9 @@ try:
         def iterkeys(self):
             return self._index.iterkeys()
 
+        def itervalues(self):
+            return list.__iter__(self)
+
         def __iter__(self):
             return self._index.__iter__()
 
