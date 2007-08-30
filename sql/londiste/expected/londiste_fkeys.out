@@ -1,3 +1,4 @@
+set log_error_verbosity = 'terse';
 create table ref_1 (
     id int4 primary key,
     val text
