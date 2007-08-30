@@ -29,12 +29,12 @@
  * replace logtriga() with pgq.logtriga() for londiste trigger
  * backend modules need to be ported to 8.3
  * londiste: good fkey support: store them in subscriber db and apply when both tables are in sync. [erik]
+ * document add-seq, remove-seq
 
 === To Do ===
 
- * pgqadm docs
- * add <seq>, remove <seq> [marko]
  * pgq/londiste/pgq_ext: schema upgrade scripts  [marko]
+ * -rc1 for testing
 
 == Next major release - 2.2 ==
 

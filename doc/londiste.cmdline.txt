@@ -86,13 +86,13 @@ and others should be used without any command at all.
 This section presents options available to all and any londiste
 command.
 
-  -h, --help:
+  -h, --help::
 	show this help message and exit
 
-  -q, --quiet:
+  -q, --quiet::
 	make program silent
 
-  -v, --verbose:
+  -v, --verbose::
 	make program more verbose
 
 
@@ -159,11 +159,11 @@ with the schema name defaulting to `public` if not supplied.
 
 Switches (optional):
 
-  --excect-sync:
+  --excect-sync::
         Table is tagged as in-sync so initial COPY is skipped. 
-  --skip-truncate:
+  --skip-truncate::
          When doing initial COPY, don't remove old data. 
-  --force:
+  --force::
          Ignore table structure differences.
 
 === subscriber remove <table name> ... ===
@@ -212,19 +212,18 @@ switch, because it needs to be always running.
 It's main task is to get batches of events from PgQ and apply
 them to subscriber database.
 
-
 Switches:
 
-  -d, --daemon:
+  -d, --daemon::
 	go background
 
-  -r, --reload:
+  -r, --reload::
 	reload config (send SIGHUP)
 
-  -s, --stop:
+  -s, --stop::
 	stop program safely (send SIGINT)
 
-  -k, --kill:
+  -k, --kill::
 	kill program immidiately (send SIGTERM)
 
 == UTILITY COMMAND ==
