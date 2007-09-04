@@ -21,12 +21,26 @@
 
     = Upgrade procedure for database code =
 
-    * PgQ (used on Londiste provider side)
-      XXX
+    * PgQ (used on Londiste provider side), table structure, plpgsql functions:
+
+        $ psql dbname -f upgrade/final/v2.1.5.pgq_core.sql
+
+    * PgQ new insert_event(), written in C:
+
+        $ psql dbname -f sql/pgq/lowlevel/pgq_lowlevel.sql
+
+    * PgQ new triggers (sqltriga, logtriga, logutriga), written in C:
+
+        $ psql dbname -f sql/pgq/triggers/pgq_triggers.sql
+
     * Londiste (both provider and subscriber side)
-      XXX
-    * pgq_ext
-      XXX
+
+        $ psql dbname -f upgrade/final/v2.1.5.londiste.sql
+
+    * pgq_ext:
+
+        $ psql dbname -f upgrade/final/v2.1.5.pgq_ext.sql
+
 
 2007-04-16  -  SkyTools 2.1.4  -  "Sweets from last Christmas"
 
