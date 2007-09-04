@@ -127,6 +127,14 @@ from the table(s). The table removal event is also sent to the queue, so all
 subscribers unregister the table(s) on their end as well.  Table names can be 
 schema qualified with the schema name defaulting to public if not supplied.
 
+=== provider add-seq <sequence name> ... ===
+
+Registers a sequence on provider.
+
+=== provider remove-seq <sequence name> ... ===
+
+Unregisters a sequence on provider.
+
 === provider tables ===
 
 Shows registered tables on provider side.
@@ -171,6 +179,14 @@ Switches (optional):
 Unregisters table(s) from subscriber. No events will be applied to
 the table anymore. Actual table will not be touched. Table names can be 
 schema qualified with the schema name defaulting to public if not supplied.
+
+=== subscriber add-seq <sequence name> ... ===
+
+Registers a sequence on subscriber.
+
+=== subscriber remove-seq <sequence name> ... ===
+
+Unregisters a sequence on subscriber.
 
 === subscriber resync <table name> ... ===
 
