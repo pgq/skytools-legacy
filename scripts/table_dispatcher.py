@@ -31,15 +31,8 @@ class TableDispatcher(pgq.SerialConsumer):
                     self.field_map[tmp[0]] = tmp[1]
 
     def process_remote_batch(self, src_db, batch_id, ev_list, dst_db):
-        if len(ev_list) == 0:
-            return
-
         # actual processing
         self.dispatch(dst_db, ev_list)
-
-        # tag as done
-        for ev in ev_list:
-            ev.tag_done()
 
     def dispatch(self, dst_db, ev_list):
         """Generic dispatcher."""
@@ -77,6 +70,8 @@ class TableDispatcher(pgq.SerialConsumer):
                 tables[tbl] = [dstrow]
             else:
                 tables[tbl].append(dstrow)
+
+            ev.tag_done()
 
         # create tables if needed
         self.check_tables(dst_db, tables)
