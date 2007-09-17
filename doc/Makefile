@@ -81,9 +81,6 @@ walmgr.1: walmgr.xml
 %.html: %.txt
 	asciidoc -a toc $<
 
-manupload: man html
-	rsync -avz londiste.[15] *.html *.txt pgf:web/skytools/htdocs/man/
-
 README.html: ../README
 	cat $< \
 	| sed -e 's,doc/\([!-~]*\)[.]txt,link:\1.html[],g' \
@@ -94,7 +91,7 @@ INSTALL.html: ../INSTALL
 	asciidoc -o $@ $<
 
 web: $(HTMLS)
-	rsync -avz $(HTMLS)  pgf:web/skytools/htdocs/new/
+	rsync -avz $(HTMLS) $(web)/doc/
 
 
 

@@ -30,11 +30,15 @@
  * backend modules need to be ported to 8.3
  * londiste: good fkey support: store them in subscriber db and apply when both tables are in sync. [erik]
  * document add-seq, remove-seq
+ * pgq/londiste/pgq_ext: schema upgrade scripts  [marko]
+ * pgq: fetch events from batch via cursor, thus allowing larger batches
+ * londiste: trigger handling [erik]
+ * txid: use bsearch() on larger snapshots
 
 === To Do ===
 
- * pgq/londiste/pgq_ext: schema upgrade scripts  [marko]
  * -rc1 for testing
+ * trigger docs
 
 == Next major release - 2.2 ==
 
@@ -74,10 +78,6 @@
  * londiste: Quote SQL identifiers, keep combined name, rule will be "Split schema as first dot"
  * skylog: publish sample logdb schema, with some tools
  * londiste: allow table redirection on subscriber side
- * londiste: trigger handling
-  - `copy` drops triggers uncontitionally (except maybe disabled triggers in 8.3)
-  - there are "show-triggers" and "restore-triggers" commands that help
-    admin to review them, take manual action if needed and restore the trigger
 
 === Smaller things ===
 
@@ -89,7 +89,7 @@
  * skytools: switch for silence for cron scripts
  * pgq: drop_fkeys.sql for live envs
  * logdb: hostname
- * DBScript: failure to write pidfile should be logged (crontscripts)
+ * DBScript: failure to write pidfile should be logged (cronscripts)
  * ideas from SlonyI:
   - force timestamps to ISO
   - when buffering queries, check their size
@@ -102,7 +102,8 @@
      Several consumer can be done in one go if spread out to separate columns.
    - inexact method: take ev_id near xmax and compare with value from sequence
      * broken by retry events, rollbacked transactions and use of force_tick()
- * automatic "repair" - after reaching sync point, the "replay" must be killed, then fixes can be applied
+ * automatic "repair" - after reaching sync point, the "replay" must be killed/paused, then fixes can be applied
+ * pgq: sqltriga/logtriga - dont cache table struct?
 
 == Just ideas ==
 
