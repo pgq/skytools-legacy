@@ -52,7 +52,7 @@ create table londiste.subscriber_seq (
     primary key (queue_name, seq_name)
 );
 
-create table londiste.subscriber_pending_fkeys(
+create table londiste.subscriber_pending_fkeys (
     from_table          text not null,
     to_table            text not null,
     fkey_name           text not null,
@@ -61,3 +61,10 @@ create table londiste.subscriber_pending_fkeys(
     primary key (from_table, fkey_name)
 );
 
+create table londiste.subscriber_pending_triggers (
+    table_name          text not null,
+    trigger_name        text not null,
+    trigger_def         text not null,
+    
+    primary key (table_name, trigger_name)
+);
