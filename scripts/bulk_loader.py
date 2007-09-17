@@ -94,7 +94,11 @@ class TableCache:
 
         # get pkey column names
         if self.pkey_str is None:
-            self.pkey_str = ev.ev_type.split(':')[1]
+            if len(ev.ev_type) > 2:
+                self.pkey_str = ev.ev_type.split(':')[1]
+            else:
+                self.pkey_str = ev.ev_extra2
+
             if self.pkey_str:
                 self.pkey_list = self.pkey_str.split(',')
 
