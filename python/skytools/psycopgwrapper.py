@@ -76,8 +76,12 @@ try:
 
 except ImportError:
     # use psycopg 1
-    from psycopg import connect as _pgconnect
-    from psycopg import QuotedString
+    try:
+        from psycopg import connect as _pgconnect
+        from psycopg import QuotedString
+    except ImportError:
+        print "Please install psycopg2 module"
+        sys.exit(1)
 
 def connect_database(connstr):
     """Create a db connection with connect_timeout option.
