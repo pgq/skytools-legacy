@@ -9,7 +9,10 @@ begin
         
     for fkey in
         select n1.nspname || '.' || t1.relname as from_table, n2.nspname || '.' || t2.relname as to_table,
-            conname::text as fkey_name, pg_get_constraintdef(c.oid) as fkey_def
+            conname::text as fkey_name, 
+            'alter table only ' || quote_ident(n1.nspname) || '.' || quote_ident(t1.relname)
+            || ' add constraint ' || quote_ident(fkey.fkey_name) || ' ' || pg_get_constraintdef(c.oid)
+            as fkey_def
         from pg_constraint c, pg_namespace n1, pg_class t1, pg_namespace n2, pg_class t2
         where c.contype = 'f' and (c.conrelid = tbl_oid or c.confrelid = tbl_oid)
             and t1.oid = c.conrelid and n1.oid = t1.relnamespace
