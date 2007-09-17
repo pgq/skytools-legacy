@@ -1,4 +1,25 @@
-2007-07-xx  -  SkyTools 2.1.5  -  ""
+2007-09-xx  -  SkyTools 2.1.5  -  "Enterprise-Grade Duct Tape"
+
+    = Big changes =
+
+    * Lot of new docs [Dimitri Fontaine, Asko Oja, Marko Kreen]
+    * Support for fkey and trigger handling in Londiste.  [Erik Jones]
+    * Rewrite pgq.insert_event() and log triggers in C, thus SkyTools does
+      not depend on PL/Python anymore.
+
+    = Small changes =
+
+    * Support psycopg2, preferring it to psycopg1.
+    * Improved bulk_loader, using temp tables exclusively.
+    * skytools.config: API change to allow usage without config file.
+    * skytools module: quote_ident(), quote_fqident()
+    * install .sql files under share/skytools in addition to contrib/
+    * pgqadm: also vacuums londiste and pgq_ext tables, if they exist
+    * londiste: provider add/remove --all [Hans-Juergen Schoenig]
+    * backend modules support 8.3
+    * pgq: switch pgq_lazy_fetch=NROWS for pgq.Consumer, which makes it use
+      cursor for event fetching, thus allowing larger batches
+    * txid: use bsearch() for larger snapshots
 
     = Fixes =
 
@@ -9,15 +30,8 @@
     * Due to historical reasons SerialConsumer (and thus Londiste)
       accessed completed tick table directly, not via functions.
       Make it use functions again.
-
-    = Features =
-
-    * Support psycopg2, preferring it to psycopg1.
-    * Improved bulk_loader, using temp tables exclusively.
-    * skytools.config: API change to allow usage without config file.
-    * quote_ident(), quote_fqident()
-    * Rewrite pgq.insert_event() in C, thus PgQ core is not
-      dependant on PL/Python anymore.
+    * londiste: set client_encoding on subscriber same as on provider
+    * londiste: remove tbl should work also if table is already dropped [Dimitri Fontaine]
 
     = Upgrade procedure for database code =
 
