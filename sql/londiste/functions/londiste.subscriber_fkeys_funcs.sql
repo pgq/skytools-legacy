@@ -53,12 +53,13 @@ begin
     where fkey_name = i_fkey_name and from_table = i_from_table;
     
     if not found then
-        return 1;
+        return 0;
     end if;
             
     insert into londiste.subscriber_pending_fkeys values (fkey.from_table, fkey.to_table, i_fkey_name, fkey.fkey_def);
         
-    execute 'alter table only ' || fkey.from_table || ' drop constraint ' || i_fkey_name || ';';
+    execute 'alter table only ' || londiste.quote_fqname(fkey.from_table)
+            || ' drop constraint ' || quote_ident(i_fkey_name);
     
     return 1;
 end;
@@ -75,13 +76,12 @@ begin
     where fkey_name = i_fkey_name and from_table = i_from_table;
     
     if not found then
-        return 1;
+        return 0;
     end if;
     
     delete from londiste.subscriber_pending_fkeys where fkey_name = fkey.fkey_name;
         
-    execute 'alter table only ' || fkey.from_table || ' add constraint '
-        || fkey.fkey_name || ' ' || fkey.fkey_def || ';';
+    execute fkey.fkey_def;
         
     return 1;
 end;
