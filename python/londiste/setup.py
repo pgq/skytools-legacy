@@ -310,57 +310,92 @@ class SubscriberSetup(CommonSetup):
             self.subscriber_install()
         elif cmd == "check":
             self.check_tables(self.get_provider_table_list())
-        elif cmd == "fkeys":
-            self.collect_fkeys(self.get_provider_table_list(), self.args[3:])
+        elif cmd in ["fkeys", "triggers"]:
+            self.collect_meta(self.get_provider_table_list(), cmd, self.args[3:])
         elif cmd == "seqs":
             self.subscriber_list_seqs()
         elif cmd == "add-seq":
             self.subscriber_add_seq(self.args[3:])
         elif cmd == "remove-seq":
             self.subscriber_remove_seq(self.args[3:])
+        elif cmd == "restore-triggers":
+            self.restore_triggers(self.args[3], self.args[4:])
         else:
             self.log.error('bad subcommand: ' + cmd)
             sys.exit(1)
 
-    def collect_fkeys(self, table_list, args):
+    def collect_meta(self, table_list, meta, args):
+        """Display fkey/trigger info."""
+
         if args == []:
             args = ['pending', 'active']
             
+        field_map = {'triggers': ['table_name', 'trigger_name', 'trigger_def'],
+                     'fkeys': ['from_table', 'to_table', 'fkey_name', 'fkey_def']}
+        
+        query_map = {'pending': "select %s from londiste.subscriber_get_table_pending_%s(%%s)",
+                     'active' : "select %s from londiste.find_table_%s(%%s)"}
+
+        table_list = self.clean_subscriber_tables(table_list)
+
         dst_db = self.get_database('subscriber_db')
         dst_curs = dst_db.cursor()
-        
-        subscriber_tables = self.get_subscriber_table_list()
 
-        qs = {'pending': "select * from londiste.subscriber_get_table_pending_fkeys(%s)",
-              'active' : "select * from londiste.find_table_fkeys(%s)"}
-        fkeys = {'active_fkeys': [], 'pending_fkeys': []}
-        for type in args:
-            q = qs[type]
+        for which in args:
+            union_list = []
+            fields = field_map[meta]
+            q = query_map[which] % (",".join(fields), meta)
             for tbl in table_list:
-                if tbl not in subscriber_tables:
-                    continue
-                dst_curs.execute(q, [tbl])
-                fkeys['%s_fkeys' % type].extend(dst_curs.dictfetchall())
-        dst_db.commit()                    
+                union_list.append(q % skytools.quote_literal(tbl))
+
+            # use union as fkey may appear in duplicate
+            sql = " union ".join(union_list) + " order by 1"
+            desc = "%s %s" % (which, meta)
+            self.display_table(desc, dst_curs, fields, sql)
+        dst_db.commit()
+
+    def display_table(self, desc, curs, fields, sql, args = []):
+        """Display multirow query as a table."""
+
+        curs.execute(sql, args)
+        rows = curs.dictfetchall()
+        if len(rows) == 0:
+            return 0
         
-        for type in args:
-            widths = [15,15,15]
-            for row in fkeys['%s_fkeys' % type]:
-                widths = [widths[i] > len(row[i]) and widths[i] or len(row[i]) for i in [0,1,2]]
-            widths[0] += 2; widths[1] += 2; widths[2] += 2
+        widths = [15] * len(fields)
+        for row in rows:
+            for i, k in enumerate(fields):
+                widths[i] = widths[i] > len(row[k]) and widths[i] or len(row[k])
+        widths = [w + 2 for w in widths]
+
+        fmt = '%%-%ds' * (len(widths) - 1) + '%%s'
+        fmt = fmt % tuple(widths[:-1])
+        print desc
+        print fmt % tuple(fields)
+        print fmt % tuple(['-'*15] * len(fields))
             
-            fmt = '%%-%ds%%-%ds%%-%ds%%s' % tuple(widths)
-            print '%s fkeys:' % type
-            print fmt % ('from_table', 'to_table', 'fkey_name', 'fkey_def')
-            print fmt % ('----------', '--------', '---------', '--------')
-            
-            printed = []
-            for row in fkeys['%s_fkeys' % type]:
-                if row in printed:
-                    continue
-                print fmt % row.values()
-                printed.append(row)
-            print '\n'
+        for row in rows:
+            print fmt % tuple([row[k] for k in fields])
+        print '\n'
+
+    def clean_subscriber_tables(self, table_list):
+        """Returns fully-quelifies table list of tables
+        that are registered on subscriber.
+        """
+        subscriber_tables = self.get_subscriber_table_list()
+        if not table_list and self.options.all:
+            table_list = subscriber_tables
+        else:
+            newlist = []
+            for tbl in table_list:
+                tbl = skytools.fq_name(tbl)
+                if tbl in subscriber_tables:
+                    newlist.append(tbl)
+                else:
+                    #self.log.warning("table %s not subscribed" % tbl)
+                    pass
+            table_list = newlist
+        return table_list
 
     def check_tables(self, table_list):
         src_db = self.get_database('provider_db')
@@ -379,26 +414,46 @@ class SubscriberSetup(CommonSetup):
                 failed += 1
             else:
                 failed += self.check_table_columns(src_curs, dst_curs, tbl)
-                failed += self.check_table_triggers(dst_curs, tbl)
 
         src_db.commit()
         dst_db.commit()
 
         return failed
 
-    def check_table_triggers(self, dst_curs, tbl):
-        oid = skytools.get_table_oid(dst_curs, tbl)
-        if not oid:
-            self.log.error('Table %s not found' % tbl)
-            return 1
-        q = "select count(1) from pg_trigger where tgrelid = %s and tgisconstraint is not true"
-        dst_curs.execute(q, [oid])
-        got = dst_curs.fetchone()[0]
-        if got:
-            self.log.error('found trigger on table %s (%s)' % (tbl, str(oid)))
-            return 1
+    def restore_triggers(self, tbl, triggers=None):
+        tbl = skytools.fq_name(tbl)
+        if tbl not in self.get_subscriber_table_list():
+            self.log.error("Table %s is not in the subscriber queue." % tbl)
+            sys.exit(1)
+            
+        dst_db = self.get_database('subscriber_db')
+        dst_curs = dst_db.cursor()
+        
+        if not triggers:
+            q = "select count(1) from londiste.subscriber_get_table_pending_triggers(%s)"
+            dst_curs.execute(q, [tbl])
+            if not dst_curs.fetchone()[0]:
+                self.log.info("No pending triggers found for %s." % tbl)
+            else:
+                q = "select londiste.subscriber_restore_all_table_triggers(%s)"
+                dst_curs.execute(q, [tbl])
         else:
-            return 0
+            for trigger in triggers:
+                q = "select count(1) from londiste.find_table_triggers(%s) where trigger_name=%s"
+                dst_curs.execute(q, [tbl, trigger])
+                if dst_curs.fetchone()[0]:
+                    self.log.info("Trigger %s on %s is already active." % (trigger, tbl))
+                    continue
+                    
+                q = "select count(1) from londiste.subscriber_get_table_pending_triggers(%s) where trigger_name=%s"
+                dst_curs.execute(q, [tbl, trigger])
+                if not dst_curs.fetchone()[0]:
+                    self.log.info("Trigger %s not found on %s" % (trigger, tbl))
+                    continue
+                    
+                q = "select londiste.subscriber_restore_table_trigger(%s, %s)"
+                dst_curs.execute(q, [tbl, trigger])
+        dst_db.commit()
 
     def check_table_columns(self, src_curs, dst_curs, tbl):
         src_colrows = find_column_types(src_curs, tbl)
@@ -577,9 +632,11 @@ class SubscriberSetup(CommonSetup):
         dst_db.commit()
 
     def subscriber_add_one_table(self, dst_curs, tbl):
-        q = "select londiste.subscriber_add_table(%s, %s)"
+        q_add = "select londiste.subscriber_add_table(%s, %s)"
+        q_triggers = "select londiste.subscriber_drop_all_table_triggers(%s)"
 
-        dst_curs.execute(q, [self.pgq_queue_name, tbl])
+        dst_curs.execute(q_add, [self.pgq_queue_name, tbl])
+        dst_curs.execute(q_triggers, [tbl])
         if self.options.expect_sync and self.options.skip_truncate:
             self.log.error("Too many options: --expect-sync and --skip-truncate")
             sys.exit(1)
@@ -591,11 +648,13 @@ class SubscriberSetup(CommonSetup):
             dst_curs.execute(q, [self.pgq_queue_name, tbl])
 
     def subscriber_remove_one_table(self, tbl):
-        q = "select londiste.subscriber_remove_table(%s, %s)"
+        q_remove = "select londiste.subscriber_remove_table(%s, %s)"
+        q_triggers = "select londiste.subscriber_restore_all_table_triggers(%s)"
 
         dst_db = self.get_database('subscriber_db')
         dst_curs = dst_db.cursor()
-        dst_curs.execute(q, [self.pgq_queue_name, tbl])
+        dst_curs.execute(q_remove, [self.pgq_queue_name, tbl])
+        dst_curs.execute(q_triggers, [tbl])
         dst_db.commit()
 
     def get_subscriber_seq_list(self):

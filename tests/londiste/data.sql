@@ -6,9 +6,16 @@ create table data1 (
     data text
 );
 
+create or replace function test_triga() returns trigger
+as $$ begin return new; end; $$ language plpgsql;
+create trigger xtriga after  insert on data1
+for each row execute procedure test_triga();
+
+
 create unique index idx_data1_uq on data1 (data);
 
 create index idx_data1_rand on data1 (id, data);
+
 
 create table data2 (
     id serial primary key,
