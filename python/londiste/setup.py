@@ -69,11 +69,14 @@ class CommonSetup(skytools.DBScript):
             res.append(row['table_name'])
         return res
 
-    def get_provider_seqs(self, curs):
+    def get_provider_seqs(self):
+        src_db = self.get_database('provider_db')
+        src_curs = src_db.cursor()
         q = """SELECT * from londiste.provider_get_seq_list(%s)"""
-        curs.execute(q, [self.pgq_queue_name])
+        src_curs.execute(q, [self.pgq_queue_name])
+        src_db.commit()
         res = []
-        for row in curs.fetchall():
+        for row in src_curs.fetchall():
             res.append(row[0])
         return res
 
@@ -156,11 +159,7 @@ class ProviderSetup(CommonSetup):
             sys.exit(1)
 
     def provider_list_seqs(self):
-        src_db = self.get_database('provider_db')
-        src_curs = src_db.cursor()
         list = self.get_provider_seqs(src_curs)
-        src_db.commit()
-
         for seq in list:
             print seq
 
@@ -622,8 +621,7 @@ class SubscriberSetup(CommonSetup):
         dst_db = self.get_database('subscriber_db')
         dst_curs = dst_db.cursor()
         
-        prov_list = self.get_provider_seqs(src_curs)
-        src_db.commit()
+        prov_list = self.get_provider_seqs()
 
         full_list = self.get_all_seqs(dst_curs)
         cur_list = self.get_subscriber_seq_list()
