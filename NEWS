@@ -32,6 +32,7 @@
       Make it use functions again.
     * londiste: set client_encoding on subscriber same as on provider
     * londiste: remove tbl should work also if table is already dropped [Dimitri Fontaine]
+    * couple walmgr fixed [Martin Pihlak]
 
     = Upgrade procedure for database code =
 
