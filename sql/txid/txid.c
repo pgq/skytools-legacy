@@ -16,6 +16,7 @@
 
 #include "access/xact.h"
 #include "funcapi.h"
+#include "lib/stringinfo.h"
 
 #include "txid.h"
 
