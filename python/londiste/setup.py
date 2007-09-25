@@ -537,11 +537,10 @@ class SubscriberSetup(CommonSetup):
         dst_db.commit()
 
         format = "%-30s   %20s  %-20s"
-        print format % ("Table", "State", "Snapshot")
+        print format % ("Table", "State")
         for tbl in list:
             print format % (tbl['table_name'],
-                            tbl['merge_state'] or 'NEW',
-                            tbl['snapshot'] or '')
+                            tbl['merge_state'] or '-')
 
     def subscriber_missing_tables(self):
         provider_tables = self.get_provider_table_list()
