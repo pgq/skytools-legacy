@@ -261,7 +261,7 @@ class WalMgr(skytools.DBScript):
             return
         res = os.spawnvp(os.P_WAIT, cmdline[0], cmdline)
         if res != 0:
-            self.log.fatal("exec failed, res=%d" % res)
+            self.log.fatal("exec failed, res=%d (%s)" % (res, repr(cmdline)))
             sys.exit(1)
 
     def chdir(self, loc):
