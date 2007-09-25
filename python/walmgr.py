@@ -51,7 +51,7 @@ Additional features:
  * Always copy the directory on "restore" add a special "--move" option.
 """
 
-import os, sys, skytools, getopt, re, signal, time, traceback
+import os, sys, skytools, re, signal, time, traceback
 import glob, ConfigParser
 
 MASTER = 1
