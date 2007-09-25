@@ -207,7 +207,7 @@ txid_current_snapshot(PG_FUNCTION_ARGS)
 	for (i = 0; i < num; i++)
 		snap->xip[i] = txid_convert_xid(SerializableSnapshot->xip[i], &state);
 
-	/* we want then guaranteed ascending order */
+	/* we want them guaranteed ascending order */
 	sort_snapshot(snap);
 
 	PG_RETURN_POINTER(snap);
@@ -232,22 +232,26 @@ txid_snapshot_in(PG_FUNCTION_ARGS)
 Datum
 txid_snapshot_out(PG_FUNCTION_ARGS)
 {
-	TxidSnapshot *snap = (TxidSnapshot *) PG_GETARG_VARLENA_P(0);
-	StringInfo	str;
-	int			i;
+	TxidSnapshot   *snap;
+	StringInfoData	str;
+	int				i;
 
-	str = makeStringInfo();
+	snap = (TxidSnapshot *) PG_GETARG_VARLENA_P(0);
 
-	appendStringInfo(str, "%llu:", (unsigned long long)snap->xmin);
-	appendStringInfo(str, "%llu:", (unsigned long long)snap->xmax);
+	initStringInfo(&str);
+
+	appendStringInfo(&str, "%llu:", (unsigned long long)snap->xmin);
+	appendStringInfo(&str, "%llu:", (unsigned long long)snap->xmax);
 
 	for (i = 0; i < snap->nxip; i++)
 	{
-		appendStringInfo(str, "%s%llu", ((i > 0) ? "," : ""),
+		appendStringInfo(&str, "%s%llu", ((i > 0) ? "," : ""),
 						 (unsigned long long)snap->xip[i]);
 	}
 
-	PG_RETURN_CSTRING(str->data);
+	PG_FREE_IF_COPY(snap, 0);
+
+	PG_RETURN_CSTRING(str.data);
 }
 
 
