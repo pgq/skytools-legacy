@@ -9,6 +9,8 @@ Interface provided is psycopg1:
 
 """
 
+import sys
+
 __all__ = []
 
 try:
