@@ -2,6 +2,8 @@
 
 set -e
 
+. ../env.sh
+
 tmp=/tmp/waltest
 src=$PWD
 walmgr=$src/../../python/walmgr.py
