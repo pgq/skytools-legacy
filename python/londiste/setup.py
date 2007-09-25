@@ -377,6 +377,7 @@ class SubscriberSetup(CommonSetup):
         for row in rows:
             print fmt % tuple([row[k] for k in fields])
         print '\n'
+        return 1
 
     def clean_subscriber_tables(self, table_list):
         """Returns fully-quelifies table list of tables
