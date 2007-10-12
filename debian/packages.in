@@ -9,8 +9,7 @@ Description: PostgreSQL
 Copyright: BSD
  Copyright 2006 Marko Kreen
 Build: sh
- PG_CONFIG=/usr/lib/postgresql/PGVER/bin/pg_config \
- ./configure --prefix=/usr
+ ./configure --prefix=/usr --with-pgconfig=/usr/lib/postgresql/PGVER/bin/pg_config
  make DESTDIR=$ROOT
 Clean: sh
  make distclean || make clean || true
