@@ -24,20 +24,19 @@ insert into snapshot_test values (3, '100001:100009:100005,100007,100008');
 
 select snap from snapshot_test order by nr;
 
-select  get_snapshot_xmin(snap),
-	get_snapshot_xmax(snap),
-	get_snapshot_active(snap)
+select  txid_snapshot_xmin(snap),
+	txid_snapshot_xmax(snap),
+	txid_snapshot_xip(snap)
 from snapshot_test order by nr;
 
-select id, txid_in_snapshot(id, snap),
-       txid_not_in_snapshot(id, snap)
+select id, txid_visible_in_snapshot(id, snap)
 from snapshot_test, generate_series(11, 21) id
 where nr = 2;
 
 -- test current values also
-select get_current_txid() >= get_snapshot_xmin(get_current_snapshot());
-select get_current_txid() < get_snapshot_xmax(get_current_snapshot());
+select txid_current() >= txid_snapshot_xmin(txid_current_snapshot());
+-- select txid_current_txid() < txid_snapshot_xmax(txid_current_snapshot());
 
-select txid_in_snapshot(get_current_txid(), get_current_snapshot()),
-   txid_not_in_snapshot(get_current_txid(), get_current_snapshot());
+-- select txid_in_snapshot(txid_current_txid(), txid_current_snapshot()),
+--    txid_not_in_snapshot(txid_current_txid(), txid_current_snapshot());
 

@@ -11,7 +11,7 @@ from maint import MaintenanceJob
 __all__ = ['SmartTicker']
 
 def is_txid_sane(curs):
-    curs.execute("select get_current_txid()")
+    curs.execute("select txid_current()")
     txid = curs.fetchone()[0]
 
     # on 8.2 theres no such table

@@ -19,8 +19,8 @@ returns text as $$
 --
 --      Simplest solution would be
 --      > WHERE ev_txid >= xmin1 AND ev_txid <= xmax2
---      >   AND NOT txid_in_snapshot(ev_txid, sn1)
---      >   AND txid_in_snapshot(ev_txid, sn2)
+--      >   AND NOT txid_visible_in_snapshot(ev_txid, sn1)
+--      >   AND txid_visible_in_snapshot(ev_txid, sn2)
 --
 --      The simple solution has a problem with long transactions (xmin1 very low).
 --      All the batches that happen when the long tx is active will need
@@ -48,8 +48,8 @@ declare
     batch           record;
 begin
     select s.sub_last_tick, s.sub_next_tick, s.sub_id, s.sub_queue,
-           get_snapshot_xmax(last.tick_snapshot) as tx_start,
-           get_snapshot_xmax(cur.tick_snapshot) as tx_end,
+           txid_snapshot_xmax(last.tick_snapshot) as tx_start,
+           txid_snapshot_xmax(cur.tick_snapshot) as tx_end,
            last.tick_snapshot as last_snapshot,
            cur.tick_snapshot as cur_snapshot
         into batch
@@ -68,8 +68,8 @@ begin
     for rec in
         -- active tx-es in prev_snapshot that were committed in cur_snapshot
         select id1 from
-            get_snapshot_active(batch.last_snapshot) id1 left join
-            get_snapshot_active(batch.cur_snapshot) id2 on (id1 = id2)
+            txid_snapshot_xip(batch.last_snapshot) id1 left join
+            txid_snapshot_xip(batch.cur_snapshot) id2 on (id1 = id2)
         where id2 is null
         order by 1 desc
     loop
@@ -107,8 +107,8 @@ begin
             || ' and last.tick_queue = ' || batch.sub_queue
             || ' and ev.ev_txid >= ' || batch.tx_start
             || ' and ev.ev_txid <= ' || batch.tx_end
-            || ' and txid_in_snapshot(ev.ev_txid, cur.tick_snapshot)'
-            || ' and not txid_in_snapshot(ev.ev_txid, last.tick_snapshot)'
+            || ' and txid_visible_in_snapshot(ev.ev_txid, cur.tick_snapshot)'
+            || ' and not txid_visible_in_snapshot(ev.ev_txid, last.tick_snapshot)'
             || retry_expr;
         -- now include older tx-es, that were ongoing
         -- at the time of prev_snapshot

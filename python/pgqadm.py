@@ -85,7 +85,7 @@ class PGQAdmin(skytools.DBScript):
     def installer(self):
         objs = [
             skytools.DBLanguage("plpgsql"),
-            skytools.DBFunction("get_current_txid", 0, sql_file="txid.sql"),
+            skytools.DBFunction("txid_current_snapshot", 0, sql_file="txid.sql"),
             skytools.DBSchema("pgq", sql_file="pgq.sql"),
         ]
 

@@ -31,7 +31,7 @@ begin
     -- check if any consumer is on previous table
     select coalesce(count(*), 0) into badcnt
         from pgq.subscription, pgq.tick
-        where get_snapshot_xmin(tick_snapshot) < cf.queue_switch_step2
+        where txid_snapshot_xmin(tick_snapshot) < cf.queue_switch_step2
           and sub_queue = cf.queue_id
           and tick_queue = cf.queue_id
           and tick_id = (select tick_id from pgq.tick
@@ -65,14 +65,14 @@ begin
     update pgq.queue
         set queue_cur_table = nr,
             queue_switch_time = current_timestamp,
-            queue_switch_step1 = get_current_txid(),
+            queue_switch_step1 = txid_current(),
             queue_switch_step2 = NULL
         where queue_id = cf.queue_id;
 
     -- clean ticks - avoid partial batches
     delete from pgq.tick
         where tick_queue = cf.queue_id
-          and get_snapshot_xmin(tick_snapshot) < cf.queue_switch_step2;
+          and txid_snapshot_xmin(tick_snapshot) < cf.queue_switch_step2;
 
     return 1;
 end;
@@ -90,7 +90,7 @@ returns integer as $$
 -- tranaction than step1
 begin
     update pgq.queue
-       set queue_switch_step2 = get_current_txid()
+       set queue_switch_step2 = txid_current()
      where queue_switch_step2 is null;
     return 1;
 end;
