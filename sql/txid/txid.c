@@ -17,6 +17,7 @@
 #include "access/xact.h"
 #include "funcapi.h"
 #include "lib/stringinfo.h"
+#include "libpq/pqformat.h"
 
 #include "txid.h"
 
@@ -32,6 +33,9 @@ PG_MODULE_MAGIC;
 #define SET_VARSIZE(x, len) VARATT_SIZEP(x) = len
 #endif
 
+/* txid will be signed int8 in database, so must limit to 63 bits */
+#define MAX_TXID   UINT64CONST(0x7FFFFFFFFFFFFFFF)
+
 /*
  * If defined, use bsearch() function for searching
  * txid's inside snapshots that have more than given values.
@@ -46,11 +50,19 @@ PG_MODULE_MAGIC;
 PG_FUNCTION_INFO_V1(txid_current);
 PG_FUNCTION_INFO_V1(txid_snapshot_in);
 PG_FUNCTION_INFO_V1(txid_snapshot_out);
-PG_FUNCTION_INFO_V1(txid_in_snapshot);
-PG_FUNCTION_INFO_V1(txid_not_in_snapshot);
+PG_FUNCTION_INFO_V1(txid_snapshot_recv);
+PG_FUNCTION_INFO_V1(txid_snapshot_send);
 PG_FUNCTION_INFO_V1(txid_current_snapshot);
 PG_FUNCTION_INFO_V1(txid_snapshot_xmin);
 PG_FUNCTION_INFO_V1(txid_snapshot_xmax);
+
+/* new API in 8.3 */
+PG_FUNCTION_INFO_V1(txid_visible_in_snapshot);
+PG_FUNCTION_INFO_V1(txid_snapshot_xip);
+
+/* old API */
+PG_FUNCTION_INFO_V1(txid_in_snapshot);
+PG_FUNCTION_INFO_V1(txid_not_in_snapshot);
 PG_FUNCTION_INFO_V1(txid_snapshot_active);
 
 /*
@@ -254,6 +266,85 @@ txid_snapshot_out(PG_FUNCTION_ARGS)
 	PG_RETURN_CSTRING(str.data);
 }
 
+/*
+ * txid_snapshot_recv(internal) returns txid_snapshot
+ *
+ *		binary input function for type txid_snapshot
+ *
+ *		format: int4 nxip, int8 xmin, int8 xmax, int8 xip
+ */
+Datum
+txid_snapshot_recv(PG_FUNCTION_ARGS)
+{
+	StringInfo  buf = (StringInfo) PG_GETARG_POINTER(0);
+	TxidSnapshot *snap;
+	txid last = 0;
+	int nxip;
+	int i;
+	int avail;
+	int expect;
+	txid xmin, xmax;
+
+	/*
+	 * load nxip and check for nonsense.
+	 *
+	 * (nxip > avail) check is against int overflows in 'expect'.
+	 */
+	nxip = pq_getmsgint(buf, 4);
+	avail = buf->len - buf->cursor;
+	expect = 8 + 8 + nxip * 8;
+	if (nxip < 0 || nxip > avail || expect > avail)
+		goto bad_format;
+
+	xmin = pq_getmsgint64(buf);
+	xmax = pq_getmsgint64(buf);
+	if (xmin == 0 || xmax == 0 || xmin > xmax || xmax > MAX_TXID)
+		goto bad_format;
+
+	snap = palloc(TXID_SNAPSHOT_SIZE(nxip));
+	snap->xmin = xmin;
+	snap->xmax = xmax;
+	snap->nxip = nxip;
+	SET_VARSIZE(snap, TXID_SNAPSHOT_SIZE(nxip));
+
+	for (i = 0; i < nxip; i++)
+	{
+		txid cur =  pq_getmsgint64(buf);
+		if (cur <= last || cur < xmin || cur >= xmax)
+			goto bad_format;
+		snap->xip[i] = cur;
+		last = cur;
+	}
+	PG_RETURN_POINTER(snap);
+
+bad_format:
+	elog(ERROR, "invalid snapshot data");
+	return (Datum)NULL;
+}
+
+/*
+ * txid_snapshot_send(txid_snapshot) returns bytea
+ *
+ *		binary output function for type txid_snapshot
+ *
+ *		format: int4 nxip, int8 xmin, int8 xmax, int8 xip
+ */
+Datum
+txid_snapshot_send(PG_FUNCTION_ARGS)
+{
+	TxidSnapshot *snap = (TxidSnapshot *)PG_GETARG_VARLENA_P(0);
+	StringInfoData buf;
+	uint32 i;
+
+	pq_begintypsend(&buf);
+	pq_sendint(&buf, snap->nxip, 4);
+	pq_sendint64(&buf, snap->xmin);
+	pq_sendint64(&buf, snap->xmax);
+	for (i = 0; i < snap->nxip; i++)
+		pq_sendint64(&buf, snap->xip[i]);
+	PG_RETURN_BYTEA_P(pq_endtypsend(&buf));
+}
+
 
 static int
 _txid_in_snapshot(txid value, const TxidSnapshot *snap)
@@ -287,6 +378,22 @@ _txid_in_snapshot(txid value, const TxidSnapshot *snap)
  */
 Datum
 txid_in_snapshot(PG_FUNCTION_ARGS)
+{
+	txid value = PG_GETARG_INT64(0);
+	TxidSnapshot *snap = (TxidSnapshot *) PG_GETARG_VARLENA_P(1);
+	int			res;
+	
+	res = _txid_in_snapshot(value, snap) ? true : false;
+
+	PG_FREE_IF_COPY(snap, 1);
+	PG_RETURN_BOOL(res);
+}
+
+/*
+ * changed api
+ */
+Datum
+txid_visible_in_snapshot(PG_FUNCTION_ARGS)
 {
 	txid value = PG_GETARG_INT64(0);
 	TxidSnapshot *snap = (TxidSnapshot *) PG_GETARG_VARLENA_P(1);
@@ -349,7 +456,7 @@ struct snap_state {
  * txid_snapshot_active		- returns uncommitted TXID's in snapshot.
  */
 Datum
-txid_snapshot_active(PG_FUNCTION_ARGS)
+txid_snapshot_xip(PG_FUNCTION_ARGS)
 {
 	FuncCallContext *fctx;
 	struct snap_state *state;
@@ -379,5 +486,12 @@ txid_snapshot_active(PG_FUNCTION_ARGS)
 	} else {
 		SRF_RETURN_DONE(fctx);
 	}
+}
+
+/* old api */
+Datum
+txid_snapshot_active(PG_FUNCTION_ARGS)
+{
+	return txid_snapshot_xip(fcinfo);
 }
 

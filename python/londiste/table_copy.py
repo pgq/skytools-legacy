@@ -59,7 +59,7 @@ class CopyTable(Replicator):
         self.real_copy(src_curs, dst_curs, tbl_stat)
 
         # get snapshot
-        src_curs.execute("select get_current_snapshot()")
+        src_curs.execute("select txid_current_snapshot()")
         snapshot = src_curs.fetchone()[0]
         src_db.commit()
 

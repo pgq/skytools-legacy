@@ -73,8 +73,8 @@ create table pgq.queue (
         queue_ntables               integer     not null default 3,
         queue_cur_table             integer     not null default 0,
         queue_rotation_period       interval    not null default '2 hours',
-	queue_switch_step1          bigint      not null default get_current_txid(),
-	queue_switch_step2          bigint               default get_current_txid(),
+        queue_switch_step1          bigint      not null default txid_current(),
+        queue_switch_step2          bigint               default txid_current(),
         queue_switch_time           timestamptz not null default now(),
 
         queue_external_ticker       boolean     not null default false,
@@ -105,7 +105,7 @@ create table pgq.tick (
         tick_queue                  int4            not null,
         tick_id                     bigint          not null,
         tick_time                   timestamptz     not null default now(),
-        tick_snapshot               txid_snapshot   not null default get_current_snapshot(),
+        tick_snapshot               txid_snapshot   not null default txid_current_snapshot(),
 
 	constraint tick_pkey primary key (tick_queue, tick_id),
         constraint tick_queue_fkey foreign key (tick_queue)
@@ -173,7 +173,7 @@ create table pgq.event_template (
 	ev_id	            bigint          not null,
         ev_time             timestamptz     not null,
 
-        ev_txid             bigint          not null default get_current_txid(),
+        ev_txid             bigint          not null default txid_current(),
         ev_owner            int4,
         ev_retry            int4,
 

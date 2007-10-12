@@ -16,8 +16,8 @@ declare
     batch                 record;
 begin
     select
-           get_snapshot_xmin(last.tick_snapshot) as tx_min, -- absolute minimum
-           get_snapshot_xmax(cur.tick_snapshot) as tx_max, -- absolute maximum
+           txid_snapshot_xmin(last.tick_snapshot) as tx_min, -- absolute minimum
+           txid_snapshot_xmax(cur.tick_snapshot) as tx_max, -- absolute maximum
            q.queue_data_pfx, q.queue_ntables,
            q.queue_cur_table, q.queue_switch_step1, q.queue_switch_step2
         into batch

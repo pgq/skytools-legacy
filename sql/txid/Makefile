@@ -1,30 +1,50 @@
 
+include ../../config.mak
+
+PGVER := $(shell $(PG_CONFIG) --version | sed 's/PostgreSQL //')
+
+ifeq ($(PGVER),)
+$(error skytools not configured, cannot continue)
+else
+# postgres >= manages epoch itself, so skip epoch tables
+pg83 = $(shell test $(PGVER) "<" "8.3" && echo "false" || echo "true")
+pg82 = $(shell test $(PGVER) "<" "8.2" && echo "false" || echo "true")
+endif
+
+ifeq ($(pg83),true)  # we have 8.3 with internal txid
+
+# nothing to do
+
+else # 8.2 or 8.1
+#
+# pg < 8.3 needs this module
+#
 MODULE_big = txid
 SRCS = txid.c epoch.c
 OBJS = $(SRCS:.c=.o)
-
-DATA_built = txid.sql
-DATA = uninstall_txid.sql
-DOCS = README.txid
-EXTRA_CLEAN = txid.sql.in
-
 REGRESS = txid
 REGRESS_OPTS = --load-language=plpgsql
+DATA = uninstall_txid.sql
+DOCS = README.txid
+DATA_built = txid.sql
+EXTRA_CLEAN = txid.sql.in
 
-include ../../config.mak
+ifeq ($(pg82),true)
+# 8.2 tracks epoch internally
+TXID_SQL = txid.std.sql
+else
+# 8.1 needs epoch-tracking code
+TXID_SQL = txid.std.sql txid.schema.sql
+endif # ! 8.2
+endif # ! 8.3
+
+# PGXS build procedure
 include $(PGXS)
 
 # additional deps
 txid.o: txid.h
 epoch.o: txid.h
 
-# postgres >= manages epoch itself, so skip epoch tables
-pgnew = $(shell test $(VERSION) "<" "8.2" && echo "false" || echo "true")
-ifeq ($(pgnew),true)
-TXID_SQL = txid.std.sql
-else
-TXID_SQL = txid.std.sql txid.schema.sql
-endif
 txid.sql.in: $(TXID_SQL)
 	cat $(TXID_SQL) > $@
 

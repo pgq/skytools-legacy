@@ -7,7 +7,7 @@ __all__ = ['install_provider', 'install_subscriber']
 
 provider_object_list = [
     skytools.DBLanguage("plpgsql"),
-    skytools.DBFunction('get_current_snapshot', 0, sql_file = "txid.sql"),
+    skytools.DBFunction('txid_current_snapshot', 0, sql_file = "txid.sql"),
     skytools.DBSchema('pgq', sql_file = "pgq.sql"),
     skytools.DBSchema('londiste', sql_file = "londiste.sql")
 ]

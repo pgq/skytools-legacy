@@ -33,56 +33,45 @@ select snap from snapshot_test order by nr;
  100001:100009:100005,100007,100008
 (3 rows)
 
-select  get_snapshot_xmin(snap),
-	get_snapshot_xmax(snap),
-	get_snapshot_active(snap)
+select  txid_snapshot_xmin(snap),
+	txid_snapshot_xmax(snap),
+	txid_snapshot_xip(snap)
 from snapshot_test order by nr;
- get_snapshot_xmin | get_snapshot_xmax | get_snapshot_active 
--------------------+-------------------+---------------------
-                12 |                20 |                  13
-                12 |                20 |                  15
-                12 |                20 |                  18
-            100001 |            100009 |              100005
-            100001 |            100009 |              100007
-            100001 |            100009 |              100008
+ txid_snapshot_xmin | txid_snapshot_xmax | txid_snapshot_xip 
+--------------------+--------------------+-------------------
+                 12 |                 20 |                13
+                 12 |                 20 |                15
+                 12 |                 20 |                18
+             100001 |             100009 |            100005
+             100001 |             100009 |            100007
+             100001 |             100009 |            100008
 (6 rows)
 
-select id, txid_in_snapshot(id, snap),
-       txid_not_in_snapshot(id, snap)
+select id, txid_visible_in_snapshot(id, snap)
 from snapshot_test, generate_series(11, 21) id
 where nr = 2;
- id | txid_in_snapshot | txid_not_in_snapshot 
-----+------------------+----------------------
- 11 | t                | f
- 12 | t                | f
- 13 | f                | t
- 14 | t                | f
- 15 | f                | t
- 16 | t                | f
- 17 | t                | f
- 18 | f                | t
- 19 | t                | f
- 20 | f                | t
- 21 | f                | t
+ id | txid_visible_in_snapshot 
+----+--------------------------
+ 11 | t
+ 12 | t
+ 13 | f
+ 14 | t
+ 15 | f
+ 16 | t
+ 17 | t
+ 18 | f
+ 19 | t
+ 20 | f
+ 21 | f
 (11 rows)
 
 -- test current values also
-select get_current_txid() >= get_snapshot_xmin(get_current_snapshot());
+select txid_current() >= txid_snapshot_xmin(txid_current_snapshot());
  ?column? 
 ----------
  t
 (1 row)
 
-select get_current_txid() < get_snapshot_xmax(get_current_snapshot());
- ?column? 
-----------
- t
-(1 row)
-
-select txid_in_snapshot(get_current_txid(), get_current_snapshot()),
-   txid_not_in_snapshot(get_current_txid(), get_current_snapshot());
- txid_in_snapshot | txid_not_in_snapshot 
-------------------+----------------------
- t                | f
-(1 row)
-
+-- select txid_current_txid() < txid_snapshot_xmax(txid_current_snapshot());
+-- select txid_in_snapshot(txid_current_txid(), txid_current_snapshot()),
+--    txid_not_in_snapshot(txid_current_txid(), txid_current_snapshot());
