@@ -14,6 +14,15 @@ buf = open("configure.ac","r").read(256)
 m = re.search("AC_INIT[(][^,]*,\s+([^)]*)[)]", buf)
 ac_ver = m.group(1)
 
+share_dup_files = [
+   'sql/pgq/pgq.sql',
+   'sql/londiste/londiste.sql',
+   'sql/pgq_ext/pgq_ext.sql',
+   'sql/logtriga/logtriga.sql',
+]
+if os.path.isfile('sql/txid/txid.sql'):
+   share_dup_files.append('sql/txid/txid.sql')
+
 # run actual setup
 setup(
     name = "skytools",
@@ -41,12 +50,6 @@ setup(
         'scripts/bulk_loader.ini.templ',
         'scripts/scriptmgr.ini.templ',
         ]),
-      ('share/skytools', [
-        'sql/txid/txid.sql',
-        'sql/pgq/pgq.sql',
-        'sql/londiste/londiste.sql',
-        'sql/pgq_ext/pgq_ext.sql',
-        'sql/logtriga/logtriga.sql',
-        ])],
+      ('share/skytools', share_dup_files)],
 )
 
