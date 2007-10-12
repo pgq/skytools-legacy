@@ -9,6 +9,7 @@
 
     = Small changes =
 
+    * pgq+txid: convert to new API appearing in 8.3 /contrib/txid/
     * Support psycopg2, preferring it to psycopg1.
     * Improved bulk_loader, using temp tables exclusively.
     * skytools.config: API change to allow usage without config file.
