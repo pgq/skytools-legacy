@@ -536,7 +536,7 @@ class SubscriberSetup(CommonSetup):
         list = self.fetch_subscriber_tables(dst_curs)
         dst_db.commit()
 
-        format = "%-30s   %20s  %-20s"
+        format = "%-30s   %20s"
         print format % ("Table", "State")
         for tbl in list:
             print format % (tbl['table_name'],
