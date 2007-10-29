@@ -120,6 +120,10 @@ Registers table(s) on the provider database and adds the londiste trigger to
 the table(s) which will send events to the queue.  Table names can be schema 
 qualified with the schema name defaulting to public if not supplied.
 
+  --all::
+	Register all tables in provider database, except those that are
+	under schemas 'pgq', 'londiste', 'information_schema' or 'pg_*'.
+
 === provider remove <table name> ... ===
 
 Unregisters table(s) on the provider side and removes the londiste triggers 
@@ -167,12 +171,14 @@ with the schema name defaulting to `public` if not supplied.
 
 Switches (optional):
 
-  --excect-sync::
-        Table is tagged as in-sync so initial COPY is skipped. 
-  --skip-truncate::
-         When doing initial COPY, don't remove old data. 
+  --all::
+        Add all tables that are registered on provider to subscriber database
   --force::
-         Ignore table structure differences.
+        Ignore table structure differences.
+  --excect-sync::
+        Table is already synced by external means so initial COPY is unnecessary.
+  --skip-truncate::
+        When doing initial COPY, don't remove old data. 
 
 === subscriber remove <table name> ... ===
 
