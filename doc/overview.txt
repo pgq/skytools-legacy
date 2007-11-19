@@ -19,7 +19,7 @@ There are our [http://pgfoundry.org/frs/?group_id=1000206 downloads] and
 Also [http://pgfoundry.org/scm/?group_id=1000206 CVS]
 and [http://pgfoundry.org/tracker/?group_id=1000206 bugtracker].
 
-Combined todo list for all the modules: ./ToDo
+Combined todo list for all the modules: [http://skytools.projects.postgresql.org/doc/TODO.html TODO.html]
 
 == High-level tools ==
 
@@ -34,7 +34,11 @@ and featureful as Slony-I.
 
 [http://pgsql.tapoueh.org/londiste.html Tutorial] written by Dimitri Fontaine.
 
-Reference Docs: ./LondisteReference
+Documentation:
+
+ * [http://skytools.projects.postgresql.org/doc/londiste.cmdline.html Usage guide]
+ * [http://skytools.projects.postgresql.org/doc/londiste.config.html Config file]
+ * [http://skytools.projects.postgresql.org/doc/londiste.ref.html Low-level reference]
 
 ''' Features '''
 
@@ -98,16 +102,16 @@ snapshot based event batching.
 
 ''' Docs '''
 
- * SQL API overview: ./PgQdocs
- * SQL API detailed docs: http://skytools.projects.postgresql.org/pgq/
- * Administrative tool usage: ./PgqAdm
+ * [http://skytools.projects.postgresql.org/doc/pgq-sql.html SQL API overview]
+ * [http://skytools.projects.postgresql.org/pgq/  SQL API detailed docs]
+ * [http://skytools.projects.postgresql.org/doc/pgq-admin.html Administrative tool usage]
 
 === WalMgr ===
 
 Python script for hot failover.  Tries to make setup
 initial copy and later switch easy for admins.
 
- * Docs: ./WalMgr
+ * Docs: [http://skytools.projects.postgresql.org/doc/walmgr.html walmgr.html]
 
 Sample:
 
@@ -165,7 +169,9 @@ Documentation: http://skytools.projects.postgresql.org/api/
 
 This builds on scripting framework above.
 
-Documentation: http://skytools.projects.postgresql.org/api/
+Docs:
+
+ * [http://skytools.projects.postgresql.org/api/ Python API docs]
 
 == Sample scripts ==
 

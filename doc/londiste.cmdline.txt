@@ -71,10 +71,6 @@ steps:
 To replicate to more than one subscriber database just repeat each of the
 described subscriber steps for each subscriber.
 
-Londiste will then consider updating data as needed. See the londiste
-reference for more information about syncronisation state details:
-https://developer.skype.com/SkypeGarage/DbProjects/SkyTools/LondisteReference[]
-
 == COMMANDS ==
 
 The londiste command is parsed globally, and has both options and
@@ -289,4 +285,6 @@ See `londiste(5)`.
 `londiste(5)`
 
 https://developer.skype.com/SkypeGarage/DbProjects/SkyTools/[]
+
+http://skytools.projects.postgresql.org/doc/londiste.ref.html[Reference guide]
 

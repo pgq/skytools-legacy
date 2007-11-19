@@ -1,57 +1,20 @@
 
 = Skytools ToDo list =
 
-== Next minor release - 2.1.5 ==
+== Next minor release - 2.1.6 ==
 
-=== Done ===
+ * Fix copy-wont-start problem.  Likely a timing race on pidfile.
+ * make deb problem when both 8.1 and 8.2 are installed
+ * review trigger docs
 
- * londiste fkeys: look also at dependers not only dependencies.
- * pgq.consumer: make queue seeking in case of failover more strict.
- * scriptmgr: dont die on user error.
- * pgq: there was still fallout from reorg - 2 missing indexes.
- * Due to historical reasons SerialConsumer (and thus Londiste)
-   accessed completed tick table directly, not via functions.
-   Make it use functions again.
- * Support psycopg2, preferring it to psycopg1.
- * Improved bulk_loader, using temp tables exclusively.
- * skytools.config: API change to allow usage without config file.
- * quote_ident(), quote_fqident()
- * Rewrite pgq.insert_event() in C, thus PgQ core is not
-   dependant on PL/Python anymore.
- * set client_encoding on subscriber same as on provider
- * Write PgQ triggers (pgq.logtriga(), pgq.logutriga(), pgq.sqltriga()) in C.
- * londiste: remove tbl should work also if table is already dropped [dimitri]
- * install .sql files under share/skytools in addition to contrib/ [marko]
- * pgq: pgqadm also vacuums londiste and pgq_ext tables, if they exist
- * londiste: provider add/remove --all [hans]
- * londiste: remove denytrigger from source, thus no plpython anymore...
-   it was unused anyway.
- * replace logtriga() with pgq.logtriga() for londiste trigger
- * backend modules need to be ported to 8.3
- * londiste: good fkey support: store them in subscriber db and apply when both tables are in sync. [erik]
- * document add-seq, remove-seq
- * pgq/londiste/pgq_ext: schema upgrade scripts  [marko]
- * pgq: fetch events from batch via cursor, thus allowing larger batches
- * londiste: trigger handling [erik]
- * txid: use bsearch() on larger snapshots
-
-=== To Do ===
-
- * -rc1 for testing
- * trigger docs
-
-== Next major release - 2.2 ==
+== Next major release - 3.0 ==
 
  * cascaded replication, switchover, failover [marko]
  * skytools: config from database
- * drop support for psycopg1
- * drop support for 8.1?
+ * drop support for psycopg1 ?
+ * drop support for 8.1 ??
 
 == High-prority ==
-
-=== Larger things ===
-
- * docs: londiste, pgq/python, pgq/sql, skytools, walmgr
 
 === Smaller things ===
 
@@ -78,6 +41,7 @@
  * londiste: Quote SQL identifiers, keep combined name, rule will be "Split schema as first dot"
  * skylog: publish sample logdb schema, with some tools
  * londiste: allow table redirection on subscriber side
+ * londiste/pgqset: support creating slave from master by pg_dump / PITR.
 
 === Smaller things ===
 
