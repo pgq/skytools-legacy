@@ -18,12 +18,12 @@ returns integer as $$
 --      1  - if new registration
 -- ----------------------------------------------------------------------
 begin
-    return pgq.register_consumer(x_queue_name, x_consumer_id, NULL);
+    return pgq.register_consumer_at(x_queue_name, x_consumer_id, NULL);
 end;
 $$ language plpgsql security definer;
 
 
-create or replace function pgq.register_consumer(
+create or replace function pgq.register_consumer_at(
     x_queue_name text,
     x_consumer_name text,
     x_tick_pos bigint)
