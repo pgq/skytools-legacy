@@ -397,7 +397,7 @@ class DBScript(object):
         self.stat_dict = {}
 
     def get_database(self, dbname, autocommit = 0, isolation_level = -1,
-                     cache = None):
+                     cache = None, connstr = None):
         """Load cached database connection.
         
         User must not store it permanently somewhere,
@@ -410,7 +410,10 @@ class DBScript(object):
         if cache in self.db_cache:
             dbc = self.db_cache[cache]
         else:
-            loc = self.cf.get(dbname)
+            if connstr:
+                loc = connstr
+            else:
+                loc = self.cf.get(dbname)
             dbc = DBCachedConn(cache, loc, max_age)
             self.db_cache[cache] = dbc
 
