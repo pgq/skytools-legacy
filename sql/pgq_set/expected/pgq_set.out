@@ -1,0 +1,60 @@
+\set ECHO none
+select * from pgq_set.add_member('aset', 'node1', 'dbname=node1', false);
+ ret_code | ret_note 
+----------+----------
+      200 | Ok
+(1 row)
+
+select * from pgq_set.add_member('aset', 'node2', 'dbname=node2', false);
+ ret_code | ret_note 
+----------+----------
+      200 | Ok
+(1 row)
+
+select * from pgq_set.add_member('aset', 'node3', 'dbname=node3', false);
+ ret_code | ret_note 
+----------+----------
+      200 | Ok
+(1 row)
+
+select * from pgq_set.add_member('aset', 'node4', 'dbname=node4', false);
+ ret_code | ret_note 
+----------+----------
+      200 | Ok
+(1 row)
+
+select * from pgq_set.get_member_info('aset');
+ node_name | node_location | dead 
+-----------+---------------+------
+ node1     | dbname=node1  | f
+ node2     | dbname=node2  | f
+ node3     | dbname=node3  | f
+ node4     | dbname=node4  | f
+(4 rows)
+
+select * from pgq_set.remove_member('aset', 'node4');
+ ret_code | ret_note 
+----------+----------
+      200 | Ok
+(1 row)
+
+select * from pgq_set.get_member_info('aset');
+ node_name | node_location | dead 
+-----------+---------------+------
+ node1     | dbname=node1  | f
+ node2     | dbname=node2  | f
+ node3     | dbname=node3  | f
+(3 rows)
+
+select * from pgq_set.create_node('aset', 'root', 'node1', null, null, null);
+ ret_code | ret_desc 
+----------+----------
+      200 | Ok
+(1 row)
+
+select * from pgq_set.get_node_info('aset');
+ node_type | node_name | queue_name | global_watermark | local_watermark | completed_tick | provider_node | paused | resync | up_to_date | combined_set | combined_type | combined_queue 
+-----------+-----------+------------+------------------+-----------------+----------------+---------------+--------+--------+------------+--------------+---------------+----------------
+ root      | node1     | aset       |                1 |                 |                |               | f      | f      | f          |              |               | 
+(1 row)
+
