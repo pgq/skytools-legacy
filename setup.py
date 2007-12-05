@@ -35,6 +35,7 @@ setup(
     package_dir = {'': 'python'},
     packages = ['skytools', 'londiste', 'pgq'],
     scripts = ['python/londiste.py', 'python/pgqadm.py', 'python/walmgr.py',
+               'python/setadm.py',
                'scripts/cube_dispatcher.py', 'scripts/queue_mover.py',
                'scripts/table_dispatcher.py', 'scripts/bulk_loader.py',
                'scripts/scriptmgr.py', 'scripts/queue_splitter.py'],
