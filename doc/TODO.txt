@@ -68,6 +68,7 @@
      * broken by retry events, rollbacked transactions and use of force_tick()
  * automatic "repair" - after reaching sync point, the "replay" must be killed/paused, then fixes can be applied
  * pgq: sqltriga/logtriga - dont cache table struct?
+ * pgq: store txid/event_id_seq with each tick
 
 == Just ideas ==
 
