@@ -11,7 +11,7 @@ EPYARGS = --no-private --url="http://pgfoundry.org/projects/skytools/" \
 
 HTMLS = londiste.cmdline.html londiste.config.html README.html INSTALL.html \
 	londiste.ref.html TODO.html pgq-sql.html pgq-admin.html pgq-nodupes.html \
-	walmgr.html
+	walmgr.html set.notes.html
 
 all: man
 
