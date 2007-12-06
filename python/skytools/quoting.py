@@ -198,3 +198,137 @@ def unescape_copy(val):
         return None
     return unescape(val)
 
+
+#
+# parse logtriga partial sql
+#
+
+class _logtriga_parser:
+    token_re = r"""
+        [ \t\r\n]*
+        ( [a-z][a-z0-9_]*
+        | ["] ( [^"\\]+ | \\. )* ["]
+        | ['] ( [^'\\]+ | \\. | [']['] )* [']
+        | [^ \t\r\n]
+        )"""
+    token_rc = None
+
+    def tokenizer(self, sql):
+        if not _logtriga_parser.token_rc:
+            _logtriga_parser.token_rc = re.compile(self.token_re, re.X | re.I)
+        rc = self.token_rc
+
+        pos = 0
+        while 1:
+            m = rc.match(sql, pos)
+            if not m:
+                break
+            pos = m.end()
+            yield m.group(1)
+
+    def unquote_data(self, fields, values):
+        # unquote data and column names
+        data = {}
+        for k, v in zip(fields, values):
+            if k[0] == '"':
+                k = unescape(k[1:-1])
+            if len(v) == 4 and v.lower() == "null":
+                v = None
+            elif v[0] == "'":
+                v = unescape(v[1:-1])
+            data[k] = v
+        return data
+
+    def parse_insert(self, tk, fields, values):
+        # (col1, col2) values ('data', null)
+        if tk.next() != "(":
+            raise Exception("syntax error")
+        while 1:
+            fields.append(tk.next())
+            t = tk.next()
+            if t == ")":
+                break
+            elif t != ",":
+                raise Exception("syntax error")
+        if tk.next().lower() != "values":
+            raise Exception("syntax error")
+        if tk.next() != "(":
+            raise Exception("syntax error")
+        while 1:
+            t = tk.next()
+            if t == ")":
+                break
+            if t == ",":
+                continue
+            values.append(t)
+        tk.next()
+
+    def parse_update(self, tk, fields, values):
+        # col1 = 'data1', col2 = null where pk1 = 'pk1' and pk2 = 'pk2'
+        while 1:
+            fields.append(tk.next())
+            if tk.next() != "=":
+                raise Exception("syntax error")
+            values.append(tk.next())
+            
+            t = tk.next()
+            if t == ",":
+                continue
+            elif t.lower() == "where":
+                break
+            else:
+                raise Exception("syntax error")
+        while 1:
+            t = tk.next()
+            fields.append(t)
+            if tk.next() != "=":
+                raise Exception("syntax error")
+            values.append(tk.next())
+            t = tk.next()
+            if t.lower() != "and":
+                raise Exception("syntax error")
+
+    def parse_delete(self, tk, fields, values):
+        # pk1 = 'pk1' and pk2 = 'pk2'
+        while 1:
+            t = tk.next()
+            if t == "and":
+                continue
+            fields.append(t)
+            if tk.next() != "=":
+                raise Exception("syntax error")
+            values.append(tk.next())
+
+    def parse_sql(self, op, sql):
+        tk = self.tokenizer(sql)
+        fields = []
+        values = []
+        try:
+            if op == "I":
+                self.parse_insert(tk, fields, values)
+            elif op == "U":
+                self.parse_update(tk, fields, values)
+            elif op == "D":
+                self.parse_delete(tk, fields, values)
+            raise Exception("syntax error")
+        except StopIteration:
+            # last sanity check
+            if len(fields) == 0 or len(fields) != len(values):
+                raise Exception("syntax error")
+
+        return self.unquote_data(fields, values)
+
+def parse_logtriga_sql(op, sql):
+    """Parse partial SQL used by logtriga() back to data values.
+
+    Parser has following limitations:
+    - Expects standard_quoted_strings = off
+    - Does not support dollar quoting.
+    - Does not support complex expressions anywhere. (hashtext(col1) = hashtext(val1))
+    - WHERE expression must not contain IS (NOT) NULL
+    - Does not support updateing pk value.
+
+    Returns dict of col->data pairs.
+    """
+    return _logtriga_parser().parse_sql(op, sql)
+
