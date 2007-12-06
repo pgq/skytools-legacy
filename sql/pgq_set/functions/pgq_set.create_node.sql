@@ -3,6 +3,7 @@ create or replace function pgq_set.create_node(
     in i_set_name text,
     in i_node_type text,
     in i_node_name text,
+    in i_worker_name text,
     in i_provider_name text,
     in i_global_watermark bigint,
     in i_combined_set text,
@@ -75,9 +76,9 @@ begin
 
     insert into pgq_set.set_info
       (set_name, node_type, node_name, queue_name,
-       provider_node, combined_set, global_watermark)
+       provider_node, combined_set, global_watermark, worker_name)
     values (i_set_name, i_node_type, i_node_name, _queue_name,
-       i_provider_name, i_combined_set, _global_wm);
+       i_provider_name, i_combined_set, _global_wm, i_worker_name);
 
     if i_node_type not in ('root', 'combined-root') then
         insert into pgq_set.completed_tick (set_name, tick_id)

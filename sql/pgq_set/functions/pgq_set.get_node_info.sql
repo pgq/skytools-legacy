@@ -8,6 +8,7 @@ create or replace function pgq_set.get_node_info(
     out global_watermark bigint,
     out local_watermark bigint,
     out completed_tick bigint,
+    out worker_name text,
 
     out provider_node text,
     out provider_location text,
@@ -49,11 +50,11 @@ begin
     select n.node_type, n.node_name, t.tick_id, n.queue_name,
            c.set_name, c.node_type, c.queue_name, n.global_watermark,
            n.provider_node, n.paused, n.resync, n.up_to_date,
-           p.node_location
+           p.node_location, n.worker_name
       into node_type, node_name, completed_tick, queue_name,
            combined_set, combined_type, combined_queue, global_watermark,
            provider_node, paused, resync, up_to_date,
-           provider_location
+           provider_location, worker_name
       from pgq_set.set_info n
            left join pgq_set.completed_tick t on (t.set_name = n.set_name)
            left join pgq_set.set_info c on (c.set_name = n.combined_set)

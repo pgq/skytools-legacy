@@ -61,6 +61,8 @@ create table pgq_set.set_info (
     resync          boolean not null default false,
     up_to_date      boolean not null default false,
 
+    worker_name     text not null,
+
     foreign key (set_name, node_name) references pgq_set.member_info,
     foreign key (set_name, provider_node) references pgq_set.member_info,
     check (node_type in ('root', 'branch', 'leaf', 'combined-root', 'combined-branch', 'merge-leaf')),
