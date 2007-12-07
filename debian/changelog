@@ -1,3 +1,9 @@
+skytools (2.1.6) unstable; urgency=low
+
+  * Bugfix release.
+
+ -- Marko Kreen <marko.kreen@skype.net>  Fri, 07 Dec 2007 16:12:27 +0200
+
 skytools (2.1.5) unstable; urgency=low
 
   * New public release.

@@ -1,3 +1,8 @@
+2007-12-xx  -  SkyTools 2.1.6  -  ""
+
+    * Fix 'londiste provider seqs'
+    * Include upgrade scripts in .tgz
+
 2007-11-19  -  SkyTools 2.1.5  -  "Enterprise-Grade Duct Tape"
 
     = Big changes =
