@@ -159,10 +159,7 @@ class ProviderSetup(CommonSetup):
             sys.exit(1)
 
     def provider_list_seqs(self):
-        src_db = self.get_database('provider_db')
-        src_curs = src_db.cursor()
-        list = self.get_provider_seqs(src_curs)
-        src_db.commit()
+        list = self.get_provider_seqs()
         for seq in list:
             print seq
 
