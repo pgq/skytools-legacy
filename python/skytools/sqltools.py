@@ -294,6 +294,8 @@ def full_copy(tablename, src_curs, dst_curs, column_list = []):
 # SQL installer
 #
 
+def _nologger(msg): pass
+
 class DBObject(object):
     """Base class for installable DB objects."""
     name = None
@@ -304,15 +306,13 @@ class DBObject(object):
         self.sql = sql
         self.sql_file = sql_file
 
-    def create(self, curs, log = None):
-        if log:
-            log.info('Installing %s' % self.name)
+    def create(self, curs, logger = _nologger):
+        logger('Installing %s' % self.name)
         if self.sql:
             sql = self.sql
         elif self.sql_file:
             fn = self.find_file()
-            if log:
-                log.info("  Reading from %s" % fn)
+            logger("  Reading from %s" % fn)
             sql = open(fn, "r").read()
         else:
             raise Exception('object not defined')
@@ -359,12 +359,11 @@ class DBLanguage(DBObject):
     def exists(self, curs):
         return exists_language(curs, self.name)
 
-def db_install(curs, list, log = None):
+def db_install(curs, list, logger = _nologger):
     """Installs list of objects into db."""
     for obj in list:
         if not obj.exists(curs):
-            obj.create(curs, log)
+            obj.create(curs, logger)
         else:
-            if log:
-                log.info('%s is installed' % obj.name)
+            logger('%s is installed' % obj.name)
 

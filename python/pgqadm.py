@@ -91,7 +91,7 @@ class PGQAdmin(skytools.DBScript):
 
         db = self.get_database('db')
         curs = db.cursor()
-        skytools.db_install(curs, objs, self.log)
+        skytools.db_install(curs, objs, self.log.info)
         db.commit()
 
     def create_queue(self):
