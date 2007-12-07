@@ -337,6 +337,9 @@ class SubscriberSetup(CommonSetup):
                      'active' : "select %s from londiste.find_table_%s(%%s)"}
 
         table_list = self.clean_subscriber_tables(table_list)
+        if len(table_list) == 0:
+            self.log.info("No tables, no fkeys")
+            return
 
         dst_db = self.get_database('subscriber_db')
         dst_curs = dst_db.cursor()
