@@ -88,6 +88,8 @@ class SetAdmin(skytools.DBScript):
         if info['node_type'] is not None:
             self.log.info("Node is already initialized as %s" % info['node_type'])
             return
+        
+        worker_name = "%s_%s_worker" % (self.set_name, node_name)
 
         # register member
         if node_type in ('root', 'combined-root'):
@@ -96,8 +98,8 @@ class SetAdmin(skytools.DBScript):
             provider_name = None
             self.exec_sql(db, "select pgq_set.add_member(%s, %s, %s, false)",
                           [self.set_name, node_name, node_location])
-            self.exec_sql(db, "select pgq_set.create_node(%s, %s, %s, %s, %s, %s)",
-                          [self.set_name, node_type, node_name, provider_name, global_watermark, combined_set])
+            self.exec_sql(db, "select pgq_set.create_node(%s, %s, %s, %s, %s, %s, %s)",
+                          [self.set_name, node_type, node_name, worker_name, provider_name, global_watermark, combined_set])
         else:
             root_db = self.find_root_db()
             set = self.load_root_info(root_db)
@@ -123,7 +125,6 @@ class SetAdmin(skytools.DBScript):
                 sys.exit(1)
 
             # register on provider
-            worker_name = "qweqweqwe"
             provider_db = self.get_database('provider_db', connstr = provider.location)
             self.exec_sql(provider_db, "select pgq_set.add_member(%s, %s, %s, false)",
                           [self.set_name, node_name, node_location])
@@ -136,8 +137,9 @@ class SetAdmin(skytools.DBScript):
                           [self.set_name, node_name, node_location])
             self.exec_sql(db, "select pgq_set.add_member(%s, %s, %s, false)",
                           [self.set_name, provider_name, provider.location])
-            self.exec_sql(db, "select pgq_set.create_node(%s, %s, %s, %s, %s, %s)",
-                          [self.set_name, node_type, node_name, provider_name, global_watermark, combined_set])
+            self.exec_sql(db, "select pgq_set.create_node(%s, %s, %s, %s, %s, %s, %s)",
+                          [self.set_name, node_type, node_name, worker_name, provider_name,
+                           global_watermark, combined_set])
             db.commit()
 
             
@@ -201,9 +203,10 @@ class SetAdmin(skytools.DBScript):
             skytools.DBLanguage("plpgsql"),
             skytools.DBFunction("txid_current_snapshot", 0, sql_file="txid.sql"),
             skytools.DBSchema("pgq", sql_file="pgq.sql"),
+            skytools.DBSchema("pgq_ext", sql_file="pgq_ext.sql"),
             skytools.DBSchema("pgq_set", sql_file="pgq_set.sql"),
         ]
-        skytools.db_install(db.cursor(), objs, self.log)
+        skytools.db_install(db.cursor(), objs, self.log.debug)
         db.commit()
 
 if __name__ == '__main__':

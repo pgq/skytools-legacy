@@ -31,7 +31,7 @@ class RawQueue:
 
         return self.batch_id
 
-    def finish_batch(self, curs, batch_id): pass
+    def finish_batch(self, curs, batch_id):
         q = "select * from pgq.finish_batch(%s)"
         curs.execute(q, [self.batch_id])
 
@@ -46,6 +46,6 @@ class RawQueue:
 
     def finish_bulk_insert(self, curs):
         pgq.bulk_insert_events(curs, self.bulk_insert_buf,
-                               self.bulk_insert_fields, self.queue_name):
+                               self.bulk_insert_fields, self.queue_name)
         self.bulk_insert_buf = []
 

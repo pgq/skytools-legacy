@@ -2,6 +2,10 @@
 
 import sys, time, skytools
 
+from pgq.rawconsumer import RawQueue
+
+__all__ = ['SetConsumer']
+
 ROOT = 'root'
 BRANCH = 'branch'
 LEAF = 'leaf'
@@ -29,12 +33,14 @@ class NodeInfo:
         self.local_watermark = row['local_watermark']
         self.completed_tick = row['completed_tick']
         self.provider_node = row['provider_node']
+        self.provider_location = row['provider_location']
         self.paused = row['paused']
         self.resync = row['resync']
         self.up_to_date = row['up_to_date']
         self.combined_set = row['combined_set']
         self.combined_type = row['combined_type']
         self.combined_queue = row['combined_queue']
+        self.worker_name = row['worker_name']
 
     def need_action(self, action_name):
         typ = self.type
@@ -80,12 +86,14 @@ class SetConsumer(skytools.DBScript):
     last_global_wm_event = 0
     def work(self):
 
+
         self.tick_id_cache = {}
 
         self.set_name = self.cf.get('set_name')
         target_db = self.get_database('subscriber_db')
 
         node = self.load_node_info(target_db)
+        self.consumer_name = node.worker_name
 
         if not node.up_to_date:
             self.tag_node_uptodate(target_db)
@@ -105,6 +113,7 @@ class SetConsumer(skytools.DBScript):
         # batch processing follows
         #
 
+        source_db = self.get_database('source_db', connstr = node.provider_location)
         srcnode = self.load_node_info(source_db)
         
         # get batch
@@ -238,6 +247,6 @@ class SetConsumer(skytools.DBScript):
         curs.execute(q, [dst_queue.queue_name, src_queue.cur_tick])
 
 if __name__ == '__main__':
-    script = SetConsumer('setconsumer', ['test.ini'])
+    script = SetConsumer('setconsumer', sys.argv[1:])
     script.start()
 
