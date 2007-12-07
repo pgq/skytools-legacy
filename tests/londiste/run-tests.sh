@@ -53,6 +53,9 @@ $script  conf/replic.ini provider add-seq test_seq
 $script  conf/replic.ini subscriber add-seq data1_id_seq
 $script  conf/replic.ini subscriber add-seq test_seq
 
+$script  conf/replic.ini provider seqs
+$script  conf/replic.ini subscriber seqs
+
 sleep 2
 
 $script  conf/replic.ini subscriber tables
