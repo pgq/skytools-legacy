@@ -37,5 +37,6 @@ fi
 AC_SUBST(MAKE)
 
 dnl Write result
-AC_OUTPUT([config.mak])
+AC_CONFIG_FILES([config.mak])
+AC_OUTPUT
 
