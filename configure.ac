@@ -23,7 +23,7 @@ dnl Find GNU make
 AC_MSG_CHECKING(for GNU make)
 if test ! -n "$MAKE"; then
   for a in make gmake gnumake; do
-    if "$a" --version 2>&1 | grep -q GNU; then
+    if "$a" --version 2>&1 | grep GNU > /dev/null; then
       MAKE="$a"
       break
     fi
@@ -35,6 +35,9 @@ else
   AC_MSG_ERROR([GNU make is not found])
 fi
 AC_SUBST(MAKE)
+
+dnl Postres headers on Solaris define incompat unsetenv without that
+AC_CHECK_FUNCS(unsetenv)
 
 dnl Write result
 AC_CONFIG_FILES([config.mak])
