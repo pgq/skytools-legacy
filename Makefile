@@ -54,19 +54,19 @@ distclean: clean
 	rm -rf autom4te.cache config.log config.status config.mak
 
 deb80:
-	./configure
+	./configure --with-pgconfig=/usr/lib/postgresql/8.0/bin/pg_config
 	sed -e s/PGVER/8.0/g -e s/PYVER/$(pyver)/g < debian/packages.in > debian/packages
 	yada rebuild
 	debuild -uc -us -b
 
 deb81:
-	./configure
+	./configure --with-pgconfig=/usr/lib/postgresql/8.1/bin/pg_config
 	sed -e s/PGVER/8.1/g -e s/PYVER/$(pyver)/g < debian/packages.in > debian/packages
 	yada rebuild
 	debuild -uc -us -b
 
 deb82:
-	./configure
+	./configure --with-pgconfig=/usr/lib/postgresql/8.2/bin/pg_config
 	sed -e s/PGVER/8.2/g -e s/PYVER/$(pyver)/g < debian/packages.in > debian/packages
 	yada rebuild
 	debuild -uc -us -b
