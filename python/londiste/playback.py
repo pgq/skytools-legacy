@@ -604,6 +604,14 @@ class Replicator(pgq.SerialConsumer):
         else:
             cmd = "%s -d %s copy"
         cmd = cmd % (script, conf)
+
+        # let existing copy finish and clean its pidfile,
+        # otherwise new copy will exit immidiately
+        copy_pidfile = self.pidfile + ".copy"
+        while os.path.isfile(copy_pidfile):
+            self.log.info("Waiting for existing copy to exit")
+            time.sleep(2)
+            
         self.log.debug("Launch args: "+repr(cmd))
         res = os.system(cmd)
         self.log.debug("Launch result: "+repr(res))
