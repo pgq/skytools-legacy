@@ -5,7 +5,9 @@
     * Fix "londiste copy" pidfile timing race
     * Fix Solaris build - avoid grep -q / define HAVE_UNSETENV
     * Fix "make debXX" when several Postgres version are installed.
-    * New-style AC_OUTPUT usage
+    * New-style AC_OUTPUT usage.
+    * Disable manpage creation by default, --with-asciidoc to enable.
+      They are still included in .tgz so users should have less problems now.
 
 2007-11-19  -  SkyTools 2.1.5  -  "Enterprise-Grade Duct Tape"
 
