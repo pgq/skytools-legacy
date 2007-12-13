@@ -15,3 +15,6 @@ PGXS = $(shell $(PG_CONFIG) --pgxs)
 
 DESTDIR = /
 
+ASCIIDOC = @ASCIIDOC@
+XMLTO = @XMLTO@
+

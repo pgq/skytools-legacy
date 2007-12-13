@@ -16,6 +16,7 @@ HTMLS = londiste.cmdline.html londiste.config.html README.html INSTALL.html \
 all: man
 
 man: londiste.1 londiste.5 pgqadm.1 walmgr.1
+
 html: $(HTMLS)
 
 install: man
@@ -56,39 +57,44 @@ apiupload: apidoc
 	rsync -rtlz ../sql/pgq/docs/html/* $(web)/pgq/
 
 clean:
-	rm -rf api *.1 *.5 *.html *.xml
+	rm -rf api *.html
 
 distclean:
+	rm -rf *.1 *.5 *.xml
 	rm -rf ../sql/pgq/docs/pgq api
 
+ifneq ($(XMLTO),)
 londiste.1: londiste.cmdline.xml
-	xmlto man $<
+	$(XMLTO) man $<
 
 londiste.5: londiste.config.xml
-	xmlto man $<
+	$(XMLTO) man $<
 
 pgqadm.1: pgq-admin.xml
-	xmlto man $<
+	$(XMLTO) man $<
 
 walmgr.1: walmgr.xml
-	xmlto man $<
+	$(XMLTO) man $<
+endif
 
+ifneq ($(ASCIIDOC),)
 %.xml: %.txt
 	#asciidoc -b docbook -d manpage -o - $< > $@
-	asciidoc -b docbook -d manpage -o - $< \
+	$(ASCIIDOC) -b docbook -d manpage -o - $< \
 	| python fixman.py > $@
 
 %.html: %.txt
-	asciidoc -a toc $<
+	$(ASCIIDOC) -a toc $<
 
 README.html: ../README
 	cat $< \
 	| sed -e 's,doc/\([!-~]*\)[.]txt,link:\1.html[],g' \
 	      -e 's,http:[!-~]*,&[],g' \
-	| asciidoc -o $@ -
+	| $(ASCIIDOC) -o $@ -
 
 INSTALL.html: ../INSTALL
-	asciidoc -o $@ $<
+	$(ASCIIDOC) -o $@ $<
+endif
 
 web: $(HTMLS)
 	rsync -avz $(HTMLS) $(web)/doc/

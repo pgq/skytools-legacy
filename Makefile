@@ -72,6 +72,7 @@ deb82:
 	debuild -uc -us -b
 
 tgz: config.mak clean
+	make -C doc man
 	$(PYTHON) setup.py sdist -t source.cfg -m source.list
 
 debclean: distclean
