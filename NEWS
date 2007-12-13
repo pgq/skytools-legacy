@@ -2,6 +2,7 @@
 
     * Include upgrade scripts in .tgz
     * Fix 'londiste provider seqs'
+    * Fix 'londiste provider fkeys' in no tables added.
     * Fix "londiste copy" pidfile timing race
     * Fix Solaris build - avoid grep -q / define HAVE_UNSETENV
     * Fix "make debXX" when several Postgres version are installed.
