@@ -59,9 +59,11 @@ apiupload: apidoc
 clean:
 	rm -rf api *.html
 
-distclean:
-	rm -rf *.1 *.5 *.xml
-	rm -rf ../sql/pgq/docs/pgq api
+distclean: clean
+	rm -rf ../sql/pgq/docs/pgq
+
+realclean: distclean
+	rm -f *.[15] *.xml
 
 ifneq ($(XMLTO),)
 londiste.1: londiste.cmdline.xml
