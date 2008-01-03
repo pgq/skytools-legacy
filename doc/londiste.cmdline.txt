@@ -279,6 +279,78 @@ you system paths.
 
 See `londiste(5)`.
 
+== UPGRADING ==
+
+As the skytools software contains code which is run directly from
+inside the database server (+PostgreSQL+ functions), installing the
+new package version at the OS level is not enough to perform the
+upgrade.
+
+It still is possible to upgrade londiste without stopping the service,
+how to do this somewhat depends on the specifics version you're
+upgrading from and to, please refer to the +upgrade.txt+
+documentation, which can be found at this url too:
+http://skytools.projects.postgresql.org/doc/upgrade.html[upgrade.html]
+
+== CURRENT LIMITATIONS ==
+
++londiste+, as a trigger based solution, is not able to replicate
+neither
+http://www.postgresql.org/docs/current/interactive/ddl.html[DDL] nor
+http://www.postgresql.org/docs/current/static/sql-truncate.html[TRUNCATE]
++SQL+ commands.
+
+Please also note that the cascaded replication scenario is still a
++TODO+ item, which means +londiste+ is not yet able to properly handle
+the case on its own.
+
+=== DDL ===
+
+If you edit a table definition on the provider, you have to manually
+update the table definition on every subscriber replicating the table
+data. When adding, renaming or removing columns, replication won't
+work for the table until subscriber is updated too, but +londiste+
+won't loose any item to replicate, and reapply them once schemas match.
+
+=== TRUNCATE ===
+
+For truncating a table +foo+ which is replicated by +londiste+, the
+easier way is to remove +foo+ from subscriber(s), +TRUNCATE+ it on the
+provider and add it again on subscriber(s):
+
+    subscriber> londiste.py conf.ini subscriber remove foo
+    provider>   psql provider_db -c "truncate foo;"
+    subscriber> londiste.py conf.ini subscriber add foo 
+
+Of course, you need to perform the subscriber steps on each of your
+subscribers if you have more than one currently replicating the +foo+
+table.
+
+=== Cascaded replication ===
+
++londiste+ is not yet able to handle cascaded replication. What it
+means is that if you setup the three servers A, B and C such as some
+tables from A are replicated to B and the same table are replicated
+from B to C, and if the replication from A to B is stopped, +londiste+
+won't be able to have the replication to C ongoing by reconfiguring it
+from A to C for you.
+
+== SWITHOVER ==
+
+While using +londiste+ to replicate data from a provider to a
+subscriber, it is possible to have the subscriber become the provider.
+This can be used, for example, to upgrade from one +PostgreSQL+
+version to another (more recent) one, or from a physical setup to
+another, for example.
+
+The recommanded procedure to achieve a switchover is the following:
+
+  1. stop all write access to db.
+  2. let the londiste apply last changes
+  3. set up new queue on slave as provider, add tables
+  4. subscribe old master to new master, add tables with --expect-sync
+  5. do some DDL things on new master (triggers, etc)
+  6. allow write access to new master
 
 == SEE ALSO ==
 
