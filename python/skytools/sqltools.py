@@ -391,5 +391,7 @@ def installer_apply_file(db, filename, log):
     sql = open(fn, "r").read()
     if log:
         log.info("applying %s" % fn)
-    curs.execute(sql)
+    for stmt in skytools.parse_statements(sql):
+        log.debug(repr(stmt))
+        curs.execute(stmt)
 
