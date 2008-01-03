@@ -81,8 +81,8 @@ begin
        i_provider_name, i_combined_set, _global_wm, i_worker_name);
 
     if i_node_type not in ('root', 'combined-root') then
-        insert into pgq_set.completed_tick (set_name, tick_id)
-            values (i_set_name, _global_wm);
+        insert into pgq_set.completed_tick (set_name, worker_name, tick_id)
+            values (i_set_name, i_worker_name, _global_wm);
     end if;
 
     select 200, 'Ok' into ret_code, ret_desc;

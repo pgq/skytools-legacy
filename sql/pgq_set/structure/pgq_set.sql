@@ -106,9 +106,11 @@ create table pgq_set.subscriber_info (
 --      tick_id  - last committed tick id
 -- ----------------------------------------------------------------------
 create table pgq_set.completed_tick (
-    set_name        text not null primary key,
+    set_name        text not null,
+    worker_name     text not null,
     tick_id         bigint not null,
 
+    primary key (set_name, worker_name),
     foreign key (set_name) references pgq_set.set_info
 );
 

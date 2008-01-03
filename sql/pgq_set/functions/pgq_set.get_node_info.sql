@@ -56,7 +56,7 @@ begin
            provider_node, paused, resync, up_to_date,
            provider_location, worker_name
       from pgq_set.set_info n
-           left join pgq_set.completed_tick t on (t.set_name = n.set_name)
+           left join pgq_set.completed_tick t on (t.set_name = n.set_name and t.worker_name = n.worker_name)
            left join pgq_set.set_info c on (c.set_name = n.combined_set)
            left join pgq_set.member_info p on (p.set_name = n.set_name and p.node_name = n.provider_node)
       where n.set_name = i_set_name;
