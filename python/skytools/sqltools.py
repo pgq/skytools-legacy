@@ -11,7 +11,7 @@ __all__ = [
     "get_table_columns", "exists_schema", "exists_table", "exists_type",
     "exists_function", "exists_language", "Snapshot", "magic_insert",
     "CopyPipe", "full_copy", "DBObject", "DBSchema", "DBTable", "DBFunction",
-    "DBLanguage", "db_install",
+    "DBLanguage", "db_install", "installer_find_file", "installer_apply_file",
 ]
 
 
@@ -367,4 +367,29 @@ def db_install(curs, list, log = None):
         else:
             if log:
                 log.info('%s is installed' % obj.name)
+
+def installer_find_file(filename):
+    full_fn = None
+    if filename[0] == "/":
+        if os.path.isfile(filename):
+            full_fn = filename
+    else:
+        dir_list = skytools.installer_config.sql_locations
+        for dir in dir_list:
+            fn = os.path.join(dir, filename)
+            if os.path.isfile(fn):
+                full_fn = fn
+                break
+
+    if not full_fn:
+        raise Exception('File not found: '+filename)
+    return full_fn
+
+def installer_apply_file(db, filename, log):
+    curs = db.cursor()
+    fn = installer_find_file(filename)
+    sql = open(fn, "r").read()
+    if log:
+        log.info("applying %s" % fn)
+    curs.execute(sql)
 
