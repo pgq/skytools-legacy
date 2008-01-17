@@ -374,7 +374,7 @@ def installer_find_file(filename):
         if os.path.isfile(filename):
             full_fn = filename
     else:
-        dir_list = skytools.installer_config.sql_locations
+        dir_list = ["."] + skytools.installer_config.sql_locations
         for dir in dir_list:
             fn = os.path.join(dir, filename)
             if os.path.isfile(fn):
@@ -386,11 +386,11 @@ def installer_find_file(filename):
     return full_fn
 
 def installer_apply_file(db, filename, log):
-    curs = db.cursor()
     fn = installer_find_file(filename)
     sql = open(fn, "r").read()
     if log:
         log.info("applying %s" % fn)
+    curs = db.cursor()
     for stmt in skytools.parse_statements(sql):
         log.debug(repr(stmt))
         curs.execute(stmt)
