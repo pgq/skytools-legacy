@@ -6,5 +6,5 @@
 
 cp -rp ../../upgrade .
 
-skytools_upgrade.py -v upgrade.ini "dbname=upgradedb"
+skytools_upgrade.py -v "dbname=upgradedb"
 

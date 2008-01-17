@@ -51,10 +51,14 @@ class DbUpgrade(skytools.DBScript):
         self.set_single_loop(1)
         
         # loop over hosts
-        for cstr in self.args[1:]:
+        for cstr in self.args:
             db = self.get_database('db', connstr = cstr, autocommit = 1)
             self.upgrade(db)
             self.close_database('db')
+
+    def load_config(self):
+         return skytools.Config(self.service_name, None,
+                 user_defs = {'use_skylog': '0', 'job_name': 'db_upgrade'})
 
 if __name__ == '__main__':
     script = DbUpgrade('db_upgrade', sys.argv[1:])
