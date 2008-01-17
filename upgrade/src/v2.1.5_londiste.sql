@@ -17,7 +17,7 @@ create table londiste.subscriber_pending_triggers (
     primary key (table_name, trigger_name)
 );
 
-drop function londiste.denytrigger();
+-- drop function londiste.denytrigger();
 
 \i ../sql/londiste/functions/londiste.find_table_fkeys.sql
 \i ../sql/londiste/functions/londiste.find_table_triggers.sql

@@ -1,7 +1,7 @@
 
 begin;
 
-alter table pgq.subscription  constraint subscription_ukey unique (sub_queue, sub_consumer);
+alter table pgq.subscription add constraint subscription_ukey unique (sub_queue, sub_consumer);
 create index rq_retry_owner_idx on pgq.retry_queue (ev_owner, ev_id);
 
 
