@@ -199,16 +199,19 @@ _sql_token_re = r"""
     ( [a-z][a-z0-9_$]*
     | ["] ( [^"\\]+ | \\. )* ["]
     | ['] ( [^'\\]+ | \\. | [']['] )* [']
-    | [$] [a-z]* [$]
+    | [$] ([_a-z][_a-z0-9]*)? [$]
     | (?P<ws> \s+ | [/][*] | [-][-][^\n]* )
     | .
     )"""
 _sql_token_rc = None
+_copy_from_stdin_re = "copy.*from\s+stdin"
+_copy_from_stdin_rc = None
 
 def _sql_tokenizer(sql):
-    global _sql_token_rc
+    global _sql_token_rc, _copy_from_stdin_rc
     if not _sql_token_rc:
         _sql_token_rc = re.compile(_sql_token_re, re.X | re.I)
+        _copy_from_stdin_rc = re.compile(_copy_from_stdin_re, re.X | re.I)
     rc = _sql_token_rc
 
     pos = 0
@@ -225,7 +228,7 @@ def _sql_tokenizer(sql):
                 raise Exception("unterminated c comment")
             pos = end + 2
             tok = sql[ m.start() : pos]
-        elif tok[0] == "$":
+        elif len(tok) > 1 and tok[0] == "$" and tok[-1] == "$":
             end = sql.find(tok, pos)
             if end < 0:
                 raise Exception("unterminated dollar string")
@@ -240,26 +243,30 @@ def parse_statements(sql):
     """
 
     tk = _sql_tokenizer(sql)
-    stmts = []
     tokens = []
     pcount = 0 # '(' level
-    try:
-        while 1:
+    while 1:
+        try:
             ws, t = tk.next()
-            if len(tokens) == 0 and ws:
-                continue
-            tokens.append(t)
-            if t == "(":
-                pcount += 1
-            elif t == ")":
-                pcount -= 1
-            elif t == ";" and pcount == 0:
-                stmts.append("".join(tokens))
-                tokens = []
-    except StopIteration:
-        if len(tokens) > 0:
-            stmts.append("".join(tokens))
+        except StopIteration:
+            break
+        # skip whitespace and comments before statement
+        if len(tokens) == 0 and ws:
+            continue
+        # keep the rest
+        tokens.append(t)
+        if t == "(":
+            pcount += 1
+        elif t == ")":
+            pcount -= 1
+        elif t == ";" and pcount == 0:
+            sql = "".join(tokens)
+            if _copy_from_stdin_rc.match(sql):
+                raise Exception("copy from stdin not supported")
+            yield ("".join(tokens))
+            tokens = []
+    if len(tokens) > 0:
+        yield ("".join(tokens))
     if pcount != 0:
         raise Exception("syntax error - unbalanced parenthesis")
-    return stmts
 
