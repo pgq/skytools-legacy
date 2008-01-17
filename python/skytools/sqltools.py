@@ -151,14 +151,14 @@ class Snapshot(object):
 def _gen_dict_copy(tbl, row, fields):
     tmp = []
     for f in fields:
-        v = row[f]
+        v = row.get(f)
         tmp.append(quote_copy(v))
     return "\t".join(tmp)
 
 def _gen_dict_insert(tbl, row, fields):
     tmp = []
     for f in fields:
-        v = row[f]
+        v = row.get(f)
         tmp.append(quote_literal(v))
     fmt = "insert into %s (%s) values (%s);"
     return fmt % (tbl, ",".join(fields), ",".join(tmp))
