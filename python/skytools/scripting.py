@@ -88,7 +88,7 @@ def run_single_process(runnable, daemon, pidfile):
 _log_config_done = 0
 _log_init_done = {}
 
-def _init_log(job_name, cf, log_level):
+def _init_log(job_name, service_name, cf, log_level):
     """Logging setup happens here."""
     global _log_init_done, _log_config_done
 
@@ -100,13 +100,14 @@ def _init_log(job_name, cf, log_level):
         # python logging.config braindamage:
         # cannot specify external classess without such hack
         logging.skylog = skytools.skylog
+        skytools.skylog.set_service_name(service_name)
 
         # load general config
         list = ['skylog.ini', '~/.skylog.ini', '/etc/skylog.ini']
         for fn in list:
             fn = os.path.expanduser(fn)
             if os.path.isfile(fn):
-                defs = {'job_name': job_name}
+                defs = {'job_name': job_name, 'service_name': service_name}
                 logging.config.fileConfig(fn, defs)
                 got_skylog = 1
                 break
@@ -268,17 +269,13 @@ class DBScript(object):
         if len(self.args) < 1:
             print "need config file"
             sys.exit(1)
-        conf_file = self.args[0]
 
-        # load config
-        self.cf = Config(self.service_name, conf_file)
-        self.job_name = self.cf.get("job_name", self.service_name)
-        self.pidfile = self.cf.getfile("pidfile", '')
-        
+        # read config file
+        self.cf = self.load_config()
         self.reload()
 
         # init logging
-        self.log = _init_log(self.job_name, self.cf, self.log_level)
+        self.log = _init_log(self.job_name, self.service_name, self.cf, self.log_level)
 
         # send signal, if needed
         if self.options.cmd == "kill":
@@ -287,6 +284,10 @@ class DBScript(object):
             self.send_signal(signal.SIGINT)
         elif self.options.cmd == "reload":
             self.send_signal(signal.SIGHUP)
+
+    def load_config(self):
+        conf_file = self.args[0]
+        return Config(self.service_name, conf_file)
 
     def init_optparse(self, parser = None):
         """Initialize a OptionParser() instance that will be used to 
@@ -358,6 +359,8 @@ class DBScript(object):
     def reload(self):
         "Reload config."
         self.cf.reload()
+        self.job_name = self.cf.get("job_name", self.service_name)
+        self.pidfile = self.cf.getfile("pidfile", '')
         self.loop_delay = self.cf.getfloat("loop_delay", 1.0)
 
     def hook_sighup(self, sig, frame):
