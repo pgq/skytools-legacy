@@ -7,6 +7,11 @@ import logging, logging.handlers
 from skytools.psycopgwrapper import connect_database
 from skytools.quoting import quote_json
 
+_service_name = 'unknown_svc'
+def set_service_name(service_name):
+    global _service_name
+    _service_name = service_name
+
 
 # configurable file logger
 class EasyRotatingFileHandler(logging.handlers.RotatingFileHandler):
@@ -36,8 +41,8 @@ class UdpLogServerHandler(logging.handlers.DatagramHandler):
         '"level": "%s",\n\t'\
         '"thread": null,\n\t'\
         '"message": %s,\n\t'\
-        '"properties": {"application":"%s", "hostname":"%s"}\n'\
-        '}'
+        '"properties": {"application":"%s", "apptype": "%s", "type": "sys", "hostname":"%s", "hostaddr": "%s"}\n'\
+        '}\n'
 
     # cut longer msgs
     MAXMSG = 1024
@@ -49,9 +54,22 @@ class UdpLogServerHandler(logging.handlers.DatagramHandler):
         if len(msg) > self.MAXMSG:
             msg = msg[:self.MAXMSG]
         txt_level = self._level_map.get(record.levelno, "ERROR")
-        pkt = self._log_template % (time.time()*1000, txt_level,
-                quote_json(msg), record.name, socket.gethostname())
+        hostname = socket.gethostname()
+        try:
+            hostaddr = socket.gethostbyname(hostname)
+        except:
+            hostaddr = "0.0.0.0"
+        jobname = record.name
+        svcname = _service_name
+        pkt = self._log_template % (time.time()*1000, txt_level, quote_json(msg),
+                jobname, svcname, hostname, hostaddr)
         return pkt
+
+    def send(self, s):
+        """Disable socket caching."""
+        sock = self.makeSocket()
+        sock.sendto(s, (self.host, self.port))
+        sock.close()
 
 class LogDBHandler(logging.handlers.SocketHandler):
     """Sends log records into PostgreSQL server.
@@ -98,7 +116,7 @@ class LogDBHandler(logging.handlers.SocketHandler):
         In this case its not socket but database connection."""
 
         db = connect_database(self.connect_string)
-        db.autocommit(1)
+        db.set_isolation_level(0) # autocommit
         return db
 
     def emit(self, record):
