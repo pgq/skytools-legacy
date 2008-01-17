@@ -158,6 +158,10 @@ def db_urldecode(qs):
             continue
         pair = elem.split('=', 1)
         name = urllib.unquote_plus(pair[0])
+
+        # keep only one instance around
+        name = intern(name)
+
         if len(pair) == 1:
             res[name] = None
         else:
