@@ -55,9 +55,6 @@ try:
         def itervalues(self):
             return list.__iter__(self)
 
-        def __iter__(self):
-            return self._index.__iter__()
-
     class _CompatCursor(psycopg2.extras.DictCursor):
         """Regular psycopg2 DictCursor with dict* methods."""
         def __init__(self, *args, **kwargs):
