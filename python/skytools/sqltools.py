@@ -101,6 +101,12 @@ def exists_function(curs, function_name, nargs):
              and n.nspname = %s and p.proname = %s"""
     curs.execute(q, [nargs, schema, name])
     res = curs.fetchone()
+
+    # if unqualified function, check builtin functions too
+    if not res[0] and function_name.find('.') < 0:
+        name = "pg_catalog." + function_name
+        return exists_function(curs, name, nargs)
+
     return res[0]
 
 def exists_language(curs, lang_name):
