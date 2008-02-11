@@ -71,6 +71,12 @@ deb82:
 	yada rebuild
 	debuild -uc -us -b
 
+deb83:
+	./configure --with-pgconfig=/usr/lib/postgresql/8.3/bin/pg_config
+	sed -e s/PGVER/8.3/g -e s/PYVER/$(pyver)/g < debian/packages.in > debian/packages
+	yada rebuild
+	debuild -uc -us -b
+
 tgz: config.mak clean
 	make -C doc man
 	$(PYTHON) setup.py sdist -t source.cfg -m source.list
