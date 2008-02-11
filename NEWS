@@ -1,4 +1,6 @@
-2007-12-xx  -  SkyTools 2.1.6  -  ""
+2008-02-xx  -  SkyTools 2.1.6  -  ""
+
+  = Fixes =
 
     * Include upgrade scripts in .tgz
     * Fix 'londiste provider seqs'
@@ -9,6 +11,27 @@
     * New-style AC_OUTPUT usage.
     * Disable manpage creation by default, --with-asciidoc to enable.
       They are still included in .tgz so users should have less problems now.
+    * Restore iter-on-values behaviour for rows from curs.fetch*.  The attempt
+      to make them iter-on-keys seems now misguided, as iter-on-values is already
+      used in existing code, and iter-on-keys returns keys in random order.
+
+  = Features =
+
+    * Upgrade script: scripts/skytools_upgrade.py
+    * Add .version() function to pgq_ext & londiste schemas.
+    * skytools Python module:
+      - intern() keys in db_urldecode() to decrease memory usage
+      - udp-logger: more fields: hostaddr, service_name
+      - udp-logger: dont cache udp socket, seem to hang in some cases
+      - DBScript.get_database() allows explicit connect string
+      - DBScript allows disabling config file loading
+      - magic_insert on dicts allows missing columns, uses NULL
+      - new parsing functions:
+        - parse_pgarray(), parse_logtriga_sql(), parse_tabbed_table(),
+        - parse_statements() - this one is used to split SQL install
+          files to separate statements.
+      - exists_function() checks both 'public' and 'pg_catalog'
+        for unqualified functions names.
 
 2007-11-19  -  SkyTools 2.1.5  -  "Enterprise-Grade Duct Tape"
 
