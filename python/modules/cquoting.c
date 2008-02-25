@@ -226,8 +226,8 @@ static PyObject *quote_literal(PyObject *self, PyObject *args)
 
 /* COPY field */
 static const char doc_quote_copy[] =
-"Quoting for COPY data.  None is converted to \\N.\n"
-"\nC implementation.";
+"Quoting for COPY data.  None is converted to \\N.\n\n"
+"C implementation.";
 
 static PyObject *quote_copy_body(unsigned char *src, Py_ssize_t src_len)
 {
@@ -481,7 +481,9 @@ failed:
 
 static const char doc_db_urlencode[] =
 "Urlencode for database records.\n"
-"If a value is None the key is output without '='.";
+"If a value is None the key is output without '='.\n"
+"\n"
+"C implementation.";
 
 static PyObject *db_urlencode(PyObject *self, PyObject *args)
 {
@@ -549,7 +551,9 @@ hex_invalid:
 static const char doc_db_urldecode[] =
 "Urldecode from string to dict.\n"
 "NULL are detected by missing '='.\n"
-"Duplicate keys are ignored - only latest is kept.";
+"Duplicate keys are ignored - only latest is kept.\n"
+"\n"
+"C implementation.";
 
 static PyObject *db_urldecode(PyObject *self, PyObject *args)
 {
