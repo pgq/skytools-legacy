@@ -32,6 +32,10 @@
           files to separate statements.
       - exists_function() checks both 'public' and 'pg_catalog'
         for unqualified functions names.
+      - skytools.quoting: add C implementation for quote_literal, quote_copy,
+        quote_bytea_raw, unescape, db_urlencode, db_urldecode.  This gives
+        20x speedup for db_urlencode and 50x for db_urldecode on some
+        real-life data.
 
 2007-11-19  -  SkyTools 2.1.5  -  "Enterprise-Grade Duct Tape"
 
