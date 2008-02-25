@@ -15,7 +15,7 @@ def parse_pgarray(array):
         Used to deserialize data recived from service layer parameters
     """
     if not array or array[0] != "{":
-        raise Exception("bad array format")
+        raise Exception("bad array format: must start with {")
     res = []
     pos = 1
     while 1:
@@ -33,7 +33,7 @@ def parse_pgarray(array):
         if array[pos2] == "}":
             break
         elif array[pos2] != ",":
-            raise Exception("bad array format")
+            raise Exception("bad array format: expected ,} got " + array[pos2])
     return res
 
 #
