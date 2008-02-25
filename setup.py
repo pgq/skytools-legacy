@@ -2,6 +2,7 @@
 
 import sys, os.path, re
 from distutils.core import setup
+from distutils.extension import Extension
 
 # check if configure has run
 if not os.path.isfile('config.mak'):
@@ -51,5 +52,6 @@ setup(
         'scripts/scriptmgr.ini.templ',
         ]),
       ('share/skytools', share_dup_files)],
+    ext_modules=[Extension("skytools._cquoting", ['python/modules/cquoting.c'])],
 )
 
