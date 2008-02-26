@@ -7,7 +7,7 @@ from distutils.extension import Extension
 # check if configure has run
 if not os.path.isfile('config.mak'):
     print "please run ./configure && make first"
-    print "Note: setup.py is suppsed to be run from Makefile"
+    print "Note: setup.py is supposed to be run from Makefile"
     sys.exit(1)
 
 # load version
