@@ -674,15 +674,18 @@ class SubscriberSetup(CommonSetup):
         q_add = "select londiste.subscriber_add_table(%s, %s)"
         q_triggers = "select londiste.subscriber_drop_all_table_triggers(%s)"
 
-        dst_curs.execute(q_add, [self.pgq_queue_name, tbl])
-        dst_curs.execute(q_triggers, [tbl])
         if self.options.expect_sync and self.options.skip_truncate:
             self.log.error("Too many options: --expect-sync and --skip-truncate")
             sys.exit(1)
-        elif self.options.expect_sync:
+
+        dst_curs.execute(q_add, [self.pgq_queue_name, tbl])
+        if self.options.expect_sync:
             q = "select londiste.subscriber_set_table_state(%s, %s, null, 'ok')"
             dst_curs.execute(q, [self.pgq_queue_name, tbl])
-        elif self.options.skip_truncate:
+            return
+
+        dst_curs.execute(q_triggers, [tbl])
+        if self.options.skip_truncate:
             q = "select londiste.subscriber_set_skip_truncate(%s, %s, true)"
             dst_curs.execute(q, [self.pgq_queue_name, tbl])
 
