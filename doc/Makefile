@@ -15,7 +15,7 @@ HTMLS = londiste.cmdline.html londiste.config.html README.html INSTALL.html \
 
 SCRIPT_TXTS = walmgr.txt cube_dispatcher.txt table_dispatcher.txt \
 	      queue_mover.txt queue_splitter.txt bulk_loader.txt \
-	      scriptmgr.txt
+	      scriptmgr.txt skytools_upgrade.txt
 SCRIPT_MANS = $(SCRIPT_TXTS:.txt=.1)
 SCRIPT_HTMLS = $(SCRIPT_TXTS:.txt=.html)
 
