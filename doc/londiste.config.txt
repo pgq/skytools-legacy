@@ -40,9 +40,6 @@ logfile::
 pidfile::
   Where to store the pid of the main londiste process, the replay one.
 
-mirror_queue::
-  TO DOCUMENT.
-
 == EXAMPLE ==
 
   [londiste]

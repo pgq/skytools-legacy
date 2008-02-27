@@ -11,11 +11,21 @@ EPYARGS = --no-private --url="http://pgfoundry.org/projects/skytools/" \
 
 HTMLS = londiste.cmdline.html londiste.config.html README.html INSTALL.html \
 	londiste.ref.html TODO.html pgq-sql.html pgq-admin.html pgq-nodupes.html \
-	walmgr.html
+	$(SCRIPT_HTMLS)
+
+SCRIPT_TXTS = walmgr.txt cube_dispatcher.txt table_dispatcher.txt \
+	      queue_mover.txt queue_splitter.txt bulk_loader.txt \
+	      scriptmgr.txt
+SCRIPT_MANS = $(SCRIPT_TXTS:.txt=.1)
+SCRIPT_HTMLS = $(SCRIPT_TXTS:.txt=.html)
+
+COMMON = common.switches.txt common.config.txt common.logutriga.txt
+
+GETATTRS = python ./getattrs.py
 
 all: man
 
-man: londiste.1 londiste.5 pgqadm.1 walmgr.1
+man: londiste.1 londiste.5 pgqadm.1 $(SCRIPT_MANS)
 
 html: $(HTMLS)
 
@@ -25,7 +35,9 @@ install: man
 	install -m 644 londiste.1 $(DESTDIR)/$(mandir)/man1
 	install -m 644 londiste.5 $(DESTDIR)/$(mandir)/man5
 	install -m 644 pgqadm.1 $(DESTDIR)/$(mandir)/man1
-	install -m 644 walmgr.1 $(DESTDIR)/$(mandir)/man1
+	for m in $(SCRIPT_MANS); do \
+	  install -m 644 $$m $(DESTDIR)/$(mandir)/man1 ; \
+	done
 
 old.wiki.upload:
 	devupload.sh overview.txt $(wiki)
@@ -80,13 +92,15 @@ walmgr.1: walmgr.xml
 endif
 
 ifneq ($(ASCIIDOC),)
-%.xml: %.txt
-	#asciidoc -b docbook -d manpage -o - $< > $@
-	$(ASCIIDOC) -b docbook -d manpage -o - $< \
+%.xml: %.txt $(COMMON)
+	$(ASCIIDOC) -b docbook -d manpage `$(GETATTRS) $<` -o - $< \
 	| python fixman.py > $@
 
-%.html: %.txt
-	$(ASCIIDOC) -a toc $<
+%.1: %.xml
+	$(XMLTO) man $<
+
+%.html: %.txt $(COMMON)
+	$(ASCIIDOC) -a toc `$(GETATTRS) $<` $<
 
 README.html: ../README
 	cat $< \

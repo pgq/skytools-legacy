@@ -1,0 +1,19 @@
+
+PgQ trigger function `pgq.logutriga()` sends table change event into
+queue in following format:
+
+  ev_type::
+    `(op || ":" || pkey_fields)`.  Where op is either "I", "U" or "D",
+    corresponging to insert, update or delete.  And `pkey_fields`
+    is comma-separated list of primary key fields for table.
+    Operation type is always present but pkey_fields list can be empty,
+    if table has no primary keys.  Example: `I:col1,col2`
+
+  ev_data::
+    Urlencoded record of data.  It uses db-specific urlecoding where
+    existence of '=' is meaningful - missing '=' means NULL, present
+    '=' means literal value.  Example: `id=3&name=str&nullvalue&emptyvalue=`
+
+  ev_extra1::
+    Fully qualified table name.
+

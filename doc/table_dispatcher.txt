@@ -1,0 +1,100 @@
+= table_dispatcher(1) =
+
+== NAME ==
+
+table_dispatcher - PgQ consumer that is used to write source records into partitoned table.
+
+== SYNOPSIS ==
+
+  table_dispatcher.py [switches] config.ini 
+
+== DESCRIPTION ==
+
+table_dispatcher is PgQ consumer that reads url encoded records from source queue
+and writes them into partitioned tables according to configuration file.
+Used to partiton data. For example change log's that need to kept online only shortly
+can be written to daily tables and then dropped as they become irrelevant.
+Also allows to select which columns have to be written into target database
+Creates target tables according to configuration file as needed.
+
+== QUICK-START ==
+
+Basic table_dispatcher setup and usage can be summarized by the following steps:
+
+ 1. PgQ must be installed in source database. See pgqadm man page for details.
+    Target database must have `pgq_ext` schema installed.
+
+ 2. edit a table_dispatcher configuration file, say table_dispatcher_sample.ini
+
+ 3. create source queue 
+
+      $ pgqadm.py ticker.ini create <queue>
+
+ 4. launch table dispatcher in daemon mode
+
+      $ table_dispatcher.py table_dispatcher_sample.ini -d
+
+ 5. start producing events
+
+== CONFIG ==
+
+include::common.config.txt[]
+
+=== table_dispatcher parameters ===
+
+src_db::
+  Source database.
+
+dst_db::
+  Target database.
+
+dest_table::
+  Where to put data.  when partitioning, will be used as base name
+
+part_field::
+  date field with will be used for partitioning.
+
+part_template::
+  SQL code used to create partition tables.  Various magic replacements are done there:
+      _PKEY:: comma separated list of primery key columns.
+      _PARENT:: schema-qualified parent table name.
+      _DEST_TABLE:: schema-qualified partition table.
+      _SCHEMA_TABLE:: same as _DEST_TABLE but dots replaced with "__", to allow use as index names.
+
+=== Example config ===
+
+
+    [table_dispatcher]
+    job_name          = table_dispatcher_source_table_targetdb
+
+    src_db            = dbname=sourcedb
+    dst_db            = dbname=targetdb
+
+    pgq_queue_name    = sourceq
+
+    logfile           = log/%(job_name)s.log
+    pidfile           = pid/%(job_name)s.pid
+
+    # where to put data.  when partitioning, will be used as base name
+    dest_table        = orders
+
+    # names of the fields that must be read from source records
+    fields            = id, order_date, customer_name
+
+    # date field with will be used for partitioning
+    part_field        = order_date
+
+    # template used for creating partition tables
+    part_template     = 
+         create table _DEST_TABLE () inherits (orders);
+         alter table only _DEST_TABLE add constraint _DEST_TABLE_pkey primary key (id);
+         grant select on _DEST_TABLE to group reporting;
+
+== COMMAND LINE SWITCHES ==
+
+include::common.switches.txt[]
+
+== LOGUTRIGA EVENT FORMAT ==
+
+include::common.logutriga.txt[]
+

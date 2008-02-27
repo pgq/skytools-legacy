@@ -11,7 +11,7 @@ walmgr - tools for managing WAL-based replication for PostgreSQL.
 
 == DESCRIPTION ==
 
-aaa
+It is both admin and worker script for PostgreSQL PITR replication.
 
 == QUICK START ==
 

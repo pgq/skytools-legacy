@@ -1,0 +1,89 @@
+
+= bulk_loader(1) =
+
+== NAME ==
+
+bulk_loader - PgQ consumer that loads urlencoded records to slow databases
+
+== SYNOPSIS ==
+
+  bulk_loader.py [switches] config.ini 
+
+== DESCRIPTION ==
+
+bulk_loader is PgQ consumer that reads url encoded records from source queue
+and writes them into tables according to configuration file.  It is targeted
+to slow databases that cannot handle applying each row as separate statement.
+Originally written for BizgresMPP/greenplumDB which have very high per-statement
+overhead, but can also be used to load regular PostgreSQL database that cannot
+manage regular replication.
+
+Behaviour properties:
+- reads urlencoded "logutriga" records.
+- does not do partitioning, but allows optionally redirect table events.
+- does not keep event order.
+- always loads data with COPY, either directly to main table (INSERTs)
+  or to temp tables (UPDATE/COPY) then applies from there.
+
+Events are usually procuded by `pgq.logutriga()`.  Logutriga adds all the data
+of the record  into the event (also in case of updates and deletes).
+
+== QUICK-START ==
+
+Basic bulk_loader setup and usage can be summarized by the following
+steps:
+
+ 1. pgq and logutriga must be installed in source databases.
+    See pgqadm man page for details.  target database must also
+    have pgq_ext schema.
+
+ 2. edit a bulk_loader configuration file, say bulk_loader_sample.ini
+
+ 3. create source queue 
+
+      $ pgqadm.py ticker.ini create <queue>
+ 
+ 4. Tune source queue to have big batches:
+
+      $ pgqadm.py ticker.ini config <queue> ticker_max_count="10000" ticker_max_lag="10 minutes" ticker_idle_period="10 minutes"
+
+ 5. create target database and tables in it.
+
+ 6. launch bulk_loader in daemon mode
+
+      $ bulk_loader.py -d bulk_loader_sample.ini
+
+ 7. start producing events (create logutriga trggers on tables)
+      CREATE OR REPLACE TRIGGER trig_bulk_replica AFTER INSERT OR UPDATE ON some_table 
+           FOR EACH ROW EXECUTE PROCEDURE pgq.logutriga('<queue>')
+
+== CONFIG ==
+
+include::common.config.txt[]
+
+=== Config options specific to `bulk_loader` ===
+
+  src_db::
+    Connect string for source database where the queue resides.
+ 
+  dst_db::
+    Connect string for target database where the tables should be created.
+
+  remap_tables::
+    Optional parameter for table redirection.  Contains comma-separated
+    list of <oldname>:<newname> pairs.  Eg: `oldtable1:newtable1, oldtable2:newtable2`.
+
+  load_method::
+    Optional parameter for load method selection.  Available options:
+    0:: UPDATE as UPDATE from temp table.  This is default.
+    1:: UPDATE as DELETE+COPY from temp table.
+    2:: merge INSERTs with UPDATEs, then do DELETE+COPY from temp table.
+
+== LOGUTRIGA EVENT FORMAT ==
+
+include::common.logutriga.txt[]
+
+== COMMAND LINE SWITCHES ==
+
+include::common.switches.txt[]
+
