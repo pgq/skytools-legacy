@@ -14,11 +14,14 @@
     * Restore iter-on-values behaviour for rows from curs.fetch*.  The attempt
       to make them iter-on-keys seems now misguided, as iter-on-values is already
       used in existing code, and iter-on-keys returns keys in random order.
+    * londiste subscriber add: Dont drop triggers on table if --expect-sync is used.
 
   = Features =
 
+    * Table name globbing for Londiste commands (Erik Jones)
     * Upgrade script: scripts/skytools_upgrade.py
     * Add .version() function to pgq_ext & londiste schemas.
+    * pgqadm: allow parameters without queue_ prefix in 'config' command.
     * skytools Python module:
       - intern() keys in db_urldecode() to decrease memory usage
       - udp-logger: more fields: hostaddr, service_name
