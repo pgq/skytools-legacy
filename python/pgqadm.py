@@ -167,6 +167,10 @@ class PGQAdmin(skytools.DBScript):
         res = curs.dictfetchone()
         db.commit()
 
+        if res is None:
+            print "no such queue:", qname
+            return
+
         print qname
         for k in config_allowed_list:
             n = k
