@@ -20,7 +20,7 @@
 
     * Table name globbing for Londiste commands (Erik Jones)
     * New manpages for scripts (Asko Oja & me)
-    * Upgrade script: scripts/skytools_upgrade.py
+    * Upgrade script with manpage: scripts/skytools_upgrade.py
     * Add .version() function to pgq_ext & londiste schemas.
     * pgqadm: allow parameters without queue_ prefix in 'config' command.
     * skytools Python module:
