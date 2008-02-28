@@ -36,6 +36,13 @@ def make_type_string(col_rows):
     res = map(lambda x: x['type'], col_rows)
     return "".join(res)
 
+def convertGlobs(s):
+    return s.replace('?', '.').replace('*', '.*')
+
+def glob2regex(gpat):
+    plist = [convertGlobs(s) for s in gpat.split('.')]
+    return '^%s$' % '[.]'.join(plist)
+
 class CommonSetup(skytools.DBScript):
     def __init__(self, args):
         skytools.DBScript.__init__(self, 'londiste', args)
@@ -53,16 +60,17 @@ class CommonSetup(skytools.DBScript):
     def run(self):
         self.admin()
 
-    def fetch_provider_table_list(self, curs):
+    def fetch_provider_table_list(self, curs, pattern='*'):
         q = """select table_name, trigger_name
-                 from londiste.provider_get_table_list(%s)"""
-        curs.execute(q, [self.pgq_queue_name])
+                 from londiste.provider_get_table_list(%s)
+                 where table_name ~ %s"""
+        curs.execute(q, [self.pgq_queue_name, glob2regex(pattern)])
         return curs.dictfetchall()
 
-    def get_provider_table_list(self):
+    def get_provider_table_list(self, pattern='*'):
         src_db = self.get_database('provider_db')
         src_curs = src_db.cursor()
-        list = self.fetch_provider_table_list(src_curs)
+        list = self.fetch_provider_table_list(src_curs, pattern)
         src_db.commit()
         res = []
         for row in list:
@@ -104,15 +112,15 @@ class CommonSetup(skytools.DBScript):
             self.log.error('Event queue does not exist yet')
             sys.exit(1)
 
-    def fetch_subscriber_tables(self, curs):
-        q = "select * from londiste.subscriber_get_table_list(%s)"
-        curs.execute(q, [self.pgq_queue_name])
+    def fetch_subscriber_tables(self, curs, pattern = '*'):
+        q = "select * from londiste.subscriber_get_table_list(%s) where table_name ~ %s"
+        curs.execute(q, [self.pgq_queue_name, glob2regex(pattern)])
         return curs.dictfetchall()
 
-    def get_subscriber_table_list(self):
+    def get_subscriber_table_list(self, pattern = '*'):
         dst_db = self.get_database('subscriber_db')
         dst_curs = dst_db.cursor()
-        list = self.fetch_subscriber_tables(dst_curs)
+        list = self.fetch_subscriber_tables(dst_curs, pattern)
         dst_db.commit()
         res = []
         for row in list:
@@ -195,54 +203,55 @@ class ProviderSetup(CommonSetup):
         q = "select pgq.create_queue(%s)"
         self.exec_provider(q, [self.pgq_queue_name])
 
-    def find_missing_provider_tables(self):
+    def find_missing_provider_tables(self, pattern='*'):
         src_db = self.get_database('provider_db')
         src_curs = src_db.cursor()
         q = """select schemaname || '.' || tablename as full_name from pg_tables
                 where schemaname not in ('pgq', 'londiste', 'pg_catalog', 'information_schema')
                   and schemaname !~ 'pg_.*'
+                  and (schemaname || '.' || tablename) ~ %s
                 except select table_name from londiste.provider_get_table_list(%s)"""
-        src_curs.execute(q, [self.pgq_queue_name])
+        src_curs.execute(q, [glob2regex(pattern), self.pgq_queue_name])
         rows = src_curs.fetchall()
         src_db.commit()
         list = []
         for row in rows:
             list.append(row[0])
         return list
-
+                
     def provider_add_tables(self, table_list):
         self.check_provider_queue()
 
         if self.options.all and not table_list:
-            table_list = self.find_missing_provider_tables()
+            table_list = ['*.*']
 
         cur_list = self.get_provider_table_list()
         for tbl in table_list:
-            if tbl.find('.') < 0:
-                tbl = "public." + tbl
-            if tbl not in cur_list:
-                self.log.info('Adding %s' % tbl)
-                self.provider_add_table(tbl)
-            else:
-                self.log.info("Table %s already added" % tbl)
+            tbls = self.find_missing_provider_tables(skytools.fq_name(tbl))
+            
+            for tbl in tbls:
+                if tbl not in cur_list:
+                    self.log.info('Adding %s' % tbl)
+                    self.provider_add_table(tbl)
+                else:
+                    self.log.info("Table %s already added" % tbl)
         self.provider_notify_change()
 
     def provider_remove_tables(self, table_list):
         self.check_provider_queue()
 
         cur_list = self.get_provider_table_list()
-
         if not table_list and self.options.all:
             table_list = cur_list
 
         for tbl in table_list:
-            if tbl.find('.') < 0:
-                tbl = "public." + tbl
-            if tbl not in cur_list:
-                self.log.info('%s already removed' % tbl)
-            else:
-                self.log.info("Removing %s" % tbl)
-                self.provider_remove_table(tbl)
+            tbls = self.get_provider_table_list(skytools.fq_name(tbl))
+            for tbl in tbls:
+                if tbl not in cur_list:
+                    self.log.info('%s already removed' % tbl)
+                else:
+                    self.log.info("Removing %s" % tbl)
+                    self.provider_remove_table(tbl)
         self.provider_notify_change()
 
     def provider_add_table(self, tbl):
@@ -557,27 +566,53 @@ class SubscriberSetup(CommonSetup):
             if seq not in subscriber_seqs:
                 print "Sequence: %s" % seq
 
+    def find_missing_subscriber_tables(self, pattern='*'):
+        src_db = self.get_database('subscriber_db')
+        src_curs = src_db.cursor()
+        q = """select schemaname || '.' || tablename as full_name from pg_tables
+                where schemaname not in ('pgq', 'londiste', 'pg_catalog', 'information_schema')
+                  and schemaname !~ 'pg_.*'
+                  and schemaname || '.' || tablename ~ %s
+                except select table_name from londiste.provider_get_table_list(%s)"""
+        src_curs.execute(q, [glob2regex(pattern), self.pgq_queue_name])
+        rows = src_curs.fetchall()
+        src_db.commit()
+        list = []
+        for row in rows:
+            list.append(row[0])
+        return list
+
     def subscriber_add_tables(self, table_list):
         provider_tables = self.get_provider_table_list()
         subscriber_tables = self.get_subscriber_table_list()
 
         if not table_list and self.options.all:
-            table_list = []
+            table_list = ['*.*']
             for tbl in provider_tables:
                 if tbl not in subscriber_tables:
                     table_list.append(tbl)
+        
+        tbls = []
+        for tbl in table_list:
+            more = self.find_missing_subscriber_tables(skytools.fq_name(tbl))
+            if more == []:
+                self.log.info("No tables found that match %s" % tbl)
+            tbls.extend(more)
+        tbls = list(set(tbls))
 
         err = 0
-        for tbl in table_list:
-            tbl = skytools.fq_name(tbl)
+        table_list = []
+        for tbl in tbls:
             if tbl not in provider_tables:
                 err = 1
                 self.log.error("Table %s not attached to queue" % tbl)
+                if not self.options.force:
+                    continue
+            table_list.append(tbl)
+                
         if err:
             if self.options.force:
                 self.log.warning('--force used, ignoring errors')
-            else:
-                sys.exit(1)
 
         err = self.check_tables(table_list)
         if err:
@@ -589,7 +624,6 @@ class SubscriberSetup(CommonSetup):
         dst_db = self.get_database('subscriber_db')
         dst_curs = dst_db.cursor()
         for tbl in table_list:
-            tbl = skytools.fq_name(tbl)
             if tbl in subscriber_tables:
                 self.log.info("Table %s already added" % tbl)
             else:
@@ -600,14 +634,16 @@ class SubscriberSetup(CommonSetup):
     def subscriber_remove_tables(self, table_list):
         subscriber_tables = self.get_subscriber_table_list()
         if not table_list and self.options.all:
-            table_list = subscriber_tables
+            table_list = ['*.*']
+            
         for tbl in table_list:
-            tbl = skytools.fq_name(tbl)
-            if tbl in subscriber_tables:
-                self.log.info("Removing: %s" % tbl)
-                self.subscriber_remove_one_table(tbl)
-            else:
-                self.log.info("Table %s already removed" % tbl)
+            tbls = self.get_subscriber_table_list(skytools.fq_name(tbl))
+            for tbl in tbls:
+                if tbl in subscriber_tables:
+                    self.log.info("Removing: %s" % tbl)
+                    self.subscriber_remove_one_table(tbl)
+                else:
+                    self.log.info("Table %s already removed" % tbl)
 
     def subscriber_resync_tables(self, table_list):
         dst_db = self.get_database('subscriber_db')
@@ -638,15 +674,18 @@ class SubscriberSetup(CommonSetup):
         q_add = "select londiste.subscriber_add_table(%s, %s)"
         q_triggers = "select londiste.subscriber_drop_all_table_triggers(%s)"
 
-        dst_curs.execute(q_add, [self.pgq_queue_name, tbl])
-        dst_curs.execute(q_triggers, [tbl])
         if self.options.expect_sync and self.options.skip_truncate:
             self.log.error("Too many options: --expect-sync and --skip-truncate")
             sys.exit(1)
-        elif self.options.expect_sync:
+
+        dst_curs.execute(q_add, [self.pgq_queue_name, tbl])
+        if self.options.expect_sync:
             q = "select londiste.subscriber_set_table_state(%s, %s, null, 'ok')"
             dst_curs.execute(q, [self.pgq_queue_name, tbl])
-        elif self.options.skip_truncate:
+            return
+
+        dst_curs.execute(q_triggers, [tbl])
+        if self.options.skip_truncate:
             q = "select londiste.subscriber_set_skip_truncate(%s, %s, true)"
             dst_curs.execute(q, [self.pgq_queue_name, tbl])
 
