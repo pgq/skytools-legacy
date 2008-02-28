@@ -11,12 +11,22 @@ EPYARGS = --no-private --url="http://pgfoundry.org/projects/skytools/" \
 
 HTMLS = londiste.cmdline.html londiste.config.html README.html INSTALL.html \
 	londiste.ref.html TODO.html pgq-sql.html pgq-admin.html pgq-nodupes.html \
-	walmgr.html set.notes.html \
-	upgrade.html
+	$(SCRIPT_HTMLS)
+
+SCRIPT_TXTS = walmgr.txt cube_dispatcher.txt table_dispatcher.txt \
+	      queue_mover.txt queue_splitter.txt bulk_loader.txt \
+	      scriptmgr.txt skytools_upgrade.txt
+SCRIPT_MANS = $(SCRIPT_TXTS:.txt=.1)
+SCRIPT_HTMLS = $(SCRIPT_TXTS:.txt=.html)
+
+COMMON = common.switches.txt common.config.txt common.logutriga.txt
+
+GETATTRS = python ./getattrs.py
 
 all: man
 
-man: londiste.1 londiste.5 pgqadm.1 walmgr.1
+man: londiste.1 londiste.5 pgqadm.1 $(SCRIPT_MANS)
+
 html: $(HTMLS)
 
 install: man
@@ -25,7 +35,9 @@ install: man
 	install -m 644 londiste.1 $(DESTDIR)/$(mandir)/man1
 	install -m 644 londiste.5 $(DESTDIR)/$(mandir)/man5
 	install -m 644 pgqadm.1 $(DESTDIR)/$(mandir)/man1
-	install -m 644 walmgr.1 $(DESTDIR)/$(mandir)/man1
+	for m in $(SCRIPT_MANS); do \
+	  install -m 644 $$m $(DESTDIR)/$(mandir)/man1 ; \
+	done
 
 old.wiki.upload:
 	devupload.sh overview.txt $(wiki)
@@ -57,39 +69,48 @@ apiupload: apidoc
 	rsync -rtlz ../sql/pgq/docs/html/* $(web)/pgq/
 
 clean:
-	rm -rf api *.1 *.5 *.html *.xml
+	rm -rf api *.html
 
-distclean:
-	rm -rf ../sql/pgq/docs/pgq api
+distclean: clean
+	rm -rf ../sql/pgq/docs/pgq
 
+realclean: distclean
+	rm -f *.[15] *.xml
+
+ifneq ($(XMLTO),)
 londiste.1: londiste.cmdline.xml
-	xmlto man $<
+	$(XMLTO) man $<
 
 londiste.5: londiste.config.xml
-	xmlto man $<
+	$(XMLTO) man $<
 
 pgqadm.1: pgq-admin.xml
-	xmlto man $<
+	$(XMLTO) man $<
 
 walmgr.1: walmgr.xml
-	xmlto man $<
+	$(XMLTO) man $<
+endif
 
-%.xml: %.txt
-	#asciidoc -b docbook -d manpage -o - $< > $@
-	asciidoc -b docbook -d manpage -o - $< \
+ifneq ($(ASCIIDOC),)
+%.xml: %.txt $(COMMON)
+	$(ASCIIDOC) -b docbook -d manpage `$(GETATTRS) $<` -o - $< \
 	| python fixman.py > $@
 
-%.html: %.txt
-	asciidoc -a toc $<
+%.1: %.xml
+	$(XMLTO) man $<
+
+%.html: %.txt $(COMMON)
+	$(ASCIIDOC) -a toc `$(GETATTRS) $<` $<
 
 README.html: ../README
 	cat $< \
 	| sed -e 's,doc/\([!-~]*\)[.]txt,link:\1.html[],g' \
 	      -e 's,http:[!-~]*,&[],g' \
-	| asciidoc -o $@ -
+	| $(ASCIIDOC) -o $@ -
 
 INSTALL.html: ../INSTALL
-	asciidoc -o $@ $<
+	$(ASCIIDOC) -o $@ $<
+endif
 
 web: $(HTMLS)
 	rsync -avz $(HTMLS) $(web)/doc/

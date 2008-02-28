@@ -1,0 +1,113 @@
+= scriptmgr(1) =
+
+== NAME ==
+
+scriptmgr - utility for controlling other skytools scripts.
+
+== SYNOPSIS ==
+
+  scriptmgr.py [switches] config.ini <command> [-a | job_name ... ]
+
+== DESCRIPTION ==
+
+scriptmgr is used to manage several scripts together.  It discovers
+potential jobs based on config file glob expression.  From config
+file it gets both job_name and service type (that is the main section
+name eg [cube_dispatcher]).  For each service type there is subsection
+in the config how to handle it.  Unknown services are ignored.
+
+== COMMANDS ==
+
+=== status ===
+
+  scriptmgr config.ini status
+
+Show status for all known jobs.
+
+=== start ===
+
+  scriptmgr config.ini start -a
+  scriptmgr config.ini start job_name1 job_name2 ...
+
+launch script(s) that are not running.
+
+=== stop ===
+
+  scriptmgr config.ini stop -a
+  scriptmgr config.ini stop job_name1 job_name2 ...
+
+stop script(s) that are running.
+
+=== restart ===
+
+  scriptmgr config.ini restart -a
+  scriptmgr config.ini restart job_name1 job_name2 ...
+
+restart scripts.
+
+=== reload ===
+
+  scriptmgr config.ini reload -a
+  scriptmgr config.ini reload job_name1 job_name2 ...
+
+Send SIGHUP to scripts that are running.
+
+== CONFIG ==
+
+include::common.config.txt[]
+
+=== scriptmgr parameters ===
+
+config_list::
+  List of glob patters for finding config files.  Example:
+  
+    config_list = ~/dbscripts/conf/*.ini, ~/random/conf/*.ini
+
+=== Service section parameters ===
+
+cwd::
+  Working directory for script.
+
+args::
+  Arguments to give to script, in addition to `-d`.
+
+script::
+  Path to script.  Unless script is in PATH, full path should be given.
+
+disabled::
+  If this service should be ignored.
+
+=== Example config file ===
+
+  [scriptmgr]
+  job_name        = scriptmgr_livesrv
+  logfile         = ~/log/%(job_name)s.log
+  pidfile         = ~/pid/%(job_name)s.pid
+
+  config_list     = ~/scripts/conf/*.ini
+
+  # defaults for all service sections
+  [DEFAULT]
+  cwd = ~/scripts
+
+  [table_dispatcher]
+  script = table_dispatcher.py
+  args = -v
+
+  [cube_dispatcher]
+  script = python2.4 cube_dispatcher.py
+  disabled = 1
+
+  [pgqadm]
+  script = ~/scripts/pgqadm.py
+  args = ticker
+
+== COMMAND LINE SWITCHES ==
+
+include::common.switches.txt[]
+
+Options specific to scriptmgr:
+
+-a, --all::
+  Operate on all non-disabled scripts.
+

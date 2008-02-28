@@ -1,0 +1,87 @@
+
+= queue_mover(1) =
+
+== NAME ==
+
+queue_mover - PgQ consumer that copies data from one queue to another.
+
+== SYNOPSIS ==
+
+  queue_mover.py [switches] config.ini 
+
+== DESCRIPTION ==
+
+queue_mover is PgQ consumer that transports events from source queue into 
+target queue. One use case is when events are produced in several databases 
+then queue_mover is used to consolidate these events into single queue
+that can then be processed by consumers who need to handle theses events.
+For example in case of patitioned databases it's convenient to move events
+from each partition into one central queue database and then process them there.
+That way configuration and dependancies of partiton databases are 
+simpler and more robust. Another use case is to move events from OLTP 
+database to batch processing server.
+
+Transactionality: events will be inserted as one transaction on target side.
+That means only batch_id needs to be tracked on target side.
+
+== QUICK-START ==
+
+Basic PgQ setup and usage can be summarized by the following
+steps:
+
+  1. PgQ must be installed both in source and target databases.
+     See pgqadm man page for details.
+
+  2. Target database must also have pgq_ext schema installed.
+     It is used to keep sync between two databases.
+
+  3. Create a queue_mover configuration file, say qmover_sourceq_to_targetdb.ini
+
+  4. create source and target queues 
+
+     $ pgqadm.py sourcedb_ticker.ini create <srcqueue>
+     $ pgqadm.py targetdb_ticker.ini create <dstqueue>
+
+  5. launch queue mover in daemon mode
+
+     $ queue_mover.py -d qmover_sourceq_to_targetdb.ini
+
+  6. start producing and consuming events 
+
+
+== CONFIG ==
+
+include::common.config.txt[]
+
+=== queue_mover parameters ===
+
+src_db::
+  Source database.
+
+dst_db::
+  Target database.
+
+dst_queue_name::
+  Target queue name.
+
+=== Example config file ===
+
+  [queue_mover]
+  job_name = eventlog_to_target_mover
+  src_db = dbname=sourcedb
+  dst_db = dbname=targetdb
+  pgq_queue_name = eventlog
+  dst_queue_name = copy_of_eventlog
+  pidfile = log/%(job_name)s.pid
+  logfile = pid/%(job_name)s.log
+  
+== COMMAND LINE SWITCHES ==
+
+include::common.switches.txt[]
+
+== BUGS ==
+
+Event ID is not kept on target side.  If needed is can be kept,
+then event_id seq at target side need to be increased by hand to
+inform ticker about new events.
+

@@ -1,0 +1,38 @@
+
+=== Common configuration parameters ===
+
+  job_name::
+    Name for particulat job the script does.  Script will log under this name
+    to logdb/logserver.  The name is also used as default for PgQ consumer name.
+    It should be unique.
+
+  pidfile::
+    Location for pid file.  If not given, script is disallowed to daemonize.
+
+  logfile::
+    Location for log file.
+
+  loop_delay::
+    If continuisly running process, how long to sleep after each work loop,
+    in seconds.  Default: 1.
+ 
+  connection_lifetime::
+    Close and reconnect older database connections.
+
+  use_skylog::
+     foo.
+
+ifdef::pgq[]
+
+=== Common PgQ consumer parameters ===
+
+  pgq_queue_name::
+    Queue name to attach to.
+    No default.
+
+  pgq_consumer_id::
+    Consumers ID to use when registering.
+    Default: %(job_name)s
+
+endif::pgq[]
+
