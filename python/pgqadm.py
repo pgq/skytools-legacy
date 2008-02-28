@@ -132,7 +132,10 @@ class PGQAdmin(skytools.DBScript):
         for el in self.args[3:]:
             k, v = el.split('=')
             if k not in config_allowed_list:
-                raise Exception('unknown config var: '+k)
+                qk = "queue_" + k
+                if qk not in config_allowed_list:
+                    raise Exception('unknown config var: '+k)
+                k = qk
             expr = "%s=%s" % (k, skytools.quote_literal(v))
             alist.append(expr)
         self.log.info('Change queue %s config to: %s' % (qname, ", ".join(alist)))
@@ -164,9 +167,16 @@ class PGQAdmin(skytools.DBScript):
         res = curs.dictfetchone()
         db.commit()
 
+        if res is None:
+            print "no such queue:", qname
+            return
+
         print qname
         for k in config_allowed_list:
-            print "    %s\t=%7s" % (k, res[k])
+            n = k
+            if k[:6] == "queue_":
+                n = k[6:]
+            print "    %s\t=%7s" % (n, res[k])
 
     def get_queue_list(self):
         db = self.get_database('db')
