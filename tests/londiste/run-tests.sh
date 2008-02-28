@@ -22,6 +22,8 @@ psql -c "update pgq.queue set queue_ticker_idle_period = '15', queue_ticker_max_
 pgqadm.py -d conf/ticker.ini ticker
 
 $script  conf/replic.ini subscriber install
+$script  conf/replic.ini subscriber -v seqs
+$script  conf/replic.ini subscriber -v fkeys
 
 $script  conf/replic.ini subscriber register
 $script  conf/replic.ini subscriber unregister
@@ -55,6 +57,8 @@ $script  conf/replic.ini subscriber add-seq test_seq
 
 $script  conf/replic.ini provider seqs
 $script  conf/replic.ini subscriber seqs
+
+$script  conf/replic.ini subscriber fkeys
 
 sleep 2
 
