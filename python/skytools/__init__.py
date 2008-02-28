@@ -17,6 +17,6 @@ __all__ = (psycopgwrapper.__all__
         + gzlog.__all__
         + scripting.__all__
         + sqltools.__all__
-        + parsing.__all__
-        + quoting.__all__ )
+        + quoting.__all__
+        + parsing.__all__)
 
