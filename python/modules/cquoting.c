@@ -1,3 +1,6 @@
+/*
+ * Fast quoting functions for Python.
+ */
 
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
