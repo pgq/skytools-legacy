@@ -23,7 +23,7 @@ dnl Find GNU make
 AC_MSG_CHECKING(for GNU make)
 if test ! -n "$MAKE"; then
   for a in make gmake gnumake; do
-    if "$a" --version 2>&1 | grep -q GNU; then
+    if "$a" --version 2>&1 | grep GNU > /dev/null; then
       MAKE="$a"
       break
     fi
@@ -36,6 +36,44 @@ else
 fi
 AC_SUBST(MAKE)
 
+dnl asciidoc >= 8.2
+AC_ARG_WITH(asciidoc, [  --with-asciidoc[[=prog]]  path to asciidoc 8.2 (default: asciidoc)],
+[ if test "$withval" = "yes"; then
+    AC_CHECK_PROGS(ASCIIDOC, [$ASCIIDOC asciidoc])
+  else
+    AC_MSG_CHECKING(for asciidoc)
+    ASCIIDOC=$withval
+    AC_MSG_RESULT($ASCIIDOC)
+  fi ],
+[ ASCIIDOC="" ])
+
+if test -n "$ASCIIDOC"; then
+  AC_MSG_CHECKING([whether asciidoc version >= 8.2])
+  ver=`$ASCIIDOC --version 2>&1 | sed -e 's/asciidoc //'`
+  case "$ver" in
+dnl hack to make possible to use [, ] in regex
+changequote({, })dnl
+  [0-7].*|8.[01]|8.[01].*)
+changequote([, ])dnl
+      AC_MSG_RESULT([$ver, too old])
+      ASCIIDOC=""
+      ;;
+  *)  AC_MSG_RESULT([$ver, ok])
+      ;;
+  esac
+fi
+
+dnl check for xmlto, but only if asciidoc is found
+if test -n "$ASCIIDOC"; then
+  AC_CHECK_PROGS(XMLTO, [$XMLTO xmlto])
+else
+  XMLTO=""
+fi
+
+dnl Postres headers on Solaris define incompat unsetenv without that
+AC_CHECK_FUNCS(unsetenv)
+
 dnl Write result
-AC_OUTPUT([config.mak])
+AC_CONFIG_FILES([config.mak])
+AC_OUTPUT
 

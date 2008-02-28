@@ -6,9 +6,15 @@ mandir = @mandir@
 override PYTHON = @PYTHON@
 override PG_CONFIG = @PG_CONFIG@
 
+# additional CPPFLAGS to pgxs modules
+PG_CPPFLAGS = $(filter -DHAVE%, @DEFS@)
+
 SQLDIR = $(prefix)/share/skytools
 
 PGXS = $(shell $(PG_CONFIG) --pgxs)
 
 DESTDIR = /
+
+ASCIIDOC = @ASCIIDOC@
+XMLTO = @XMLTO@
 
