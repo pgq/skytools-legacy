@@ -20,8 +20,8 @@ running londiste and PgQ solution at the database side.
 First, +PgQ+ software has to be upgraded. It often is installed on the provider
 side of your replication setup, and runs on the provider host.
 
-Then +londiste+ database functions have to be updated too, which are normally run
-from the subscriber host. You need to repeat the londiste steps for each and
+Then +londiste+ database functions have to be updated too, which are run on
+both provider and subscriber. You need to repeat the londiste steps for each and
 every running subscriber.
 
 
