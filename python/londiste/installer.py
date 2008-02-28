@@ -19,9 +19,9 @@ subscriber_object_list = [
 
 def install_provider(curs, log):
     """Installs needed code into provider db."""
-    skytools.db_install(curs, provider_object_list, log.info)
+    skytools.db_install(curs, provider_object_list, log)
 
 def install_subscriber(curs, log):
     """Installs needed code into subscriber db."""
-    skytools.db_install(curs, subscriber_object_list, log.info)
+    skytools.db_install(curs, subscriber_object_list, log)
 
