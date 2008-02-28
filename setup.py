@@ -2,11 +2,12 @@
 
 import sys, os.path, re
 from distutils.core import setup
+from distutils.extension import Extension
 
 # check if configure has run
 if not os.path.isfile('config.mak'):
     print "please run ./configure && make first"
-    print "Note: setup.py is suppsed to be run from Makefile"
+    print "Note: setup.py is supposed to be run from Makefile"
     sys.exit(1)
 
 # load version
@@ -38,7 +39,9 @@ setup(
                'python/setadm.py',
                'scripts/cube_dispatcher.py', 'scripts/queue_mover.py',
                'scripts/table_dispatcher.py', 'scripts/bulk_loader.py',
-               'scripts/scriptmgr.py', 'scripts/queue_splitter.py'],
+               'scripts/scriptmgr.py', 'scripts/queue_splitter.py',
+               'scripts/skytools_upgrade.py',
+               ],
     data_files = [
       ('share/doc/skytools/conf', [
         'python/conf/londiste.ini',
