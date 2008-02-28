@@ -1,7 +1,7 @@
 
 begin;
 
-alter table pgq.subscription  constraint subscription_ukey unique (sub_queue, sub_consumer);
+alter table pgq.subscription add constraint subscription_ukey unique (sub_queue, sub_consumer);
 create index rq_retry_owner_idx on pgq.retry_queue (ev_owner, ev_id);
 
 
@@ -322,8 +322,7 @@ returns setof text as $$
 --      List of table names.
 -- ----------------------------------------------------------------------
 declare
-    tbl text;
-    scm text;
+    row record;
 begin
     return next 'pgq.subscription';
     return next 'pgq.consumer';
@@ -332,21 +331,24 @@ begin
     return next 'pgq.retry_queue';
 
     -- include also txid, pgq_ext and londiste tables if they exist
-    for scm, tbl in 
-        select n.nspname, t.relname from pg_class t, pg_namespace n
+    for row in
+        select n.nspname as scm, t.relname as tbl
+          from pg_class t, pg_namespace n
          where n.oid = t.relnamespace
            and n.nspname = 'txid' and t.relname = 'epoch'
         union all
-        select n.nspname, t.relname from pg_class t, pg_namespace n
+        select n.nspname as scm, t.relname as tbl
+          from pg_class t, pg_namespace n
          where n.oid = t.relnamespace
            and n.nspname = 'londiste' and t.relname = 'completed'
         union all
-        select n.nspname, t.relname from pg_class t, pg_namespace n
+        select n.nspname as scm, t.relname as tbl
+          from pg_class t, pg_namespace n
          where n.oid = t.relnamespace
            and n.nspname = 'pgq_ext'
            and t.relname in ('completed_tick', 'completed_batch', 'completed_event', 'partial_batch')
     loop
-        return next scm || '.' || tbl;
+        return next row.scm || '.' || row.tbl;
     end loop;
 
     return;

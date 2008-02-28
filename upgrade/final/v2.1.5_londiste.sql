@@ -18,7 +18,7 @@ create table londiste.subscriber_pending_triggers (
     primary key (table_name, trigger_name)
 );
 
-drop function londiste.denytrigger();
+-- drop function londiste.denytrigger();
 
 
 
@@ -34,7 +34,7 @@ begin
         select n1.nspname || '.' || t1.relname as from_table, n2.nspname || '.' || t2.relname as to_table,
             conname::text as fkey_name, 
             'alter table only ' || quote_ident(n1.nspname) || '.' || quote_ident(t1.relname)
-            || ' add constraint ' || quote_ident(fkey.fkey_name) || ' ' || pg_get_constraintdef(c.oid)
+            || ' add constraint ' || quote_ident(conname::text) || ' ' || pg_get_constraintdef(c.oid)
             as fkey_def
         from pg_constraint c, pg_namespace n1, pg_class t1, pg_namespace n2, pg_class t2
         where c.contype = 'f' and (c.conrelid = tbl_oid or c.confrelid = tbl_oid)
