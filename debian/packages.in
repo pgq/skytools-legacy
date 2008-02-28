@@ -10,9 +10,11 @@ Copyright: BSD
  Copyright 2006 Marko Kreen
 Build: sh
  PATH=/usr/lib/postgresql/PGVER/bin:$PATH \
- ./configure --prefix=/usr && \
+ ./configure --prefix=/usr --with-pgconfig=/usr/lib/postgresql/PGVER/bin/pg_config
+ PATH=/usr/lib/postgresql/PGVER/bin:$PATH \
  make DESTDIR=$ROOT
 Clean: sh
+ PATH=/usr/lib/postgresql/PGVER/bin:$PATH \
  make distclean || make clean || true
 Build-Depends: python-dev, postgresql-server-dev-PGVER
 
@@ -25,6 +27,7 @@ Description: Skype database tools - Python parts
  pgqadm - generic event queue
  walmgr - failover server scripts
 Install: sh
+ PATH=/usr/lib/postgresql/PGVER/bin:$PATH \
  make python-install DESTDIR=$ROOT prefix=/usr
 
 Package: skytools-modules-PGVER
@@ -40,5 +43,6 @@ Description: Extra modules for PostgreSQL
  londiste - Database parts of replication engine.
  pgq - Generic queue in database.
 Install: sh
+ PATH=/usr/lib/postgresql/PGVER/bin:$PATH \
  make modules-install DESTDIR=$ROOT
 
