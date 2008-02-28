@@ -1,0 +1,153 @@
+# _pyquoting.py
+
+"""Various helpers for string quoting/unquoting.
+
+Here is pure Python that should match C code in _cquoting.
+"""
+
+import urllib, re
+
+__all__ = [
+    "quote_literal", "quote_copy", "quote_bytea_raw",
+    "db_urlencode", "db_urldecode", "unescape",
+]
+
+# 
+# SQL quoting
+#
+
+def quote_literal(s):
+    """Quote a literal value for SQL.
+
+    If string contains '\\', it is quoted and result is prefixed with E.
+    Input value of None results in string "null" without quotes.
+
+    Python implementation.
+    """
+
+    if s == None:
+        return "null"
+    s = str(s).replace("'", "''")
+    s2 = s.replace("\\", "\\\\")
+    if len(s) != len(s2):
+        return "E'" + s2 + "'"
+    return "'" + s2 + "'"
+
+def quote_copy(s):
+    """Quoting for copy command.  None is converted to \\N.
+    
+    Python implementation.
+    """
+
+    if s == None:
+        return "\\N"
+    s = str(s)
+    s = s.replace("\\", "\\\\")
+    s = s.replace("\t", "\\t")
+    s = s.replace("\n", "\\n")
+    s = s.replace("\r", "\\r")
+    return s
+
+_bytea_map = None
+def quote_bytea_raw(s):
+    """Quoting for bytea parser.  Returns None as None.
+    
+    Python implementation.
+    """
+    global _bytea_map
+    if s == None:
+        return None
+    if 1 and _bytea_map is None:
+        _bytea_map = {}
+        for i in xrange(256):
+            c = chr(i)
+            if i < 0x20 or i >= 0x7F:
+                _bytea_map[c] = "\\%03o" % i
+            elif c == "\\":
+                _bytea_map[c] = r"\\"
+            else:
+                _bytea_map[c] = c
+    return "".join([_bytea_map[c] for c in s])
+    # faster but does not match c code
+    #return s.replace("\\", "\\\\").replace("\0", "\\000")
+
+#
+# Database specific urlencode and urldecode.
+#
+
+def db_urlencode(dict):
+    """Database specific urlencode.
+
+    Encode None as key without '='.  That means that in "foo&bar=",
+    foo is NULL and bar is empty string.
+
+    Python implementation.
+    """
+
+    elem_list = []
+    for k, v in dict.items():
+        if v is None:
+            elem = urllib.quote_plus(str(k))
+        else:
+            elem = urllib.quote_plus(str(k)) + '=' + urllib.quote_plus(str(v))
+        elem_list.append(elem)
+    return '&'.join(elem_list)
+
+def db_urldecode(qs):
+    """Database specific urldecode.
+
+    Decode key without '=' as None.
+    This also does not support one key several times.
+
+    Python implementation.
+    """
+
+    res = {}
+    for elem in qs.split('&'):
+        if not elem:
+            continue
+        pair = elem.split('=', 1)
+        name = urllib.unquote_plus(pair[0])
+
+        # keep only one instance around
+        name = intern(str(name))
+
+        if len(pair) == 1:
+            res[name] = None
+        else:
+            res[name] = urllib.unquote_plus(pair[1])
+    return res
+
+#
+# Remove C-like backslash escapes
+#
+
+_esc_re = r"\\([0-7]{1,3}|.)"
+_esc_rc = re.compile(_esc_re)
+_esc_map = {
+    't': '\t',
+    'n': '\n',
+    'r': '\r',
+    'a': '\a',
+    'b': '\b',
+    "'": "'",
+    '"': '"',
+    '\\': '\\',
+}
+
+def _sub_unescape(m):
+    v = m.group(1)
+    if (len(v) == 1) and (v < '0' or v > '7'):
+        try:
+            return _esc_map[v]
+        except KeyError:
+            return v
+    else:
+        return chr(int(v, 8))
+
+def unescape(val):
+    """Removes C-style escapes from string.
+    Python implementation.
+    """
+    return _esc_rc.sub(_sub_unescape, val)
+

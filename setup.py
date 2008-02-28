@@ -53,5 +53,6 @@ setup(
         'scripts/scriptmgr.ini.templ',
         ]),
       ('share/skytools', share_dup_files)],
+    ext_modules=[Extension("skytools._cquoting", ['python/modules/cquoting.c'])],
 )
 

@@ -9,6 +9,7 @@ from gzlog import *
 from scripting import *
 from sqltools import *
 from quoting import *
+from parsing import *
 
 __all__ = (psycopgwrapper.__all__
         + config.__all__
@@ -16,5 +17,6 @@ __all__ = (psycopgwrapper.__all__
         + gzlog.__all__
         + scripting.__all__
         + sqltools.__all__
+        + parsing.__all__
         + quoting.__all__ )
 

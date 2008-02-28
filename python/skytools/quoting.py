@@ -4,48 +4,22 @@
 
 import urllib, re
 
-from skytools.psycopgwrapper import QuotedString
-
 __all__ = [
     "quote_literal", "quote_copy", "quote_bytea_raw",
+    "db_urlencode", "db_urldecode", "unescape",
+
     "quote_bytea_literal", "quote_bytea_copy", "quote_statement",
-    "quote_ident", "quote_fqident", "quote_json",
-    "db_urlencode", "db_urldecode", "unescape", "unescape_copy"
+    "quote_ident", "quote_fqident", "quote_json", "unescape_copy"
 ]
+
+try:
+    from _cquoting import *
+except ImportError:
+    from _pyquoting import *
 
 # 
 # SQL quoting
 #
-
-def quote_literal(s):
-    """Quote a literal value for SQL.
-    
-    Surronds it with single-quotes.
-    """
-
-    if s == None:
-        return "null"
-    s = QuotedString(str(s))
-    return str(s)
-
-def quote_copy(s):
-    """Quoting for copy command."""
-
-    if s == None:
-        return "\\N"
-    s = str(s)
-    s = s.replace("\\", "\\\\")
-    s = s.replace("\t", "\\t")
-    s = s.replace("\n", "\\n")
-    s = s.replace("\r", "\\r")
-    return s
-
-def quote_bytea_raw(s):
-    """Quoting for bytea parser."""
-
-    if s == None:
-        return None
-    return s.replace("\\", "\\\\").replace("\0", "\\000")
 
 def quote_bytea_literal(s):
     """Quote bytea for regular SQL."""
@@ -125,214 +99,9 @@ def quote_json(s):
         return "null"
     return '"%s"' % _jsre.sub(_json_quote_char, s)
 
-#
-# Database specific urlencode and urldecode.
-#
-
-def db_urlencode(dict):
-    """Database specific urlencode.
-
-    Encode None as key without '='.  That means that in "foo&bar=",
-    foo is NULL and bar is empty string.
-    """
-
-    elem_list = []
-    for k, v in dict.items():
-        if v is None:
-            elem = urllib.quote_plus(str(k))
-        else:
-            elem = urllib.quote_plus(str(k)) + '=' + urllib.quote_plus(str(v))
-        elem_list.append(elem)
-    return '&'.join(elem_list)
-
-def db_urldecode(qs):
-    """Database specific urldecode.
-
-    Decode key without '=' as None.
-    This also does not support one key several times.
-    """
-
-    res = {}
-    for elem in qs.split('&'):
-        if not elem:
-            continue
-        pair = elem.split('=', 1)
-        name = urllib.unquote_plus(pair[0])
-
-        # keep only one instance around
-        name = intern(name)
-
-        if len(pair) == 1:
-            res[name] = None
-        else:
-            res[name] = urllib.unquote_plus(pair[1])
-    return res
-
-#
-# Remove C-like backslash escapes
-#
-
-_esc_re = r"\\([0-7][0-7][0-7]|.)"
-_esc_rc = re.compile(_esc_re)
-_esc_map = {
-    't': '\t',
-    'n': '\n',
-    'r': '\r',
-    'a': '\a',
-    'b': '\b',
-    "'": "'",
-    '"': '"',
-    '\\': '\\',
-}
-
-def _sub_unescape(m):
-    v = m.group(1)
-    if len(v) == 1:
-        return _esc_map[v]
-    else:
-        return chr(int(v, 8))
-
-def unescape(val):
-    """Removes C-style escapes from string."""
-    return _esc_rc.sub(_sub_unescape, val)
-
 def unescape_copy(val):
     """Removes C-style escapes, also converts "\N" to None."""
     if val == r"\N":
         return None
     return unescape(val)
-
-
-#
-# parse logtriga partial sql
-#
-
-class _logtriga_parser:
-    token_re = r"""
-        [ \t\r\n]*
-        ( [a-z][a-z0-9_]*
-        | ["] ( [^"\\]+ | \\. )* ["]
-        | ['] ( [^'\\]+ | \\. | [']['] )* [']
-        | [^ \t\r\n]
-        )"""
-    token_rc = None
-
-    def tokenizer(self, sql):
-        if not _logtriga_parser.token_rc:
-            _logtriga_parser.token_rc = re.compile(self.token_re, re.X | re.I)
-        rc = self.token_rc
-
-        pos = 0
-        while 1:
-            m = rc.match(sql, pos)
-            if not m:
-                break
-            pos = m.end()
-            yield m.group(1)
-
-    def unquote_data(self, fields, values):
-        # unquote data and column names
-        data = {}
-        for k, v in zip(fields, values):
-            if k[0] == '"':
-                k = unescape(k[1:-1])
-            if len(v) == 4 and v.lower() == "null":
-                v = None
-            elif v[0] == "'":
-                v = unescape(v[1:-1])
-            data[k] = v
-        return data
-
-    def parse_insert(self, tk, fields, values):
-        # (col1, col2) values ('data', null)
-        if tk.next() != "(":
-            raise Exception("syntax error")
-        while 1:
-            fields.append(tk.next())
-            t = tk.next()
-            if t == ")":
-                break
-            elif t != ",":
-                raise Exception("syntax error")
-        if tk.next().lower() != "values":
-            raise Exception("syntax error")
-        if tk.next() != "(":
-            raise Exception("syntax error")
-        while 1:
-            t = tk.next()
-            if t == ")":
-                break
-            if t == ",":
-                continue
-            values.append(t)
-        tk.next()
-
-    def parse_update(self, tk, fields, values):
-        # col1 = 'data1', col2 = null where pk1 = 'pk1' and pk2 = 'pk2'
-        while 1:
-            fields.append(tk.next())
-            if tk.next() != "=":
-                raise Exception("syntax error")
-            values.append(tk.next())
-            
-            t = tk.next()
-            if t == ",":
-                continue
-            elif t.lower() == "where":
-                break
-            else:
-                raise Exception("syntax error")
-        while 1:
-            t = tk.next()
-            fields.append(t)
-            if tk.next() != "=":
-                raise Exception("syntax error")
-            values.append(tk.next())
-            t = tk.next()
-            if t.lower() != "and":
-                raise Exception("syntax error")
-
-    def parse_delete(self, tk, fields, values):
-        # pk1 = 'pk1' and pk2 = 'pk2'
-        while 1:
-            t = tk.next()
-            if t == "and":
-                continue
-            fields.append(t)
-            if tk.next() != "=":
-                raise Exception("syntax error")
-            values.append(tk.next())
-
-    def parse_sql(self, op, sql):
-        tk = self.tokenizer(sql)
-        fields = []
-        values = []
-        try:
-            if op == "I":
-                self.parse_insert(tk, fields, values)
-            elif op == "U":
-                self.parse_update(tk, fields, values)
-            elif op == "D":
-                self.parse_delete(tk, fields, values)
-            raise Exception("syntax error")
-        except StopIteration:
-            # last sanity check
-            if len(fields) == 0 or len(fields) != len(values):
-                raise Exception("syntax error")
-
-        return self.unquote_data(fields, values)
-
-def parse_logtriga_sql(op, sql):
-    """Parse partial SQL used by logtriga() back to data values.
-
-    Parser has following limitations:
-    - Expects standard_quoted_strings = off
-    - Does not support dollar quoting.
-    - Does not support complex expressions anywhere. (hashtext(col1) = hashtext(val1))
-    - WHERE expression must not contain IS (NOT) NULL
-    - Does not support updateing pk value.
-
-    Returns dict of col->data pairs.
-    """
-    return _logtriga_parser().parse_sql(op, sql)
 
