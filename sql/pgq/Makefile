@@ -12,7 +12,7 @@ SRCS = $(wildcard structure/*.sql) \
 REGRESS = pgq_init pgq_core logutriga sqltriga
 REGRESS_OPTS = --load-language=plpgsql
 
-PGXS = $(shell pg_config --pgxs)
+include ../../config.mak
 include $(PGXS)
 
 NDOC = NaturalDocs
