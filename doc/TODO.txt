@@ -1,18 +1,15 @@
 
 = Skytools ToDo list =
 
-== Next minor release - 2.1.6 ==
-
- * Fix copy-wont-start problem.  Likely a timing race on pidfile.
- * make deb problem when both 8.1 and 8.2 are installed
- * review trigger docs
-
 == Next major release - 3.0 ==
 
  * cascaded replication, switchover, failover [marko]
  * skytools: config from database
  * drop support for psycopg1 ?
  * drop support for 8.1 ??
+
+ * new londiste sql:
+   - support new trigger flags in 8.3?
 
 == High-prority ==
 
