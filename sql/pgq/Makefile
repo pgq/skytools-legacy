@@ -3,11 +3,11 @@ DOCS = README.pgq
 DATA_built = pgq.sql pgq.upgrade.sql
 DATA = structure/uninstall_pgq.sql
 
-SRCS = $(wildcard structure/*.sql) \
-       $(wildcard functions/*.sql) \
-       $(wildcard triggers/*.sql) \
-       lowlevel/pgq_lowlevel.sql \
-       triggers/pgq_triggers.sql
+# scripts that load other sql files
+LDRS = structure/func_internal.sql structure/func_public.sql structure/triggers.sql
+FUNCS = $(shell sed -n -e '/^\\/{s/\\i //;p}' $(LDRS))
+SRCS = structure/tables.sql structure/grants.sql structure/install.sql \
+       structure/types.sql structure/uninstall_pgq.sql $(FUNCS)
 
 REGRESS = pgq_init pgq_core logutriga sqltriga
 REGRESS_OPTS = --load-language=plpgsql
@@ -41,6 +41,7 @@ triggers/pgq_triggers.sql: sub-all
 pgq.sql: $(SRCS)
 	$(CATSQL) structure/install.sql > $@
 
+# fixme: use LDRS here, to upgrade triggers
 pgq.upgrade.sql: $(SRCS)
 	$(CATSQL) structure/func_internal.sql structure/func_public.sql > $@
 
