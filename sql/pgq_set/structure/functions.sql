@@ -13,6 +13,7 @@
 
 -- Group: Node Info
 \i functions/pgq_set.get_node_info.sql
+\i functions/pgq_set.is_root.sql
 
 -- Group: Watermark tracking
 \i functions/pgq_set.set_subscriber_watermark.sql

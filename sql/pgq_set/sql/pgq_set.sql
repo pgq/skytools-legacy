@@ -2,7 +2,6 @@
 \set ECHO none
 \i ../txid/txid.sql
 \i ../pgq/pgq.sql
-\i ../londiste/londiste.sql
 \i structure/pgq_set.sql
 \i structure/functions.sql
 \set ECHO all
@@ -19,3 +18,8 @@ select * from pgq_set.get_member_info('aset');
 select * from pgq_set.create_node('aset', 'root', 'node1', 'worker', null, null, null);
 
 select * from pgq_set.get_node_info('aset');
+
+select * from pgq_set.is_root('q');
+select * from pgq_set.is_root('aset');
+select * from pgq_set.is_root(null);
+
