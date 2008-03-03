@@ -30,11 +30,11 @@ typedef struct PgqTriggerEvent PgqTriggerEvent;
  * so nothing trigger-specific should be stored.
  */
 struct PgqTableInfo {
-	Oid oid;
-	char *table_name;
-	const char *pkey_list;
-	int n_pkeys;
-	int *pkey_attno;
+	Oid oid;		/* must be first, used by htab */
+	int n_pkeys;		/* number of pkeys */
+	const char *pkey_list;	/* pk column name list */
+	int *pkey_attno;	/* pk column positions */
+	char *table_name;	/* schema-quelified table name */
 };
 
 /* common.c */
