@@ -11,7 +11,7 @@ create or replace function pgq_set.create_node(
     out ret_desc text)
 returns record as $$
 -- ----------------------------------------------------------------------
--- Function: pgq_set.create_node(6)
+-- Function: pgq_set.create_node(7)
 --
 --      Initialize node.
 --
@@ -19,6 +19,7 @@ returns record as $$
 --      i_set_name - set name
 --      i_node_type - node type
 --      i_node_name - node name
+--      i_worker_name - consumer to register as worker
 --      i_provider_name - provider node name for non-root nodes
 --      i_global_watermark - global lowest tick_id
 --      i_combined_set - merge-leaf: target set
