@@ -221,12 +221,12 @@ pgq_insert_event_raw(PG_FUNCTION_ARGS)
 	int i, res;
 
 	if (PG_NARGS() < 6)
-		elog(ERROR, "pgq_insert_raw: too few args");
+		elog(ERROR, "too few args");
 	if (PG_ARGISNULL(0))
 		elog(ERROR, "Queue name must not be NULL");
 
 	if (SPI_connect() < 0)
-		elog(ERROR, "logtriga: SPI_connect() failed");
+		elog(ERROR, "SPI_connect() failed");
 	
 	init_cache();
 
