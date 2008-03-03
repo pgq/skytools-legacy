@@ -1,7 +1,8 @@
 
 DATA_built = pgq_set.sql pgq_set.upgrade.sql
 
-SRCS = $(wildcard structure/*.sql) $(wildcard functions/*.sql)
+FUNCS = $(shell sed -n -e '/^\\/{s/\\i //;p}' structure/functions.sql)
+SRCS = structure/pgq_set.sql structure/functions.sql $(FUNCS)
 
 REGRESS = pgq_set
 REGRESS_OPTS = --load-language=plpgsql
