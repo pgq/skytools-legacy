@@ -111,33 +111,33 @@ static int pgq_urlencode(char *dst, const uint8 *src, int srclen)
 
 static int pgq_quote_literal(char *dst, const uint8 *src, int srclen)
 {
-	const uint8 *cp1;
-	char	   *cp2;
-	int			wl;
-
-	cp1 = src;
-	cp2 = dst;
+	const uint8 *cp1 = src, *src_end = src + srclen;
+	char *cp2 = dst;
+	bool is_ext = false;
 
 	*cp2++ = '\'';
-	while (srclen > 0)
-	{
-		if ((wl = pg_mblen((const char *)cp1)) != 1)
-		{
-			srclen -= wl;
-
-			while (wl-- > 0)
+	while (cp1 < src_end) {
+		int wl = pg_mblen((const char *)cp1);
+		if (wl != 1) {
+			while (wl-- > 0 && cp1 < src_end)
 				*cp2++ = *cp1++;
 			continue;
 		}
 
-		if (*cp1 == '\'')
+		if (*cp1 == '\'') {
 			*cp2++ = '\'';
-		if (*cp1 == '\\')
+		} else if (*cp1 == '\\') {
+			if (!is_ext) {
+				/* make room for 'E' */
+				memmove(dst + 1, dst, cp2 - dst);
+				*dst = 'E';
+				is_ext = true;
+				cp2++;
+			}
 			*cp2++ = '\\';
+		}
 		*cp2++ = *cp1++;
-		srclen--;
 	}
-
 	*cp2++ = '\'';
 
 	return cp2 - dst;
@@ -245,7 +245,7 @@ tbuf_encode_data(StringInfo buf,
 
 	switch (encoding) {
 	case TBUF_QUOTE_LITERAL:
-		dst = start_append(buf, len * 2 + 2);
+		dst = start_append(buf, len * 2 + 3);
 		dlen = pgq_quote_literal(dst, data, len);
 		break;
 
