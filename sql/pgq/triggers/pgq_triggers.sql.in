@@ -48,11 +48,13 @@ AS 'MODULE_PATHNAME', 'pgq_logtriga' LANGUAGE C;
 --      SKIP                - The actual operation should be skipped
 --      ignore=col1[,col2]  - don't look at the specified arguments
 --      pkey=col1[,col2]    - Set pkey fields for the table, autodetection will be skipped
+--      backup              - Put urlencoded contents of old row to ev_extra2
 --
 -- Queue event fields:
 --    ev_type     - I/U/D
 --    ev_data     - partial SQL statement
 --    ev_extra1   - table name
+--    ev_extra2   - optional urlencoded backup
 --
 -- ----------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION pgq.sqltriga() RETURNS trigger
@@ -76,11 +78,13 @@ AS 'MODULE_PATHNAME', 'pgq_sqltriga' LANGUAGE C;
 --      SKIP                - The actual operation should be skipped
 --      ignore=col1[,col2]  - don't look at the specified arguments
 --      pkey=col1[,col2]    - Set pkey fields for the table, autodetection will be skipped
+--      backup              - Put urlencoded contents of old row to ev_extra2
 --
 -- Queue event fields:
 --      ev_type      - I/U/D ':' pkey_column_list
 --      ev_data      - column values urlencoded
 --      ev_extra1    - table name
+--      ev_extra2    - optional urlencoded backup
 --
 -- Regular listen trigger example:
 -- >   CREATE TRIGGER triga_nimi AFTER INSERT OR UPDATE ON customer

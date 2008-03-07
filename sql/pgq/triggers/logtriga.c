@@ -71,12 +71,7 @@ pgq_logtriga(PG_FUNCTION_ARGS)
 	 * create sql and insert if interesting
 	 */
 	if (pgqtriga_make_sql(&ev, tg, ev.ev_data))
-	{
-		pgq_simple_insert(ev.queue_name,
-						  pgq_finish_varbuf(ev.ev_type),
-						  pgq_finish_varbuf(ev.ev_data),
-						  pgq_finish_varbuf(ev.ev_extra1));
-	}
+		pgq_insert_tg_event(&ev);
 
 	if (SPI_finish() < 0)
 		elog(ERROR, "SPI_finish failed");

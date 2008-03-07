@@ -57,18 +57,19 @@ static void relcache_reset_cb(Datum arg, Oid relid);
  *
  * does not support NULL arguments.
  */
-void pgq_simple_insert(const char *queue_name, Datum ev_type, Datum ev_data, Datum ev_extra1)
+void pgq_simple_insert(const char *queue_name, Datum ev_type, Datum ev_data, Datum ev_extra1, Datum ev_extra2)
 {
-	Datum values[4];
+	Datum values[5];
+	char nulls[5];
 	static void *plan = NULL;
 	int res;
 
 	if (!plan) {
 		const char *sql;
-		Oid   types[4] = { TEXTOID, TEXTOID, TEXTOID, TEXTOID };
+		Oid   types[5] = { TEXTOID, TEXTOID, TEXTOID, TEXTOID, TEXTOID };
 
-		sql = "select pgq.insert_event($1, $2, $3, $4, null, null, null)";
-		plan = SPI_saveplan(SPI_prepare(sql, 4, types));
+		sql = "select pgq.insert_event($1, $2, $3, $4, $5, null, null)";
+		plan = SPI_saveplan(SPI_prepare(sql, 5, types));
 		if (plan == NULL)
 			elog(ERROR, "logtriga: SPI_prepare() failed");
 	}
@@ -76,9 +77,26 @@ void pgq_simple_insert(const char *queue_name, Datum ev_type, Datum ev_data, Dat
 	values[1] = ev_type;
 	values[2] = ev_data;
 	values[3] = ev_extra1;
-	res = SPI_execute_plan(plan, values, NULL, false, 0);
+	values[4] = ev_extra2;
+	nulls[0] = ' ';
+	nulls[1] = ' ';
+	nulls[2] = ' ';
+	nulls[3] = ' ';
+	nulls[4] = ev_extra2 ? ' ' : 'n';
+	res = SPI_execute_plan(plan, values, nulls, false, 0);
 	if (res != SPI_OK_SELECT)
 		elog(ERROR, "call of pgq.insert_event failed");
+}
+
+void pgq_insert_tg_event(PgqTriggerEvent *ev)
+{
+	pgq_simple_insert(ev->queue_name,
+					  pgq_finish_varbuf(ev->ev_type),
+					  pgq_finish_varbuf(ev->ev_data),
+					  pgq_finish_varbuf(ev->ev_extra1),
+					  ev->ev_extra2
+					  ? pgq_finish_varbuf(ev->ev_extra2)
+					  : (Datum)0);
 }
 
 char *pgq_find_table_name(Relation rel)
@@ -272,6 +290,8 @@ parse_newstyle_args(PgqTriggerEvent *ev, TriggerData *tg)
 			ev->ignore_list = arg + 7;
 		else if (strncmp(arg, "pkey=", 5) == 0)
 			ev->pkey_list = arg + 5;
+		else if (strcmp(arg, "backup") == 0)
+			ev->backup = true;
 		else
 			elog(ERROR, "bad param to pgq trigger");
 	}
@@ -344,14 +364,6 @@ void pgq_prepare_event(struct PgqTriggerEvent *ev, TriggerData *tg, bool newstyl
 		elog(ERROR, "unknown event for pgq trigger");
 
 	/*
-	 * init data
-	 */
-	ev->ev_type = pgq_init_varbuf();
-	ev->ev_data = pgq_init_varbuf();
-	ev->ev_extra1 = pgq_init_varbuf();
-	ev->ev_extra2 = pgq_init_varbuf();
-
-	/*
 	 * load table info
 	 */
 	ev->info = pgq_find_table_info(tg->tg_relation);
@@ -365,6 +377,21 @@ void pgq_prepare_event(struct PgqTriggerEvent *ev, TriggerData *tg, bool newstyl
 		parse_newstyle_args(ev, tg);
 	else
 		parse_oldstyle_args(ev, tg);
+
+	/*
+	 * init data
+	 */
+	ev->ev_type = pgq_init_varbuf();
+	ev->ev_data = pgq_init_varbuf();
+	ev->ev_extra1 = pgq_init_varbuf();
+	
+	/*
+	 * Do the backup, if requested.
+	 */
+	if (ev->backup) {
+		ev->ev_extra2 = pgq_init_varbuf();
+		pgq_urlenc_row(ev, tg, tg->tg_trigtuple, ev->ev_extra2);
+	}
 }
 
 /*
