@@ -1,5 +1,16 @@
 create or replace function londiste.find_column_types(tbl text)
 returns text as $$
+-- ----------------------------------------------------------------------
+-- Function: londiste.find_column_types(1)
+--
+--      Returns columnt type string for logtriga().
+--
+-- Parameters:
+--      tbl - fqname
+--
+-- Returns:
+--      String of 'kv'.
+-- ----------------------------------------------------------------------
 declare
     res      text;
     col      record;

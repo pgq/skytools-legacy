@@ -1,6 +1,20 @@
 
 create or replace function londiste.find_table_fkeys(i_table_name text)
-returns setof londiste.subscriber_pending_fkeys as $$
+returns setof londiste.pending_fkeys as $$
+-- ----------------------------------------------------------------------
+-- Function: londiste.find_table_fkeys(1)
+--
+--      Return all active fkeys.
+--
+-- Parameters:
+--      i_table_name    - fqname
+--
+-- Returns:
+--      from_table      - fqname
+--      to_table        - fqname
+--      fkey_name       - name
+--      fkey_def        - full def
+-- ----------------------------------------------------------------------
 declare
     fkey      record;
     tbl_oid   oid;

@@ -1,6 +1,19 @@
 
 create or replace function londiste.find_table_triggers(i_table_name text)
-returns setof londiste.subscriber_pending_triggers as $$
+returns setof londiste.pending_triggers as $$
+-- ----------------------------------------------------------------------
+-- Function: londiste.find_table_triggers(1)
+--
+--      Returns all existing triggers on table.
+--
+-- Parameters:
+--      i_table_name - table name
+--
+-- Returns:
+--      table_name      - fq table name
+--      trigger_name    - name
+--      trigger_def     - partial def as returned by pg_get_triggerdef()
+-- ----------------------------------------------------------------------
 declare
     tg        record;
 begin
@@ -17,3 +30,4 @@ begin
     return;
 end;
 $$ language plpgsql strict stable;
+

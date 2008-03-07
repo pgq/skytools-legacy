@@ -1,6 +1,21 @@
 
 create or replace function londiste.quote_fqname(i_name text)
 returns text as $$
+-- ----------------------------------------------------------------------
+-- Function: londiste.quote_fqname(1)
+--
+--      Quete fully-qualified object name for SQL.
+--
+--      First dot is taken as schema separator.
+--
+--      If schema is missing, 'public' is assumed.
+--
+-- Parameters:
+--      i_name  - fully qualified object name.
+--
+-- Returns:
+--      Quoted name.
+-- ----------------------------------------------------------------------
 declare
     res     text;
     pos     integer;
