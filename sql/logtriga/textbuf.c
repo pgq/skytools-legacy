@@ -187,6 +187,7 @@ static int quote_literal(char *dst, const uint8 *src, int srclen)
 	const uint8 *cp1;
 	char	   *cp2;
 	int			wl;
+	bool		is_ext = false;
 
 	cp1 = src;
 	cp2 = dst;
@@ -196,6 +197,8 @@ static int quote_literal(char *dst, const uint8 *src, int srclen)
 	{
 		if ((wl = pg_mblen((const char *)cp1)) != 1)
 		{
+			if (wl > srclen)
+				wl = srclen;
 			srclen -= wl;
 
 			while (wl-- > 0)
@@ -203,10 +206,17 @@ static int quote_literal(char *dst, const uint8 *src, int srclen)
 			continue;
 		}
 
-		if (*cp1 == '\'')
+		if (*cp1 == '\'') {
 			*cp2++ = '\'';
-		if (*cp1 == '\\')
+		} else if (*cp1 == '\\') {
+			if (!is_ext) {
+				memmove(dst + 1, dst, cp2 - dst);
+				cp2++;
+				is_ext = true;
+				*dst = 'E';
+			}
 			*cp2++ = '\\';
+		}
 		*cp2++ = *cp1++;
 		srclen--;
 	}
