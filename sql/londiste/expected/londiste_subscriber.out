@@ -1,217 +1,74 @@
 set client_min_messages = 'warning';
 \set VERBOSITY 'terse'
-create table testdata (
-    id serial primary key,
-    data text
-);
 --
 -- tables
 --
-select londiste.subscriber_add_table('pqueue', 'public.testdata_nopk');
- subscriber_add_table 
-----------------------
-                    0
+create table slavedata (
+    id serial primary key,
+    data text
+);
+select current_database();
+ current_database 
+------------------
+ regression
 (1 row)
 
-select londiste.subscriber_add_table('pqueue', 'public.testdata');
- subscriber_add_table 
-----------------------
-                    0
+select * from pgq_set.add_member('branch_set', 'snode', 'dbname=db', false);
+ ret_code | ret_note 
+----------+----------
+      200 | Ok
 (1 row)
 
-select pgq.create_queue('pqueue');
- create_queue 
---------------
-            1
+select * from pgq_set.add_member('branch_set', 'pnode', 'dbname=db2', false);
+ ret_code | ret_note 
+----------+----------
+      200 | Ok
 (1 row)
 
-select londiste.subscriber_add_table('pqueue', 'public.testdata');
-ERROR:  duplicate key violates unique constraint "subscriber_table_pkey"
-select londiste.subscriber_add_table('pqueue', 'public.testdata');
-ERROR:  duplicate key violates unique constraint "subscriber_table_pkey"
-select * from londiste.subscriber_get_table_list('pqueue');
-      table_name      | merge_state | snapshot | trigger_name | skip_truncate 
-----------------------+-------------+----------+--------------+---------------
- public.testdata_nopk |             |          |              | 
- public.testdata      |             |          |              | 
-(2 rows)
-
-select londiste.subscriber_remove_table('pqueue', 'public.nonexist');
-ERROR:  no such table
-select londiste.subscriber_remove_table('pqueue', 'public.testdata');
- subscriber_remove_table 
--------------------------
-                       0
+select * from pgq_set.create_node('branch_set', 'branch', 'snode', 'londiste_branch', 'pnode', 100, null::text);
+ ret_code | ret_desc 
+----------+----------
+      200 | Ok
 (1 row)
 
-select * from londiste.subscriber_get_table_list('pqueue');
-      table_name      | merge_state | snapshot | trigger_name | skip_truncate 
-----------------------+-------------+----------+--------------+---------------
- public.testdata_nopk |             |          |              | 
+select * from londiste.node_add_table('branch_set', 'public.slavedata');
+ ret_code |                   ret_desc                    
+----------+-----------------------------------------------
+      400 | Table not registered in set: public.slavedata
 (1 row)
 
---
--- seqs
---
-select * from londiste.subscriber_get_seq_list('pqueue');
- subscriber_get_seq_list 
--------------------------
+select * from londiste.set_add_table('branch_set', 'public.slavedata');
+ ret_code | ret_desc 
+----------+----------
+      200 | OK
+(1 row)
+
+select * from londiste.node_add_table('branch_set', 'public.slavedata');
+ ret_code | ret_desc 
+----------+----------
+      200 | OK
+(1 row)
+
+select * from londiste.node_get_table_list('branch_set');
+    table_name    | merge_state | custom_snapshot | skip_truncate 
+------------------+-------------+-----------------+---------------
+ public.slavedata |             |                 | 
+(1 row)
+
+select * from londiste.node_remove_table('branch_set', 'public.slavedata');
+ ret_code | ret_desc 
+----------+----------
+      200 | OK
+(1 row)
+
+select * from londiste.node_remove_table('branch_set', 'public.slavedata');
+ ret_code |          ret_desc           
+----------+-----------------------------
+      400 | Not found: public.slavedata
+(1 row)
+
+select * from londiste.node_get_table_list('branch_set');
+ table_name | merge_state | custom_snapshot | skip_truncate 
+------------+-------------+-----------------+---------------
 (0 rows)
-
-select londiste.subscriber_add_seq('pqueue', 'public.no_seq');
- subscriber_add_seq 
---------------------
-                  0
-(1 row)
-
-select londiste.subscriber_add_seq('pqueue', 'public.testdata_id_seq');
- subscriber_add_seq 
---------------------
-                  0
-(1 row)
-
-select londiste.subscriber_add_seq('pqueue', 'public.testdata_id_seq');
-ERROR:  duplicate key violates unique constraint "subscriber_seq_pkey"
-select * from londiste.subscriber_get_seq_list('pqueue');
- subscriber_get_seq_list 
--------------------------
- public.no_seq
- public.testdata_id_seq
-(2 rows)
-
-select londiste.subscriber_remove_seq('pqueue', 'public.testdata_id_seq');
- subscriber_remove_seq 
------------------------
-                     0
-(1 row)
-
-select londiste.subscriber_remove_seq('pqueue', 'public.testdata_id_seq');
-ERROR:  no such seq?
-select * from londiste.subscriber_get_seq_list('pqueue');
- subscriber_get_seq_list 
--------------------------
- public.no_seq
-(1 row)
-
---
--- linked queue
---
-select londiste.subscriber_add_table('pqueue', 'public.testdata');
- subscriber_add_table 
-----------------------
-                    0
-(1 row)
-
-insert into londiste.link (source, dest) values ('mqueue', 'pqueue');
-select londiste.subscriber_add_table('pqueue', 'public.testdata');
-ERROR:  duplicate key violates unique constraint "subscriber_table_pkey"
-select londiste.subscriber_remove_table('pqueue', 'public.testdata');
- subscriber_remove_table 
--------------------------
-                       0
-(1 row)
-
-select londiste.subscriber_add_seq('pqueue', 'public.testdata_id_seq');
- subscriber_add_seq 
---------------------
-                  0
-(1 row)
-
-select londiste.subscriber_remove_seq('pqueue', 'public.testdata_seq');
-ERROR:  no such seq?
---
--- skip-truncate, set_table_state
---
-select londiste.subscriber_add_table('pqueue', 'public.skiptest');
- subscriber_add_table 
-----------------------
-                    0
-(1 row)
-
-select skip_truncate from londiste.subscriber_table where table_name = 'public.skiptest';
- skip_truncate 
----------------
- 
-(1 row)
-
-select londiste.subscriber_set_skip_truncate('pqueue', 'public.skiptest', true);
- subscriber_set_skip_truncate 
-------------------------------
-                            1
-(1 row)
-
-select skip_truncate from londiste.subscriber_table where table_name = 'public.skiptest';
- skip_truncate 
----------------
- t
-(1 row)
-
-select londiste.subscriber_set_table_state('pqueue', 'public.skiptest', 'snap1', 'in-copy');
- subscriber_set_table_state 
-----------------------------
-                          1
-(1 row)
-
-select skip_truncate, snapshot from londiste.subscriber_table where table_name = 'public.skiptest';
- skip_truncate | snapshot 
----------------+----------
- t             | snap1
-(1 row)
-
-select londiste.subscriber_set_table_state('pqueue', 'public.skiptest', null, 'ok');
- subscriber_set_table_state 
-----------------------------
-                          1
-(1 row)
-
-select skip_truncate, snapshot from londiste.subscriber_table where table_name = 'public.skiptest';
- skip_truncate | snapshot 
----------------+----------
-               | 
-(1 row)
-
---
--- test tick tracking
---
-select londiste.get_last_tick('c');
- get_last_tick 
----------------
-              
-(1 row)
-
-select londiste.set_last_tick('c', 1);
- set_last_tick 
----------------
-             1
-(1 row)
-
-select londiste.get_last_tick('c');
- get_last_tick 
----------------
-             1
-(1 row)
-
-select londiste.set_last_tick('c', 2);
- set_last_tick 
----------------
-             1
-(1 row)
-
-select londiste.get_last_tick('c');
- get_last_tick 
----------------
-             2
-(1 row)
-
-select londiste.set_last_tick('c', NULL);
- set_last_tick 
----------------
-             1
-(1 row)
-
-select londiste.get_last_tick('c');
- get_last_tick 
----------------
-              
-(1 row)
 

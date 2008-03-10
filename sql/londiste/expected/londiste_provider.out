@@ -1,0 +1,62 @@
+set client_min_messages = 'warning';
+\set VERBOSITY 'terse'
+--
+-- tables
+--
+create table testdata (
+    id serial primary key,
+    data text
+);
+create table testdata_nopk (
+    id serial,
+    data text
+);
+select current_database();
+ current_database 
+------------------
+ regression
+(1 row)
+
+select * from pgq_set.add_member('aset', 'rnode', 'dbname=db', false);
+ ret_code | ret_note 
+----------+----------
+      200 | Ok
+(1 row)
+
+select * from pgq_set.create_node('aset', 'root', 'rnode', 'londiste_root', null::text, null::int8, null::text);
+ ret_code | ret_desc 
+----------+----------
+      200 | Ok
+(1 row)
+
+select * from londiste.node_add_table('aset', 'public.testdata_nopk');
+ERROR:  need key column
+select * from londiste.node_add_table('aset', 'public.testdata');
+ ret_code | ret_desc 
+----------+----------
+      200 | OK
+(1 row)
+
+select * from londiste.node_get_table_list('aset');
+   table_name    | merge_state | custom_snapshot | skip_truncate 
+-----------------+-------------+-----------------+---------------
+ public.testdata |             |                 | 
+(1 row)
+
+select * from londiste.node_remove_table('aset', 'public.testdata');
+ ret_code | ret_desc 
+----------+----------
+      200 | OK
+(1 row)
+
+select * from londiste.node_remove_table('aset', 'public.testdata');
+ ret_code |          ret_desc          
+----------+----------------------------
+      400 | Not found: public.testdata
+(1 row)
+
+select * from londiste.node_get_table_list('aset');
+ table_name | merge_state | custom_snapshot | skip_truncate 
+------------+-------------+-----------------+---------------
+(0 rows)
+
