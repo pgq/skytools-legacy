@@ -5,12 +5,14 @@
 import re
 
 __all__ = [
+    # _pyqoting / _cquoting
     "quote_literal", "quote_copy", "quote_bytea_raw",
     "db_urlencode", "db_urldecode", "unescape",
-
+    "unquote_literal",
+    # local
     "quote_bytea_literal", "quote_bytea_copy", "quote_statement",
     "quote_ident", "quote_fqident", "quote_json", "unescape_copy",
-    "unquote_ident", "unquote_literal",
+    "unquote_ident",
 ]
 
 try:
@@ -106,7 +108,7 @@ def unescape_copy(val):
         return None
     return unescape(val)
 
-def unquote_sql_ident(val):
+def unquote_ident(val):
     """Unquotes possibly quoted SQL identifier."""
     if val[0] == '"' and val[-1] == '"':
         return val[1:-1].replace('""', '"')

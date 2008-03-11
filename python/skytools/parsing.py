@@ -3,7 +3,7 @@
 
 import re
 
-from skytools.quoting import unescape, unquote_sql_string, unquote_sql_ident
+from skytools.quoting import unescape, unquote_literal, unquote_ident
 from skytools.sqltools import dbdict
 
 __all__ = ["parse_pgarray", "parse_logtriga_sql", "parse_tabbed_table", "parse_statements"]
@@ -123,8 +123,8 @@ class _logtriga_parser:
             # last sanity check
             if len(fields) == 0 or len(fields) != len(values):
                 raise Exception("syntax error, fields do not match values")
-        fields = [unquote_sql_ident(f) for f in fields]
-        values = [unquote_sql_string(f) for f in values]
+        fields = [unquote_ident(f) for f in fields]
+        values = [unquote_literal(f) for f in values]
         return dbdict(zip(fields, values))
 
 def parse_logtriga_sql(op, sql):
@@ -174,9 +174,9 @@ _base_sql = r"""
     | (?P<dolq>   (?P<dname> [$] (?: [_a-z][_a-z0-9]*)? [$] )
                   .*?
                   (?P=dname) )
-    | (?P<num>    [0-9][0-9.e]*
+    | (?P<num>    [0-9][0-9.e]* )
     | (?P<numarg> [$] [0-9]+ )
-    | (?P<pyold>  [%][(] [a-z0-9_]+ [)][s] | [%][%])
+    | (?P<pyold>  [%][(] [a-z0-9_]+ [)][s] | [%][%] )
     | (?P<pynew>  [{] [^}]+ [}] | [{][{] | [}] [}] )
     | (?P<ws>     (?: \s+ | [/][*] .*? [*][/] | [-][-][^\n]* )+ )
     | (?P<sym>    . )"""
@@ -211,7 +211,7 @@ def sql_tokenizer(sql, standard_quoting = False, ignore_whitespace = False):
 
 _copy_from_stdin_re = "copy.*from\s+stdin"
 _copy_from_stdin_rc = None
-def parse_statements(sql):
+def parse_statements(sql, standard_quoting = False):
     """Parse multi-statement string into separate statements.
 
     Returns list of statements.
@@ -222,7 +222,7 @@ def parse_statements(sql):
         _copy_from_stdin_rc = re.compile(_copy_from_stdin_re, re.X | re.I)
     tokens = []
     pcount = 0 # '(' level
-    for typ, t in _sql_tokenizer(sql):
+    for typ, t in sql_tokenizer(sql, standard_quoting = standard_quoting):
         # skip whitespace and comments before statement
         if len(tokens) == 0 and typ == "ws":
             continue

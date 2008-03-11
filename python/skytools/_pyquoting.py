@@ -177,7 +177,7 @@ def unquote_literal(val, stdstr = False):
             return _esql_rc.sub(_sub_unescape_sqlext, val[1:-1])
     elif len(val) > 2 and val[0] in ('E', 'e') and val[1] == "'" and val[-1] == "'":
         return _esql_rc.sub(_sub_unescape_sqlext, val[2:-1])
-    elif val.tolower() == "null":
+    elif val.lower() == "null":
         return None
     return val
 
