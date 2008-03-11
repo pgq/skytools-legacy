@@ -9,7 +9,8 @@ __all__ = [
     "db_urlencode", "db_urldecode", "unescape",
 
     "quote_bytea_literal", "quote_bytea_copy", "quote_statement",
-    "quote_ident", "quote_fqident", "quote_json", "unescape_copy"
+    "quote_ident", "quote_fqident", "quote_json", "unescape_copy",
+    "unquote_ident", "unquote_literal",
 ]
 
 try:
@@ -104,4 +105,10 @@ def unescape_copy(val):
     if val == r"\N":
         return None
     return unescape(val)
+
+def unquote_sql_ident(val):
+    """Unquotes possibly quoted SQL identifier."""
+    if val[0] == '"' and val[-1] == '"':
+        return val[1:-1].replace('""', '"')
+    return val
 

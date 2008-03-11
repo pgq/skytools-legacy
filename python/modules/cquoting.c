@@ -302,6 +302,114 @@ static PyObject *quote_bytea_raw(PyObject *self, PyObject *args)
 	return common_quote(args, quote_bytea_raw_body);
 }
 
+/* SQL unquote */
+static const char doc_unquote_literal[] =
+"Unquote SQL quoted string.\n\n"
+"C implementation.";
+
+static PyObject *do_sql_ext(unsigned char *src, Py_ssize_t src_len)
+{
+	unsigned char *dst, *src_end = src + src_len;
+	struct Buf buf;
+
+	dst = buf_init(&buf, src_len);
+        if (!dst)
+		return NULL;
+
+        while (src < src_end) {
+		if (*src == '\'') {
+			src++;
+			if (src < src_end && *src == '\'') {
+				*dst++ = *src++;
+				continue;
+			}
+			goto failed;
+		}
+		if (*src != '\\') {
+			*dst++ = *src++;
+			continue;
+		}
+		if (++src >= src_end)
+			goto failed;
+		switch (*src) {
+		case 't': *dst++ = '\t'; src++; break;
+		case 'n': *dst++ = '\n'; src++; break;
+		case 'r': *dst++ = '\r'; src++; break;
+		case 'a': *dst++ = '\a'; src++; break;
+		case 'b': *dst++ = '\b'; src++; break;
+		default:
+			if (*src >= '0' && *src <= '7') {
+				unsigned char c = *src++ - '0';
+				if (src < src_end && *src >= '0' && *src <= '7') {
+					c = (c << 3) | ((*src++) - '0');
+					if (src < src_end && *src >= '0' && *src <= '7')
+						c = (c << 3) | ((*src++) - '0');
+				}
+				*dst++ = c;
+			} else {
+				*dst++ = *src++;
+			}
+		}
+        }
+	return buf_pystr(&buf, 0, dst);
+failed:
+	PyErr_Format(PyExc_ValueError, "Broken exteded SQL string");
+	return NULL;
+}
+
+static PyObject *do_sql_std(unsigned char *src, Py_ssize_t src_len)
+{
+	unsigned char *dst, *src_end = src + src_len;
+	struct Buf buf;
+
+	dst = buf_init(&buf, src_len);
+        if (!dst)
+		return NULL;
+
+        while (src < src_end) {
+		if (*src != '\'') {
+			*dst++ = *src++;
+			continue;
+		}
+		src++;
+		if (src >= src_end || *src != '\'')
+			goto failed;
+		*dst++ = *src++;
+        }
+	return buf_pystr(&buf, 0, dst);
+failed:
+	PyErr_Format(PyExc_ValueError, "Broken standard SQL string");
+	return NULL;
+}
+
+static PyObject *unquote_literal(PyObject *self, PyObject *args)
+{
+	unsigned char *src = NULL;
+        Py_ssize_t src_len = 0;
+	int stdstr = 0;
+	PyObject *value = NULL;
+        if (!PyArg_ParseTuple(args, "O|i", &value, &stdstr))
+                return NULL;
+	if (PyString_AsStringAndSize(value, (char **)&src, &src_len) < 0)
+		return NULL;
+	if (src_len == 4 && strcasecmp((char *)src, "null") == 0) {
+		Py_INCREF(Py_None);
+		return Py_None;
+	}
+	if (src_len < 2 || src[src_len - 1] != '\'')
+		goto badstr;
+	if (src[0] == '\'') {
+		src++; src_len -= 2;
+		return stdstr ? do_sql_std(src, src_len) : do_sql_ext(src, src_len);
+	} else if (src_len > 2 && (src[0] | 0x20) == 'e' && src[1] == '\'') {
+		src += 2; src_len -= 3;
+		return do_sql_ext(src, src_len);
+	}
+badstr:
+	Py_INCREF(value);
+	return value;
+}
+
 /* C unescape */
 static const char doc_unescape[] =
 "Unescape C-style escaped string.\n\n"
@@ -627,6 +735,7 @@ cquoting_methods[] = {
 	{ "unescape", unescape, METH_VARARGS, doc_unescape },
 	{ "db_urlencode", db_urlencode, METH_VARARGS, doc_db_urlencode },
 	{ "db_urldecode", db_urldecode, METH_VARARGS, doc_db_urldecode },
+	{ "unquote_literal", unquote_literal, METH_VARARGS, doc_unquote_literal },
 	{ NULL }
 };
 
