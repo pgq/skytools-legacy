@@ -21,9 +21,11 @@ try:
 
     import psycopg2.extensions, psycopg2.extras
     from psycopg2.extensions import QuotedString
+    from sqltools import dbdict
 
     class _CompatRow(psycopg2.extras.DictRow):
         """Make DictRow more dict-like."""
+        __slots__ = ('_index',)
 
         def __setitem__(self, k, v):
             """Allow adding new key-value pairs.
@@ -47,13 +49,27 @@ try:
 
         def copy(self):
             """Return regular dict."""
-            return dict(self.items())
+            return dbdict(self.iteritems())
         
         def iterkeys(self):
             return self._index.iterkeys()
 
         def itervalues(self):
             return list.__iter__(self)
+
+        # obj.foo access
+        def __getattr__(self, k):
+            try:
+                return psycopg2.extras.DictRow.__getattr__(self, k)
+            except AttributeError:
+                return self[k]
+        def __setattr__(self, k, v):
+            if k == "_index":
+                return psycopg2.extras.DictRow.__setattr__(self, k, v)
+            else:
+                self[k] = v
+        def __delattr__(self, k):
+            raise Exception("del not supported for DictRow")
 
     class _CompatCursor(psycopg2.extras.DictCursor):
         """Regular psycopg2 DictCursor with dict* methods."""
