@@ -304,8 +304,12 @@ static PyObject *quote_bytea_raw(PyObject *self, PyObject *args)
 
 /* SQL unquote */
 static const char doc_unquote_literal[] =
-"Unquote SQL quoted string.\n\n"
-"C implementation.";
+"Unquote SQL value.\n\n"
+"E'..' -> extended quoting.\n"
+"'..' -> standard or extended quoting\n"
+"null -> None\n"
+"other -> returned as-is\n\n"
+"C implementation.\n";
 
 static PyObject *do_sql_ext(unsigned char *src, Py_ssize_t src_len)
 {

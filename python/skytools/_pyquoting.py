@@ -20,8 +20,9 @@ __all__ = [
 def quote_literal(s):
     """Quote a literal value for SQL.
 
-    If string contains '\\', it is quoted and result is prefixed with E.
-    Input value of None results in string "null" without quotes.
+    If string contains '\\', extended E'' quoting is used,
+    otherwise standard quoting.  Input value of None results
+    in string "null" without quotes.
 
     Python implementation.
     """
@@ -69,8 +70,6 @@ def quote_bytea_raw(s):
             else:
                 _bytea_map[c] = c
     return "".join([_bytea_map[c] for c in s])
-    # faster but does not match c code
-    #return s.replace("\\", "\\\\").replace("\0", "\\000")
 
 #
 # Database specific urlencode and urldecode.
@@ -167,8 +166,11 @@ def _sub_unescape_sqlext(m):
 
 def unquote_literal(val, stdstr = False):
     """Unquotes SQL string.
-    Ordinary '' quoted string can be both standard and extended quoted.
-    E'' quoting is always taken as extended quoted.
+
+    E'..' -> extended quoting.
+    '..' -> standard or extended quoting
+    null -> None
+    other -> returned as-is
     """
     if val[0] == "'" and val[-1] == "'":
         if stdstr:
