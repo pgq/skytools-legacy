@@ -52,7 +52,7 @@ Additional features:
 """
 
 import os, sys, skytools, re, signal, time, traceback
-import glob, ConfigParser
+import errno, glob, ConfigParser
 
 MASTER = 1
 SLAVE = 0
@@ -220,13 +220,21 @@ class WalMgr(skytools.DBScript):
     def signal_postmaster(self, data_dir, sgn):
         pidfile = os.path.join(data_dir, "postmaster.pid")
         if not os.path.isfile(pidfile):
-            self.log.info("postmaster is not running")
-            return
+            self.log.info("postmaster is not running (pidfile not present)")
+            return False
         buf = open(pidfile, "r").readline()
         pid = int(buf.strip())
         self.log.debug("Signal %d to process %d" % (sgn, pid))
-        if not self.not_really:
-            os.kill(pid, sgn)
+        if sgn == 0 or not self.not_really:
+            try:
+                os.kill(pid, sgn)
+            except OSError, ex:
+                if ex.errno == errno.ESRCH:
+                    self.log.info("postmaster is not running (no process at indicated PID)")
+                    return False
+                else:
+                    raise
+        return True
 
     def exec_rsync(self,args,die_on_error=False):
         cmdline = [ "rsync", "-a", "--quiet" ]
@@ -948,8 +956,10 @@ class WalMgr(skytools.DBScript):
 
         # is it dead?
         if pidfile and os.path.isfile(pidfile):
-            self.log.fatal("Postmaster still running.  Cannot continue.")
-            sys.exit(1)
+            self.log.info("Pidfile exists, checking if process is running.")
+            if self.signal_postmaster(data_dir, 0):
+                self.log.fatal("Postmaster still running.  Cannot continue.")
+                sys.exit(1)
 
         # find name for data backup
         i = 0
