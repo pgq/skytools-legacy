@@ -4,12 +4,13 @@
 
 ./gendb.sh
 
+rm -rf upgrade
 cp -rp ../../upgrade .
 
 skytools_upgrade.py -v "dbname=upgradedb"
 
 ./gendb.sh
-psql -q upgradedb -f upgrade/final/v2.1.5_pgq.sql
+psql -q upgradedb -f upgrade/final/v2.1.5_pgq_core.sql
 psql -q upgradedb -f upgrade/final/v2.1.5_pgq_ext.sql
 psql -q upgradedb -f upgrade/final/v2.1.5_londiste.sql
 
