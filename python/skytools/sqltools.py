@@ -3,7 +3,7 @@
 
 import os
 from cStringIO import StringIO
-from skytools.quoting import quote_copy, quote_literal
+from skytools.quoting import quote_copy, quote_literal, quote_fqident, quote_ident
 import skytools.installer_config
 
 __all__ = [
@@ -12,8 +12,16 @@ __all__ = [
     "exists_function", "exists_language", "Snapshot", "magic_insert",
     "CopyPipe", "full_copy", "DBObject", "DBSchema", "DBTable", "DBFunction",
     "DBLanguage", "db_install", "installer_find_file", "installer_apply_file",
+    "dbdict", "mk_insert_sql", "mk_update_sql", "mk_delete_sql",
 ]
 
+class dbdict(dict):
+    """Wrapper on actual dict that allows
+    accessing dict keys as attributes."""
+    # obj.foo access
+    def __getattr__(self, k):       return self[k]
+    def __setattr__(self, k, v):    self[k] = v
+    def __delattr__(self, k):       del self[k]
 
 #
 # Fully qualified table name
@@ -400,4 +408,70 @@ def installer_apply_file(db, filename, log):
     for stmt in skytools.parse_statements(sql):
         log.debug(repr(stmt))
         curs.execute(stmt)
+
+#
+# Generate INSERT/UPDATE/DELETE statement
+#
+
+def mk_insert_sql(row, tbl, pkey_list = None, field_map = None):
+    """Generate INSERT statement from dict data."""
+
+    col_list = []
+    val_list = []
+    if field_map:
+        for src, dst in field_map.iteritems():
+            col_list.append(quote_ident(dst))
+            val_list.append(quote_literal(row[src]))
+    else:
+        for c, v in row.iteritems():
+            col_list.append(quote_ident(c))
+            val_list.append(quote_literal(v))
+    col_str = ", ".join(col_list)
+    val_str = ", ".join(val_list)
+    return "insert into %s (%s) values (%s);" % (
+                    quote_fqident(tbl), col_str, val_str)
+
+def mk_update_sql(row, tbl, pkey_list, field_map = None):
+    """Generate UPDATE statement from dict data."""
+
+    if len(pkey_list) < 1:
+        raise Exception("update needs pkeys")
+    set_list = []
+    whe_list = []
+    pkmap = {}
+    for k in pkey_list:
+        pkmap[k] = 1
+        new_k = field_map and field_map[k] or k
+        col = quote_ident(new_k)
+        val = quote_literal(row[k])
+        whe_list.append("%s = %s" % (col, val))
+
+    if field_map:
+        for src, dst in field_map.iteritems():
+            if src not in pkmap:
+                col = quote_ident(dst)
+                val = quote_literal(row[src])
+                set_list.append("%s = %s" % (col, val))
+    else:
+        for col, val in row.iteritems():
+            if col not in pkmap:
+                col = quote_ident(col)
+                val = quote_literal(val)
+                set_list.append("%s = %s" % (col, val))
+    return "update %s set %s where %s;" % (quote_fqident(tbl),
+            ", ".join(set_list), " and ".join(whe_list))
+
+def mk_delete_sql(row, tbl, pkey_list, field_map = None):
+    """Generate DELETE statement from dict data."""
+
+    if len(pkey_list) < 1:
+        raise Exception("delete needs pkeys")
+    whe_list = []
+    for k in pkey_list:
+        new_k = field_map and field_map[k] or k
+        col = quote_ident(new_k)
+        val = quote_literal(row[k])
+        whe_list.append("%s = %s" % (col, val))
+    whe_str = " and ".join(whe_list) 
+    return "delete from %s where %s;" % (quote_fqident(tbl), whe_str)
 

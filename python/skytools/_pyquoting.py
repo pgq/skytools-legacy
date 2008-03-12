@@ -10,6 +10,7 @@ import urllib, re
 __all__ = [
     "quote_literal", "quote_copy", "quote_bytea_raw",
     "db_urlencode", "db_urldecode", "unescape",
+    "unquote_literal",
 ]
 
 # 
@@ -19,8 +20,9 @@ __all__ = [
 def quote_literal(s):
     """Quote a literal value for SQL.
 
-    If string contains '\\', it is quoted and result is prefixed with E.
-    Input value of None results in string "null" without quotes.
+    If string contains '\\', extended E'' quoting is used,
+    otherwise standard quoting.  Input value of None results
+    in string "null" without quotes.
 
     Python implementation.
     """
@@ -68,8 +70,6 @@ def quote_bytea_raw(s):
             else:
                 _bytea_map[c] = c
     return "".join([_bytea_map[c] for c in s])
-    # faster but does not match c code
-    #return s.replace("\\", "\\\\").replace("\0", "\\000")
 
 #
 # Database specific urlencode and urldecode.
@@ -135,7 +135,7 @@ _esc_map = {
     '\\': '\\',
 }
 
-def _sub_unescape(m):
+def _sub_unescape_c(m):
     v = m.group(1)
     if (len(v) == 1) and (v < '0' or v > '7'):
         try:
@@ -149,5 +149,37 @@ def unescape(val):
     """Removes C-style escapes from string.
     Python implementation.
     """
-    return _esc_rc.sub(_sub_unescape, val)
+    return _esc_rc.sub(_sub_unescape_c, val)
+
+_esql_re = r"''|\\([0-7]{1,3}|.)"
+_esql_rc = re.compile(_esc_re)
+def _sub_unescape_sqlext(m):
+    if m.group() == "''":
+        return "'"
+    v = m.group(1)
+    if (len(v) == 1) and (v < '0' or v > '7'):
+        try:
+            return _esc_map[v]
+        except KeyError:
+            return v
+    return chr(int(v, 8))
+
+def unquote_literal(val, stdstr = False):
+    """Unquotes SQL string.
+
+    E'..' -> extended quoting.
+    '..' -> standard or extended quoting
+    null -> None
+    other -> returned as-is
+    """
+    if val[0] == "'" and val[-1] == "'":
+        if stdstr:
+            return val[1:-1].replace("''", "'")
+        else:
+            return _esql_rc.sub(_sub_unescape_sqlext, val[1:-1])
+    elif len(val) > 2 and val[0] in ('E', 'e') and val[1] == "'" and val[-1] == "'":
+        return _esql_rc.sub(_sub_unescape_sqlext, val[2:-1])
+    elif val.lower() == "null":
+        return None
+    return val
 
