@@ -890,6 +890,15 @@ class WalMgr(skytools.DBScript):
                     self.log.info("%s: not found, stopping" % srcname)
                     sys.exit(1)
 
+            # nothing to do, just in case check if parent is alive
+            try:
+                os.kill(os.getppid(), 0)
+            except OSError, ex:
+                if ex.errno == errno.ESRCH:
+                    self.log.info("%s: not found, stopping" % srcname)
+                    sys.exit(1)
+                self.log.warning("Parent aliveness check failed: "+str(ex))
+
             # nothing to do, sleep
             self.log.debug("%s: not found, sleeping" % srcname)
             time.sleep(1)
