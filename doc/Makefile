@@ -7,7 +7,7 @@ web = mkz@shell.pgfoundry.org:/home/pgfoundry.org/groups/skytools/htdocs/
 
 EPYDOC = epydoc-py25
 EPYARGS = --no-private --url="http://pgfoundry.org/projects/skytools/" \
-	--name="Skytools" --html --no-private
+	--name="Skytools" --html --no-private -v
 
 HTMLS = londiste.cmdline.html londiste.config.html README.html INSTALL.html \
 	londiste.ref.html TODO.html pgq-sql.html pgq-admin.html pgq-nodupes.html \
