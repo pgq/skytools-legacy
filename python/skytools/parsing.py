@@ -4,7 +4,6 @@
 import re
 
 from skytools.quoting import unescape, unquote_literal, unquote_ident
-from skytools.sqltools import dbdict
 
 __all__ = ["parse_pgarray", "parse_logtriga_sql", "parse_tabbed_table", "parse_statements"]
 
@@ -125,7 +124,7 @@ class _logtriga_parser:
                 raise Exception("syntax error, fields do not match values")
         fields = [unquote_ident(f) for f in fields]
         values = [unquote_literal(f) for f in values]
-        return dbdict(zip(fields, values))
+        return dict(zip(fields, values))
 
 def parse_logtriga_sql(op, sql):
     """Parse partial SQL used by logtriga() back to data values.
