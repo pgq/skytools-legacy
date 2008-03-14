@@ -1,4 +1,4 @@
-2008-02-xx  -  SkyTools 2.1.6  -  ""
+2008-03-xx  -  SkyTools 2.1.6  -  ""
 
   = Fixes =
 
@@ -14,7 +14,12 @@
     * Restore iter-on-values behaviour for rows from curs.fetch*.  The attempt
       to make them iter-on-keys seems now misguided, as iter-on-values is already
       used in existing code, and iter-on-keys returns keys in random order.
+
     * londiste subscriber add: Dont drop triggers on table if --expect-sync is used.
+    * londiste copy: drop triggers and fkeys in case "replay" or "subscriber add" was skipped
+    * walmgr restore: better detection if old postmaster is running (Charles Duffy)
+    * walmgr xrestore: detect the death of parent process
+    
 
   = Features =
 
@@ -40,6 +45,7 @@
         quote_bytea_raw, unescape, db_urlencode, db_urldecode.  This gives
         20x speedup for db_urlencode and 50x for db_urldecode on some
         real-life data.
+      - unquote_ident(), unquote_literal()
 
 2007-11-19  -  SkyTools 2.1.5  -  "Enterprise-Grade Duct Tape"
 

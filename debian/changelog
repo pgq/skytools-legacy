@@ -1,3 +1,10 @@
+skytools (2.1.6rc3) unstable; urgency=low
+
+  * quoting/parsing fixes
+  ? walmgr fix
+
+ -- Marko Kreen <marko.kreen@skype.net>  Wed, 12 Mar 2008 15:43:39 +0200
+
 skytools (2.1.6rc2) unstable; urgency=low
 
   * Bugfix release.
