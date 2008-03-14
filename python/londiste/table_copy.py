@@ -41,6 +41,14 @@ class CopyTable(Replicator):
 
         self.log.info("Starting full copy of %s" % tbl_stat.name)
 
+        # just in case, drop all fkeys (in case "replay" was skipped)
+        # !! this may commit, so must be done before anything else !!
+        self.drop_fkeys(dst_db, tbl_stat.name)
+
+        # just in case, drop all triggers (in case "subscriber add" was skipped)
+        q_triggers = "select londiste.subscriber_drop_all_table_triggers(%s)"
+        dst_curs.execute(q_triggers, [tbl_stat.name])
+
         # find dst struct
         src_struct = TableStruct(src_curs, tbl_stat.name)
         dst_struct = TableStruct(dst_curs, tbl_stat.name)
