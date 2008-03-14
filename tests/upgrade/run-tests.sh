@@ -7,7 +7,7 @@
 rm -rf upgrade
 cp -rp ../../upgrade .
 
-skytools_upgrade.py -v "dbname=upgradedb"
+skytools_upgrade.py "dbname=upgradedb"
 
 ./gendb.sh
 psql -q upgradedb -f upgrade/final/v2.1.5_pgq_core.sql
