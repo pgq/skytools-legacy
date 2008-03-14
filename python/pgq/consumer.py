@@ -36,8 +36,8 @@ class _BatchWalker(object):
     Events are loaded using cursor.  It will be given
     as ev_list to process_batch(). It allows:
 
-    - one for loop over events
-    - len() after that
+     - one for loop over events
+     - len() after that
     """
     def __init__(self, curs, batch_id, queue_name, fetch_size = 300):
         self.queue_name = queue_name

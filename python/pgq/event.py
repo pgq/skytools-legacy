@@ -2,7 +2,7 @@
 """PgQ event container.
 """
 
-__all__ = ('EV_RETRY', 'EV_DONE', 'EV_FAILED', 'Event')
+__all__ = ['EV_RETRY', 'EV_DONE', 'EV_FAILED', 'Event']
 
 # Event status codes
 EV_RETRY = 0

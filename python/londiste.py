@@ -13,6 +13,8 @@ if os.path.exists(os.path.join(sys.path[0], 'londiste.py')) \
 
 from londiste import *
 
+__all__ = ['Londiste']
+
 command_usage = """
 %prog [options] INI CMD [subcmd args]
 

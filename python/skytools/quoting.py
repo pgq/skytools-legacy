@@ -16,9 +16,9 @@ __all__ = [
 ]
 
 try:
-    from _cquoting import *
+    from skytools._cquoting import *
 except ImportError:
-    from _pyquoting import *
+    from skytools._pyquoting import *
 
 # 
 # SQL quoting

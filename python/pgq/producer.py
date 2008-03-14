@@ -4,6 +4,8 @@
 
 import skytools
 
+__all__ = ['bulk_insert_events', 'insert_event']
+
 _fldmap = {
     'id': 'ev_id',
     'time': 'ev_time',
