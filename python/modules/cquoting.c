@@ -386,6 +386,33 @@ failed:
 	return NULL;
 }
 
+static PyObject *do_dolq(unsigned char *src, Py_ssize_t src_len)
+{
+	/* src_len >= 2, '$' in start and end */
+	unsigned char *src_end = src + src_len;
+	unsigned char *p1 = src + 1, *p2 = src_end - 2;
+	
+	while (p1 < src_end && *p1 != '$')
+		p1++;
+	while (p2 > src && *p2 != '$')
+		p2--;
+	if (p2 <= p1)
+		goto failed;
+	
+	p1++; /* position after '$' */
+
+	if ((p1 - src) != (src_end - p2))
+		goto failed;
+	if (memcmp(src, p2, p1 - src) != 0)
+		goto failed;
+
+	return PyString_FromStringAndSize((char *)p1, p2 - p1);
+
+failed:
+	PyErr_Format(PyExc_ValueError, "Broken dollar-quoted string");
+	return NULL;
+}
+
 static PyObject *unquote_literal(PyObject *self, PyObject *args)
 {
 	unsigned char *src = NULL;
@@ -400,6 +427,8 @@ static PyObject *unquote_literal(PyObject *self, PyObject *args)
 		Py_INCREF(Py_None);
 		return Py_None;
 	}
+	if (src_len >= 2 && src[0] == '$' && src[src_len - 1] == '$')
+		return do_dolq(src, src_len);
 	if (src_len < 2 || src[src_len - 1] != '\'')
 		goto badstr;
 	if (src[0] == '\'') {

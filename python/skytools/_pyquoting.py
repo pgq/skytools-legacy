@@ -179,6 +179,15 @@ def unquote_literal(val, stdstr = False):
             return _esql_rc.sub(_sub_unescape_sqlext, val[1:-1])
     elif len(val) > 2 and val[0] in ('E', 'e') and val[1] == "'" and val[-1] == "'":
         return _esql_rc.sub(_sub_unescape_sqlext, val[2:-1])
+    elif len(val) >= 2 and val[0] == '$' and val[-1] == '$':
+        p1 = val.find('$', 1)
+        p2 = val.rfind('$', 1, -1)
+        if p1 > 0 and p2 > p1:
+            t1 = val[:p1+1]
+            t2 = val[p2:]
+            if t1 == t2:
+                return val[len(t1):-len(t1)]
+        raise Exception("Bad dollar-quoted string")
     elif val.lower() == "null":
         return None
     return val
