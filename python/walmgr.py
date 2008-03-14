@@ -816,13 +816,14 @@ class WalMgr(skytools.DBScript):
         if self.wtype == MASTER:
             self.master_xrestore(srcname, dstpath)
         else:
-            self.slave_xrestore_unsafe(srcname, dstpath)
+            self.slave_xrestore_unsafe(srcname, dstpath, os.getppid())
 
     def slave_xrestore(self, srcname, dstpath):
         loop = 1
+        ppid = os.getppid()
         while loop:
             try:
-                self.slave_xrestore_unsafe(srcname, dstpath)
+                self.slave_xrestore_unsafe(srcname, dstpath, ppid)
                 loop = 0
             except SystemExit, d:
                 sys.exit(1)
@@ -849,7 +850,12 @@ class WalMgr(skytools.DBScript):
                 return
         self.log.warning("Could not restore file %s" % srcname)
 
-    def slave_xrestore_unsafe(self, srcname, dstpath):
+    def is_parent_alive(self, parent_pid):
+        if os.getppid() != parent_pid or parent_pid <= 1:
+            return False
+        return True
+
+    def slave_xrestore_unsafe(self, srcname, dstpath, parent_pid):
         srcdir = self.cf.get("completed_wals")
         partdir = self.cf.get("partial_wals")
         pausefile = os.path.join(srcdir, "PAUSE")
@@ -891,13 +897,9 @@ class WalMgr(skytools.DBScript):
                     sys.exit(1)
 
             # nothing to do, just in case check if parent is alive
-            try:
-                os.kill(os.getppid(), 0)
-            except OSError, ex:
-                if ex.errno == errno.ESRCH:
-                    self.log.info("%s: not found, stopping" % srcname)
-                    sys.exit(1)
-                self.log.warning("Parent aliveness check failed: "+str(ex))
+            if not self.is_parent_alive(parent_pid):
+                self.log.warning("Parent dead, quitting")
+                sys.exit(1)
 
             # nothing to do, sleep
             self.log.debug("%s: not found, sleeping" % srcname)
