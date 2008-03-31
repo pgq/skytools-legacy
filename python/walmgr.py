@@ -52,7 +52,7 @@ Additional features:
 """
 
 import os, sys, skytools, re, signal, time, traceback
-import errno, glob, ConfigParser
+import errno, glob, ConfigParser, shutil
 
 MASTER = 1
 SLAVE = 0
@@ -84,6 +84,23 @@ def yesno(prompt):
         if answer in ('no','n'):
             return False
         sys.stderr.write("Please answer yes or no.\n")
+
+def copy_conf(src, dst):
+    """Copy config file or symlink.
+    Does _not_ overwrite target.
+    """
+    if os.path.isdir(dst):
+        dst = os.path.join(dst, os.path.basename(src))
+    if os.path.exists(dst):
+        return False
+    if os.path.islink(src):
+        linkdst = os.readlink(src)
+        os.symlink(linkdst, listdst)
+    elif os.path.isfile(src):
+        shutil.copy2(src, dst)
+    else:
+        raise Exception("Unsupported file type: %s" % src)
+    return True
 
 class WalChunk:
     def __init__(self,filename,pos=0,bytes=0):
@@ -1018,10 +1035,24 @@ class WalMgr(skytools.DBScript):
         else:
             data_dir = full_dir
 
+        if createbackup and os.path.isdir(bak):
+            for cf in ('postgresql.conf', 'pg_hba.conf', 'pg_ident.conf'):
+                cfsrc = os.path.join(bak, cf)
+                cfdst = os.path.join(data_dir, cf)
+                if os.path.exists(cfdst):
+                    self.log.info("Already exists: %s" % cfdst)
+                elif os.path.exists(cfsrc):
+                    self.log.info("Copy %s to %s" % (cfsrc, cfdst))
+                    if not self.not_really:
+                        copy_conf(cfsrc, cfdst)
+
         # re-link tablespaces
         spc_dir = os.path.join(data_dir, "pg_tblspc")
         tmp_dir = os.path.join(data_dir, "tmpspc")
-        if os.path.isdir(spc_dir) and os.path.isdir(tmp_dir):
+        if not os.path.isdir(spc_dir):
+            # 8.3 requires its existence
+            os.mkdir(spc_dir)
+        if os.path.isdir(tmp_dir):
             self.log.info("Linking tablespaces to temporary location")
             
             # don't look into spc_dir, thus allowing
