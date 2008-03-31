@@ -98,7 +98,7 @@ class Londiste(skytools.DBScript):
 
         g = optparse.OptionGroup(p, "expert options")
         g.add_option("--all", action="store_true",
-                help = "add: include add possible tables")
+                help = "add: include all possible tables")
         g.add_option("--force", action="store_true",
                 help = "add: ignore table differences, repair: ignore lag")
         g.add_option("--expect-sync", action="store_true", dest="expect_sync",
