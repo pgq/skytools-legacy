@@ -87,9 +87,10 @@ $walmgr $tmp/wal.slave.ini restore
 sleep 10
 echo '####' $walmgr $tmp/wal.master.ini sync
 $walmgr wal.master.ini sync
+sleep 4
 echo '####' $walmgr $tmp/wal.slave.ini boot
 $walmgr $tmp/wal.slave.ini boot
-sleep 4
+sleep 20
 psql -c "select * from t" -p 7201 -h /tmp/waltest 
 
 pg_ctl -D data.master stop
