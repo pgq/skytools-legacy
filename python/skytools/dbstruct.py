@@ -3,7 +3,7 @@
 
 import sys, re
 
-from sqltools import fq_name_parts, get_table_oid
+from skytools.sqltools import fq_name_parts, get_table_oid
 
 __all__ = ['TableStruct',
     'T_TABLE', 'T_CONSTRAINT', 'T_INDEX', 'T_TRIGGER',
