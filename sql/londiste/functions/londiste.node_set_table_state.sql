@@ -21,7 +21,7 @@ returns integer as $$
 -- ----------------------------------------------------------------------
 begin
     update londiste.node_table
-        set snapshot = i_snapshot,
+        set custom_snapshot = i_snapshot,
             merge_state = i_merge_state,
             -- reset skip_snapshot when table is copied over
             skip_truncate = case when i_merge_state = 'ok'

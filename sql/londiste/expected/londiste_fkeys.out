@@ -16,58 +16,76 @@ create table ref_3 (
     val text
 );
 NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "ref_3_pkey" for table "ref_3"
-select * from londiste.subscriber_add_table('refqueue', 'public.ref_1');
- subscriber_add_table 
-----------------------
-                    0
+select * from londiste.set_add_table('branch_set', 'public.ref_1');
+ ret_code | ret_desc 
+----------+----------
+      200 | OK
 (1 row)
 
-select * from londiste.subscriber_add_table('refqueue', 'public.ref_2');
- subscriber_add_table 
-----------------------
-                    0
+select * from londiste.set_add_table('branch_set', 'public.ref_2');
+ ret_code | ret_desc 
+----------+----------
+      200 | OK
 (1 row)
 
-select * from londiste.subscriber_add_table('refqueue', 'public.ref_3');
- subscriber_add_table 
-----------------------
-                    0
+select * from londiste.set_add_table('branch_set', 'public.ref_3');
+ ret_code | ret_desc 
+----------+----------
+      200 | OK
+(1 row)
+
+select * from londiste.node_add_table('branch_set', 'public.ref_1');
+ ret_code | ret_desc 
+----------+----------
+      200 | OK
+(1 row)
+
+select * from londiste.node_add_table('branch_set', 'public.ref_2');
+ ret_code | ret_desc 
+----------+----------
+      200 | OK
+(1 row)
+
+select * from londiste.node_add_table('branch_set', 'public.ref_3');
+ ret_code | ret_desc 
+----------+----------
+      200 | OK
 (1 row)
 
 select * from londiste.find_table_fkeys('public.ref_1');
-  from_table  |   to_table   |   fkey_name    |                fkey_def                
---------------+--------------+----------------+----------------------------------------
- public.ref_2 | public.ref_1 | ref_2_ref_fkey | FOREIGN KEY (ref) REFERENCES ref_1(id)
+  from_table  |   to_table   |   fkey_name    |                                              fkey_def                                              
+--------------+--------------+----------------+----------------------------------------------------------------------------------------------------
+ public.ref_2 | public.ref_1 | ref_2_ref_fkey | alter table only public.ref_2 add constraint ref_2_ref_fkey FOREIGN KEY (ref) REFERENCES ref_1(id)
 (1 row)
 
 select * from londiste.find_table_fkeys('public.ref_2');
-  from_table  |   to_table   |    fkey_name    |                fkey_def                 
---------------+--------------+-----------------+-----------------------------------------
- public.ref_2 | public.ref_1 | ref_2_ref_fkey  | FOREIGN KEY (ref) REFERENCES ref_1(id)
- public.ref_3 | public.ref_2 | ref_3_ref2_fkey | FOREIGN KEY (ref2) REFERENCES ref_2(id)
+  from_table  |   to_table   |    fkey_name    |                                               fkey_def                                               
+--------------+--------------+-----------------+------------------------------------------------------------------------------------------------------
+ public.ref_2 | public.ref_1 | ref_2_ref_fkey  | alter table only public.ref_2 add constraint ref_2_ref_fkey FOREIGN KEY (ref) REFERENCES ref_1(id)
+ public.ref_3 | public.ref_2 | ref_3_ref2_fkey | alter table only public.ref_3 add constraint ref_3_ref2_fkey FOREIGN KEY (ref2) REFERENCES ref_2(id)
 (2 rows)
 
 select * from londiste.find_table_fkeys('public.ref_3');
-  from_table  |   to_table   |    fkey_name    |                fkey_def                 
---------------+--------------+-----------------+-----------------------------------------
- public.ref_3 | public.ref_2 | ref_3_ref2_fkey | FOREIGN KEY (ref2) REFERENCES ref_2(id)
+  from_table  |   to_table   |    fkey_name    |                                               fkey_def                                               
+--------------+--------------+-----------------+------------------------------------------------------------------------------------------------------
+ public.ref_3 | public.ref_2 | ref_3_ref2_fkey | alter table only public.ref_3 add constraint ref_3_ref2_fkey FOREIGN KEY (ref2) REFERENCES ref_2(id)
 (1 row)
 
-select * from londiste.subscriber_get_table_pending_fkeys('public.ref_2');
+select * from londiste.get_table_pending_fkeys('public.ref_2');
  from_table | to_table | fkey_name | fkey_def 
 ------------+----------+-----------+----------
 (0 rows)
 
-select * from londiste.subscriber_get_queue_valid_pending_fkeys('refqueue');
+select * from londiste.node_get_valid_pending_fkeys('branch_set');
  from_table | to_table | fkey_name | fkey_def 
 ------------+----------+-----------+----------
 (0 rows)
 
 -- drop fkeys
-select * from londiste.subscriber_drop_table_fkey('public.ref_2', 'ref_2_ref_fkey');
- subscriber_drop_table_fkey 
-----------------------------
-                          1
+select * from londiste.drop_table_fkey('public.ref_2', 'ref_2_ref_fkey');
+ drop_table_fkey 
+-----------------
+               1
 (1 row)
 
 select * from londiste.find_table_fkeys('public.ref_1');
@@ -76,21 +94,21 @@ select * from londiste.find_table_fkeys('public.ref_1');
 (0 rows)
 
 select * from londiste.find_table_fkeys('public.ref_2');
-  from_table  |   to_table   |    fkey_name    |                fkey_def                 
---------------+--------------+-----------------+-----------------------------------------
- public.ref_3 | public.ref_2 | ref_3_ref2_fkey | FOREIGN KEY (ref2) REFERENCES ref_2(id)
+  from_table  |   to_table   |    fkey_name    |                                               fkey_def                                               
+--------------+--------------+-----------------+------------------------------------------------------------------------------------------------------
+ public.ref_3 | public.ref_2 | ref_3_ref2_fkey | alter table only public.ref_3 add constraint ref_3_ref2_fkey FOREIGN KEY (ref2) REFERENCES ref_2(id)
 (1 row)
 
 select * from londiste.find_table_fkeys('public.ref_3');
-  from_table  |   to_table   |    fkey_name    |                fkey_def                 
---------------+--------------+-----------------+-----------------------------------------
- public.ref_3 | public.ref_2 | ref_3_ref2_fkey | FOREIGN KEY (ref2) REFERENCES ref_2(id)
+  from_table  |   to_table   |    fkey_name    |                                               fkey_def                                               
+--------------+--------------+-----------------+------------------------------------------------------------------------------------------------------
+ public.ref_3 | public.ref_2 | ref_3_ref2_fkey | alter table only public.ref_3 add constraint ref_3_ref2_fkey FOREIGN KEY (ref2) REFERENCES ref_2(id)
 (1 row)
 
-select * from londiste.subscriber_drop_table_fkey('public.ref_3', 'ref_3_ref2_fkey');
- subscriber_drop_table_fkey 
-----------------------------
-                          1
+select * from londiste.drop_table_fkey('public.ref_3', 'ref_3_ref2_fkey');
+ drop_table_fkey 
+-----------------
+               1
 (1 row)
 
 -- check if dropped
@@ -110,95 +128,95 @@ select * from londiste.find_table_fkeys('public.ref_3');
 (0 rows)
 
 -- look state
-select * from londiste.subscriber_get_table_pending_fkeys('public.ref_2');
-  from_table  |   to_table   |    fkey_name    |                fkey_def                 
---------------+--------------+-----------------+-----------------------------------------
- public.ref_2 | public.ref_1 | ref_2_ref_fkey  | FOREIGN KEY (ref) REFERENCES ref_1(id)
- public.ref_3 | public.ref_2 | ref_3_ref2_fkey | FOREIGN KEY (ref2) REFERENCES ref_2(id)
+select * from londiste.get_table_pending_fkeys('public.ref_2');
+  from_table  |   to_table   |    fkey_name    |                                               fkey_def                                               
+--------------+--------------+-----------------+------------------------------------------------------------------------------------------------------
+ public.ref_2 | public.ref_1 | ref_2_ref_fkey  | alter table only public.ref_2 add constraint ref_2_ref_fkey FOREIGN KEY (ref) REFERENCES ref_1(id)
+ public.ref_3 | public.ref_2 | ref_3_ref2_fkey | alter table only public.ref_3 add constraint ref_3_ref2_fkey FOREIGN KEY (ref2) REFERENCES ref_2(id)
 (2 rows)
 
-select * from londiste.subscriber_get_queue_valid_pending_fkeys('refqueue');
+select * from londiste.node_get_valid_pending_fkeys('branch_set');
  from_table | to_table | fkey_name | fkey_def 
 ------------+----------+-----------+----------
 (0 rows)
 
 -- toggle sync
-select * from londiste.subscriber_set_table_state('refqueue', 'public.ref_1', null, 'ok');
- subscriber_set_table_state 
-----------------------------
-                          1
+select * from londiste.node_set_table_state('branch_set', 'public.ref_1', null, 'ok');
+ node_set_table_state 
+----------------------
+                    1
 (1 row)
 
-select * from londiste.subscriber_get_queue_valid_pending_fkeys('refqueue');
+select * from londiste.node_get_valid_pending_fkeys('branch_set');
  from_table | to_table | fkey_name | fkey_def 
 ------------+----------+-----------+----------
 (0 rows)
 
-select * from londiste.subscriber_set_table_state('refqueue', 'public.ref_2', null, 'ok');
- subscriber_set_table_state 
-----------------------------
-                          1
+select * from londiste.node_set_table_state('branch_set', 'public.ref_2', null, 'ok');
+ node_set_table_state 
+----------------------
+                    1
 (1 row)
 
-select * from londiste.subscriber_get_queue_valid_pending_fkeys('refqueue');
-  from_table  |   to_table   |   fkey_name    |                fkey_def                
---------------+--------------+----------------+----------------------------------------
- public.ref_2 | public.ref_1 | ref_2_ref_fkey | FOREIGN KEY (ref) REFERENCES ref_1(id)
+select * from londiste.node_get_valid_pending_fkeys('branch_set');
+  from_table  |   to_table   |   fkey_name    |                                              fkey_def                                              
+--------------+--------------+----------------+----------------------------------------------------------------------------------------------------
+ public.ref_2 | public.ref_1 | ref_2_ref_fkey | alter table only public.ref_2 add constraint ref_2_ref_fkey FOREIGN KEY (ref) REFERENCES ref_1(id)
 (1 row)
 
-select * from londiste.subscriber_set_table_state('refqueue', 'public.ref_3', null, 'ok');
- subscriber_set_table_state 
-----------------------------
-                          1
+select * from londiste.node_set_table_state('branch_set', 'public.ref_3', null, 'ok');
+ node_set_table_state 
+----------------------
+                    1
 (1 row)
 
-select * from londiste.subscriber_get_queue_valid_pending_fkeys('refqueue');
-  from_table  |   to_table   |    fkey_name    |                fkey_def                 
---------------+--------------+-----------------+-----------------------------------------
- public.ref_2 | public.ref_1 | ref_2_ref_fkey  | FOREIGN KEY (ref) REFERENCES ref_1(id)
- public.ref_3 | public.ref_2 | ref_3_ref2_fkey | FOREIGN KEY (ref2) REFERENCES ref_2(id)
+select * from londiste.node_get_valid_pending_fkeys('branch_set');
+  from_table  |   to_table   |    fkey_name    |                                               fkey_def                                               
+--------------+--------------+-----------------+------------------------------------------------------------------------------------------------------
+ public.ref_2 | public.ref_1 | ref_2_ref_fkey  | alter table only public.ref_2 add constraint ref_2_ref_fkey FOREIGN KEY (ref) REFERENCES ref_1(id)
+ public.ref_3 | public.ref_2 | ref_3_ref2_fkey | alter table only public.ref_3 add constraint ref_3_ref2_fkey FOREIGN KEY (ref2) REFERENCES ref_2(id)
 (2 rows)
 
 -- restore
-select * from londiste.subscriber_restore_table_fkey('public.ref_2', 'ref_2_ref_fkey');
- subscriber_restore_table_fkey 
--------------------------------
-                             1
+select * from londiste.restore_table_fkey('public.ref_2', 'ref_2_ref_fkey');
+ restore_table_fkey 
+--------------------
+                  1
 (1 row)
 
-select * from londiste.subscriber_restore_table_fkey('public.ref_3', 'ref_3_ref2_fkey');
- subscriber_restore_table_fkey 
--------------------------------
-                             1
+select * from londiste.restore_table_fkey('public.ref_3', 'ref_3_ref2_fkey');
+ restore_table_fkey 
+--------------------
+                  1
 (1 row)
 
 -- look state
-select * from londiste.subscriber_get_table_pending_fkeys('public.ref_2');
+select * from londiste.get_table_pending_fkeys('public.ref_2');
  from_table | to_table | fkey_name | fkey_def 
 ------------+----------+-----------+----------
 (0 rows)
 
-select * from londiste.subscriber_get_queue_valid_pending_fkeys('refqueue');
+select * from londiste.node_get_valid_pending_fkeys('branch_set');
  from_table | to_table | fkey_name | fkey_def 
 ------------+----------+-----------+----------
 (0 rows)
 
 select * from londiste.find_table_fkeys('public.ref_1');
-  from_table  |   to_table   |   fkey_name    |                fkey_def                
---------------+--------------+----------------+----------------------------------------
- public.ref_2 | public.ref_1 | ref_2_ref_fkey | FOREIGN KEY (ref) REFERENCES ref_1(id)
+  from_table  |   to_table   |   fkey_name    |                                              fkey_def                                              
+--------------+--------------+----------------+----------------------------------------------------------------------------------------------------
+ public.ref_2 | public.ref_1 | ref_2_ref_fkey | alter table only public.ref_2 add constraint ref_2_ref_fkey FOREIGN KEY (ref) REFERENCES ref_1(id)
 (1 row)
 
 select * from londiste.find_table_fkeys('public.ref_2');
-  from_table  |   to_table   |    fkey_name    |                fkey_def                 
---------------+--------------+-----------------+-----------------------------------------
- public.ref_2 | public.ref_1 | ref_2_ref_fkey  | FOREIGN KEY (ref) REFERENCES ref_1(id)
- public.ref_3 | public.ref_2 | ref_3_ref2_fkey | FOREIGN KEY (ref2) REFERENCES ref_2(id)
+  from_table  |   to_table   |    fkey_name    |                                               fkey_def                                               
+--------------+--------------+-----------------+------------------------------------------------------------------------------------------------------
+ public.ref_2 | public.ref_1 | ref_2_ref_fkey  | alter table only public.ref_2 add constraint ref_2_ref_fkey FOREIGN KEY (ref) REFERENCES ref_1(id)
+ public.ref_3 | public.ref_2 | ref_3_ref2_fkey | alter table only public.ref_3 add constraint ref_3_ref2_fkey FOREIGN KEY (ref2) REFERENCES ref_2(id)
 (2 rows)
 
 select * from londiste.find_table_fkeys('public.ref_3');
-  from_table  |   to_table   |    fkey_name    |                fkey_def                 
---------------+--------------+-----------------+-----------------------------------------
- public.ref_3 | public.ref_2 | ref_3_ref2_fkey | FOREIGN KEY (ref2) REFERENCES ref_2(id)
+  from_table  |   to_table   |    fkey_name    |                                               fkey_def                                               
+--------------+--------------+-----------------+------------------------------------------------------------------------------------------------------
+ public.ref_3 | public.ref_2 | ref_3_ref2_fkey | alter table only public.ref_3 add constraint ref_3_ref2_fkey FOREIGN KEY (ref2) REFERENCES ref_2(id)
 (1 row)
 

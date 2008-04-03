@@ -49,10 +49,10 @@ begin
         from londiste.pending_fkeys pf
              left join londiste.node_table st_from on (st_from.table_name = pf.from_table)
              left join londiste.node_table st_to on (st_to.table_name = pf.to_table)
-        where (st_from.table_name is null or (st_from.merge_state = 'ok' and st_from.snapshot is null))
-          and (st_to.table_name is null or (st_to.merge_state = 'ok' and st_to.snapshot is null))
-          and (coalesce(st_from.queue_name = i_queue_name, false)
-               or coalesce(st_to.queue_name = i_queue_name, false))
+        where (st_from.table_name is null or (st_from.merge_state = 'ok' and st_from.custom_snapshot is null))
+          and (st_to.table_name is null or (st_to.merge_state = 'ok' and st_to.custom_snapshot is null))
+          and (coalesce(st_from.set_name = i_set_name, false)
+               or coalesce(st_to.set_name = i_set_name, false))
         order by 1, 2, 3
     loop
         return next fkeys;
