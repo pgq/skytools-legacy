@@ -20,28 +20,11 @@ try:
     # only backwards compat thing we need is dict* methods
 
     import psycopg2.extensions, psycopg2.extras
-    from psycopg2.extensions import QuotedString
     from sqltools import dbdict
 
     class _CompatRow(psycopg2.extras.DictRow):
         """Make DictRow more dict-like."""
         __slots__ = ('_index',)
-
-        def __setitem__(self, k, v):
-            """Allow adding new key-value pairs.
-
-            Such operation adds new field to global _index.
-            But that is OK, as .description is unchanged, and access
-            to such fields before setting them should raise exception
-            anyway.
-            """
-            if type(k) != int:
-                if k not in self._index:
-                    self._index[k] = len(self._index)
-                k = self._index[k]
-                while k >= len(self):
-                    self.append(None)
-            return list.__setitem__(self, k, v)
 
         def __contains__(self, k):
             """Returns if such row has such column."""
@@ -59,17 +42,7 @@ try:
 
         # obj.foo access
         def __getattr__(self, k):
-            try:
-                return psycopg2.extras.DictRow.__getattr__(self, k)
-            except AttributeError:
-                return self[k]
-        def __setattr__(self, k, v):
-            if k == "_index":
-                return psycopg2.extras.DictRow.__setattr__(self, k, v)
-            else:
-                self[k] = v
-        def __delattr__(self, k):
-            raise Exception("del not supported for DictRow")
+            return self[k]
 
     class _CompatCursor(psycopg2.extras.DictCursor):
         """Regular psycopg2 DictCursor with dict* methods."""
@@ -93,7 +66,6 @@ except ImportError:
     # use psycopg 1
     try:
         from psycopg import connect as _pgconnect
-        from psycopg import QuotedString
     except ImportError:
         print "Please install psycopg2 module"
         sys.exit(1)
