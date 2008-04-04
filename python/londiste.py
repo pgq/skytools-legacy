@@ -3,7 +3,7 @@
 """Londiste launcher.
 """
 
-import sys, os, optparse, skytools
+import sys, os, optparse, skytools, pgq, pgq.setadmin
 
 # python 2.3 will try londiste.py first...
 import sys, os.path
@@ -11,81 +11,81 @@ if os.path.exists(os.path.join(sys.path[0], 'londiste.py')) \
     and not os.path.exists(os.path.join(sys.path[0], 'londiste')):
     del sys.path[0]
 
-from londiste import *
+import londiste
 
 command_usage = """
 %prog [options] INI CMD [subcmd args]
 
-commands:
-  replay                        replay events to subscriber
+Node Initialization:
+  init-root   NODE_NAME NODE_CONSTR
+  init-branch NODE_NAME NODE_CONSTR --provider=<constr>
+  init-leaf   NODE_NAME NODE_CONSTR --provider=<constr>
+    Initializes node.  Given connstr is kept as global connstring
+    for that node.  Those commands ignore node_db in .ini.
+    The --provider connstr is used only for initial set info
+    fetching, later actual provider's connect string is used.
 
-  provider install              installs modules, creates queue
-  provider add TBL ...          add table to queue
-  provider remove TBL ...       remove table from queue
-  provider tables               show all tables on provider
-  provider add-seq SEQ ...      add sequence to provider
-  provider remove-seq SEQ ...   remove sequence from provider
-  provider seqs                 show all sequences on provider
+Node Administration:
+  members               Show members in set
+  tag-dead NODE ..      Tag node as dead
+  tag-alive NODE ..     Tag node as alive
 
-  subscriber install            installs schema
-  subscriber add TBL ...        add table to subscriber
-  subscriber remove TBL ...     remove table from subscriber
-  subscriber add-seq SEQ ...    add table to subscriber
-  subscriber remove-seq SEQ ... remove table from subscriber
-  subscriber tables             list tables subscriber has attached to
-  subscriber seqs               list sequences subscriber is interested
-  subscriber missing            list tables subscriber has not yet attached to
-  subscriber check              compare table structure on both sides
-  subscriber fkeys              print out fkey drop/create commands
-  subscriber resync TBL ...     do full copy again
+  redirect              Switch provider
+  make-root             Promote to root
 
-  compare [TBL ...]             compare table contents on both sides
-  repair [TBL ...]              repair data on subscriber
+Replication Daemon:
+  worker                replay events to subscriber
 
-  copy                          [internal command - copy table logic]
+Replication Administration:
+  add TBL ...           add table to queue
+  remove TBL ...        remove table from queue
+  add-seq SEQ ...       add sequence to provider
+  remove-seq SEQ ...    remove sequence from provider
+  tables                show all tables on provider
+  seqs                  show all sequences on provider
+  missing               list tables subscriber has not yet attached to
+  resync TBL ...        do full copy again
+
+Replication Extra:
+  check                 compare table structure on both sides
+  fkeys                 print out fkey drop/create commands
+  compare [TBL ...]     compare table contents on both sides
+  repair [TBL ...]      repair data on subscriber
+
+Internal Commands:
+  copy                  copy table logic
 """
+
+class NodeSetup(pgq.setadmin.SetAdmin):
+    def __init__(self, args):
+        pgq.setadmin.SetAdmin.__init__(self, 'londiste', args)
+
+cmd_handlers = (
+    (('init-root', 'init-branch', 'init-leaf', 'members', 'tag-dead', 'tag-alive',
+      'redirect', 'promote-root'), NodeSetup),
+    (('worker', 'replay'), londiste.Replicator),
+    (('add', 'remove', 'add-seq', 'remove-seq', 'tables', 'seqs',
+      'missing', 'resync', 'check', 'fkeys'), londiste.LondisteSetup),
+    (('compare',), londiste.Comparator),
+    (('repair',), londiste.Repairer),
+)
 
 class Londiste(skytools.DBScript):
     def __init__(self, args):
         skytools.DBScript.__init__(self, 'londiste', args)
 
-        if self.options.rewind or self.options.reset:
-            self.script = Replicator(args)
-            return
-
         if len(self.args) < 2:
             print "need command"
             sys.exit(1)
         cmd = self.args[1]
-
-        if cmd =="provider":
-            script = ProviderSetup(args)
-        elif cmd == "subscriber":
-            script = SubscriberSetup(args)
-        elif cmd == "replay":
-            method = self.cf.get('method', 'direct')
-            if method == 'direct':
-                script = Replicator(args)
-            elif method == 'file_write':
-                script = FileWrite(args)
-            elif method == 'file_write':
-                script = FileWrite(args)
-            else:
-                print "unknown method, quitting"
-                sys.exit(1)
-        elif cmd == "copy":
-            script = CopyTable(args)
-        elif cmd == "compare":
-            script = Comparator(args)
-        elif cmd == "repair":
-            script = Repairer(args)
-        elif cmd == "upgrade":
-            script = UpgradeV2(args)
-        else:
+        self.script = None
+        for names, cls in cmd_handlers:
+            if cmd in names:
+                self.script = cls(args)
+                break
+        if not self.script:
             print "Unknown command '%s', use --help for help" % cmd
             sys.exit(1)
-
-        self.script = script
 
     def start(self):
         self.script.start()
@@ -103,10 +103,6 @@ class Londiste(skytools.DBScript):
                 help = "add: no copy needed", default=False)
         g.add_option("--skip-truncate", action="store_true", dest="skip_truncate",
                 help = "add: keep old data", default=False)
-        g.add_option("--rewind", action="store_true",
-                help = "replay: sync queue pos with subscriber")
-        g.add_option("--reset", action="store_true",
-                help = "replay: forget queue pos on subscriber")
         p.add_option_group(g)
 
         return p
