@@ -31,6 +31,8 @@ class SetAdmin(skytools.DBScript):
     root_info = None
     member_map = {}
     set_name = None
+    extra_objs = []
+    initial_db_name = 'node_db'
 
     def init_optparse(self, parser = None):
         p = skytools.DBScript.init_optparse(self, parser)
@@ -82,6 +84,9 @@ class SetAdmin(skytools.DBScript):
             self.log.info("Node is already initialized as %s" % info['node_type'])
             return
         
+        self.log.info("Initializing node")
+
+        # fixme
         worker_name = "%s_%s_worker" % (self.set_name, node_name)
 
         # register member
@@ -135,15 +140,14 @@ class SetAdmin(skytools.DBScript):
                            global_watermark, combined_set])
             db.commit()
 
-            
-
-
         self.log.info("Done")
 
     def find_root_db(self):
-        db = self.get_database('root_db')
+        loc = self.cf.get(self.initial_db_name)
 
         while 1:
+            db = self.get_database('root_db', connstr = loc)
+
             # query current status
             res = self.exec_query(db, "select * from pgq_set.get_node_info(%s)", [self.set_name])
             info = res[0]
@@ -162,9 +166,6 @@ class SetAdmin(skytools.DBScript):
             if loc is None:
                 self.log.info("Sub node provider not initialized?")
                 sys.exit(1)
-
-            # walk upwards
-            db = self.get_database('root_db', connstr = loc)
 
     def load_root_info(self, db):
         res = self.exec_query(db, "select * from pgq_set.get_node_info(%s)", [self.set_name])
@@ -199,7 +200,8 @@ class SetAdmin(skytools.DBScript):
             skytools.DBSchema("pgq_ext", sql_file="pgq_ext.sql"),
             skytools.DBSchema("pgq_set", sql_file="pgq_set.sql"),
         ]
-        skytools.db_install(db.cursor(), objs, self.log.debug)
+        objs += self.extra_objs
+        skytools.db_install(db.cursor(), objs, self.log)
         db.commit()
 
 if __name__ == '__main__':

@@ -6,20 +6,25 @@ contrib=/usr/share/postgresql/8.1/contrib
 contrib=/opt/apps/pgsql-dev/share/contrib
 contrib=/opt/pgsql/share/contrib
 
-db=provider
 
 
-mkdir -p file_logs sys
+mkdir -p sys
 ./stop.sh
 sleep 1
 
 rm -rf file_logs sys
-mkdir -p file_logs sys
+mkdir -p sys
 
+db=db_root
 echo "creating database: $db"
 dropdb $db
 sleep 1
 createdb $db
+
+londiste.py conf/w_root.ini init-root n_root "dbname=$db"
+
+exit 0
+
 pgqadm.py conf/ticker.ini install
 psql -q $db -f data.sql
 

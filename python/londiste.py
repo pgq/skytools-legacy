@@ -57,6 +57,8 @@ Internal Commands:
 """
 
 class NodeSetup(pgq.setadmin.SetAdmin):
+    initial_db_name = 'node_db'
+    extra_objs = [ skytools.DBSchema("londiste", sql_file="londiste.sql") ]
     def __init__(self, args):
         pgq.setadmin.SetAdmin.__init__(self, 'londiste', args)
 
