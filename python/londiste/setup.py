@@ -6,7 +6,7 @@
 import sys, os, skytools
 from installer import *
 
-__all__ = ['ProviderSetup', 'SubscriberSetup']
+__all__ = ['LondisteSetup']
 
 def find_column_types(curs, table):
     table_oid = skytools.get_table_oid(curs, table)
@@ -144,7 +144,7 @@ class CommonSetup(skytools.DBScript):
 # Provider commands
 #
 
-class ProviderSetup(CommonSetup):
+class LondisteSetup(CommonSetup):
 
     def admin(self):
         cmd = self.args[2]
