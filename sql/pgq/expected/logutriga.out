@@ -16,7 +16,7 @@ create trigger utest AFTER insert or update or delete ON udata
 for each row execute procedure pgq.logutriga('udata_que');
 insert into udata (txt) values ('text1');
 NOTICE:  insert_event(udata_que, I:id, id=1&txt=text1&bin, public.udata)
-CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, null, null, null)"
+CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, $5, null, null)"
 insert into udata (bin) values (E'bi\tn\\000bin');
 NOTICE:  insert_event(udata_que, I:id, id=2&txt&bin=bi%5c011n%5c000bin, public.udata)
-CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, null, null, null)"
+CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, $5, null, null)"

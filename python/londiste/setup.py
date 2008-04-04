@@ -16,15 +16,15 @@ class LondisteSetup(skytools.DBScript):
         self.set_name = self.cf.get("set_name")
         self.consumer_id = self.cf.get("pgq_consumer_id", self.job_name)
 
-        if len(self.args) < 3:
-            self.log.error("need subcommand")
+        if len(self.args) < 2:
+            self.log.error("need command")
             sys.exit(1)
 
     def run(self):
-        cmd = self.args[2]
+        cmd = self.args[1]
         fname = "cmd_" + cmd.replace('-', '_')
         if hasattr(self, fname):
-            getattr(self, fname)(self, self.args[3:])
+            getattr(self, fname)(self.args[2:])
         else:
             self.log.error('bad subcommand')
             sys.exit(1)

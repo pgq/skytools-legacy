@@ -23,10 +23,13 @@ createdb $db
 
 londiste.py conf/w_root.ini init-root n_root "dbname=$db"
 
-exit 0
-
-pgqadm.py conf/ticker.ini install
+pgqadm.py conf/ticker_root.ini install
 psql -q $db -f data.sql
+
+londiste.py conf/w_root.ini add data1
+londiste.py conf/w_root.ini tables
+
+exit 0
 
 db=subscriber
 echo "creating database: $db"
