@@ -4,8 +4,8 @@
 == Next major release - 3.0 ==
 
  * cascaded replication, switchover, failover [marko]
- * skytools: config from database
- * drop support for psycopg1 ?
+
+ * drop support for psycopg1
  * drop support for 8.1 ??
 
  * new londiste sql:
@@ -42,6 +42,7 @@
 
 === Smaller things ===
 
+ * own async conn-to-conn copy loop
  * londiste: make sure unprivileged provider connection works for ordinery replication,
    but not for admin commands.  Need to remove SECURITY DEFINER from londiste
    admin functions (both provider and subscriber, because londiste needs admin
@@ -49,10 +50,9 @@
  * pgqadm: separate priod for retry queue processing
  * skytools: switch for silence for cron scripts
  * pgq: drop_fkeys.sql for live envs
- * logdb: hostname
  * DBScript: failure to write pidfile should be logged (cronscripts)
  * ideas from SlonyI:
-  - force timestamps to ISO
+  - force timestamps to ISO - dubious, creates pq pkt
   - when buffering queries, check their size
   - store event_id with tick, thus making possible to guess the size of
     upcoming batches.
@@ -64,11 +64,11 @@
    - inexact method: take ev_id near xmax and compare with value from sequence
      * broken by retry events, rollbacked transactions and use of force_tick()
  * automatic "repair" - after reaching sync point, the "replay" must be killed/paused, then fixes can be applied
- * pgq: sqltriga/logtriga - dont cache table struct?
  * pgq: store txid/event_id_seq with each tick
 
 == Just ideas ==
 
+ * skytools: config from database
  * skytools: config-less operation?
  * skytools: partial sql parser for log processing
  * londiste: EXECUTE SCRIPT
