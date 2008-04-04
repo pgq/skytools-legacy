@@ -241,7 +241,7 @@ class SeqCache(object):
                 dst_curs.execute(q, [seq, cur])
                 self.val_cache[seq] = cur
 
-class Replicator(pgq.SerialConsumer):
+class Replicator(pgq.SetConsumer):
     """Replication core."""
 
     sql_command = {
@@ -255,23 +255,16 @@ class Replicator(pgq.SerialConsumer):
     prev_tick = 0
 
     def __init__(self, args):
-        pgq.SerialConsumer.__init__(self, 'londiste', 'provider_db', 'subscriber_db', args)
-
-        # where get/set_last_tick() function reside for SerialConsumer().
-        # default is pgq_ext, but lets keep londiste code under one schema
-        self.dst_schema = "londiste"
+        pgq.SetConsumer.__init__(self, 'londiste', args)
 
         self.table_list = []
         self.table_map = {}
 
         self.copy_thread = 0
-        self.maint_time = 0
         self.seq_cache = SeqCache()
-        self.maint_delay = self.cf.getint('maint_delay', 600)
-        self.mirror_queue = self.cf.get('mirror_queue', '')
 
-    def process_remote_batch(self, src_db, batch_id, ev_list, dst_db):
-        "All work for a batch.  Entry point from SerialConsumer."
+    def process_set_batch(self, src_db, dst_db, ev_list, copy_queue):
+        "All work for a batch.  Entry point from SetConsumer."
 
         # this part can play freely with transactions
 
@@ -297,7 +290,12 @@ class Replicator(pgq.SerialConsumer):
         self.sync_database_encodings(src_db, dst_db)
 
         self.handle_seqs(dst_curs)
-        self.handle_events(dst_curs, ev_list)
+
+        self.sql_list = []
+        SetConsumer.process_set_batch(self, src_db, dst_db, ev_list, copy_queue)
+        self.flush_sql(dst_curs)
+
+        # finalize table changes
         self.save_table_state(dst_curs)
 
     def handle_seqs(self, dst_curs):
@@ -431,33 +429,15 @@ class Replicator(pgq.SerialConsumer):
             # nothing to do
             return SYNC_EXIT
 
-    def handle_events(self, dst_curs, ev_list):
-        "Actual event processing happens here."
-
-        ignored_events = 0
-        self.sql_list = []
-        mirror_list = []
-        for ev in ev_list:
-            if not self.interesting(ev):
-                ignored_events += 1
-                ev.tag_done()
-                continue
-            
-            if ev.type in ('I', 'U', 'D'):
-                self.handle_data_event(ev, dst_curs)
-            else:
-                self.handle_system_event(ev, dst_curs)
-
-            if self.mirror_queue:
-                mirror_list.append(ev)
-
-        # finalize table changes
-        self.flush_sql(dst_curs)
-        self.stat_add('ignored', ignored_events)
-
-        # put events into mirror queue if requested
-        if self.mirror_queue:
-            self.fill_mirror_queue(mirror_list, dst_curs)
+    def process_set_event(self, dst_curs, ev):
+        """handle one event"""
+        if not self.interesting(ev):
+            self.stat_inc('ignored_events')
+            ev.tag_done()
+        elif ev.type in ('I', 'U', 'D'):
+            self.handle_data_event(ev, dst_curs)
+        else:
+            self.handle_system_event(ev, dst_curs)
 
     def handle_data_event(self, ev, dst_curs):
         # buffer SQL statements, then send them together
@@ -604,6 +584,14 @@ class Replicator(pgq.SerialConsumer):
         else:
             cmd = "%s -d %s copy"
         cmd = cmd % (script, conf)
+
+        # let existing copy finish and clean its pidfile,
+        # otherwise new copy will exit immidiately
+        copy_pidfile = self.pidfile + ".copy"
+        while os.path.isfile(copy_pidfile):
+            self.log.info("Waiting for existing copy to exit")
+            time.sleep(2)
+
         self.log.debug("Launch args: "+repr(cmd))
         res = os.system(cmd)
         self.log.debug("Launch result: "+repr(res))
