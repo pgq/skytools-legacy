@@ -59,7 +59,8 @@ class LondisteSetup(skytools.DBScript):
         widths = [15] * len(fields)
         for row in rows:
             for i, k in enumerate(fields):
-                widths[i] = widths[i] > len(row[k]) and widths[i] or len(row[k])
+                rlen = row[k] and len(row) or 0
+                widths[i] = widths[i] > rlen and widths[i] or rlen
         widths = [w + 2 for w in widths]
 
         fmt = '%%-%ds' * (len(widths) - 1) + '%%s'
@@ -98,10 +99,11 @@ class LondisteSetup(skytools.DBScript):
         curs.execute(sql, args)
         ok = True
         for row in curs.fetchall():
-            if (res[0] % 100) == 2:
-                self.log.info("%d %s" % (res[0], res[1]))
+            print repr(row)
+            if (row[0] / 100) == 2:
+                self.log.info("%d %s" % (row[0], row[1]))
             else:
-                self.log.error("%d %s" % (res[0], res[1]))
+                self.log.error("%d %s" % (row[0], row[1]))
                 ok = False
         return ok
 
@@ -125,23 +127,23 @@ class LondisteSetup(skytools.DBScript):
             db.rollback()
 
     def cmd_add(self, args = []):
-        q = "select londiste.node_add_table(%s, %s)"
+        q = "select * from londiste.node_add_table(%s, %s)"
         self.db_exec_many(q, [self.set_name], args)
 
     def cmd_remove(self, args = []):
-        q = "select londiste.node_remove_table(%s, %s)"
+        q = "select * from londiste.node_remove_table(%s, %s)"
         self.db_exec_many(q, [self.set_name], args)
 
     def cmd_add_seq(self, args = []):
-        q = "select londiste.node_add_seq(%s, %s)"
+        q = "select * from londiste.node_add_seq(%s, %s)"
         self.db_exec_many(q, [self.set_name], args)
 
     def cmd_remove_seq(self, args = []):
-        q = "select londiste.node_remove_seq(%s, %s)"
+        q = "select * from londiste.node_remove_seq(%s, %s)"
         self.db_exec_many(q, [self.set_name], args)
 
     def cmd_resync(self, args = []):
-        q = "select londiste.node_resync_table(%s, %s)"
+        q = "select * from londiste.node_resync_table(%s, %s)"
         self.db_exec_many(q, [self.set_name], args)
 
     def cmd_tables(self, args = []):
