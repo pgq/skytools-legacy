@@ -31,7 +31,7 @@ begin
 
     perform 1 from londiste.node_table where set_name = i_set_name and table_name = fq_table_name;
     if found then
-        select 200, 'OK, already added: ' || fq_table_name into ret_code, ret_desc;
+        select 200, 'Table already added: ' || fq_table_name into ret_code, ret_desc;
         return;
     end if;
 
@@ -55,7 +55,7 @@ begin
 
     insert into londiste.node_table (set_name, table_name)
         values (i_set_name, fq_table_name);
-    select 200, 'OK' into ret_code, ret_desc;
+    select 200, 'Table added: ' || fq_table_name into ret_code, ret_desc;
     return;
 end;
 $$ language plpgsql strict;
