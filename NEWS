@@ -1,8 +1,11 @@
-2008-03-xx  -  SkyTools 2.1.6  -  ""
+2008-04-05  -  SkyTools 2.1.6  -  "Quick Bugfix Release"
+
+  Now we have upgrade script, see 'man skytools_upgrade'
+  for info how to upgrade database code.
 
   = Fixes =
 
-    * Include upgrade scripts in .tgz
+    * Include upgrade sql scripts in .tgz
     * Fix 'londiste provider seqs'
     * Fix 'londiste provider fkeys' in no tables added.
     * Fix "londiste copy" pidfile timing race
@@ -14,12 +17,12 @@
     * Restore iter-on-values behaviour for rows from curs.fetch*.  The attempt
       to make them iter-on-keys seems now misguided, as iter-on-values is already
       used in existing code, and iter-on-keys returns keys in random order.
-
     * londiste subscriber add: Dont drop triggers on table if --expect-sync is used.
     * londiste copy: drop triggers and fkeys in case "replay" or "subscriber add" was skipped
     * walmgr restore: better detection if old postmaster is running (Charles Duffy)
     * walmgr xrestore: detect the death of parent process
-    
+    * walmgr restore: create pg_tblspc - its required for 8.3 (Zoltán Böszörményi)
+    * walmgr restore: copy old config files over if exist (Zoltán Böszörményi)
 
   = Features =
 

@@ -1,3 +1,9 @@
+skytools (2.1.6) unstable; urgency=low
+
+  * Final release
+
+ -- Marko Kreen <marko.kreen@skype.net>  Sat, 05 Apr 2008 16:45:11 +0300
+
 skytools (2.1.6rc3) unstable; urgency=low
 
   * quoting/parsing fixes
