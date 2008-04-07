@@ -99,7 +99,6 @@ class LondisteSetup(skytools.DBScript):
         curs.execute(sql, args)
         ok = True
         for row in curs.fetchall():
-            print repr(row)
             if (row[0] / 100) == 2:
                 self.log.info("%d %s" % (row[0], row[1]))
             else:
