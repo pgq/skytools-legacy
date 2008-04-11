@@ -13,7 +13,11 @@ endif
 
 ifeq ($(pg83),true)  # we have 8.3 with internal txid
 
-# nothing to do
+# install empty txid.sql
+DATA_built = txid.sql
+include $(PGXS)
+txid.sql: txid.internal.sql
+	cp $< $@
 
 else # 8.2 or 8.1
 #
@@ -29,6 +33,9 @@ DOCS = README.txid
 DATA_built = txid.sql
 EXTRA_CLEAN = txid.sql.in
 
+# PGXS build procedure
+include $(PGXS)
+
 ifeq ($(pg82),true)
 # 8.2 tracks epoch internally
 TXID_SQL = txid.std.sql
@@ -36,10 +43,6 @@ else
 # 8.1 needs epoch-tracking code
 TXID_SQL = txid.std.sql txid.schema.sql
 endif # ! 8.2
-endif # ! 8.3
-
-# PGXS build procedure
-include $(PGXS)
 
 # additional deps
 txid.o: txid.h
@@ -47,6 +50,8 @@ epoch.o: txid.h
 
 txid.sql.in: $(TXID_SQL)
 	cat $(TXID_SQL) > $@
+
+endif # ! 8.3
 
 test: install
 	make installcheck || { less regression.diffs; exit 1; }
