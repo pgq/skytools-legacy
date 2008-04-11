@@ -35,21 +35,21 @@ select * from londiste.set_add_table('branch_set', 'public.ref_3');
 (1 row)
 
 select * from londiste.node_add_table('branch_set', 'public.ref_1');
- ret_code | ret_desc 
-----------+----------
-      200 | OK
+ ret_code |         ret_desc          
+----------+---------------------------
+      200 | Table added: public.ref_1
 (1 row)
 
 select * from londiste.node_add_table('branch_set', 'public.ref_2');
- ret_code | ret_desc 
-----------+----------
-      200 | OK
+ ret_code |         ret_desc          
+----------+---------------------------
+      200 | Table added: public.ref_2
 (1 row)
 
 select * from londiste.node_add_table('branch_set', 'public.ref_3');
- ret_code | ret_desc 
-----------+----------
-      200 | OK
+ ret_code |         ret_desc          
+----------+---------------------------
+      200 | Table added: public.ref_3
 (1 row)
 
 select * from londiste.find_table_fkeys('public.ref_1');

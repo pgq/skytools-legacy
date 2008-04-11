@@ -21,8 +21,9 @@
 
 -- Group: Internal functions
 \i functions/londiste.node_set_skip_truncate.sql
--- \i functions/londiste.node_create_trigger.sql
--- \i functions/londiste.node_refresh_trigger.sql
+\i functions/londiste.node_prepare_triggers.sql
+\i functions/londiste.node_refresh_triggers.sql
+\i functions/londiste.node_disable_triggers.sql
 -- \i functions/londiste.node_notify_change.sql
 
 -- Group: Utility functions

@@ -111,7 +111,7 @@ create table londiste.node_table (
 -- Columns:
 --      set_name        - set it belongs to
 --      table_name      - table name
---      tg_type         - any / root / non-root
+--      tg_type         - any / root / non-root / unknown?
 --      tg_name         - name for the trigger
 --      tg_def          - full statement for trigger creation
 -- ----------------------------------------------------------------------
@@ -122,7 +122,9 @@ create table londiste.node_trigger (
     tg_type             text not null,
     tg_def              text not null,
     foreign key (set_name, table_name) references londiste.node_table,
-    primary key (set_name, table_name, tg_name)
+    primary key (set_name, table_name, tg_name),
+    check (tg_type in ('root', 'non-root'))
+    -- check (tg_type in ('always', 'origin', 'replica', 'disabled'))
 );
 
 -- ----------------------------------------------------------------------

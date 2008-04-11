@@ -7,6 +7,17 @@ declare
     fq_table_name text;
 begin
     fq_table_name := londiste.make_fqname(i_table_name);
+
+    for ret_code, ret_desc in
+        select f.ret_code, f.ret_desc from londiste.node_disable_triggers(i_set_name, fq_table_name) f
+    loop
+        if ret_code > 299 then
+            return;
+        end if;
+    end loop;
+    delete from londiste.node_trigger
+        where set_name = i_set_name
+          and table_name = fq_table_name;
     delete from londiste.node_table
         where set_name = i_set_name
           and table_name = fq_table_name;

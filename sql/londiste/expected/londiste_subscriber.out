@@ -44,9 +44,9 @@ select * from londiste.set_add_table('branch_set', 'public.slavedata');
 (1 row)
 
 select * from londiste.node_add_table('branch_set', 'public.slavedata');
- ret_code | ret_desc 
-----------+----------
-      200 | OK
+ ret_code |           ret_desc            
+----------+-------------------------------
+      200 | Table added: public.slavedata
 (1 row)
 
 select * from londiste.node_get_table_list('branch_set');
@@ -56,9 +56,9 @@ select * from londiste.node_get_table_list('branch_set');
 (1 row)
 
 select * from londiste.node_remove_table('branch_set', 'public.slavedata');
- ret_code | ret_desc 
-----------+----------
-      200 | OK
+ ret_code |            ret_desc             
+----------+---------------------------------
+      200 | Table removed: public.slavedata
 (1 row)
 
 select * from londiste.node_remove_table('branch_set', 'public.slavedata');
