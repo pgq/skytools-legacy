@@ -44,7 +44,7 @@ select * from londiste.node_add_table('aset', 'public.testdata');
 select * from londiste.node_get_table_list('aset');
    table_name    | merge_state | custom_snapshot | skip_truncate 
 -----------------+-------------+-----------------+---------------
- public.testdata |             |                 | 
+ public.testdata | ok          |                 | 
 (1 row)
 
 select * from londiste.node_remove_table('aset', 'public.testdata');

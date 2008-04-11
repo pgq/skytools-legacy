@@ -24,7 +24,7 @@
 \i functions/londiste.node_prepare_triggers.sql
 \i functions/londiste.node_refresh_triggers.sql
 \i functions/londiste.node_disable_triggers.sql
--- \i functions/londiste.node_notify_change.sql
+\i functions/londiste.root_notify_change.sql
 
 -- Group: Utility functions
 \i functions/londiste.find_column_types.sql

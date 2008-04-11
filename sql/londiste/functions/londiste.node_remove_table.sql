@@ -26,8 +26,11 @@ begin
         return;
     end if;
 
-    -- perform londiste.provider_notify_change(i_queue_name);
-    -- triggers
+    if pgq_set.is_root(i_set_name) then
+        perform londiste.set_remove_table(i_set_name, fq_table_name);
+        perform londiste.root_notify_change(i_set_name, 'remove-table', fq_table_name);
+    end if;
+
     select 200, 'Table removed: ' || fq_table_name into ret_code, ret_desc;
     return;
 end;

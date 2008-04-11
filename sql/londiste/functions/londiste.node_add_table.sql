@@ -5,7 +5,7 @@ create or replace function londiste.node_add_table(
     out ret_desc        text)
 as $$
 -- ----------------------------------------------------------------------
--- Function: londiste.node_add_table(x)
+-- Function: londiste.node_add_table(2)
 --
 --      Register table on Londiste node.
 --
@@ -16,6 +16,7 @@ as $$
 declare
     col_types text;
     fq_table_name text;
+    new_state text;
 begin
     fq_table_name := londiste.make_fqname(i_table_name);
     col_types := londiste.find_column_types(fq_table_name);
@@ -42,16 +43,19 @@ begin
         if ret_code <> 200 then
             return;
         end if;
+        new_state := 'ok';
+        perform londiste.root_notify_change(i_set_name, 'add-table', fq_table_name);
     else
         perform 1 from londiste.set_table where set_name = i_set_name and table_name = fq_table_name;
         if not found then
             select 400, 'Table not registered in set: ' || fq_table_name into ret_code, ret_desc;
             return;
         end if;
+        new_state := NULL;
     end if;
 
-    insert into londiste.node_table (set_name, table_name)
-        values (i_set_name, fq_table_name);
+    insert into londiste.node_table (set_name, table_name, merge_state)
+        values (i_set_name, fq_table_name, new_state);
 
     for ret_code, ret_desc in
         select f.ret_code, f.ret_desc
