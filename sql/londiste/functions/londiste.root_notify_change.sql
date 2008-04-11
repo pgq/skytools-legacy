@@ -20,7 +20,7 @@ begin
         raise exception 'only root node can send events';
     end if;
 
-    perform pgq.insert_event(que, i_ev_data, i_ev_data);
+    perform pgq.insert_event(que, i_ev_type, i_ev_data);
 
     return 1;
 end;
