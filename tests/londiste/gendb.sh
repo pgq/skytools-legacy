@@ -27,6 +27,10 @@ pgqadm.py conf/ticker_root.ini install
 psql -q $db -f data.sql
 
 londiste.py conf/w_root.ini add data1
+londiste.py conf/w_root.ini add data1
+londiste.py conf/w_root.ini remove data1
+londiste.py conf/w_root.ini remove data1
+londiste.py conf/w_root.ini add data1
 londiste.py conf/w_root.ini tables
 
 exit 0
