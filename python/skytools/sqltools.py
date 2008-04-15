@@ -330,7 +330,10 @@ class DBObject(object):
             sql = open(fn, "r").read()
         else:
             raise Exception('object not defined')
-        curs.execute(sql)
+        for stmt in skytools.parse_statements(sql):
+            if log:
+                log.debug(repr(stmt))
+            curs.execute(stmt)
 
     def find_file(self):
         full_fn = None

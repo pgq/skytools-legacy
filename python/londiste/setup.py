@@ -93,6 +93,8 @@ class LondisteSetup(skytools.DBScript):
                     help="force", default=False)
         p.add_option("--all", action="store_true",
                     help="include all tables", default=False)
+        p.add_option("--provider",
+                help="init: upstream node temp connect string", default=None)
         return p
 
     def exec_checked(self, curs, sql, args):

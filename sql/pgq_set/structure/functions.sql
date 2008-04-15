@@ -20,4 +20,5 @@
 \i functions/pgq_set.set_global_watermark.sql
 \i functions/pgq_set.set_partition_watermark.sql
 
+\i functions/pgq_set.track_tick.sql
 

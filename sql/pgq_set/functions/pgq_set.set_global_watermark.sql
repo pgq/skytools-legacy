@@ -41,7 +41,7 @@ begin
     end if;
 
     if this.node_type in ('root', 'combined-root') then
-        perform pgq.insert_event(this.queue_name, 'global-watermark', i_watermark,
+        perform pgq.insert_event(this.queue_name, 'global-watermark', i_watermark::text,
                                  i_set_name, null, null, null);
     end if;
     return i_watermark;

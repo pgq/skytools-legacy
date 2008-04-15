@@ -61,6 +61,20 @@ class NodeSetup(pgq.setadmin.SetAdmin):
     extra_objs = [ skytools.DBSchema("londiste", sql_file="londiste.sql") ]
     def __init__(self, args):
         pgq.setadmin.SetAdmin.__init__(self, 'londiste', args)
+    def extra_init(self, node_type, node_db, provider_db):
+        if not provider_db:
+            return
+        pcurs = provider_db.cursor()
+        ncurs = node_db.cursor()
+        q = "select table_name from londiste.set_get_table_list(%s)"
+        pcurs.execute(q, [self.set_name])
+        for row in pcurs.fetchall():
+            tbl = row['table_name']
+            q = "select * from londiste.set_add_table(%s, %s)"
+            ncurs.execute(q, [self.set_name, tbl])
+        node_db.commit()
+        provider_db.commit()
+
 
 cmd_handlers = (
     (('init-root', 'init-branch', 'init-leaf', 'members', 'tag-dead', 'tag-alive',
@@ -70,6 +84,7 @@ cmd_handlers = (
       'missing', 'resync', 'check', 'fkeys'), londiste.LondisteSetup),
     (('compare',), londiste.Comparator),
     (('repair',), londiste.Repairer),
+    (('copy',), londiste.CopyTable),
 )
 
 class Londiste(skytools.DBScript):
@@ -105,6 +120,8 @@ class Londiste(skytools.DBScript):
                 help = "add: no copy needed", default=False)
         g.add_option("--skip-truncate", action="store_true", dest="skip_truncate",
                 help = "add: keep old data", default=False)
+        g.add_option("--provider",
+                help = "init: upstream node temp connect string", default=None)
         p.add_option_group(g)
 
         return p

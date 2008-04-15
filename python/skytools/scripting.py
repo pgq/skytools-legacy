@@ -510,6 +510,8 @@ class DBScript(object):
             if self.looping and not self.do_single_loop:
                 time.sleep(20)
                 return 1
+            else:
+                sys.exit(1)
 
     def work(self):
         """Here should user's processing happen.

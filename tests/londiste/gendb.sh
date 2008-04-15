@@ -6,6 +6,7 @@ contrib=/usr/share/postgresql/8.1/contrib
 contrib=/opt/apps/pgsql-dev/share/contrib
 contrib=/opt/pgsql/share/contrib
 
+set -e
 
 
 mkdir -p sys
@@ -17,21 +18,32 @@ mkdir -p sys
 
 db=db_root
 echo "creating database: $db"
-dropdb $db
+dropdb $db && sleep 1 || true
 sleep 1
 createdb $db
-
 londiste.py conf/w_root.ini init-root n_root "dbname=$db"
-
 pgqadm.py conf/ticker_root.ini install
 psql -q $db -f data.sql
-
 londiste.py conf/w_root.ini add data1
 londiste.py conf/w_root.ini add data1
 londiste.py conf/w_root.ini remove data1
 londiste.py conf/w_root.ini remove data1
 londiste.py conf/w_root.ini add data1
 londiste.py conf/w_root.ini tables
+
+db=db_branch
+echo "creating database: $db"
+dropdb $db && sleep 1 || true
+createdb $db
+pgqadm.py conf/ticker_branch.ini install
+londiste.py conf/w_branch.ini init-branch n_branch "dbname=$db" --provider="dbname=db_root"
+psql -q $db -f data.sql
+londiste.py conf/w_branch.ini add data1
+londiste.py conf/w_branch.ini add data1
+londiste.py conf/w_branch.ini remove data1
+londiste.py conf/w_branch.ini remove data1
+londiste.py conf/w_branch.ini add data1
+londiste.py conf/w_branch.ini tables
 
 exit 0
 

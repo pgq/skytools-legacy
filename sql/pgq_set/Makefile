@@ -7,7 +7,7 @@ SRCS = structure/pgq_set.sql structure/functions.sql $(FUNCS)
 REGRESS = pgq_set
 REGRESS_OPTS = --load-language=plpgsql
 
-PGXS = $(shell pg_config --pgxs)
+include ../../config.mak
 include $(PGXS)
 
 NDOC = NaturalDocs

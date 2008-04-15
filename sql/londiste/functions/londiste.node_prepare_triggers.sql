@@ -26,19 +26,21 @@ begin
         return next;
         return;
     end if;
-    logtrg_name := i_set_name || '_logtrigger';
-    denytrg_name := i_set_name || '_denytrigger';
-    logtrg := 'create trigger ' || quote_ident(logtrg_name)
-        || ' after insert or update or delete on ' || londiste.quote_fqname(fq_table_name)
-        || ' for each row execute procedure pgq.sqltriga(' || quote_literal(qname) || ')';
-    insert into londiste.node_trigger (set_name, table_name, tg_name, tg_type, tg_def)
-    values (i_set_name, fq_table_name, logtrg_name, 'root', logtrg);
-    select 200, logtrg into ret_code, ret_desc;
-    return next;
+    if qname is not null then
+        logtrg_name := i_set_name || '_logtrigger';
+        logtrg := 'create trigger ' || quote_ident(logtrg_name)
+            || ' after insert or update or delete on ' || londiste.quote_fqname(fq_table_name)
+            || ' for each row execute procedure pgq.sqltriga(' || quote_literal(qname) || ')';
+        insert into londiste.node_trigger (set_name, table_name, tg_name, tg_type, tg_def)
+        values (i_set_name, fq_table_name, logtrg_name, 'root', logtrg);
+        select 200, logtrg into ret_code, ret_desc;
+        return next;
+    end if;
 
+    denytrg_name := i_set_name || '_denytrigger';
     denytrg := 'create trigger ' || quote_ident(denytrg_name)
         || ' before insert or update or delete on ' || londiste.quote_fqname(fq_table_name)
-        || ' for each row execute procedure pgq.denytriga(' || quote_literal(qname) || ')';
+        || ' for each row execute procedure pgq.denytriga(' || quote_literal(i_set_name) || ')';
     insert into londiste.node_trigger (set_name, table_name, tg_name, tg_type, tg_def)
     values (i_set_name, fq_table_name, denytrg_name, 'non-root', denytrg);
     select 200, denytrg into ret_code, ret_desc;
@@ -46,5 +48,5 @@ begin
 
     return;
 end;
-$$ language plpgsql security definer;
+$$ language plpgsql;
 

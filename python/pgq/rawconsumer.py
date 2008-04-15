@@ -31,7 +31,7 @@ class RawQueue:
 
         return self.batch_id
 
-    def finish_batch(self, curs, batch_id):
+    def finish_batch(self, curs):
         q = "select * from pgq.finish_batch(%s)"
         curs.execute(q, [self.batch_id])
 
@@ -39,7 +39,7 @@ class RawQueue:
         return pgq.consumer._BatchWalker(curs, self.batch_id, self.queue_name)
 
     def bulk_insert(self, curs, ev):
-        row = map(ev.__getattribute__, self.bulk_insert_fields)
+        row = map(ev.__getattr__, self.bulk_insert_fields)
         self.bulk_insert_buf.append(row)
         if len(self.bulk_insert_buf) >= self.bulk_insert_size:
             self.finish_bulk_insert(curs)

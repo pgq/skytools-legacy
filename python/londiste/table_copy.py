@@ -18,12 +18,11 @@ class CopyTable(Replicator):
 
         if copy_thread:
             self.pidfile += ".copy"
-            self.consumer_id += "_copy"
+            self.consumer_name += "_copy"
             self.copy_thread = 1
+            self.main_worker = False
 
-    def do_copy(self, tbl_stat):
-        src_db = self.get_database('provider_db')
-        dst_db = self.get_database('subscriber_db')
+    def do_copy(self, tbl_stat, src_db, dst_db):
 
         # it should not matter to pgq
         src_db.commit()
@@ -84,7 +83,7 @@ class CopyTable(Replicator):
         # to make state juggling faster.  on mostly idle db-s
         # each step may take tickers idle_timeout secs, which is pain.
         q = "select pgq.force_tick(%s)"
-        src_curs.execute(q, [self.pgq_queue_name])
+        src_curs.execute(q, [self.src_queue.queue_name])
         src_db.commit()
 
     def real_copy(self, srccurs, dstcurs, tbl_stat):

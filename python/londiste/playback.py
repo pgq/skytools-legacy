@@ -263,18 +263,18 @@ class Replicator(pgq.SetConsumer):
         self.copy_thread = 0
         self.seq_cache = SeqCache()
 
-    def process_set_batch(self, src_db, dst_db, ev_list, copy_queue):
+    def process_set_batch(self, src_db, dst_db, ev_list):
         "All work for a batch.  Entry point from SetConsumer."
 
         # this part can play freely with transactions
 
         dst_curs = dst_db.cursor()
         
-        self.cur_tick = self.cur_batch_info['tick_id']
-        self.prev_tick = self.cur_batch_info['prev_tick_id']
+        self.cur_tick = self.src_queue.cur_tick
+        self.prev_tick = self.src_queue.prev_tick
 
         self.load_table_state(dst_curs)
-        self.sync_tables(dst_db)
+        self.sync_tables(src_db, dst_db)
 
         self.copy_snapshot_cleanup(dst_db)
 
@@ -292,13 +292,14 @@ class Replicator(pgq.SetConsumer):
         self.handle_seqs(dst_curs)
 
         self.sql_list = []
-        SetConsumer.process_set_batch(self, src_db, dst_db, ev_list, copy_queue)
+        pgq.SetConsumer.process_set_batch(self, src_db, dst_db, ev_list)
         self.flush_sql(dst_curs)
 
         # finalize table changes
         self.save_table_state(dst_curs)
 
     def handle_seqs(self, dst_curs):
+        return # FIXME
         if self.copy_thread:
             return
 
@@ -313,7 +314,7 @@ class Replicator(pgq.SetConsumer):
         src_curs = self.get_database('provider_db').cursor()
         self.seq_cache.resync(src_curs, dst_curs)
 
-    def sync_tables(self, dst_db):
+    def sync_tables(self, src_db, dst_db):
         """Table sync loop.
         
         Calls appropriate handles, which is expected to
@@ -323,13 +324,14 @@ class Replicator(pgq.SetConsumer):
         while 1:
             cnt = Counter(self.table_list)
             if self.copy_thread:
-                res = self.sync_from_copy_thread(cnt, dst_db)
+                res = self.sync_from_copy_thread(cnt, src_db, dst_db)
             else:
-                res = self.sync_from_main_thread(cnt, dst_db)
+                res = self.sync_from_main_thread(cnt, src_db, dst_db)
 
             if res == SYNC_EXIT:
                 self.log.debug('Sync tables: exit')
-                self.detach()
+                self.unregister_consumer(src_db.cursor())
+                src_db.commit()
                 sys.exit(0)
             elif res == SYNC_OK:
                 return
@@ -342,7 +344,7 @@ class Replicator(pgq.SetConsumer):
             self.load_table_state(dst_db.cursor())
             dst_db.commit()
     
-    def sync_from_main_thread(self, cnt, dst_db):
+    def sync_from_main_thread(self, cnt, src_db, dst_db):
         "Main thread sync logic."
 
         #
@@ -386,7 +388,7 @@ class Replicator(pgq.SetConsumer):
             # seems everything is in sync
             return SYNC_OK
 
-    def sync_from_copy_thread(self, cnt, dst_db):
+    def sync_from_copy_thread(self, cnt, src_db, dst_db):
         "Copy thread sync logic."
 
         #
@@ -419,7 +421,7 @@ class Replicator(pgq.SetConsumer):
         elif cnt.copy:
             # table is not copied yet, do it
             t = self.get_table_by_state(TABLE_IN_COPY)
-            self.do_copy(t)
+            self.do_copy(t, src_db, dst_db)
 
             # forget previous value
             self.work_state = 1
@@ -431,21 +433,27 @@ class Replicator(pgq.SetConsumer):
 
     def process_set_event(self, dst_curs, ev):
         """handle one event"""
-        if not self.interesting(ev):
-            self.stat_inc('ignored_events')
-            ev.tag_done()
-        elif ev.type in ('I', 'U', 'D'):
+        self.log.debug("New event: id=%s / type=%s / data=%s / extra1=%s" % (ev.id, ev.type, ev.data, ev.extra1))
+        if ev.type in ('I', 'U', 'D'):
             self.handle_data_event(ev, dst_curs)
+        elif ev.type == 'add-table':
+            self.add_set_table(dst_curs, ev.data)
+        elif ev.type == 'remove-table':
+            self.remove_set_table(dst_curs, ev.data)
         else:
-            self.handle_system_event(ev, dst_curs)
+            pgq.SetConsumer.process_set_event(self, dst_curs, ev)
 
     def handle_data_event(self, ev, dst_curs):
-        # buffer SQL statements, then send them together
-        fmt = self.sql_command[ev.type]
-        sql = fmt % (ev.extra1, ev.data)
-        self.sql_list.append(sql)
-        if len(self.sql_list) > 200:
-            self.flush_sql(dst_curs)
+        t = self.get_table_by_name(ev.extra1)
+        if t and t.interesting(ev, self.cur_tick, self.copy_thread):
+            # buffer SQL statements, then send them together
+            fmt = self.sql_command[ev.type]
+            sql = fmt % (ev.extra1, ev.data)
+            self.sql_list.append(sql)
+            if len(self.sql_list) > 200:
+                self.flush_sql(dst_curs)
+        else:
+            self.stat_inc('ignored_events')
         ev.tag_done()
 
     def flush_sql(self, dst_curs):
@@ -461,44 +469,24 @@ class Replicator(pgq.SetConsumer):
 
     def interesting(self, ev):
         if ev.type not in ('I', 'U', 'D'):
-            return 1
+            raise Exception('bug - bad event type in .interesting')
         t = self.get_table_by_name(ev.extra1)
         if t:
             return t.interesting(ev, self.cur_tick, self.copy_thread)
         else:
             return 0
 
-    def handle_system_event(self, ev, dst_curs):
-        "System event."
+    def add_set_table(self, dst_curs, tbl):
+        q = "select londiste.set_add_table(%s, %s)"
+        dst_curs.execute(q, [self.set_name, tbl])
 
-        if ev.type == "T":
-            self.log.info("got new table event: "+ev.data)
-            # check tables to be dropped
-            name_list = []
-            for name in ev.data.split(','):
-                name_list.append(name.strip())
-
-            del_list = []
-            for tbl in self.table_list:
-                if tbl.name in name_list:
-                    continue
-                del_list.append(tbl)
-
-            # separate loop to avoid changing while iterating
-            for tbl in del_list:
-                self.log.info("Removing table %s from set" % tbl.name)
-                self.remove_table(tbl, dst_curs)
-
-            ev.tag_done()
-        else:
-            self.log.warning("Unknows op %s" % ev.type)
-            ev.tag_failed("Unknown operation")
-
-    def remove_table(self, tbl, dst_curs):
-        del self.table_map[tbl.name]
-        self.table_list.remove(tbl)
-        q = "select londiste.subscriber_remove_table(%s, %s)"
-        dst_curs.execute(q, [self.pgq_queue_name, tbl.name])
+    def remove_set_table(self, dst_curs, tbl):
+        if tbl in self.table_map:
+            t = self.table_map[tbl]
+            del self.table_map[tbl]
+            self.table_list.remove(t)
+        q = "select londiste.set_remove_table(%s, %s)"
+        dst_curs.execute(q, [self.set_name, tbl])
 
     def load_table_state(self, curs):
         """Load table state from database.
@@ -507,9 +495,9 @@ class Replicator(pgq.SetConsumer):
         to load state on every batch.
         """
 
-        q = "select table_name, snapshot, merge_state, skip_truncate"\
-            "  from londiste.subscriber_get_table_list(%s)"
-        curs.execute(q, [self.pgq_queue_name])
+        q = "select table_name, custom_snapshot, merge_state, skip_truncate"\
+            "  from londiste.node_get_table_list(%s)"
+        curs.execute(q, [self.set_name])
 
         new_list = []
         new_map = {}
@@ -517,7 +505,7 @@ class Replicator(pgq.SetConsumer):
             t = self.get_table_by_name(row['table_name'])
             if not t:
                 t = TableState(row['table_name'], self.log)
-            t.loaded_state(row['merge_state'], row['snapshot'], row['skip_truncate'])
+            t.loaded_state(row['merge_state'], row['custom_snapshot'], row['skip_truncate'])
             new_list.append(t)
             new_map[t.name] = t
 
@@ -534,8 +522,8 @@ class Replicator(pgq.SetConsumer):
             merge_state = t.render_state()
             self.log.info("storing state of %s: copy:%d new_state:%s" % (
                             t.name, self.copy_thread, merge_state))
-            q = "select londiste.subscriber_set_table_state(%s, %s, %s, %s)"
-            curs.execute(q, [self.pgq_queue_name,
+            q = "select londiste.node_set_table_state(%s, %s, %s, %s)"
+            curs.execute(q, [self.set_name,
                              t.name, t.str_snapshot, merge_state])
             t.changed = 0
             got_changes = 1
@@ -562,18 +550,6 @@ class Replicator(pgq.SetConsumer):
         if name in self.table_map:
             return self.table_map[name]
         return None
-
-    def fill_mirror_queue(self, ev_list, dst_curs):
-        # insert events
-        rows = []
-        fields = ['ev_type', 'ev_data', 'ev_extra1']
-        for ev in mirror_list:
-            rows.append((ev.type, ev.data, ev.extra1))
-        pgq.bulk_insert_events(dst_curs, rows, fields, self.mirror_queue)
-
-        # create tick
-        q = "select pgq.ticker(%s, %s)"
-        dst_curs.execute(q, [self.mirror_queue, self.cur_tick])
 
     def launch_copy(self, tbl_stat):
         self.log.info("Launching copy process")
@@ -631,12 +607,12 @@ class Replicator(pgq.SetConsumer):
         """Restore fkeys that have both tables on sync."""
         dst_curs = dst_db.cursor()
         # restore fkeys -- one at a time
-        q = "select * from londiste.subscriber_get_queue_valid_pending_fkeys(%s)"
-        dst_curs.execute(q, [self.pgq_queue_name])
+        q = "select * from londiste.node_get_valid_pending_fkeys(%s)"
+        dst_curs.execute(q, [self.set_name])
         list = dst_curs.dictfetchall()
         for row in list:
             self.log.info('Creating fkey: %(fkey_name)s (%(from_table)s --> %(to_table)s)' % row)
-            q2 = "select londiste.subscriber_restore_table_fkey(%(from_table)s, %(fkey_name)s)"
+            q2 = "select londiste.restore_table_fkey(%(from_table)s, %(fkey_name)s)"
             dst_curs.execute(q2, row)
             dst_db.commit()
     
@@ -649,7 +625,7 @@ class Replicator(pgq.SetConsumer):
         list = dst_curs.dictfetchall()
         for row in list:
             self.log.info('Dropping fkey: %s' % row['fkey_name'])
-            q2 = "select londiste.subscriber_drop_table_fkey(%(from_table)s, %(fkey_name)s)"
+            q2 = "select londiste.drop_table_fkey(%(from_table)s, %(fkey_name)s)"
             dst_curs.execute(q2, row)
             dst_db.commit()
         

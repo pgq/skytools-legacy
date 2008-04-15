@@ -12,6 +12,7 @@
 -- Group: Set object registrations
 \i functions/londiste.set_add_table.sql
 \i functions/londiste.set_remove_table.sql
+\i functions/londiste.set_get_table_list.sql
 
 -- Group: FKey handling
 \i functions/londiste.handle_fkeys.sql

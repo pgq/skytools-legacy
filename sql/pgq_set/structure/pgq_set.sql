@@ -23,7 +23,7 @@ create table pgq_set.member_info (
 );
 
 -- ----------------------------------------------------------------------
--- Table: pgq_set.local_node
+-- Table: pgq_set.set_info
 --
 --      Local node info.
 --
