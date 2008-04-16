@@ -59,7 +59,7 @@ class MaintenanceJob(skytools.DBScript):
 
         self.last_time = t
         duration = time.time() - t
-        self.stat_add('maint_duration', duration)
+        self.stat_put('maint_duration', duration)
 
     def do_maintenance(self):
         """Helper function for running maintenance."""

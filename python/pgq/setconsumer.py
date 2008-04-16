@@ -183,7 +183,7 @@ class SetConsumer(skytools.DBScript):
             self.process_set_event(dst_curs, ev)
             if self.dst_queue:
                 self.dst_queue.bulk_insert(dst_curs, ev)
-        self.stat_add('count', len(ev_list))
+        self.stat_increase('count', len(ev_list))
 
     def process_set_event(self, dst_curs, ev):
         if ev.type == 'set-tick':

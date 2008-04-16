@@ -291,6 +291,9 @@ class Replicator(pgq.SetConsumer):
 
         self.handle_seqs(dst_curs)
 
+        q = "select pgq.set_connection_context(%s)"
+        dst_curs.execute(q, [self.set_name])
+
         self.sql_list = []
         pgq.SetConsumer.process_set_batch(self, src_db, dst_db, ev_list)
         self.flush_sql(dst_curs)
@@ -453,7 +456,7 @@ class Replicator(pgq.SetConsumer):
             if len(self.sql_list) > 200:
                 self.flush_sql(dst_curs)
         else:
-            self.stat_inc('ignored_events')
+            self.stat_increase('ignored_events')
         ev.tag_done()
 
     def flush_sql(self, dst_curs):

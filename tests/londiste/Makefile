@@ -15,8 +15,13 @@ tests: gendb
 	londiste.py conf/w_branch.ini replay -d -v
 	londiste.py conf/w_leaf.ini replay -d -v
 	echo everything is running now
-	sleep 10
+	sleep 5
+	psql db_root -c "insert into data1 (data) values ('xdat');"
+	psql db_root -c "insert into data1 (data) values ('zdat');"
+	sleep 5
 	grep -E 'WARN|ERR|CRIT' sys/log.*
+	psql db_leaf -c "select * from data1;"
+
 
 gendb: init db_root db_branch db_leaf
 

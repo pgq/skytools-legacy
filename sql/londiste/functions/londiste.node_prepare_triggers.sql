@@ -39,7 +39,7 @@ begin
 
     denytrg_name := i_set_name || '_denytrigger';
     denytrg := 'create trigger ' || quote_ident(denytrg_name)
-        || ' before insert or update or delete on ' || londiste.quote_fqname(fq_table_name)
+        || ' after insert or update or delete on ' || londiste.quote_fqname(fq_table_name)
         || ' for each row execute procedure pgq.denytriga(' || quote_literal(i_set_name) || ')';
     insert into londiste.node_trigger (set_name, table_name, tg_name, tg_type, tg_def)
     values (i_set_name, fq_table_name, denytrg_name, 'non-root', denytrg);

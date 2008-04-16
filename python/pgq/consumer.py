@@ -295,8 +295,8 @@ class Consumer(skytools.DBScript):
 
     def stat_end(self, count):
         t = time.time()
-        self.stat_add('count', count)
-        self.stat_add('duration', t - self.stat_batch_start)
+        self.stat_put('count', count)
+        self.stat_put('duration', t - self.stat_batch_start)
 
 
 class RemoteConsumer(Consumer):

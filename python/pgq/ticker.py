@@ -170,6 +170,6 @@ class SmartTicker(skytools.DBScript):
 
         if cur_time > self.ticker_log_time + self.ticker_log_delay:
             self.ticker_log_time = cur_time
-            self.stat_add('ticks', self.tick_count)
+            self.stat_increase('ticks', self.tick_count)
             self.tick_count = 0
 
