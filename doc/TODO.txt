@@ -6,13 +6,13 @@
 === done ===
 
  * drop support of psycopg1
+ * parallel copy
 
 === todo ===
 
  * cascaded replication, switchover, failover [marko]
    - add --create
-   - check if table is in other sets?
-   - before adding, check if table is in sync on provider
+   - before adding, check if table is 'ok' on provider
    - root worker:
      - insert seq pos in queue
      - seq add/remove events
@@ -21,8 +21,10 @@
      - failover
      - pause
      - resume
-   - parallel copy?
+     - status
    - standard msg/error handling for all sql functions
+   - compare/repair
+   - check if table is in other sets? [NAK]
 
  * drop support for 8.1 ??
 
