@@ -119,7 +119,7 @@ class SetAdmin(skytools.DBScript):
             provider_db.commit()
             row = curs.fetchone()
             if not row:
-                raise Exceotion("provider node not found")
+                raise Exception("provider node not found")
             provider_name = row['node_name']
 
             # register member on root
@@ -166,6 +166,12 @@ class SetAdmin(skytools.DBScript):
         while 1:
             db = self.get_database('root_db', connstr = loc)
 
+
+            if 1:
+                curs = db.cursor()
+                curs.execute("select current_database()")
+                n = curs.fetchone()[0]
+                self.log.debug("real dbname=%s" % n)
             # query current status
             res = self.exec_query(db, "select * from pgq_set.get_node_info(%s)", [self.set_name])
             info = res[0]
@@ -174,12 +180,15 @@ class SetAdmin(skytools.DBScript):
                 self.log.info("Root node not initialized?")
                 sys.exit(1)
 
+            self.log.debug("db='%s' -- type='%s' provider='%s'" % (loc, type, info['provider_location']))
             # configured db may not be root anymore, walk upwards then
             if type in ('root', 'combined-root'):
                 db.commit()
                 return db
 
-            self.close_connection()
+            self.close_database('root_db')
+            if loc == info['provider_location']:
+                raise Exception("find_root_db: got loop: %s" % loc)
             loc = info['provider_location']
             if loc is None:
                 self.log.info("Sub node provider not initialized?")

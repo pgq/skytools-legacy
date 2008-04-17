@@ -121,10 +121,14 @@ class Londiste(skytools.DBScript):
         g.add_option("--skip-truncate", action="store_true", dest="skip_truncate",
                 help = "add: keep old data", default=False)
         g.add_option("--provider",
-                help = "init: upstream node temp connect string", default=None)
+                help = "init: upstream node temp connect string")
+        g.add_option("--create", action = 'callback', callback = self.opt_create_cb, type='string',
+                help = "add: create table/seq if not exist")
         p.add_option_group(g)
 
         return p
+    def opt_create_cb(self, option, opt_str, value, parser):
+        print opt_str, '=', value
 
 if __name__ == '__main__':
     script = Londiste(sys.argv[1:])

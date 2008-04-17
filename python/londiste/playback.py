@@ -46,9 +46,9 @@ class Counter(object):
                 self.do_sync += 1
             elif t.state == TABLE_OK:
                 self.ok += 1
-        # only one table is allowed to have in-progress copy
-        if self.copy + self.catching_up + self.wanna_sync + self.do_sync > 1:
-            raise Exception('Bad table state')
+
+    def get_copy_count(self):
+        return self.copy + self.catching_up + self.wanna_sync + self.do_sync
 
 class TableState(object):
     """Keeps state about one table."""
@@ -263,6 +263,10 @@ class Replicator(pgq.SetConsumer):
         self.copy_thread = 0
         self.seq_cache = SeqCache()
 
+        self.parallel_copies = self.cf.getint('parallel_copies', 1)
+        if self.parallel_copies < 1:
+            raise Excpetion('Bad value for parallel_copies: %d' % self.parallel_copies)
+
     def process_set_batch(self, src_db, dst_db, ev_list):
         "All work for a batch.  Entry point from SetConsumer."
 
@@ -350,56 +354,62 @@ class Replicator(pgq.SetConsumer):
     def sync_from_main_thread(self, cnt, src_db, dst_db):
         "Main thread sync logic."
 
-        #
-        # decide what to do - order is imortant
-        #
+        # This operates on all table, any amount can be in any state
+
+        ret = SYNC_OK
+        
         if cnt.do_sync:
             # wait for copy thread to catch up
-            return SYNC_LOOP
-        elif cnt.wanna_sync:
+            ret = SYNC_LOOP
+        
+        for t in self.get_tables_in_state(TABLE_WANNA_SYNC):
             # copy thread wants sync, if not behind, do it
-            t = self.get_table_by_state(TABLE_WANNA_SYNC)
             if self.cur_tick >= t.sync_tick_id:
                 self.change_table_state(dst_db, t, TABLE_DO_SYNC, self.cur_tick)
-                return SYNC_LOOP
-            else:
-                return SYNC_OK
-        elif cnt.catching_up:
-            # active copy, dont worry
-            return SYNC_OK
-        elif cnt.copy:
-            # active copy, dont worry
-            return SYNC_OK
-        elif cnt.missing:
-            # seems there is no active copy thread, launch new
-            t = self.get_table_by_state(TABLE_MISSING)
+                ret = SYNC_LOOP
 
-            # drop all foreign keys to and from this table
-            self.drop_fkeys(dst_db, t.name)
+        npossible = self.parallel_copies - cnt.get_copy_count()
+        if cnt.missing and npossible > 0:
+            pmap = self.get_state_map(src_db.cursor())
+            src_db.commit()
+            for t in self.get_tables_in_state(TABLE_MISSING):
+                if t.name not in pmap:
+                    self.log.warning("Table %s not availalbe on provider" % t.name)
+                    continue
+                pt = pmap[t.name]
+                if pt.state != TABLE_OK: # or pt.custom_snapshot: # FIXME: does snapsnot matter?
+                    self.log.info("Table %s not OK on provider, waiting" % t.name)
+                    continue
 
-            # change state after fkeys are dropped thus allowing
-            # failure inbetween
-            self.change_table_state(dst_db, t, TABLE_IN_COPY)
+                # dont allow more copies than configured
+                if npossible == 0:
+                    break
+                npossible -= 1
 
-            # the copy _may_ happen immidiately
-            self.launch_copy(t)
+                # drop all foreign keys to and from this table
+                self.drop_fkeys(dst_db, t.name)
 
-            # there cannot be interesting events in current batch
-            # but maybe there's several tables, lets do them in one go
-            return SYNC_LOOP
-        else:
-            # seems everything is in sync
-            return SYNC_OK
+                # change state after fkeys are dropped thus allowing
+                # failure inbetween
+                self.change_table_state(dst_db, t, TABLE_IN_COPY)
+
+                # the copy _may_ happen immidiately
+                self.launch_copy(t)
+
+                # there cannot be interesting events in current batch
+                # but maybe there's several tables, lets do them in one go
+                ret = SYNC_LOOP
+        
+        return ret
 
     def sync_from_copy_thread(self, cnt, src_db, dst_db):
         "Copy thread sync logic."
 
-        #
-        # decide what to do - order is important
-        #
-        if cnt.do_sync:
+        # This operates on single table
+        t = self.table_map[self.copy_table_name]
+
+        if t.state == TABLE_DO_SYNC:
             # main thread is waiting, catch up, then handle over
-            t = self.get_table_by_state(TABLE_DO_SYNC)
             if self.cur_tick == t.sync_tick_id:
                 self.change_table_state(dst_db, t, TABLE_OK)
                 return SYNC_EXIT
@@ -409,21 +419,19 @@ class Replicator(pgq.SetConsumer):
                 self.log.error("copy_sync: cur_tick=%d sync_tick=%d" % (
                                 self.cur_tick, t.sync_tick_id))
                 raise Exception('Invalid table state')
-        elif cnt.wanna_sync:
+        elif t.state == TABLE_WANNA_SYNC:
             # wait for main thread to react
             return SYNC_LOOP
-        elif cnt.catching_up:
+        elif t.state == TABLE_CATCHING_UP:
             # is there more work?
             if self.work_state:
                 return SYNC_OK
 
             # seems we have catched up
-            t = self.get_table_by_state(TABLE_CATCHING_UP)
             self.change_table_state(dst_db, t, TABLE_WANNA_SYNC, self.cur_tick)
             return SYNC_LOOP
-        elif cnt.copy:
+        elif t.state == TABLE_IN_COPY:
             # table is not copied yet, do it
-            t = self.get_table_by_state(TABLE_IN_COPY)
             self.do_copy(t, src_db, dst_db)
 
             # forget previous value
@@ -515,6 +523,20 @@ class Replicator(pgq.SetConsumer):
         self.table_list = new_list
         self.table_map = new_map
 
+    def get_state_map(self, curs):
+        """Get dict of table states."""
+
+        q = "select table_name, custom_snapshot, merge_state, skip_truncate"\
+            "  from londiste.node_get_table_list(%s)"
+        curs.execute(q, [self.set_name])
+
+        new_map = {}
+        for row in curs.fetchall():
+            t = TableState(row['table_name'], self.log)
+            t.loaded_state(row['merge_state'], row['custom_snapshot'], row['skip_truncate'])
+            new_map[t.name] = t
+        return new_map
+
     def save_table_state(self, curs):
         """Store changed table state in database."""
 
@@ -539,13 +561,12 @@ class Replicator(pgq.SetConsumer):
         self.log.info("Table %s status changed to '%s'" % (
                       tbl.name, tbl.render_state()))
 
-    def get_table_by_state(self, state):
-        "get first table with specific state"
+    def get_tables_in_state(self, state):
+        "get all tables with specific state"
 
         for t in self.table_list:
             if t.state == state:
-                return t
-        raise Exception('No table was found with state: %d' % state)
+                yield t
 
     def get_table_by_name(self, name):
         if name.find('.') < 0:
@@ -558,22 +579,21 @@ class Replicator(pgq.SetConsumer):
         self.log.info("Launching copy process")
         script = sys.argv[0]
         conf = self.cf.filename
+        cmd = [script, conf, 'copy', tbl_stat.name, '-d', '-q']
         if self.options.verbose:
-            cmd = "%s -d -v %s copy"
-        else:
-            cmd = "%s -d %s copy"
-        cmd = cmd % (script, conf)
+            cmd.append('-v')
 
         # let existing copy finish and clean its pidfile,
-        # otherwise new copy will exit immidiately
-        copy_pidfile = self.pidfile + ".copy"
+        # otherwise new copy will exit immidiately.
+        # FIXME: should not happen on per-table pidfile ???
+        copy_pidfile = "%s.copy.%s" % (self.pidfile, tbl_stat.name)
         while os.path.isfile(copy_pidfile):
-            self.log.info("Waiting for existing copy to exit")
+            self.log.warning("Waiting for existing copy to exit")
             time.sleep(2)
 
         self.log.debug("Launch args: "+repr(cmd))
-        res = os.system(cmd)
-        self.log.debug("Launch result: "+repr(res))
+        pid = os.spawnvp(os.P_NOWAIT, script, cmd)
+        self.log.debug("Launch result: "+repr(pid))
 
     def sync_database_encodings(self, src_db, dst_db):
         """Make sure client_encoding is same on both side."""

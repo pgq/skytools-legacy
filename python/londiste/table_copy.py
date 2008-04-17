@@ -16,17 +16,34 @@ class CopyTable(Replicator):
     def __init__(self, args, copy_thread = 1):
         Replicator.__init__(self, args)
 
-        if copy_thread:
-            self.pidfile += ".copy"
-            self.consumer_name += "_copy"
-            self.copy_thread = 1
-            self.main_worker = False
+        if not copy_thread:
+            raise Exception("Combined copy not supported")
+
+        if len(self.args):
+            print "londiste copy requires table name"
+        self.copy_table_name = self.args[2]
+
+        self.pidfile += ".copy.%s" % self.copy_table_name
+        self.consumer_name += "_copy_%s" % self.copy_table_name
+        self.copy_thread = 1
+        self.main_worker = False
 
     def do_copy(self, tbl_stat, src_db, dst_db):
 
-        # it should not matter to pgq
-        src_db.commit()
         dst_db.commit()
+
+        while 1:
+            pmap = self.get_state_map(src_db.cursor())
+            src_db.commit()
+            if tbl_stat.name not in pmap:
+                raise Excpetion("table %s not available on provider" % tbl_stat.name)
+            pt = pmap[tbl_stat.name]
+            if pt.state == TABLE_OK:
+                break
+            
+            self.log.warning("table %s not in sync yet on provider, waiting" % tbl_stat.name)
+            time.sleep(10)
+
 
         # change to SERIALIZABLE isolation level
         src_db.set_isolation_level(skytools.I_SERIALIZABLE)
@@ -40,22 +57,43 @@ class CopyTable(Replicator):
 
         self.log.info("Starting full copy of %s" % tbl_stat.name)
 
+        # just in case, drop all fkeys (in case "replay" was skipped)
+        # !! this may commit, so must be done before anything else !!
+        self.drop_fkeys(dst_db, tbl_stat.name)
+
+        # drop own triggers
+        q_node_trg = "select * from londiste.node_disable_triggers(%s, %s)"
+        dst_curs.execute(q_node_trg, [self.set_name, tbl_stat.name])
+
+        # drop rest of the triggers
+        q_triggers = "select londiste.drop_all_table_triggers(%s)"
+        dst_curs.execute(q_triggers, [tbl_stat.name])
+
         # find dst struct
         src_struct = TableStruct(src_curs, tbl_stat.name)
         dst_struct = TableStruct(dst_curs, tbl_stat.name)
         
-        # check if columns match
+        # take common columns, warn on missing ones
         dlist = dst_struct.get_column_list()
-        for c in src_struct.get_column_list():
+        slist = src_struct.get_column_list()
+        common_cols = []
+        for c in slist:
             if c not in dlist:
-                raise Exception('Column %s does not exist on dest side' % c)
+                self.log.warning("Table %s column %s does not exist on subscriber"
+                                 % (tbl_stat.name, c))
+            else:
+                common_cols.append(c)
+        for c in dlist:
+            if c not in slist:
+                self.log.warning("Table %s column %s does not exist on provider"
+                                 % (tbl_stat.name, c))
 
         # drop unnecessary stuff
         objs = T_CONSTRAINT | T_INDEX | T_RULE
         dst_struct.drop(dst_curs, objs, log = self.log)
 
         # do truncate & copy
-        self.real_copy(src_curs, dst_curs, tbl_stat)
+        self.real_copy(src_curs, dst_curs, tbl_stat, common_cols)
 
         # get snapshot
         src_curs.execute("select txid_current_snapshot()")
@@ -65,6 +103,10 @@ class CopyTable(Replicator):
         # restore READ COMMITTED behaviour
         src_db.set_isolation_level(1)
         src_db.commit()
+
+        # restore own triggers
+        q_node_trg = "select * from londiste.node_refresh_triggers(%s, %s)"
+        dst_curs.execute(q_node_trg, [self.set_name, tbl_stat.name])
 
         # create previously dropped objects
         dst_struct.create(dst_curs, objs, log = self.log)
@@ -79,14 +121,7 @@ class CopyTable(Replicator):
         self.save_table_state(dst_curs)
         dst_db.commit()
 
-        # if copy done, request immidiate tick from pgqadm,
-        # to make state juggling faster.  on mostly idle db-s
-        # each step may take tickers idle_timeout secs, which is pain.
-        q = "select pgq.force_tick(%s)"
-        src_curs.execute(q, [self.src_queue.queue_name])
-        src_db.commit()
-
-    def real_copy(self, srccurs, dstcurs, tbl_stat):
+    def real_copy(self, srccurs, dstcurs, tbl_stat, col_list):
         "Main copy logic."
 
         tablename = tbl_stat.name
@@ -99,7 +134,6 @@ class CopyTable(Replicator):
 
         # do copy
         self.log.info("%s: start copy" % tablename)
-        col_list = skytools.get_table_columns(srccurs, tablename)
         stats = skytools.full_copy(tablename, srccurs, dstcurs, col_list)
         if stats:
             self.log.info("%s: copy finished: %d bytes, %d rows" % (

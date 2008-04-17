@@ -2,70 +2,17 @@
 
 . ../env.sh
 
-contrib=/usr/share/postgresql/8.1/contrib
-contrib=/opt/apps/pgsql-dev/share/contrib
-contrib=/opt/pgsql/share/contrib
+./stop.sh
+rm -f sys/log.*
 
 set -e
 
 
-mkdir -p sys
-./stop.sh
-sleep 1
+./makenode.sh test_set root root 
 
-rm -rf file_logs sys
-mkdir -p sys
-
-db=db_root
-echo "creating database: $db"
-dropdb $db && sleep 1 || true
-sleep 1
-createdb $db
-londiste.py conf/w_root.ini init-root n_root "dbname=$db"
-pgqadm.py conf/ticker_root.ini install
-psql -q $db -f data.sql
-londiste.py conf/w_root.ini add data1
-londiste.py conf/w_root.ini add data1
-londiste.py conf/w_root.ini remove data1
-londiste.py conf/w_root.ini remove data1
-londiste.py conf/w_root.ini add data1
-londiste.py conf/w_root.ini tables
-
-db=db_branch
-echo "creating database: $db"
-dropdb $db && sleep 1 || true
-createdb $db
-pgqadm.py conf/ticker_branch.ini install
-londiste.py conf/w_branch.ini init-branch n_branch "dbname=$db" --provider="dbname=db_root"
-psql -q $db -f data.sql
-londiste.py conf/w_branch.ini add data1
-londiste.py conf/w_branch.ini add data1
-londiste.py conf/w_branch.ini remove data1
-londiste.py conf/w_branch.ini remove data1
-londiste.py conf/w_branch.ini add data1
-londiste.py conf/w_branch.ini tables
-
-exit 0
-
-db=subscriber
-echo "creating database: $db"
-dropdb $db
-sleep 1
-createdb $db
-pgqadm.py conf/linkticker.ini install
-psql -q $db -f data.sql
-
-db=file_subscriber
-echo "creating database: $db"
-dropdb $db
-sleep 1
-createdb $db
-createlang plpgsql $db
-createlang plpythonu $db
-psql -q $db -f data.sql
-
-echo "done, testing"
-
-#pgqmgr.py -d conf/ticker.ini ticker
-#./run-tests.sh
+last=root
+for n in `seq 1 10`; do
+  ./makenode.sh test_set node$n branch $last
+  last=node$n
+done
 
