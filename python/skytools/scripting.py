@@ -425,6 +425,7 @@ class DBScript(object):
         if dbname in self.db_cache:
             dbc = self.db_cache[dbname]
             dbc.reset()
+            del self.db_cache[dbname]
 
     def reset(self):
         "Something bad happened, reset all connections."
