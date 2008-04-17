@@ -331,8 +331,7 @@ class DBObject(object):
         else:
             raise Exception('object not defined')
         for stmt in skytools.parse_statements(sql):
-            if log:
-                log.debug(repr(stmt))
+            #if log: log.debug(repr(stmt))
             curs.execute(stmt)
 
     def find_file(self):
@@ -409,7 +408,7 @@ def installer_apply_file(db, filename, log):
         log.info("applying %s" % fn)
     curs = db.cursor()
     for stmt in skytools.parse_statements(sql):
-        log.debug(repr(stmt))
+        #log.debug(repr(stmt))
         curs.execute(stmt)
 
 #
