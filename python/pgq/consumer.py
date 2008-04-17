@@ -240,12 +240,15 @@ class Consumer(skytools.DBScript):
     def _finish_batch(self, curs, batch_id, list):
         """Tag events and notify that the batch is done."""
 
+        retry = failed = 0
         if self.pgq_lazy_fetch:
             for ev_id, stat in list.iter_status():
                 if stat[0] == EV_RETRY:
                     self._tag_retry(curs, batch_id, ev_id, stat[1])
+                    retry += 1
                 elif stat[0] == EV_FAILED:
                     self._tag_failed(curs, batch_id, ev_id, stat[1])
+                    failed += 1
         else:
             for ev in list:
                 if ev.status == EV_FAILED:
@@ -254,6 +257,12 @@ class Consumer(skytools.DBScript):
                 elif ev.status == EV_RETRY:
                     self._tag_retry(curs, batch_id, ev.id, ev.retry_time)
                     retry += 1
+
+        # report weird events
+        if retry:
+            self.stat_add('retry-events', retry)
+        if failed:
+            self.stat_add('failed-events', failed)
 
         curs.execute("select pgq.finish_batch(%s)", [batch_id])
 
