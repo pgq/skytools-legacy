@@ -8,7 +8,7 @@ For internal usage.
 import sys, os, skytools
 
 from skytools.dbstruct import *
-from playback import *
+from londiste.playback import *
 
 __all__ = ['CopyTable']
 

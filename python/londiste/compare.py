@@ -9,7 +9,7 @@ import sys, os, time, skytools
 
 __all__ = ['Comparator']
 
-from syncer import Syncer
+from londiste.syncer import Syncer
 
 class Comparator(Syncer):
     def process_sync(self, tbl, src_db, dst_db):
