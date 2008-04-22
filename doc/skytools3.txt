@@ -1,0 +1,19 @@
+
+Keep old design from Skytools 2.x:
+----------------------------------
+
+* worker process connects to only 2 databases
+* worker process pulls data, no pushing with LISTEN/NOTIFY
+* relaxed attitude about tables
+  - can be added/removed any time.
+  - inital sync happens table-by-table, no attempt is made to keep
+    consistend picture between tables when syncing.
+
+New features in 3.0:
+--------------------
+
+* Queue content are kept in sync between all nodes in node-set.
+* parallel copy - during inital sync several tables can be
+  copied at the same time.
+
+
