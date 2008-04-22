@@ -11,6 +11,7 @@ run () {
   "$@"
 }
 
+verbose=-v
 
 # usage: makenode <set_name> <base_name> <type> <provider_base_name>
 set_name="$1"
@@ -26,7 +27,10 @@ londiste_conf="sys/worker_$base_name.ini"
 
 for pf in sys/pid.ticker_$base_name \
   sys/pid.worker_$base_name \
-  sys/pid.worker_$base_name.*
+  sys/pid.worker_$base_name.* \
+  sys/ticker_$base_name.pid \
+  sys/worker_$base_name.pid \
+  sys/worker_$base_name.*.pid
 do
   test -f $pf || continue
   msg "Killing $pf"
@@ -41,8 +45,8 @@ job_name = ticker_$base_name
 db = $connstr
 maint_delay_min = 1
 loop_delay = 0.5
-logfile = sys/log.%(job_name)s
-pidfile = sys/pid.%(job_name)s
+logfile = sys/%(job_name)s.log
+pidfile = sys/%(job_name)s.pid
 use_skylog = 0
 connection_lifetime = 10
 queue_refresh_period = 10
@@ -54,8 +58,8 @@ cat > "$londiste_conf" <<EOF
 job_name = worker_$base_name
 set_name = $set_name
 node_db = $connstr
-pidfile = sys/pid.%(job_name)s
-logfile = sys/log.%(job_name)s
+pidfile = sys/%(job_name)s.pid
+logfile = sys/%(job_name)s.log
 loop_delay = 1
 connection_lifetime = 10
 parallel_copies = 4
@@ -67,16 +71,16 @@ dropdb $db 2>&1 | grep -v 'not exist' || true
 createdb $db
 
 msg "Installing pgq"
-pgqadm.py $ticker_conf install
+pgqadm.py $ticker_conf install $verbose
 msg "Launching ticker"
-pgqadm.py $ticker_conf ticker -d
+pgqadm.py $ticker_conf ticker -d $verbose
 
 msg "Initializing node"
 run londiste.py $londiste_conf "init-$node_type" "$node_name" "$connstr" -v \
   --provider="dbname=db_$provider_base_name host=127.0.0.1"
 
 msg "Launching Londiste"
-londiste.py $londiste_conf worker -d -v
+londiste.py $londiste_conf worker -d $verbose
 
 for n in `seq 1 16`; do
   tbl="manytable$n"
@@ -92,7 +96,7 @@ select '$tbl-$base_name'
 EOF
 
   msg "Adding $tbl to n_$base_name"
-  londiste.py $londiste_conf add $tbl
+  londiste.py $londiste_conf add $tbl $verbose
 
 done
 

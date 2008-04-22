@@ -1,4 +1,4 @@
 #! /bin/sh
 
-grep -E 'WARN|ERR|CRIT' sys/log.*
+grep -E 'WARN|ERR|CRIT' sys/*log*
 

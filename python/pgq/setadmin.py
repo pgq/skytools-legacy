@@ -2,23 +2,9 @@
 
 import sys, optparse, skytools
 
-from pgq.setconsumer import MemberInfo, NodeInfo
+from pgq.setinfo import *
 
-class SetInfo:
-    def __init__(self, set_name, info_row, member_rows):
-        self.root_info = info_row
-        self.set_name = set_name
-        self.member_map = {}
-        self.root_name = info_row['node_name']
-        self.root_type = info_row['node_type']
-        self.global_watermark = info_row['global_watermark']
-
-        for r in member_rows:
-            n = MemberInfo(r)
-            self.member_map[n.name] = n
-
-    def get_member(self, name):
-        return self.member_map.get(name)
+__all__ = ['SetAdmin']
 
 command_usage = """
 %prog [options] INI CMD [subcmd args]
@@ -26,7 +12,7 @@ command_usage = """
 commands:
 """
 
-class SetAdmin(skytools.DBScript):
+class SetAdmin(skytools.AdminScript):
     root_name = None
     root_info = None
     member_map = {}
@@ -35,7 +21,7 @@ class SetAdmin(skytools.DBScript):
     initial_db_name = 'node_db'
 
     def init_optparse(self, parser = None):
-        p = skytools.DBScript.init_optparse(self, parser)
+        p = skytools.AdminScript.init_optparse(self, parser)
         p.set_usage(command_usage.strip())
 
         g = optparse.OptionGroup(p, "actual setadm options")
@@ -46,29 +32,24 @@ class SetAdmin(skytools.DBScript):
         p.add_option_group(g)
         return p
 
-    def work(self):
-        self.set_single_loop(1)
-
+    def reload(self):
+        skytools.AdminScript.reload(self)
         self.set_name = self.cf.get('set_name')
 
-        if self.is_cmd("init-root", 2):
-            self.init_node("root", self.args[2], self.args[3])
-        elif self.is_cmd("init-branch", 2):
-            self.init_node("branch", self.args[2], self.args[3])
-        elif self.is_cmd("init-leaf", 2):
-            self.init_node("leaf", self.args[2], self.args[3])
-        else:
-            self.log.info("need command")
+    def cmd_init_root(self, args):
+        if len(args) != 2:
+            raise Exception('init-root needs 2 args')
+        self.init_node('root', args[0], args[1])
 
-    def is_cmd(self, name, argcnt):
-        if len(self.args) < 2:
-            return False
-        if self.args[1] != name:
-            return False
-        if len(self.args) != argcnt + 2:
-            self.log.error("cmd %s needs %d args" % (name, argcnt))
-            sys.exit(1)
-        return True
+    def cmd_init_branch(self, args):
+        if len(args) != 2:
+            raise Exception('init-branch needs 2 args')
+        self.init_node('branch', args[0], args[1])
+
+    def cmd_init_leaf(self, args):
+        if len(args) != 2:
+            raise Exception('init-leaf needs 2 args')
+        self.init_node('leaf', args[0], args[1])
 
     def init_node(self, node_type, node_name, node_location):
         provider_loc = self.options.provider
@@ -157,7 +138,7 @@ class SetAdmin(skytools.DBScript):
     def extra_init(self, node_type, node_db, provider_db):
         pass
 
-    def find_root_db(self, initial_loc):
+    def find_root_db(self, initial_loc = None):
         if initial_loc:
             loc = initial_loc
         else:
@@ -205,20 +186,6 @@ class SetAdmin(skytools.DBScript):
 
         return SetInfo(self.set_name, info, node_list)
 
-    def exec_sql(self, db, q, args):
-        self.log.debug(q)
-        curs = db.cursor()
-        curs.execute(q, args)
-        db.commit()
-
-    def exec_query(self, db, q, args):
-        self.log.debug(q)
-        curs = db.cursor()
-        curs.execute(q, args)
-        res = curs.dictfetchall()
-        db.commit()
-        return res
-
     def install_code(self, db):
         objs = [
             skytools.DBLanguage("plpgsql"),
@@ -230,6 +197,62 @@ class SetAdmin(skytools.DBScript):
         objs += self.extra_objs
         skytools.db_install(db.cursor(), objs, self.log)
         db.commit()
+
+    def cmd_status(self, args):
+        root_db = self.find_root_db()
+        sinf = self.load_root_info(root_db)
+
+        for mname, minf in sinf.member_map.iteritems():
+            db = self.get_database('look_db', connstr = minf.location, autocommit = 1)
+            curs = db.cursor()
+            curs.execute("select * from pgq_set.get_node_info(%s)", [self.set_name])
+            node = NodeInfo(curs.fetchone())
+            sinf.add_node(node)
+            self.close_database('look_db')
+
+        sinf.print_tree()
+
+    def cmd_switch(self):
+        [['node', 'PAUSE']]
+        [['new_parent', 'select * from pgq_set.subscribe_node(%(set_name)s, %(node_name)s, %(node_pos)s)']]
+        [['node', 'select * from pgq_set.change_provider(%(set_name)s, %(new_provider)s)']]
+        [['old_parent', 'select * from pgq_set.unsubscribe_node(%(set_name)s, %(node_name)s, %(node_pos)s)']]
+        [['node', 'RESUME']]
+
+    def cmd_promote(self):
+        [['old-root', 'PAUSE']]
+        [['old-root', 'demote, set-provider?']]
+        [['new-root', 'wait-for-catch-up']]
+        [['new-root', 'pause']]
+        [['new-root', 'promote']]
+        [['new-root', 'resume']]
+        [['old-root', 'resume']]
+        [['new_parent', 'select * from pgq_set.subscribe_node(%(set_name)s, %(node_name)s, %(node_pos)s)']]
+        [['node', 'select * from pgq_set.change_provider(%(set_name)s, %(new_provider)s)']]
+        [['old_parent', 'select * from pgq_set.unsubscribe_node(%(set_name)s, %(node_name)s, %(node_pos)s)']]
+        [['node', 'RESUME']]
+
+    def subscribe_node(self, target_node, subscriber_node, tick_pos):
+        q = "select * from pgq_set.subscribe_node(%s, %s, %s)"
+        self.node_exec(target_node, q, [self.set_name, target_node, tick_pos])
+
+    def unsubscribe_node(self, target_node, subscriber_node, tick_pos):
+        q = "select * from pgq_set.subscribe_node(%s, %s, %s)"
+        self.node_exec(target_node, q, [self.set_name, target_node, tick_pos])
+
+    def node_cmd(self, node_name, sql, args, commit = True):
+        m = self.lookup_member(node_name)
+        db = self.get_database('node_'+node_name)
+        self.db_cmd(db, sql, args, commit = commit)
+
+    def connect_node(self, node_name):
+        sinf = self.get_set_info()
+        m = sinf.get_member(node_name)
+        loc = m.node_location
+        db = self.get_database("node." + node_name, connstr = loc)
+
+    def disconnect_node(self, node_name):
+        self.close_database("node." + node_name)
 
 if __name__ == '__main__':
     script = SetAdmin('set_admin', sys.argv[1:])

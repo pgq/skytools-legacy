@@ -12,7 +12,6 @@
 
  * cascaded replication, switchover, failover [marko]
    - add --create
-   - before adding, check if table is 'ok' on provider
    - root worker:
      - insert seq pos in queue
      - seq add/remove events
@@ -21,10 +20,12 @@
      - failover
      - pause
      - resume
-     - status
+     - node-status
+     - set-status
    - standard msg/error handling for all sql functions
    - compare/repair
    - check if table is in other sets? [NAK]
+   - setconsumer/pgq - insert tick with original date (+evid?)
 
  * drop support for 8.1 ??
 

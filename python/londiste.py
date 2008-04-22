@@ -3,10 +3,9 @@
 """Londiste launcher.
 """
 
-import sys, os, optparse, skytools, pgq, pgq.setadmin
+import sys, os, os.path, optparse, skytools
 
 # python 2.3 will try londiste.py first...
-import sys, os.path
 if os.path.exists(os.path.join(sys.path[0], 'londiste.py')) \
     and not os.path.exists(os.path.join(sys.path[0], 'londiste')):
     del sys.path[0]
@@ -56,32 +55,12 @@ Internal Commands:
   copy                  copy table logic
 """
 
-class NodeSetup(pgq.setadmin.SetAdmin):
-    initial_db_name = 'node_db'
-    extra_objs = [ skytools.DBSchema("londiste", sql_file="londiste.sql") ]
-    def __init__(self, args):
-        pgq.setadmin.SetAdmin.__init__(self, 'londiste', args)
-    def extra_init(self, node_type, node_db, provider_db):
-        if not provider_db:
-            return
-        pcurs = provider_db.cursor()
-        ncurs = node_db.cursor()
-        q = "select table_name from londiste.set_get_table_list(%s)"
-        pcurs.execute(q, [self.set_name])
-        for row in pcurs.fetchall():
-            tbl = row['table_name']
-            q = "select * from londiste.set_add_table(%s, %s)"
-            ncurs.execute(q, [self.set_name, tbl])
-        node_db.commit()
-        provider_db.commit()
-
-
 cmd_handlers = (
     (('init-root', 'init-branch', 'init-leaf', 'members', 'tag-dead', 'tag-alive',
-      'redirect', 'promote-root'), NodeSetup),
-    (('worker', 'replay'), londiste.Replicator),
+      'redirect', 'promote-root', 'status'), londiste.LondisteSetup),
     (('add', 'remove', 'add-seq', 'remove-seq', 'tables', 'seqs',
       'missing', 'resync', 'check', 'fkeys'), londiste.LondisteSetup),
+    (('worker', 'replay'), londiste.Replicator),
     (('compare',), londiste.Comparator),
     (('repair',), londiste.Repairer),
     (('copy',), londiste.CopyTable),
@@ -122,8 +101,8 @@ class Londiste(skytools.DBScript):
                 help = "add: keep old data", default=False)
         g.add_option("--provider",
                 help = "init: upstream node temp connect string")
-        g.add_option("--create", action = 'callback', callback = self.opt_create_cb, type='string',
-                help = "add: create table/seq if not exist")
+        g.add_option("--create",
+                help = "add: create table/seq if not exist (seq,pkey,full,indexes,fkeys)")
         p.add_option_group(g)
 
         return p

@@ -1,6 +1,6 @@
 
 PYTHONPATH=../../python:$PYTHONPATH
-PATH=../../python:../../scripts:$PATH
+PATH=../../python:../../python/bin:../../scripts:$PATH
 export PYTHONPATH PATH
 
 
