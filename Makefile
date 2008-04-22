@@ -90,6 +90,8 @@ boot: configure
 configure: configure.ac
 	autoconf
 
+tags:
+	ctags `find python -name '*.py'`
 
 .PHONY: all clean distclean install deb debclean tgz
 .PHONY: python-all python-clean python-install
