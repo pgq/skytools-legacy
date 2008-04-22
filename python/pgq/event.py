@@ -2,9 +2,10 @@
 """PgQ event container.
 """
 
-__all__ = ('EV_RETRY', 'EV_DONE', 'EV_FAILED', 'Event')
+__all__ = ['EV_RETRY', 'EV_DONE', 'EV_FAILED', 'Event']
 
 # Event status codes
+EV_UNTAGGED = -1
 EV_RETRY = 0
 EV_DONE = 1
 EV_FAILED = 2
@@ -39,7 +40,7 @@ class Event(object):
     """
     def __init__(self, queue_name, row):
         self._event_row = row
-        self.status = EV_RETRY
+        self._status = EV_UNTAGGED
         self.retry_time = 60
         self.fail_reason = "Buggy consumer"
         self.queue_name = queue_name
@@ -48,13 +49,16 @@ class Event(object):
         return self._event_row[_fldmap[key]]
 
     def tag_done(self):
-        self.status = EV_DONE
+        self._status = EV_DONE
 
     def tag_retry(self, retry_time = 60):
-        self.status = EV_RETRY
+        self._status = EV_RETRY
         self.retry_time = retry_time
 
     def tag_failed(self, reason):
-        self.status = EV_FAILED
+        self._status = EV_FAILED
         self.fail_reason = reason
+
+    def get_status(self):
+        return self._status
 
