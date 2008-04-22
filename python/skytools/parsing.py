@@ -131,11 +131,11 @@ def parse_logtriga_sql(op, sql):
     """Parse partial SQL used by logtriga() back to data values.
 
     Parser has following limitations:
-    - Expects standard_quoted_strings = off
-    - Does not support dollar quoting.
-    - Does not support complex expressions anywhere. (hashtext(col1) = hashtext(val1))
-    - WHERE expression must not contain IS (NOT) NULL
-    - Does not support updateing pk value.
+     - Expects standard_quoted_strings = off
+     - Does not support dollar quoting.
+     - Does not support complex expressions anywhere. (hashtext(col1) = hashtext(val1))
+     - WHERE expression must not contain IS (NOT) NULL
+     - Does not support updateing pk value.
 
     Returns dict of col->data pairs.
     """
