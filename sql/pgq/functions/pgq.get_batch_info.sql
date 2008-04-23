@@ -1,6 +1,14 @@
 
-create or replace function pgq.get_batch_info(x_batch_id bigint)
-returns pgq.ret_batch_info as $$
+create or replace function pgq.get_batch_info(
+    in x_batch_id       bigint,
+    out queue_name      text,
+    out consumer_name   text,
+    out batch_start     timestamptz,
+    out batch_end       timestamptz,
+    out prev_tick_id    bigint,
+    out tick_id         bigint,
+    out lag             interval)
+as $$
 -- ----------------------------------------------------------------------
 -- Function: pgq.get_batch_info(1)
 --
@@ -12,25 +20,23 @@ returns pgq.ret_batch_info as $$
 -- Returns:
 --      Info
 -- ----------------------------------------------------------------------
-declare
-    ret  pgq.ret_batch_info%rowtype;
 begin
-    select queue_name, co_name,
-           prev.tick_time as batch_start,
-           cur.tick_time as batch_end,
-           sub_last_tick, sub_next_tick,
-           current_timestamp - cur.tick_time as lag
-        into ret
-        from pgq.subscription, pgq.tick cur, pgq.tick prev,
-             pgq.queue, pgq.consumer
-        where sub_batch = x_batch_id
-          and prev.tick_id = sub_last_tick
-          and prev.tick_queue = sub_queue
-          and cur.tick_id = sub_next_tick
-          and cur.tick_queue = sub_queue
-          and queue_id = sub_queue
-          and co_id = sub_consumer;
-    return ret;
+    select q.queue_name, c.co_name,
+           prev.tick_time, cur.tick_time,
+           s.sub_last_tick, s.sub_next_tick,
+           current_timestamp - cur.tick_time
+        into queue_name, consumer_name, batch_start, batch_end,
+             prev_tick_id, tick_id, lag
+        from pgq.subscription s, pgq.tick cur, pgq.tick prev,
+             pgq.queue q, pgq.consumer c
+        where s.sub_batch = x_batch_id
+          and prev.tick_id = s.sub_last_tick
+          and prev.tick_queue = s.sub_queue
+          and cur.tick_id = s.sub_next_tick
+          and cur.tick_queue = s.sub_queue
+          and q.queue_id = s.sub_queue
+          and c.co_id = s.sub_consumer;
+    return;
 end;
 $$ language plpgsql security definer;
 

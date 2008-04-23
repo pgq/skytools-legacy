@@ -22,17 +22,6 @@ create type pgq.ret_consumer_info as (
     next_tick       bigint
 );
 
-create type pgq.ret_batch_info as (
-    queue_name      text,
-    consumer_name   text,
-    batch_start     timestamptz,
-    batch_end       timestamptz,
-    prev_tick_id    bigint,
-    tick_id         bigint,
-    lag             interval
-);
-
-
 create type pgq.ret_batch_event as (
     ev_id	    bigint,
     ev_time         timestamptz,
