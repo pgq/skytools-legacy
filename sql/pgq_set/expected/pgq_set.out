@@ -46,16 +46,16 @@ select * from pgq_set.get_member_info('aset');
  node3     | dbname=node3  | f
 (3 rows)
 
-select * from pgq_set.create_node('aset', 'root', 'node1', 'worker', null, null, null);
+select * from pgq_set.create_node('aset', 'root', 'node1', null, null, null);
  ret_code | ret_desc 
 ----------+----------
       200 | Ok
 (1 row)
 
 select * from pgq_set.get_node_info('aset');
- node_type | node_name | queue_name | global_watermark | local_watermark | completed_tick | worker_name | provider_node | provider_location | paused | resync | up_to_date | combined_set | combined_type | combined_queue 
------------+-----------+------------+------------------+-----------------+----------------+-------------+---------------+-------------------+--------+--------+------------+--------------+---------------+----------------
- root      | node1     | aset       |                1 |               1 |                | worker      |               |                   | f      | f      | f          |              |               | 
+ node_type | node_name | queue_name | global_watermark | local_watermark | completed_tick | provider_node | provider_location | paused | resync | up_to_date | combined_set | combined_type | combined_queue 
+-----------+-----------+------------+------------------+-----------------+----------------+---------------+-------------------+--------+--------+------------+--------------+---------------+----------------
+ root      | node1     | aset       |                1 |               1 |                |               |                   | f      | f      | f          |              |               | 
 (1 row)
 
 select * from pgq_set.is_root('q');

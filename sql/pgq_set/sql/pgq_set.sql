@@ -15,7 +15,7 @@ select * from pgq_set.get_member_info('aset');
 select * from pgq_set.remove_member('aset', 'node4');
 select * from pgq_set.get_member_info('aset');
 
-select * from pgq_set.create_node('aset', 'root', 'node1', 'worker', null, null, null);
+select * from pgq_set.create_node('aset', 'root', 'node1', null, null, null);
 
 select * from pgq_set.get_node_info('aset');
 

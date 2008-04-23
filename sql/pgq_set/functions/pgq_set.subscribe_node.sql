@@ -2,7 +2,6 @@
 create or replace function pgq_set.subscribe_node(
     in i_set_name text,
     in i_remote_node_name text,
-    in i_remote_worker_name text,
     out ret_code int4,
     out ret_note text,
     out global_watermark bigint)
@@ -15,7 +14,6 @@ returns record as $$
 -- Parameters:
 --      i_set_name - set name
 --      i_remote_node_name - node name
---      i_remote_worker_name - remote process job_name
 --
 -- Returns:
 --      ret_code - error code
@@ -35,10 +33,10 @@ begin
         return;
     end if;
 
-    perform pgq.register_consumer_at(n.queue_name, i_remote_worker_name, n.global_watermark);
+    perform pgq.register_consumer_at(n.queue_name, i_remote_node_name, n.global_watermark);
 
-    insert into pgq_set.subscriber_info (set_name, node_name, local_watermark, worker_name)
-    values (i_set_name, i_remote_node_name, n.global_watermark, i_remote_worker_name);
+    insert into pgq_set.subscriber_info (set_name, node_name, local_watermark)
+    values (i_set_name, i_remote_node_name, n.global_watermark);
 
     select 200, 'Ok' into ret_code, ret_note;
     return;

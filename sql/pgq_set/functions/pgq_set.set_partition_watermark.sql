@@ -20,10 +20,10 @@ returns bigint as $$
 declare
     cnode       record;
     pnode       record;
-    part_worker text;
+    part_node text;
 begin
     -- check if combined-branch exists
-    select p.worker_name into part_worker
+    select p.node_name into part_node
         from pgq_set.set_info c, pgq_set.set_info p
         where p.set_name = i_part_set_name
           and c.set_name = i_combined_set_name
@@ -38,7 +38,7 @@ begin
     update pgq_set.completed_tick
        set tick_id = i_watermark
      where set_name = i_part_set_name
-       and worker_name = part_worker;
+       and worker_name = part_node;
     if not found then
         raise exception 'node % not subscribed to set %', i_node_name, i_set_name;
     end if;

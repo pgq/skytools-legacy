@@ -61,8 +61,6 @@ create table pgq_set.set_info (
     resync          boolean not null default false,
     up_to_date      boolean not null default false,
 
-    worker_name     text not null,
-
     foreign key (set_name, node_name) references pgq_set.member_info,
     foreign key (set_name, provider_node) references pgq_set.member_info,
     check (node_type in ('root', 'branch', 'leaf', 'combined-root', 'combined-branch', 'merge-leaf')),
@@ -83,13 +81,11 @@ create table pgq_set.set_info (
 -- Columns:
 --      set_name        - set's name
 --      node_name       - node name
---      worker_name     - consumer_name for node
 --      local_watermark - watermark for node and it's subscribers
 -- ----------------------------------------------------------------------
 create table pgq_set.subscriber_info (
     set_name        text not null,
     node_name       text not null,
-    worker_name     text not null,
     local_watermark bigint not null,
 
     primary key (set_name, node_name),
@@ -102,8 +98,9 @@ create table pgq_set.subscriber_info (
 --      Contains completed tick_id from provider.
 --
 -- Columns:
---      set_name - set's name
---      tick_id  - last committed tick id
+--      set_name    - set's name
+--      worker_name - consumer name - == node_name for main process
+--      tick_id     - last committed tick id
 -- ----------------------------------------------------------------------
 create table pgq_set.completed_tick (
     set_name        text not null,

@@ -31,7 +31,7 @@ begin
     end if;
 
     -- fetch subscription info
-    select node_name, worker_name into s from pgq_set.subscriber_info
+    select node_name into s from pgq_set.subscriber_info
      where set_name = i_set_name and node_name = i_remote_node_name
        for update;
     if not found then
@@ -40,7 +40,7 @@ begin
     end if;
 
     -- unregister from queue
-    perform pgq.unregister_consumer(n.queue_name, s.worker_name);
+    perform pgq.unregister_consumer(n.queue_name, s.node_name);
 
     -- drop subscription
     delete from pgq_set.subscriber_info
