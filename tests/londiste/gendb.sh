@@ -3,7 +3,7 @@
 . ../env.sh
 
 ./stop.sh
-rm -f sys/log.* sys/*.log
+rm -f sys/*.log sys/*.ini
 
 set -e
 
