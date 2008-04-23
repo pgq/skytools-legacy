@@ -1,11 +1,9 @@
-create or replace function pgq.ticker(i_queue_name text, i_tick_id bigint)
+create or replace function pgq.ticker(i_queue_name text, i_tick_id bigint, i_orig_timestamp timestamptz)
 returns bigint as $$
 -- ----------------------------------------------------------------------
--- Function: pgq.ticker(2)
+-- Function: pgq.ticker(3)
 --
---     Insert a tick with a particular tick_id.
---
---     For external tickers.
+--     External ticker: Insert a tick with a particular tick_id and timestamp.
 --
 -- Parameters:
 --     i_queue_name     - Name of the queue
@@ -15,15 +13,34 @@ returns bigint as $$
 --     Tick id.
 -- ----------------------------------------------------------------------
 begin
-    insert into pgq.tick (tick_queue, tick_id)
-    select queue_id, i_tick_id
+    insert into pgq.tick (tick_queue, tick_id, tick_time)
+    select queue_id, i_tick_id, i_orig_timestamp
         from pgq.queue
         where queue_name = i_queue_name
           and queue_external_ticker;
     if not found then
-        raise exception 'queue not found';
+        raise exception 'queue not found or external ticker disabled: %', i_queue_name;
     end if;
     return i_tick_id;
+end;
+$$ language plpgsql security definer; -- unsure about access
+
+create or replace function pgq.ticker(i_queue_name text, i_tick_id bigint)
+returns bigint as $$
+-- ----------------------------------------------------------------------
+-- Function: pgq.ticker(2)
+--
+--     External ticker: insert a tick with a particular tick_id.
+--
+-- Parameters:
+--     i_queue_name     - Name of the queue
+--     i_tick_id        - Id of new tick.
+--
+-- Returns:
+--     Tick id.
+-- ----------------------------------------------------------------------
+begin
+    return pgq.ticker(i_queue_name, i_tick_id, now());
 end;
 $$ language plpgsql security definer; -- unsure about access
 
