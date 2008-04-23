@@ -69,9 +69,6 @@ class SetAdmin(skytools.AdminScript):
         
         self.log.info("Initializing node")
 
-        # fixme
-        worker_name = "%s_%s_worker" % (self.set_name, node_name)
-
         # register member
         if node_type in ('root', 'combined-root'):
             global_watermark = None
@@ -79,12 +76,12 @@ class SetAdmin(skytools.AdminScript):
             provider_name = None
             self.exec_sql(db, "select pgq_set.add_member(%s, %s, %s, false)",
                           [self.set_name, node_name, node_location])
-            self.exec_sql(db, "select pgq_set.create_node(%s, %s, %s, %s, %s, %s, %s)",
-                          [self.set_name, node_type, node_name, worker_name, provider_name, global_watermark, combined_set])
+            self.exec_sql(db, "select pgq_set.create_node(%s, %s, %s, %s, %s, %s)",
+                          [self.set_name, node_type, node_name, provider_name, global_watermark, combined_set])
             provider_db = None
         else:
             root_db = self.find_root_db(provider_loc)
-            set = self.load_root_info(root_db)
+            set = self.load_set_info(root_db)
 
             # check if member already exists
             if set.get_member(node_name) is not None:
@@ -117,8 +114,8 @@ class SetAdmin(skytools.AdminScript):
             # register on provider
             self.exec_sql(provider_db, "select pgq_set.add_member(%s, %s, %s, false)",
                           [self.set_name, node_name, node_location])
-            self.exec_sql(provider_db, "select pgq_set.subscribe_node(%s, %s, %s)",
-                          [self.set_name, node_name, worker_name])
+            self.exec_sql(provider_db, "select pgq_set.subscribe_node(%s, %s)",
+                          [self.set_name, node_name])
             provider_db.commit()
 
             # initialize node itself
@@ -126,8 +123,8 @@ class SetAdmin(skytools.AdminScript):
                           [self.set_name, node_name, node_location])
             self.exec_sql(db, "select pgq_set.add_member(%s, %s, %s, false)",
                           [self.set_name, provider_name, provider.location])
-            self.exec_sql(db, "select pgq_set.create_node(%s, %s, %s, %s, %s, %s, %s)",
-                          [self.set_name, node_type, node_name, worker_name, provider_name,
+            self.exec_sql(db, "select pgq_set.create_node(%s, %s, %s, %s, %s, %s)",
+                          [self.set_name, node_type, node_name, provider_name,
                            global_watermark, combined_set])
             db.commit()
 
@@ -175,16 +172,16 @@ class SetAdmin(skytools.AdminScript):
                 self.log.info("Sub node provider not initialized?")
                 sys.exit(1)
 
-    def load_root_info(self, db):
+    def load_set_info(self, db):
         res = self.exec_query(db, "select * from pgq_set.get_node_info(%s)", [self.set_name])
         info = res[0]
 
         q = "select * from pgq_set.get_member_info(%s)"
-        node_list = self.exec_query(db, q, [self.set_name])
+        member_list = self.exec_query(db, q, [self.set_name])
 
         db.commit()
 
-        return SetInfo(self.set_name, info, node_list)
+        return SetInfo(self.set_name, info, member_list)
 
     def install_code(self, db):
         objs = [
@@ -200,19 +197,29 @@ class SetAdmin(skytools.AdminScript):
 
     def cmd_status(self, args):
         root_db = self.find_root_db()
-        sinf = self.load_root_info(root_db)
+        sinf = self.load_set_info(root_db)
 
         for mname, minf in sinf.member_map.iteritems():
             db = self.get_database('look_db', connstr = minf.location, autocommit = 1)
             curs = db.cursor()
             curs.execute("select * from pgq_set.get_node_info(%s)", [self.set_name])
-            node = NodeInfo(curs.fetchone())
+            node = NodeInfo(self.set_name, curs.fetchone())
+            node.load_status(curs)
+            self.load_extra_status(curs, node)
             sinf.add_node(node)
             self.close_database('look_db')
 
         sinf.print_tree()
 
-    def cmd_switch(self):
+    def load_extra_status(self, curs, node):
+        pass
+
+    def cmd_switch(self, node_name, new_provider):
+        node_db = self.get_node_database(node_name)
+        new_provider_db = self.get_node_database(new_provider)
+        node_info = self.load_set_info(node_db)
+
+        # 
         [['node', 'PAUSE']]
         [['new_parent', 'select * from pgq_set.subscribe_node(%(set_name)s, %(node_name)s, %(node_pos)s)']]
         [['node', 'select * from pgq_set.change_provider(%(set_name)s, %(new_provider)s)']]
@@ -220,6 +227,10 @@ class SetAdmin(skytools.AdminScript):
         [['node', 'RESUME']]
 
     def cmd_promote(self):
+        old_root = 'foo'
+        new_root = ''
+        self.pause_node(old_root)
+        ctx = self.load_node_info(old_root)
         [['old-root', 'PAUSE']]
         [['old-root', 'demote, set-provider?']]
         [['new-root', 'wait-for-catch-up']]

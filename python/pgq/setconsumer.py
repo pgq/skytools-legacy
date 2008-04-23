@@ -27,7 +27,7 @@ class SetConsumer(skytools.DBScript):
 
         dst_node = self.load_node_info(dst_db)
         if self.main_worker:
-            self.consumer_name = dst_node.worker_name
+            self.consumer_name = dst_node.name
             if not dst_node.up_to_date:
                 self.tag_node_uptodate(dst_db)
 
@@ -188,7 +188,7 @@ class SetConsumer(skytools.DBScript):
         mbr_list = curs.dictfetchall()
         db.commit()
 
-        return NodeInfo(node_row, self.main_worker)
+        return NodeInfo(self.set_name, node_row, self.main_worker)
 
     def tag_node_uptodate(self, dst_db):
         dst_curs = dst_db.cursor()
@@ -197,8 +197,8 @@ class SetConsumer(skytools.DBScript):
         dst_db.commit()
 
     def copy_tick(self, dst_curs, src_queue, dst_queue):
-        q = "select * from pgq.ticker(%s, %s)"
-        dst_curs.execute(q, [dst_queue.queue_name, src_queue.cur_tick])
+        q = "select * from pgq.ticker(%s, %s, %s)"
+        dst_curs.execute(q, [dst_queue.queue_name, src_queue.cur_tick, src_queue.tick_time])
 
     def set_tick_complete(self, dst_curs, tick_id):
         q = "select * from pgq_set.set_completed_tick(%s, %s, %s)"

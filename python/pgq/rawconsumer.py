@@ -23,11 +23,12 @@ class RawQueue:
         if not self.batch_id:
             return self.batch_id
 
-        q = "select tick_id, prev_tick_id from pgq.get_batch_info(%s)"
+        q = "select tick_id, prev_tick_id, batch_end from pgq.get_batch_info(%s)"
         curs.execute(q, [self.batch_id])
         inf = curs.dictfetchone()
         self.cur_tick = inf['tick_id']
         self.prev_tick = inf['prev_tick_id']
+        self.tick_time = inf['batch_end']
 
         return self.batch_id
 

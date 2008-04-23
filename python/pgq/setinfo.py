@@ -31,7 +31,8 @@ class MemberInfo:
         self.dead = row['dead']
 
 class NodeInfo:
-    def __init__(self, row, main_worker = True):
+    def __init__(self, set_name, row, main_worker = True):
+        self.set_name = set_name
         self.member_map = {}
         self.main_worker = main_worker
 
@@ -49,9 +50,10 @@ class NodeInfo:
         self.combined_set = row['combined_set']
         self.combined_type = row['combined_type']
         self.combined_queue = row['combined_queue']
-        self.worker_name = row['worker_name']
 
         self._row = row
+
+        self._info_lines = []
 
     def need_action(self, action_name):
         if not self.main_worker:
@@ -82,7 +84,38 @@ class NodeInfo:
         return qname
 
     def get_infolines(self):
-        return ['somestuff = 100.2', '']
+        lst = self._info_lines
+        if self.parent:
+            root = self.parent
+            while root.parent:
+                root = root.parent
+            tick_time = self.parent.consumer_map[self.name]['tick_time']
+            root_time = root.queue_info['now']
+            lag = root_time - tick_time
+        else:
+            lag = self.queue_info['ticker_lag']
+        lst.append("lag: %s" % lag)
+        return lst
+    
+    def add_info_line(self, ln):
+        self._info_lines.append(ln)
+
+    def load_status(self, curs):
+        self.consumer_map = {}
+        self.queue_info = {}
+        if self.queue_name:
+            q = "select consumer_name, current_timestamp - lag as tick_time,"\
+                "  lag, last_seen, last_tick "\
+                "from pgq.get_consumer_info(%s)"
+            curs.execute(q, [self.set_name])
+            for row in curs.fetchall():
+                cname = row['consumer_name']
+                self.consumer_map[cname] = row
+            q = "select current_timestamp - ticker_lag as tick_time,"\
+                "  ticker_lag, current_timestamp as now "\
+                "from pgq.get_queue_info(%s)"
+            curs.execute(q, [self.set_name])
+            self.queue_info = curs.fetchone()
 
 class SetInfo:
     def __init__(self, set_name, info_row, member_rows):
@@ -141,6 +174,9 @@ class SetInfo:
             if node.provider_node:
                 p = self.node_map[node.provider_node]
                 p.child_list.append(node)
+                node.parent = p
+            else:
+                node.parent = None
 
     def _tree_calc(self, node):
         total = len(node.child_list)
