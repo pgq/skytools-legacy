@@ -22,10 +22,12 @@
      - resume
      - node-status
      - set-status
+     - rename-node
    - standard msg/error handling for all sql functions
    - compare/repair
    - check if table is in other sets? [NAK]
    - setconsumer/pgq - insert tick with original date (+evid?)
+   - dont trust node name in member_info, set_info is authoritative
 
  * drop support for 8.1 ??
 

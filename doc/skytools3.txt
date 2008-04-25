@@ -1,19 +1,53 @@
 
-Keep old design from Skytools 2.x:
-----------------------------------
+Skytools 3 - cascaded replication
+=================================
 
-* worker process connects to only 2 databases
-* worker process pulls data, no pushing with LISTEN/NOTIFY
-* relaxed attitude about tables
-  - can be added/removed any time.
-  - inital sync happens table-by-table, no attempt is made to keep
-    consistend picture between tables when syncing.
+Keep old design from Skytools 2
+-------------------------------
 
-New features in 3.0:
---------------------
+* Worker process connects to only 2 databases, there is no
+  everybody-to-everybody communication going on.
+* Worker process only pulls data from queue.
+  - No pushing with LISTEN/NOTIFY
+  - Administrative work happens in separate process
+  - Can go down anytime, without affecting anything else
+* Relaxed attitude about tables
+  - Tables can be added/removed any time.
+  - Inital sync happens table-by-table, no attempt is made to keep
+    consistent picture between tables when syncing.
 
-* Queue content are kept in sync between all nodes in node-set.
-* parallel copy - during inital sync several tables can be
+New features in Skytools 3
+--------------------------
+
+* Cascading is implemented as generic layer on top of PgQ - *pgq_set*.
+  - Its goal is to keep identical copy of queue contents in several nodes.
+  - Not replication-specific - can be used for any queue.
+
+* Parallel copy - during inital sync several tables can be
   copied at the same time.
+  - In 2.1 the copy already happened in separate process,
+    making it parallel was just a matter of tuning launching/syncing logic.
 
+* Advanced admin operations:
+  - switchover
+  - failover
+  - change provider for node
+  - pause / resume node
+  - rename node
+
+Open Questions
+--------------
+
+* terminology
+  - 'set' vs 'cluster' vs ???
+  - (root / branch / leaf) vs. (master / slave) vs. (provider / subscriber)
+  - add <table> vs. attach <table>
+
+* own trigger handling
+  - fullblown custom
+  - minimal custom + wait for 8.3
+
+* compatibility with v2.1.x (python scripts + modules):
+  - bundle old modules and scripts with different name
+  - rename new modules and scripts
 
