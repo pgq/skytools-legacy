@@ -28,7 +28,13 @@ returns record as $$
 -- ----------------------------------------------------------------------
 declare
     o  record;
+    node record;
 begin
+    select node_type in ('root', 'combined-root') as is_root
+      into node
+      from pgq_set.set_info where set_name = i_set_name
+       for update;
+
     select node_location into o
       from pgq_set.member_info
      where set_name = i_set_name
@@ -43,7 +49,15 @@ begin
         insert into pgq_set.member_info (set_name, node_name, node_location, dead)
         values (i_set_name, i_node_name, i_node_location, i_dead);
     end if;
-    select 200, 'Ok' into ret_code, ret_note;
+
+    if node.is_root then
+        perform pgq.insert_event(s.queue_name, 'member-info',
+                                 i_node_name, i_set_name, i_node_location, i_dead::text, null)
+           from pgq_set.set_info s
+         where s.set_name = i_set_name;
+    end if;
+
+    select 100, 'Ok' into ret_code, ret_note;
     return;
 end;
 $$ language plpgsql security definer;

@@ -17,7 +17,7 @@ returns int4 as $$
 -- ----------------------------------------------------------------------
 begin
     update pgq_set.set_info
-       set up_to_date = i_uptodate
+       set uptodate = i_uptodate
      where set_name = i_set_name;
     if not found then
         raise exception 'no such set: %', i_set_name;

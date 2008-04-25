@@ -2,25 +2,25 @@
 select * from pgq_set.add_member('aset', 'node1', 'dbname=node1', false);
  ret_code | ret_note 
 ----------+----------
-      200 | Ok
+      100 | Ok
 (1 row)
 
 select * from pgq_set.add_member('aset', 'node2', 'dbname=node2', false);
  ret_code | ret_note 
 ----------+----------
-      200 | Ok
+      100 | Ok
 (1 row)
 
 select * from pgq_set.add_member('aset', 'node3', 'dbname=node3', false);
  ret_code | ret_note 
 ----------+----------
-      200 | Ok
+      100 | Ok
 (1 row)
 
 select * from pgq_set.add_member('aset', 'node4', 'dbname=node4', false);
  ret_code | ret_note 
 ----------+----------
-      200 | Ok
+      100 | Ok
 (1 row)
 
 select * from pgq_set.get_member_info('aset');
@@ -47,15 +47,33 @@ select * from pgq_set.get_member_info('aset');
 (3 rows)
 
 select * from pgq_set.create_node('aset', 'root', 'node1', null, null, null);
- ret_code | ret_desc 
+ ret_code |                     ret_note                      
+----------+---------------------------------------------------
+      200 | Node "node1" added to set "aset" with type "root"
+(1 row)
+
+select * from pgq_set.subscribe_node('aset', 'node2');
+ ret_code | ret_note | global_watermark 
+----------+----------+------------------
+      200 | Ok       |                1
+(1 row)
+
+select * from pgq_set.subscribe_node('aset', 'node3', 1);
+ ret_code | ret_note | global_watermark 
+----------+----------+------------------
+      200 | Ok       |                1
+(1 row)
+
+select * from pgq_set.unsubscribe_node('aset', 'node3');
+ ret_code | ret_note 
 ----------+----------
       200 | Ok
 (1 row)
 
 select * from pgq_set.get_node_info('aset');
- node_type | node_name | queue_name | global_watermark | local_watermark | completed_tick | provider_node | provider_location | paused | resync | up_to_date | combined_set | combined_type | combined_queue 
------------+-----------+------------+------------------+-----------------+----------------+---------------+-------------------+--------+--------+------------+--------------+---------------+----------------
- root      | node1     | aset       |                1 |               1 |                |               |                   | f      | f      | f          |              |               | 
+ ret_code | ret_note | node_type | node_name | queue_name | global_watermark | local_watermark | completed_tick | provider_node | provider_location | paused | resync | uptodate | combined_set | combined_type | combined_queue 
+----------+----------+-----------+-----------+------------+------------------+-----------------+----------------+---------------+-------------------+--------+--------+----------+--------------+---------------+----------------
+      100 | Ok       | root      | node1     | aset       |                1 |               1 |                |               |                   | f      | f      | f        |              |               | 
 (1 row)
 
 select * from pgq_set.is_root('q');
@@ -68,3 +86,15 @@ select * from pgq_set.is_root('aset');
 
 select * from pgq_set.is_root(null);
 ERROR:  set does not exist: <NULL>
+select * from pgq_set.rename_node_step1('aset', 'node2', 'node2x');
+ ret_code | ret_note 
+----------+----------
+      200 | Ok
+(1 row)
+
+select * from pgq_set.rename_node_step2('aset', 'node2', 'node2x');
+ ret_code | ret_note 
+----------+----------
+      200 | Ok
+(1 row)
+

@@ -3,9 +3,10 @@
 """Admin scripting.
 """
 
-import sys, os, skytools
+import sys, os
 
 from skytools.scripting import DBScript
+from skytools.quoting import quote_statement
 
 __all__ = ['AdminScript']
 
@@ -28,20 +29,25 @@ class AdminScript(DBScript):
             self.log.error('bad subcommand, see --help for usage')
             sys.exit(1)
 
-    def fetch_list(self, curs, sql, args, keycol = None):
+    def fetch_list(self, db, sql, args, keycol = None):
+        curs = db.cursor()
         curs.execute(sql, args)
-        rows = curs.dictfetchall()
+        rows = curs.fetchall()
+        db.commit()
         if not keycol:
             res = rows
         else:
             res = [r[keycol] for r in rows]
         return res
 
-    def display_table(self, desc, curs, sql, args = [], fields = []):
+    def display_table(self, db, desc, sql, args = [], fields = []):
         """Display multirow query as a table."""
 
+        self.log.debug("display_table: %s" % quote_statement(sql, args))
+        curs = db.cursor()
         curs.execute(sql, args)
         rows = curs.fetchall()
+        db.commit()
         if len(rows) == 0:
             return 0
 
@@ -67,70 +73,80 @@ class AdminScript(DBScript):
         print '\n'
         return 1
 
-    def db_display_table(self, db, desc, sql, args = [], fields = []):
-        curs = db.cursor()
-        res = self.display_table(desc, curs, sql, args, fields)
-        db.commit()
-        return res
-        
 
-    def exec_checked(self, curs, sql, args):
+    def _exec_cmd(self, curs, sql, args):
+        self.log.debug("exec_cmd: %s" % quote_statement(sql, args))
         curs.execute(sql, args)
         ok = True
-        for row in curs.fetchall():
-            level = row['ret_code'] / 100
+        rows = curs.fetchall()
+        for row in rows:
+            try:
+                code = row['ret_code']
+                msg = row['ret_note']
+            except KeyError:
+                self.log.error("Query does not conform to exec_cmd API:")
+                self.log.error("SQL: %s" % quote_statement(sql, args))
+                self.log.error("Row: %s" % repr(row.copy()))
+                sys.exit(1)
+            level = code / 100
             if level == 1:
-                self.log.debug("%d %s" % (row[0], row[1]))
+                self.log.debug("%d %s" % (code, msg))
             elif level == 2:
-                self.log.info("%d %s" % (row[0], row[1]))
+                self.log.info("%d %s" % (code, msg))
             elif level == 3:
-                self.log.warning("%d %s" % (row[0], row[1]))
+                self.log.warning("%d %s" % (code, msg))
             else:
-                self.log.error("%d %s" % (row[0], row[1]))
+                self.log.error("%d %s" % (code, msg))
+                self.log.error("Query was: %s" % skytools.quote_statement(sql, args))
                 ok = False
-        return ok
+        return (ok, rows)
 
-    def exec_many(self, curs, sql, baseargs, extra_list):
+    def _exec_cmd_many(self, curs, sql, baseargs, extra_list):
         ok = True
+        rows = []
         for a in extra_list:
-            tmp = self.exec_checked(curs, sql, baseargs + [a])
-            ok = tmp and ok
-        return ok
+            (tmp_ok, tmp_rows) = self._exec_cmd(curs, sql, baseargs + [a])
+            ok = tmp_ok and ok
+            rows += tmp_rows
+        return (ok, rows)
 
-    def db_cmd(self, db, q, args, commit = True):
-        ok = self.exec_checked(db.cursor(), q, args)
+    def exec_cmd(self, db, q, args, commit = True):
+        (ok, rows) = self._exec_cmd(db.cursor(), q, args)
         if ok:
             if commit:
                 self.log.info("COMMIT")
                 db.commit()
+            return rows
         else:
             self.log.info("ROLLBACK")
             db.rollback()
             raise EXception("rollback")
 
-    def db_cmd_many(self, db, sql, baseargs, extra_list, commit = True):
+    def exec_cmd_many(self, db, sql, baseargs, extra_list, commit = True):
         curs = db.cursor()
-        ok = self.exec_many(curs, sql, baseargs, extra_list)
+        (ok, rows) = self._exec_cmd_many(curs, sql, baseargs, extra_list)
         if ok:
             if commit:
                 self.log.info("COMMIT")
                 db.commit()
+            return rows
         else:
             self.log.info("ROLLBACK")
             db.rollback()
+            raise EXception("rollback")
 
 
-    def exec_sql(self, db, q, args):
-        self.log.debug(q)
+    def exec_stmt(self, db, sql, args):
+        self.log.debug("exec_stmt: %s" % quote_statement(sql, args))
         curs = db.cursor()
-        curs.execute(q, args)
+        curs.execute(sql, args)
         db.commit()
 
-    def exec_query(self, db, q, args):
-        self.log.debug(q)
+    def exec_query(self, db, sql, args):
+        self.log.debug("exec_query: %s" % quote_statement(sql, args))
         curs = db.cursor()
-        curs.execute(q, args)
-        res = curs.dictfetchall()
+        curs.execute(sql, args)
+        res = curs.fetchall()
         db.commit()
         return res
 

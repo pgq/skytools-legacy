@@ -45,27 +45,27 @@ class LondisteSetup(pgq.setadmin.SetAdmin):
     def cmd_add(self, args = []):
         q = "select * from londiste.node_add_table(%s, %s)"
         db = self.get_database('node_db')
-        self.db_cmd_many(db, q, [self.set_name], args)
+        self.exec_cmd_many(db, q, [self.set_name], args)
 
     def cmd_remove(self, args = []):
         q = "select * from londiste.node_remove_table(%s, %s)"
         db = self.get_database('node_db')
-        self.db_cmd_many(db, q, [self.set_name], args)
+        self.exec_cmd_many(db, q, [self.set_name], args)
 
     def cmd_add_seq(self, args = []):
         q = "select * from londiste.node_add_seq(%s, %s)"
         db = self.get_database('node_db')
-        self.db_cmd_many(db, q, [self.set_name], args)
+        self.exec_cmd_many(db, q, [self.set_name], args)
 
     def cmd_remove_seq(self, args = []):
         q = "select * from londiste.node_remove_seq(%s, %s)"
         db = self.get_database('node_db')
-        self.db_cmd_many(db, q, [self.set_name], args)
+        self.exec_cmd_many(db, q, [self.set_name], args)
 
     def cmd_resync(self, args = []):
         q = "select * from londiste.node_resync_table(%s, %s)"
         db = self.get_database('node_db')
-        self.db_cmd_many(db, q, [self.set_name], args)
+        self.exec_cmd_many(db, q, [self.set_name], args)
 
     def cmd_tables(self, args = []):
         q = "select table_name, merge_state from londiste.node_get_table_list(%s)"

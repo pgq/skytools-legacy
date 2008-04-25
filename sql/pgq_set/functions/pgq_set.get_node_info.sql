@@ -2,6 +2,8 @@
 create or replace function pgq_set.get_node_info(
     in i_set_name text,
 
+    out ret_code int4,
+    out ret_note text,
     out node_type text,
     out node_name text,
     out queue_name text,
@@ -13,7 +15,7 @@ create or replace function pgq_set.get_node_info(
     out provider_location text,
     out paused boolean,
     out resync boolean,
-    out up_to_date boolean,
+    out uptodate boolean,
 
     out combined_set text,
     out combined_type text,
@@ -38,7 +40,7 @@ create or replace function pgq_set.get_node_info(
 --      provider_location - connect string to provider node
 --      paused - this node should not do any work
 --      resync - re-register on provider queue (???)
---      up_to_date - if consumer has loaded last changes
+--      uptodate - if consumer has loaded last changes
 --      combined_set - target set name for merge-leaf
 --      combined_type - node type of target set
 --      combined_queue - queue name for target set
@@ -46,19 +48,23 @@ create or replace function pgq_set.get_node_info(
 declare
     sql text;
 begin
-    select n.node_type, n.node_name, t.tick_id, n.queue_name,
+    select 100, 'Ok', n.node_type, n.node_name, t.tick_id, n.queue_name,
            c.set_name, c.node_type, c.queue_name, n.global_watermark,
-           n.provider_node, n.paused, n.resync, n.up_to_date,
+           n.provider_node, n.paused, n.resync, n.uptodate,
            p.node_location
-      into node_type, node_name, completed_tick, queue_name,
+      into ret_code, ret_note, node_type, node_name, completed_tick, queue_name,
            combined_set, combined_type, combined_queue, global_watermark,
-           provider_node, paused, resync, up_to_date,
+           provider_node, paused, resync, uptodate,
            provider_location
       from pgq_set.set_info n
            left join pgq_set.completed_tick t on (t.set_name = n.set_name and t.worker_name = n.node_name)
            left join pgq_set.set_info c on (c.set_name = n.combined_set)
            left join pgq_set.member_info p on (p.set_name = n.set_name and p.node_name = n.provider_node)
       where n.set_name = i_set_name;
+    if not found then
+        select 404, 'Unknown set: ' || i_set_name into ret_code, ret_note;
+        return;
+    end if;
 
     select min(u.tick_id) into local_watermark
       from (select tick_id

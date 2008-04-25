@@ -24,19 +24,19 @@ select * from pgq_set.add_member('aset', 'rnode', 'dbname=db', false);
 (1 row)
 
 select * from pgq_set.create_node('aset', 'root', 'rnode', 'londiste_root', null::text, null::int8, null::text);
- ret_code | ret_desc 
+ ret_code | ret_note 
 ----------+----------
       200 | Ok
 (1 row)
 
 select * from londiste.node_add_table('aset', 'public.testdata_nopk');
- ret_code |                      ret_desc                      
+ ret_code |                      ret_note                      
 ----------+----------------------------------------------------
       400 | Primary key missing on table: public.testdata_nopk
 (1 row)
 
 select * from londiste.node_add_table('aset', 'public.testdata');
- ret_code |           ret_desc           
+ ret_code |           ret_note           
 ----------+------------------------------
       200 | Table added: public.testdata
 (1 row)
@@ -49,13 +49,13 @@ select * from londiste.node_get_table_list('aset');
 (1 row)
 
 select * from londiste.node_remove_table('aset', 'public.testdata');
- ret_code |            ret_desc            
+ ret_code |            ret_note            
 ----------+--------------------------------
       200 | Table removed: public.testdata
 (1 row)
 
 select * from londiste.node_remove_table('aset', 'public.testdata');
- ret_code |          ret_desc          
+ ret_code |          ret_note          
 ----------+----------------------------
       400 | Not found: public.testdata
 (1 row)

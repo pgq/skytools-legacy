@@ -26,25 +26,25 @@ select * from pgq_set.add_member('branch_set', 'pnode', 'dbname=db2', false);
 (1 row)
 
 select * from pgq_set.create_node('branch_set', 'branch', 'snode', 'londiste_branch', 'pnode', 100, null::text);
- ret_code | ret_desc 
+ ret_code | ret_note 
 ----------+----------
       200 | Ok
 (1 row)
 
 select * from londiste.node_add_table('branch_set', 'public.slavedata');
- ret_code |                   ret_desc                    
+ ret_code |                   ret_note                    
 ----------+-----------------------------------------------
       400 | Table not registered in set: public.slavedata
 (1 row)
 
 select * from londiste.set_add_table('branch_set', 'public.slavedata');
- ret_code | ret_desc 
+ ret_code | ret_note 
 ----------+----------
       200 | OK
 (1 row)
 
 select * from londiste.node_add_table('branch_set', 'public.slavedata');
- ret_code |           ret_desc            
+ ret_code |           ret_note            
 ----------+-------------------------------
       200 | Table added: public.slavedata
 (1 row)
@@ -56,13 +56,13 @@ select * from londiste.node_get_table_list('branch_set');
 (1 row)
 
 select * from londiste.node_remove_table('branch_set', 'public.slavedata');
- ret_code |            ret_desc             
+ ret_code |            ret_note             
 ----------+---------------------------------
       200 | Table removed: public.slavedata
 (1 row)
 
 select * from londiste.node_remove_table('branch_set', 'public.slavedata');
- ret_code |          ret_desc           
+ ret_code |          ret_note           
 ----------+-----------------------------
       400 | Not found: public.slavedata
 (1 row)

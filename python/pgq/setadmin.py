@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 
-import sys, optparse, skytools
+import sys, time, optparse, skytools
 
 from pgq.setinfo import *
 
@@ -13,9 +13,6 @@ commands:
 """
 
 class SetAdmin(skytools.AdminScript):
-    root_name = None
-    root_info = None
-    member_map = {}
     set_name = None
     extra_objs = []
     initial_db_name = 'node_db'
@@ -35,6 +32,10 @@ class SetAdmin(skytools.AdminScript):
     def reload(self):
         skytools.AdminScript.reload(self)
         self.set_name = self.cf.get('set_name')
+
+    #
+    # Node initialization.
+    #
 
     def cmd_init_root(self, args):
         if len(args) != 2:
@@ -74,9 +75,9 @@ class SetAdmin(skytools.AdminScript):
             global_watermark = None
             combined_set = None
             provider_name = None
-            self.exec_sql(db, "select pgq_set.add_member(%s, %s, %s, false)",
+            self.exec_cmd(db, "select * from pgq_set.add_member(%s, %s, %s, false)",
                           [self.set_name, node_name, node_location])
-            self.exec_sql(db, "select pgq_set.create_node(%s, %s, %s, %s, %s, %s)",
+            self.exec_cmd(db, "select * from pgq_set.create_node(%s, %s, %s, %s, %s, %s)",
                           [self.set_name, node_type, node_name, provider_name, global_watermark, combined_set])
             provider_db = None
         else:
@@ -88,22 +89,19 @@ class SetAdmin(skytools.AdminScript):
                 self.log.error("Node '%s' already exists" % node_name)
                 sys.exit(1)
 
-            global_watermark = set.global_watermark
             combined_set = None
 
             provider_db = self.get_database('provider_db', connstr = provider_loc)
-            curs = provider_db.cursor()
-            curs.execute("select node_type, node_name from pgq_set.get_node_info(%s)", [self.set_name])
-            provider_db.commit()
-            row = curs.fetchone()
-            if not row:
+            q = "select node_type, node_name from pgq_set.get_node_info(%s)"
+            res = self.exec_query(provider_db, q, [self.set_name])
+            row = res[0]
+            if not row['node_name']:
                 raise Exception("provider node not found")
             provider_name = row['node_name']
 
             # register member on root
-            self.exec_sql(root_db, "select pgq_set.add_member(%s, %s, %s, false)",
+            self.exec_cmd(root_db, "select * from pgq_set.add_member(%s, %s, %s, false)",
                           [self.set_name, node_name, node_location])
-            root_db.commit()
 
             # lookup provider
             provider = set.get_member(provider_name)
@@ -112,21 +110,26 @@ class SetAdmin(skytools.AdminScript):
                 sys.exit(1)
 
             # register on provider
-            self.exec_sql(provider_db, "select pgq_set.add_member(%s, %s, %s, false)",
+            self.exec_cmd(provider_db, "select * from pgq_set.add_member(%s, %s, %s, false)",
                           [self.set_name, node_name, node_location])
-            self.exec_sql(provider_db, "select pgq_set.subscribe_node(%s, %s)",
-                          [self.set_name, node_name])
-            provider_db.commit()
+            rows = self.exec_cmd(provider_db, "select * from pgq_set.subscribe_node(%s, %s)",
+                                 [self.set_name, node_name])
+            global_watermark = rows[0]['global_watermark']
 
             # initialize node itself
-            self.exec_sql(db, "select pgq_set.add_member(%s, %s, %s, false)",
+
+            # insert members
+            self.exec_cmd(db, "select * from pgq_set.add_member(%s, %s, %s, false)",
                           [self.set_name, node_name, node_location])
-            self.exec_sql(db, "select pgq_set.add_member(%s, %s, %s, false)",
-                          [self.set_name, provider_name, provider.location])
-            self.exec_sql(db, "select pgq_set.create_node(%s, %s, %s, %s, %s, %s)",
+            for m in set.member_map.values():
+                self.exec_cmd(db, "select * from pgq_set.add_member(%s, %s, %s, %s)",
+                              [self.set_name, m.name, m.location, m.dead])
+
+            # real init
+            self.exec_cmd(db, "select * from pgq_set.create_node(%s, %s, %s, %s, %s, %s)",
                           [self.set_name, node_type, node_name, provider_name,
                            global_watermark, combined_set])
-            db.commit()
+
 
         self.extra_init(node_type, db, provider_db)
 
@@ -145,11 +148,6 @@ class SetAdmin(skytools.AdminScript):
             db = self.get_database('root_db', connstr = loc)
 
 
-            if 1:
-                curs = db.cursor()
-                curs.execute("select current_database()")
-                n = curs.fetchone()[0]
-                self.log.debug("real dbname=%s" % n)
             # query current status
             res = self.exec_query(db, "select * from pgq_set.get_node_info(%s)", [self.set_name])
             info = res[0]
@@ -169,19 +167,8 @@ class SetAdmin(skytools.AdminScript):
                 raise Exception("find_root_db: got loop: %s" % loc)
             loc = info['provider_location']
             if loc is None:
-                self.log.info("Sub node provider not initialized?")
+                self.log.error("Sub node provider not initialized?")
                 sys.exit(1)
-
-    def load_set_info(self, db):
-        res = self.exec_query(db, "select * from pgq_set.get_node_info(%s)", [self.set_name])
-        info = res[0]
-
-        q = "select * from pgq_set.get_member_info(%s)"
-        member_list = self.exec_query(db, q, [self.set_name])
-
-        db.commit()
-
-        return SetInfo(self.set_name, info, member_list)
 
     def install_code(self, db):
         objs = [
@@ -194,6 +181,10 @@ class SetAdmin(skytools.AdminScript):
         objs += self.extra_objs
         skytools.db_install(db.cursor(), objs, self.log)
         db.commit()
+
+    #
+    # Print status of whole set.
+    #
 
     def cmd_status(self, args):
         root_db = self.find_root_db()
@@ -214,17 +205,80 @@ class SetAdmin(skytools.AdminScript):
     def load_extra_status(self, curs, node):
         pass
 
-    def cmd_switch(self, node_name, new_provider):
-        node_db = self.get_node_database(node_name)
-        new_provider_db = self.get_node_database(new_provider)
-        node_info = self.load_set_info(node_db)
+    #
+    # Normal commands.
+    #
 
-        # 
-        [['node', 'PAUSE']]
-        [['new_parent', 'select * from pgq_set.subscribe_node(%(set_name)s, %(node_name)s, %(node_pos)s)']]
-        [['node', 'select * from pgq_set.change_provider(%(set_name)s, %(new_provider)s)']]
-        [['old_parent', 'select * from pgq_set.unsubscribe_node(%(set_name)s, %(node_name)s, %(node_pos)s)']]
-        [['node', 'RESUME']]
+    def cmd_change_provider(self, args):
+        node_name = args[0]
+        new_provider = args[1]
+        old_provider = None
+
+        self.load_local_info()
+        node_location = self.set_info.get_member(node_name).location
+        node_db = self.get_node_database(node_name)
+        node_set_info = self.load_set_info(node_db)
+        node = node_set_info.local_node
+        old_provider = node.provider_node
+
+        if old_provider == new_provider:
+            self.log.info("Node %s has already %s as provider" % (node_name, new_provider))
+
+        # pause target node
+        self.pause_node(node_name)
+
+        # reload node info
+        node_set_info = self.load_set_info(node_db)
+        node = node_set_info.local_node
+
+        # subscribe on new provider
+        q = "select * from pgq_set.add_member(%s, %s, %s, false)"
+        self.node_cmd(new_provider, q, [self.set_name, node_name, node_location])
+        q = 'select * from pgq_set.subscribe_node(%s, %s, %s)'
+        self.node_cmd(new_provider, q, [self.set_name, node_name, node.completed_tick])
+
+        # change provider on node
+        q = 'select * from pgq_set.change_provider(%s, %s)'
+        self.node_cmd(node_name, q, [self.set_name, new_provider])
+
+        # unsubscribe from old provider
+        q = "select * from pgq_set.unsubscribe_node(%s, %s)"
+        self.node_cmd(old_provider, q, [self.set_name, node_name])
+
+        # resume node
+        self.resume_node(node_name)
+
+    def cmd_rename_node(self, args):
+        old_name = args[0]
+        new_name = args[1]
+
+        self.load_local_info()
+
+        root_db = self.find_root_db()
+
+        # pause target node
+        self.pause_node(old_name)
+        node = self.load_node_info(old_name)
+        provider_node = node.provider_node
+
+
+        # create copy of member info / subscriber+queue info
+        step1 = 'select * from pgq_set.rename_node_step1(%s, %s, %s)'
+        # rename node itself, drop copies
+        step2 = 'select * from pgq_set.rename_node_step2(%s, %s, %s)'
+
+        # step1
+        self.exec_cmd(root_db, step1, [self.set_name, old_name, new_name])
+        self.node_cmd(provider_node, step1, [self.set_name, old_name, new_name])
+        self.node_cmd(old_name, step1, [self.set_name, old_name, new_name])
+
+        # step1
+        self.node_cmd(old_name, step2, [self.set_name, old_name, new_name])
+        self.node_cmd(provider_node, step1, [self.set_name, old_name, new_name])
+        self.exec_cmd(root_db, step2, [self.set_name, old_name, new_name])
+
+        # resume node
+        self.resume_node(old_name)
 
     def cmd_promote(self):
         old_root = 'foo'
@@ -243,27 +297,111 @@ class SetAdmin(skytools.AdminScript):
         [['old_parent', 'select * from pgq_set.unsubscribe_node(%(set_name)s, %(node_name)s, %(node_pos)s)']]
         [['node', 'RESUME']]
 
+    def cmd_pause(self, args):
+        self.load_local_info()
+        self.pause_node(args[0])
+
+    def cmd_resume(self, args):
+        self.load_local_info()
+        self.resume_node(args[0])
+
+    def cmd_members(self, args):
+        db = self.get_database(self.initial_db_name)
+        q = "select node_name from pgq_set.get_node_info(%s)"
+        rows = self.exec_query(db, q, [self.set_name])
+
+        desc = 'Member info on %s:' % rows[0]['node_name']
+        q = "select node_name, dead, node_location"\
+            " from pgq_set.get_member_info(%s) order by 1"
+        self.display_table(db, desc, q, [self.set_name])
+
+    #
+    # Shortcuts for operating on nodes.
+    #
+
+    def load_local_info(self):
+        """fetch set info from local node."""
+        db = self.get_database(self.initial_db_name)
+        self.set_info = self.load_set_info(db)
+
+    def get_node_database(self, node_name):
+        """Connect to node."""
+        if node_name == self.set_info.local_node.name:
+            db = self.get_database(self.initial_db_name)
+        else:
+            m = self.set_info.get_member(node_name)
+            if not m:
+                self.log.error("cannot resolve %s" % node_name)
+                sys.exit(1)
+            loc = m.location
+            db = self.get_database('node.' + node_name, connstr = loc)
+        return db
+
+    def close_node_database(self, node_name):
+        """Disconnect node's connection."""
+        if node_name == self.set_info.local_node.name:
+            self.close_database(self.initial_db_name)
+        else:
+            self.close_database("node." + node_name)
+
+    def node_cmd(self, node_name, sql, args):
+        """Execute SQL command on particular node."""
+        db = self.get_node_database(node_name)
+        return self.exec_cmd(db, sql, args)
+
+    #
+    # Various operation on nodes.
+    #
+
+    def set_paused(self, db, pause_flag):
+        q = "select * from pgq_set.set_node_paused(%s, %s)"
+        self.exec_cmd(db, q, [self.set_name, pause_flag])
+
+        self.log.info('Waiting for worker to accept')
+        while 1:
+            q = "select * from pgq_set.get_node_info(%s)"
+            stat = self.exec_query(db, q, [self.set_name])[0]
+            if stat['paused'] != pause_flag:
+                raise Exception('operation canceled? %s <> %s' % (repr(stat['paused']), repr(pause_flag)))
+
+            if stat['uptodate']:
+                break
+            time.sleep(1)
+
+        op = pause_flag and "paused" or "resumed"
+
+        self.log.info("Node %s %s" % (stat['node_name'], op))
+
+    def pause_node(self, node_name):
+        db = self.get_node_database(node_name)
+        self.set_paused(db, True)
+
+    def resume_node(self, node_name):
+        db = self.get_node_database(node_name)
+        self.set_paused(db, False)
+
     def subscribe_node(self, target_node, subscriber_node, tick_pos):
         q = "select * from pgq_set.subscribe_node(%s, %s, %s)"
-        self.node_exec(target_node, q, [self.set_name, target_node, tick_pos])
+        self.node_cmd(target_node, q, [self.set_name, target_node, tick_pos])
 
     def unsubscribe_node(self, target_node, subscriber_node, tick_pos):
         q = "select * from pgq_set.subscribe_node(%s, %s, %s)"
-        self.node_exec(target_node, q, [self.set_name, target_node, tick_pos])
+        self.node_cmd(target_node, q, [self.set_name, target_node, tick_pos])
 
-    def node_cmd(self, node_name, sql, args, commit = True):
-        m = self.lookup_member(node_name)
-        db = self.get_database('node_'+node_name)
-        self.db_cmd(db, sql, args, commit = commit)
+    def load_node_info(self, node_name):
+        db = self.get_node_database(node_name)
+        q = "select * from pgq_set.get_node_info(%s)"
+        rows = self.exec_query(db, q, [self.set_name])
+        return NodeInfo(self.set_name, rows[0])
 
-    def connect_node(self, node_name):
-        sinf = self.get_set_info()
-        m = sinf.get_member(node_name)
-        loc = m.node_location
-        db = self.get_database("node." + node_name, connstr = loc)
+    def load_set_info(self, db):
+        res = self.exec_query(db, "select * from pgq_set.get_node_info(%s)", [self.set_name])
+        info = res[0]
 
-    def disconnect_node(self, node_name):
-        self.close_database("node." + node_name)
+        q = "select * from pgq_set.get_member_info(%s)"
+        member_list = self.exec_query(db, q, [self.set_name])
+
+        return SetInfo(self.set_name, info, member_list)
 
 if __name__ == '__main__':
     script = SetAdmin('set_admin', sys.argv[1:])

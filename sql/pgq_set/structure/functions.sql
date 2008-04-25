@@ -10,6 +10,10 @@
 \i functions/pgq_set.subscribe_node.sql
 \i functions/pgq_set.unsubscribe_node.sql
 \i functions/pgq_set.set_node_uptodate.sql
+\i functions/pgq_set.set_node_paused.sql
+\i functions/pgq_set.change_provider.sql
+\i functions/pgq_set.drop_member.sql
+\i functions/pgq_set.rename_node.sql
 
 -- Group: Node Info
 \i functions/pgq_set.get_node_info.sql

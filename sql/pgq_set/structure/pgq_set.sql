@@ -1,3 +1,13 @@
+-- ----------------------------------------------------------------------
+-- Section: Londiste internals
+--
+--      Londiste storage: tables/seqs/fkeys/triggers/events.
+--
+-- pgq_set event types:
+--      member-info         - ev_data: node_name, extra1: set_name, extra2: location, extra3: dead
+--      global-watermark    - ev_data: tick_id,  extra1: set_name
+--      tick-id             - ev_data: tick_id,  extra1: set_name
+-- ----------------------------------------------------------------------
 
 create schema pgq_set;
 grant usage on schema pgq_set to public;
@@ -37,7 +47,7 @@ create table pgq_set.member_info (
 --      global_watermark    - set's global watermark, set by root node
 --      paused              - true if worker for this node should sleep
 --      resync              - true if worker for this node needs to re-register itself on provider queue
---      up_to_date          - true if worker for this node has seen table changes
+--      uptodate            - true if worker for this node has seen table changes
 --
 -- Node types:
 --      root            - data + batches is generated here
@@ -59,7 +69,7 @@ create table pgq_set.set_info (
 
     paused          boolean not null default false,
     resync          boolean not null default false,
-    up_to_date      boolean not null default false,
+    uptodate        boolean not null default false,
 
     foreign key (set_name, node_name) references pgq_set.member_info,
     foreign key (set_name, provider_node) references pgq_set.member_info,

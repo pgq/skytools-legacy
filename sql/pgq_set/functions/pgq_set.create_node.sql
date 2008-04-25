@@ -7,7 +7,7 @@ create or replace function pgq_set.create_node(
     in i_global_watermark bigint,
     in i_combined_set text,
     out ret_code int4,
-    out ret_desc text)
+    out ret_note  text)
 returns record as $$
 -- ----------------------------------------------------------------------
 -- Function: pgq_set.create_node(7)
@@ -23,7 +23,7 @@ returns record as $$
 --      i_combined_set - merge-leaf: target set
 --
 -- Returns:
---      desc
+--      401 - node already initialized
 --
 -- Node Types:
 --      root - master node
@@ -38,6 +38,12 @@ declare
     _wm_consumer text;
     _global_wm bigint;
 begin
+    perform 1 from pgq_set.set_info where set_name = i_set_name;
+    if found then
+        select 401, 'Node already initialized' into ret_code, ret_note;
+        return;
+    end if;
+
     if i_node_type in ('root', 'combined-root') then
         if coalesce(i_provider_name, i_global_watermark::text,
                     i_combined_set) is not null then
@@ -84,7 +90,9 @@ begin
             values (i_set_name, i_node_name, _global_wm);
     end if;
 
-    select 200, 'Ok' into ret_code, ret_desc;
+    select 200, 'Node "' || i_node_name || '" added to set "'
+           || i_set_name || '" with type "' || i_node_type || '"'
+        into ret_code, ret_note;
     return;
 end;
 $$ language plpgsql security definer;

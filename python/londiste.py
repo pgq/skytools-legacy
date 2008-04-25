@@ -25,12 +25,17 @@ Node Initialization:
     fetching, later actual provider's connect string is used.
 
 Node Administration:
+  status                Show set state
   members               Show members in set
+  rename-node OLD NEW   Rename a node
+  change-provider NODE NEWSRC   
+  pause NODE
+  resume NODE
+
+  switchover NEWROOT
+  failover NEWROOT
   tag-dead NODE ..      Tag node as dead
   tag-alive NODE ..     Tag node as alive
-
-  redirect              Switch provider
-  make-root             Promote to root
 
 Replication Daemon:
   worker                replay events to subscriber
@@ -57,7 +62,8 @@ Internal Commands:
 
 cmd_handlers = (
     (('init-root', 'init-branch', 'init-leaf', 'members', 'tag-dead', 'tag-alive',
-      'redirect', 'promote-root', 'status'), londiste.LondisteSetup),
+      'change-provider', 'rename-node', 'status', 'pause', 'resume',
+      'switchover', 'failover'), londiste.LondisteSetup),
     (('add', 'remove', 'add-seq', 'remove-seq', 'tables', 'seqs',
       'missing', 'resync', 'check', 'fkeys'), londiste.LondisteSetup),
     (('worker', 'replay'), londiste.Replicator),

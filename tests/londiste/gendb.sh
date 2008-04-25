@@ -3,7 +3,7 @@
 . ../env.sh
 
 ./stop.sh
-rm -f sys/*.log sys/*.ini
+rm -f sys/*.log sys/*.ini sys/*.log.[0-9]
 
 set -e
 
@@ -12,6 +12,8 @@ set -e
 
 ./makenode.sh test_set node1 branch root
 londiste.py sys/worker_root.ini status
+
+londiste.py sys/worker_root.ini rename-node n_node1 node1renamed
 
 #exit 0
 

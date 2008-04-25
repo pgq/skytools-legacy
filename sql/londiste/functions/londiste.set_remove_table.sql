@@ -1,7 +1,7 @@
 
 create or replace function londiste.set_remove_table(
     in i_set_name text, in i_table_name text,
-    out ret_code int4, out ret_desc text)
+    out ret_code int4, out ret_note text)
 as $$
 -- ----------------------------------------------------------------------
 -- Function: londiste.set_remove_table(2)
@@ -29,10 +29,10 @@ begin
         where set_name = i_set_name
           and table_name = fq_table_name;
     if not found then
-        select 400, 'Not found: '||fq_table_name into ret_code, ret_desc;
+        select 400, 'Not found: '||fq_table_name into ret_code, ret_note;
         return;
     end if;
-    select 200, 'OK' into ret_code, ret_desc;
+    select 200, 'OK' into ret_code, ret_note;
     return;
 end;
 $$ language plpgsql strict;

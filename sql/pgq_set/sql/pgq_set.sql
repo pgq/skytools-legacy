@@ -17,9 +17,16 @@ select * from pgq_set.get_member_info('aset');
 
 select * from pgq_set.create_node('aset', 'root', 'node1', null, null, null);
 
+select * from pgq_set.subscribe_node('aset', 'node2');
+select * from pgq_set.subscribe_node('aset', 'node3', 1);
+select * from pgq_set.unsubscribe_node('aset', 'node3');
+
 select * from pgq_set.get_node_info('aset');
 
 select * from pgq_set.is_root('q');
 select * from pgq_set.is_root('aset');
 select * from pgq_set.is_root(null);
+
+select * from pgq_set.rename_node_step1('aset', 'node2', 'node2x');
+select * from pgq_set.rename_node_step2('aset', 'node2', 'node2x');
 

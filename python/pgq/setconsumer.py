@@ -28,7 +28,7 @@ class SetConsumer(skytools.DBScript):
         dst_node = self.load_node_info(dst_db)
         if self.main_worker:
             self.consumer_name = dst_node.name
-            if not dst_node.up_to_date:
+            if not dst_node.uptodate:
                 self.tag_node_uptodate(dst_db)
 
         if dst_node.paused:
@@ -108,7 +108,7 @@ class SetConsumer(skytools.DBScript):
     def process_set_event(self, dst_curs, ev):
         if ev.type == 'set-tick':
             self.handle_set_tick(dst_curs, ev)
-        elif ev.type == 'set-member-info':
+        elif ev.type == 'member-info':
             self.handle_member_info(dst_curs, ev)
         elif ev.type == 'global-watermark':
             self.handle_global_watermark(dst_curs, ev)
@@ -133,11 +133,10 @@ class SetConsumer(skytools.DBScript):
             dst_curs.execute(q, [self.set_name, set_name, tick_id])
 
     def handle_member_info(self, dst_curs, ev):
-        data = skytools.db_urldecode(ev.data)
-        set_name = data['set_name']
-        node_name = data['node_name']
-        node_location = data['node_location']
-        dead = data['dead']
+        node_name = ev.ev_data
+        set_name = ev.ev_extra1
+        node_location = ev.ev_extra2
+        dead = ev.ev_extra3
         # this can also be member for part set, ignore then
         if set_name != self.set_name:
             return
