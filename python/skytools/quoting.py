@@ -34,15 +34,19 @@ def quote_bytea_copy(s):
 
     return quote_copy(quote_bytea_raw(s))
 
-def quote_statement(sql, dict):
+def quote_statement(sql, dict_or_list):
     """Quote whole statement.
 
-    Data values are taken from dict.
+    Data values are taken from dict or list or tuple.
     """
-    xdict = {}
-    for k, v in dict.items():
-        xdict[k] = quote_literal(v)
-    return sql % xdict
+    if hasattr(dict_or_list, 'items'):
+        qvals = {}
+        for k, v in dict_or_list.items():
+            qvals[k] = quote_literal(v)
+    else:
+        qvals = [quote_literal(v) for v in dict_or_list]
+        qvals = tuple(qvals)
+    return sql % qvals
 
 # reserved keywords
 _ident_kwmap = {
