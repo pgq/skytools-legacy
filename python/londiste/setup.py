@@ -42,51 +42,51 @@ class LondisteSetup(pgq.setadmin.SetAdmin):
         node_db.commit()
         provider_db.commit()
 
-    def cmd_add(self, args = []):
+    def cmd_add(self, *args):
         q = "select * from londiste.node_add_table(%s, %s)"
         db = self.get_database('node_db')
         self.exec_cmd_many(db, q, [self.set_name], args)
 
-    def cmd_remove(self, args = []):
+    def cmd_remove(self, *args):
         q = "select * from londiste.node_remove_table(%s, %s)"
         db = self.get_database('node_db')
         self.exec_cmd_many(db, q, [self.set_name], args)
 
-    def cmd_add_seq(self, args = []):
+    def cmd_add_seq(self, *args):
         q = "select * from londiste.node_add_seq(%s, %s)"
         db = self.get_database('node_db')
         self.exec_cmd_many(db, q, [self.set_name], args)
 
-    def cmd_remove_seq(self, args = []):
+    def cmd_remove_seq(self, *args):
         q = "select * from londiste.node_remove_seq(%s, %s)"
         db = self.get_database('node_db')
         self.exec_cmd_many(db, q, [self.set_name], args)
 
-    def cmd_resync(self, args = []):
+    def cmd_resync(self, *args):
         q = "select * from londiste.node_resync_table(%s, %s)"
         db = self.get_database('node_db')
         self.exec_cmd_many(db, q, [self.set_name], args)
 
-    def cmd_tables(self, args = []):
+    def cmd_tables(self):
         q = "select table_name, merge_state from londiste.node_get_table_list(%s)"
         db = self.get_database('node_db')
         self.db_display_table(db, "Tables on node", q, [self.set_name])
 
-    def cmd_seqs(self, args = []):
+    def cmd_seqs(self):
         q = "select seq_namefrom londiste.node_get_seq_list(%s)"
         db = self.get_database('node_db')
         self.db_display_table(db, "Sequences on node", q, [self.set_name])
 
-    def cmd_missing(self, args = []):
+    def cmd_missing(self):
         q = "select * from londiste.node_show_missing(%s)"
         db = self.get_database('node_db')
         self.db_display_table(db, "Missing objects on node", q, [self.set_name])
 
-    def cmd_check(self, args = []):
+    def cmd_check(self):
         pass
-    def cmd_fkeys(self, args = []):
+    def cmd_fkeys(self):
         pass
-    def cmd_triggers(self, args = []):
+    def cmd_triggers(self):
         pass
 
 #

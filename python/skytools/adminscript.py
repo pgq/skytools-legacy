@@ -3,7 +3,7 @@
 """Admin scripting.
 """
 
-import sys, os
+import sys, os, inspect
 
 from skytools.scripting import DBScript
 from skytools.quoting import quote_statement
@@ -21,13 +21,30 @@ class AdminScript(DBScript):
 
     def work(self):
         self.set_single_loop(1)
+
         cmd = self.args[1]
+        cmdargs = self.args[2:]
+
+        # find function
         fname = "cmd_" + cmd.replace('-', '_')
-        if hasattr(self, fname):
-            getattr(self, fname)(self.args[2:])
-        else:
+        if not hasattr(self, fname):
             self.log.error('bad subcommand, see --help for usage')
             sys.exit(1)
+        fn = getattr(self, fname)
+
+        # check if correct number of arguments
+        (args, varargs, varkw, defaults) = inspect.getargspec(fn)
+        n_args = len(args) - 1 # drop 'self'
+        if varargs is None and n_args != len(cmdargs):
+            helpstr = ""
+            if n_args:
+                helpstr = ": " + " ".join(args[1:])
+            self.log.error("command '%s' got %d args, but expects %d%s"
+                    % (cmd, len(cmdargs), n_args, helpstr))
+            sys.exit(1)
+
+        # run command
+        fn(*cmdargs)
 
     def fetch_list(self, db, sql, args, keycol = None):
         curs = db.cursor()
@@ -53,7 +70,7 @@ class AdminScript(DBScript):
 
         if not fields:
             fields = [f[0] for f in curs.description]
-        
+
         widths = [15] * len(fields)
         for row in rows:
             for i, k in enumerate(fields):
@@ -67,7 +84,7 @@ class AdminScript(DBScript):
             print desc
         print fmt % tuple(fields)
         print fmt % tuple(['-'*15] * len(fields))
-            
+
         for row in rows:
             print fmt % tuple([row[k] for k in fields])
         print '\n'

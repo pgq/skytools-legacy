@@ -10,33 +10,9 @@ if os.path.exists(os.path.join(sys.path[0], 'londiste.py')) \
     and not os.path.exists(os.path.join(sys.path[0], 'londiste')):
     del sys.path[0]
 
-import londiste
+import londiste, pgq.setadmin
 
-command_usage = """
-%prog [options] INI CMD [subcmd args]
-
-Node Initialization:
-  init-root   NODE_NAME NODE_CONSTR
-  init-branch NODE_NAME NODE_CONSTR --provider=<constr>
-  init-leaf   NODE_NAME NODE_CONSTR --provider=<constr>
-    Initializes node.  Given connstr is kept as global connstring
-    for that node.  Those commands ignore node_db in .ini.
-    The --provider connstr is used only for initial set info
-    fetching, later actual provider's connect string is used.
-
-Node Administration:
-  status                Show set state
-  members               Show members in set
-  rename-node OLD NEW   Rename a node
-  change-provider NODE NEWSRC   
-  pause NODE
-  resume NODE
-
-  switchover NEWROOT
-  failover NEWROOT
-  tag-dead NODE ..      Tag node as dead
-  tag-alive NODE ..     Tag node as alive
-
+command_usage = pgq.setadmin.command_usage + """
 Replication Daemon:
   worker                replay events to subscriber
 

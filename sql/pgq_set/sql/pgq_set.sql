@@ -30,3 +30,5 @@ select * from pgq_set.is_root(null);
 select * from pgq_set.rename_node_step1('aset', 'node2', 'node2x');
 select * from pgq_set.rename_node_step2('aset', 'node2', 'node2x');
 
+select * from pgq_set.get_subscriber_info('aset');
+

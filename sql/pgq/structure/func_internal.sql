@@ -23,4 +23,5 @@
 
 \i functions/pgq.grant_perms.sql
 \i functions/pgq.force_tick.sql
+\i functions/pgq.seq_funcs.sql
 

@@ -77,3 +77,12 @@ select nextval(queue_event_seq) from pgq.queue where queue_name = 'myqueue';
 select pgq.force_tick('myqueue');
 select nextval(queue_event_seq) from pgq.queue where queue_name = 'myqueue';
 
+create sequence tmptest_seq;
+
+select pgq.seq_getval('tmptest_seq');
+select pgq.seq_setval('tmptest_seq', 10);
+select pgq.seq_setval('tmptest_seq', 5);
+select pgq.seq_setval('tmptest_seq', 15);
+select pgq.seq_getval('tmptest_seq');
+
+

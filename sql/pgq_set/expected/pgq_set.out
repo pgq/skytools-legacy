@@ -98,3 +98,9 @@ select * from pgq_set.rename_node_step2('aset', 'node2', 'node2x');
       200 | Ok
 (1 row)
 
+select * from pgq_set.get_subscriber_info('aset');
+ node_name | local_watermark 
+-----------+-----------------
+ node2x    |               1
+(1 row)
+
