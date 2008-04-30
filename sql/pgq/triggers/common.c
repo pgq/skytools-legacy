@@ -25,6 +25,7 @@
 #include <lib/stringinfo.h>
 #include <utils/memutils.h>
 #include <utils/inval.h>
+#include <utils/hsearch.h>
 
 #include "common.h"
 #include "stringutil.h"
