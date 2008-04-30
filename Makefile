@@ -93,6 +93,6 @@ configure: configure.ac
 tags:
 	ctags `find python -name '*.py'`
 
-.PHONY: all clean distclean install deb debclean tgz
+.PHONY: all clean distclean install deb debclean tgz tags
 .PHONY: python-all python-clean python-install
 
