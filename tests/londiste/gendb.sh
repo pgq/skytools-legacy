@@ -2,6 +2,7 @@
 
 . ../env.sh
 
+mkdir -p sys
 ./stop.sh
 rm -f sys/*.log sys/*.ini sys/*.log.[0-9]
 
