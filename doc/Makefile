@@ -5,7 +5,7 @@ wiki = https://developer.skype.com/SkypeGarage/DbProjects/SkyTools
 
 web = mkz@shell.pgfoundry.org:/home/pgfoundry.org/groups/skytools/htdocs/
 
-EPYDOC = epydoc-py25
+EPYDOC = epydoc
 EPYARGS = --no-private --url="http://pgfoundry.org/projects/skytools/" \
 	--name="Skytools" --html --no-private -v
 
