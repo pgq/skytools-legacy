@@ -95,7 +95,7 @@ def copy_conf(src, dst):
         return False
     if os.path.islink(src):
         linkdst = os.readlink(src)
-        os.symlink(linkdst, listdst)
+        os.symlink(linkdst, dst)
     elif os.path.isfile(src):
         shutil.copy2(src, dst)
     else:
