@@ -67,7 +67,7 @@ def exists_temp_table(curs, tbl):
     #  and substr(n.nspname, 1, 8) = 'pg_temp_'
     #  and t.relname = %s;
     #"""
-    curs.execute(q, [tempname])
+    curs.execute(q, [tbl])
     tmp = curs.fetchall()
     return len(tmp) > 0
 
