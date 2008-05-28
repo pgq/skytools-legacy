@@ -33,7 +33,8 @@ begin
     insert into londiste.subscriber_pending_triggers(table_name, trigger_name, trigger_def) 
         values (i_table_name, i_trigger_name, trig_def.trigger_def);
     
-    execute 'drop trigger ' || i_trigger_name || ' on ' || i_table_name;
+    execute 'drop trigger ' || quote_ident(i_trigger_name)
+        || ' on ' || londiste.quote_fqname(i_table_name);
     
     return 1;
 end;

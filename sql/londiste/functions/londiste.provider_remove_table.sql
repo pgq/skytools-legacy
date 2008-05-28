@@ -18,7 +18,7 @@ begin
     end if;
 
     begin
-        execute 'drop trigger ' || tgname || ' on ' || i_table_name;
+        execute 'drop trigger ' || quote_ident(tgname) || ' on ' || londiste.quote_fqname(i_table_name);
     exception
         when undefined_table then
             raise notice 'table % does not exist', i_table_name;

@@ -15,9 +15,9 @@ begin
         raise exception 'table not found';
     end if;
 
-    execute 'create trigger ' || tgname
+    execute 'create trigger ' || quote_ident(tgname)
         || ' after insert or update or delete on '
-        || i_table_name
+        || londiste.quote_fqname(i_table_name)
         || ' for each row execute procedure pgq.logtriga('
         || quote_literal(i_queue_name) || ', '
         || quote_literal(i_col_types) || ', '

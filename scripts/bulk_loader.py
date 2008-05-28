@@ -20,6 +20,8 @@ of minutes.
 """
 
 import sys, os, pgq, skytools
+from skytools import quote_ident, quote_fqident
+
 
 ## several methods for applying data
 
@@ -267,32 +269,35 @@ class BulkLoader(pgq.SerialConsumer):
         # where expr must have pkey and dist fields
         klist = []
         for pk in cache.pkey_list + extra_fields:
-            exp = "%s.%s = %s.%s" % (tbl, pk, temp, pk)
+            exp = "%s.%s = %s.%s" % (quote_fqident(tbl), quote_ident(pk),
+                                     quote_fqident(temp), quote_ident(pk))
             klist.append(exp)
         whe_expr = " and ".join(klist)
 
         # create del sql
-        del_sql = "delete from only %s using %s where %s" % (tbl, temp, whe_expr)
+        del_sql = "delete from only %s using %s where %s" % (
+                  quote_fqident(tbl), quote_fqident(temp), whe_expr)
 
         # create update sql
         slist = []
         key_fields = cache.pkey_list + extra_fields
         for col in cache.col_list:
             if col not in key_fields:
-                exp = "%s = %s.%s" % (col, temp, col)
+                exp = "%s = %s.%s" % (quote_ident(col), quote_fqident(temp), quote_ident(col))
                 slist.append(exp)
         upd_sql = "update only %s set %s from %s where %s" % (
-                    tbl, ", ".join(slist), temp, whe_expr)
+                    quote_fqident(tbl), ", ".join(slist), quote_fqident(temp), whe_expr)
 
         # insert sql
-        colstr = ",".join(cache.col_list)
-        ins_sql = "insert into %s (%s) select %s from %s" % (tbl, colstr, colstr, temp)
+        colstr = ",".join([quote_ident(c) for c in cache.col_list])
+        ins_sql = "insert into %s (%s) select %s from %s" % (
+                  quote_fqident(tbl), colstr, colstr, quote_fqident(temp))
 
         # process deleted rows
         if len(del_list) > 0:
             self.log.info("Deleting %d rows from %s" % (len(del_list), tbl))
             # delete old rows
-            q = "truncate %s" % temp
+            q = "truncate %s" % quote_fqident(temp)
             self.log.debug(q)
             curs.execute(q)
             # copy rows
@@ -311,7 +316,7 @@ class BulkLoader(pgq.SerialConsumer):
         if len(upd_list) > 0:
             self.log.info("Updating %d rows in %s" % (len(upd_list), tbl))
             # delete old rows
-            q = "truncate %s" % temp
+            q = "truncate %s" % quote_fqident(temp)
             self.log.debug(q)
             curs.execute(q)
             # copy rows
@@ -353,10 +358,10 @@ class BulkLoader(pgq.SerialConsumer):
 
         # delete remaining rows
         if USE_LONGLIVED_TEMP_TABLES:
-            q = "truncate %s" % temp
+            q = "truncate %s" % quote_fqident(temp)
         else:
             # fscking problems with long-lived temp tables
-            q = "drop table %s" % temp
+            q = "drop table %s" % quote_fqident(temp)
         self.log.debug(q)
         curs.execute(q)
 
@@ -375,7 +380,7 @@ class BulkLoader(pgq.SerialConsumer):
         arg = "on commit preserve rows"
         # create temp table for loading
         q = "create temp table %s (like %s) %s" % (
-                tempname, tbl, arg)
+                quote_fqident(tempname), quote_fqident(tbl), arg)
         self.log.debug("Creating temp table: %s" % q)
         curs.execute(q)
         return tempname

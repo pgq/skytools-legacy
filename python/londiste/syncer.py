@@ -128,7 +128,7 @@ class Syncer(skytools.DBScript):
         # lock table in separate connection
         self.log.info('Locking %s' % tbl)
         lock_db.commit()
-        lock_curs.execute("LOCK TABLE %s IN SHARE MODE" % tbl)
+        lock_curs.execute("LOCK TABLE %s IN SHARE MODE" % skytools.quote_fqident(tbl))
         lock_time = time.time()
 
         # now wait until consumer has updated target table until locking

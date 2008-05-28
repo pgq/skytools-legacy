@@ -108,7 +108,9 @@ class Repairer(Syncer):
 
         self.common_fields = field_list
 
-        tbl_expr = "%s (%s)" % (tbl, ",".join(field_list))
+        fqlist = [skytools.quote_ident(col) for col in field_list]
+
+        tbl_expr = "%s (%s)" % (skytools.quote_fqident(tbl), ",".join(fqlist))
 
         self.log.debug("using copy expr: %s" % tbl_expr)
 
@@ -182,12 +184,14 @@ class Repairer(Syncer):
     def got_missed_insert(self, tbl, src_row):
         self.cnt_insert += 1
         fld_list = self.common_fields
+        fq_list = []
         val_list = []
         for f in fld_list:
+            fq_list.append(skytools.quote_ident(f))
             v = unescape(src_row[f])
             val_list.append(skytools.quote_literal(v))
         q = "insert into %s (%s) values (%s);" % (
-                tbl, ", ".join(fld_list), ", ".join(val_list))
+                tbl, ", ".join(fq_list), ", ".join(val_list))
         self.show_fix(tbl, q, 'insert')
 
     def got_missed_update(self, tbl, src_row, dst_row):
@@ -196,15 +200,15 @@ class Repairer(Syncer):
         set_list = []
         whe_list = []
         for f in self.pkey_list:
-            self.addcmp(whe_list, f, unescape(src_row[f]))
+            self.addcmp(whe_list, skytools.quote_ident(f), unescape(src_row[f]))
         for f in fld_list:
             v1 = src_row[f]
             v2 = dst_row[f]
             if self.cmp_value(v1, v2) == 0:
                 continue
 
-            self.addeq(set_list, f, unescape(v1))
-            self.addcmp(whe_list, f, unescape(v2))
+            self.addeq(set_list, skytools.quote_ident(f), unescape(v1))
+            self.addcmp(whe_list, skytools.quote_ident(f), unescape(v2))
 
         q = "update only %s set %s where %s;" % (
                 tbl, ", ".join(set_list), " and ".join(whe_list))
@@ -214,8 +218,8 @@ class Repairer(Syncer):
         self.cnt_delete += 1
         whe_list = []
         for f in self.pkey_list:
-            self.addcmp(whe_list, f, unescape(dst_row[f]))
-        q = "delete from only %s where %s;" % (tbl, " and ".join(whe_list))
+            self.addcmp(whe_list, skytools.quote_ident(f), unescape(dst_row[f]))
+        q = "delete from only %s where %s;" % (skytools.quote_fqident(tbl), " and ".join(whe_list))
         self.show_fix(tbl, q, 'delete')
 
     def show_fix(self, tbl, q, desc):

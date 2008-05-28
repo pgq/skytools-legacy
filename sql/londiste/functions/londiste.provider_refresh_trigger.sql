@@ -21,7 +21,8 @@ begin
         where tgrelid = tbl_oid
           and tgname = t_name;
     if found then
-        execute 'drop trigger ' || t_name || ' on ' || i_table_name;
+        execute 'drop trigger ' || quote_ident(t_name)
+            || ' on ' || londiste.quote_fqname(i_table_name);
     end if;
 
     perform londiste.provider_create_trigger(i_queue_name, i_table_name, i_col_types);

@@ -81,10 +81,11 @@ class CubeDispatcher(pgq.SerialConsumer):
             curs.execute("\n".join(block))
     
     def get_table_info(self, ev, tbl):
+        klist = [skytools.quote_ident(k) for k in ev.key_list.split(',')]
         inf = {
             'parent': ev.extra1,
             'table': tbl,
-            'key_list': ev.key_list,
+            'key_list': ",".join(klist),
         }
         return inf
 
@@ -102,7 +103,7 @@ class CubeDispatcher(pgq.SerialConsumer):
             keys = ev.extra2
         ev.key_list = keys
         key_list = keys.split(',')
-        if self.keep_latest and len(key_list) == 0: 
+        if self.keep_latest and len(key_list) == 0:
             raise Exception('No pkey on table %s' % tbl)
 
         # generate sql
@@ -125,21 +126,21 @@ class CubeDispatcher(pgq.SerialConsumer):
         # generate delete command
         whe_list = []
         for k in key_list:
-            whe_list.append("%s = %s" % (k, skytools.quote_literal(data[k])))
-        whe_str = " and ".join(whe_list) 
-        return "delete from %s where %s;" % (tbl, whe_str)
+            whe_list.append("%s = %s" % (skytools.quote_ident(k), skytools.quote_literal(data[k])))
+        whe_str = " and ".join(whe_list)
+        return "delete from %s where %s;" % (skytools.quote_fqident(tbl), whe_str)
             
     def mk_insert_sql(self, tbl, key_list, data):
         # generate insert command
         col_list = []
         val_list = []
         for c, v in data.items():
-            col_list.append(c)
+            col_list.append(skytools.quote_ident(c))
             val_list.append(skytools.quote_literal(v))
         col_str = ",".join(col_list)
         val_str = ",".join(val_list)
         return "insert into %s (%s) values (%s);" % (
-                        tbl, col_str, val_str)
+                        skytools.quote_fqident(tbl), col_str, val_str)
 
     def check_tables(self, dcon, tables):
         """Checks that tables needed for copy are there. If not
@@ -161,12 +162,12 @@ class CubeDispatcher(pgq.SerialConsumer):
                 continue
 
             sql = self.part_template
-            sql = sql.replace('_DEST_TABLE', inf['table'])
-            sql = sql.replace('_PARENT', inf['parent'])
+            sql = sql.replace('_DEST_TABLE', skytools.quote_fqident(inf['table']))
+            sql = sql.replace('_PARENT', skytools.quote_fqident(inf['parent']))
             sql = sql.replace('_PKEY', inf['key_list'])
             # be similar to table_dispatcher
             schema_table = inf['table'].replace(".", "__")
-            sql = sql.replace('_SCHEMA_TABLE', schema_table)
+            sql = sql.replace('_SCHEMA_TABLE', skytools.quote_ident(schema_table))
 
             dcur.execute(sql)
             dcon.commit()

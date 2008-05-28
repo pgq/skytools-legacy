@@ -461,8 +461,9 @@ class Replicator(pgq.SerialConsumer):
 
     def handle_data_event(self, ev, dst_curs):
         # buffer SQL statements, then send them together
+        fqname = skytools.quote_fqident(ev.extra1)
         fmt = self.sql_command[ev.type]
-        sql = fmt % (ev.extra1, ev.data)
+        sql = fmt % (fqname, ev.data)
         self.sql_list.append(sql)
         if len(self.sql_list) > 200:
             self.flush_sql(dst_curs)
