@@ -9,40 +9,40 @@ for each row execute procedure pgq.sqltriga('que');
 -- simple test
 insert into rtest values (1, 'value1');
 NOTICE:  insert_event(que, I, (id,dat) values ('1','value1'), public.rtest)
-CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, null, null, null)"
+CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, $5, null, null)"
 update rtest set dat = 'value2';
 NOTICE:  insert_event(que, U, dat='value2' where id='1', public.rtest)
-CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, null, null, null)"
+CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, $5, null, null)"
 delete from rtest;
 NOTICE:  insert_event(que, D, id='1', public.rtest)
-CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, null, null, null)"
+CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, $5, null, null)"
 -- test new fields
 alter table rtest add column dat2 text;
 insert into rtest values (1, 'value1');
 NOTICE:  insert_event(que, I, (id,dat,dat2) values ('1','value1',null), public.rtest)
-CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, null, null, null)"
+CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, $5, null, null)"
 update rtest set dat = 'value2';
 NOTICE:  insert_event(que, U, dat='value2' where id='1', public.rtest)
-CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, null, null, null)"
+CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, $5, null, null)"
 delete from rtest;
 NOTICE:  insert_event(que, D, id='1', public.rtest)
-CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, null, null, null)"
+CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, $5, null, null)"
 -- test field ignore
 drop trigger rtest_triga on rtest;
 create trigger rtest_triga after insert or update or delete on rtest
 for each row execute procedure pgq.sqltriga('que2', 'ignore=dat2');
 insert into rtest values (1, '666', 'newdat');
 NOTICE:  insert_event(que2, I, (id,dat) values ('1','666'), public.rtest)
-CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, null, null, null)"
+CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, $5, null, null)"
 update rtest set dat = 5, dat2 = 'newdat2';
 NOTICE:  insert_event(que2, U, dat='5' where id='1', public.rtest)
-CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, null, null, null)"
+CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, $5, null, null)"
 update rtest set dat = 6;
 NOTICE:  insert_event(que2, U, dat='6' where id='1', public.rtest)
-CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, null, null, null)"
+CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, $5, null, null)"
 delete from rtest;
 NOTICE:  insert_event(que2, D, id='1', public.rtest)
-CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, null, null, null)"
+CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, $5, null, null)"
 -- test hashed pkey
 -- drop trigger rtest_triga on rtest;
 -- create trigger rtest_triga after insert or update or delete on rtest
@@ -57,22 +57,22 @@ create trigger rtest_triga after insert or update or delete on rtest
 for each row execute procedure pgq.sqltriga('que3');
 insert into rtest values (1, 0, 'non-null');
 NOTICE:  insert_event(que3, I, (id,dat,dat2) values ('1','0','non-null'), public.rtest)
-CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, null, null, null)"
+CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, $5, null, null)"
 insert into rtest values (2, 0, NULL);
 NOTICE:  insert_event(que3, I, (id,dat,dat2) values ('2','0',null), public.rtest)
-CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, null, null, null)"
+CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, $5, null, null)"
 update rtest set dat2 = 'non-null2' where id=1;
 NOTICE:  insert_event(que3, U, dat2='non-null2' where id='1', public.rtest)
-CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, null, null, null)"
+CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, $5, null, null)"
 update rtest set dat2 = NULL where id=1;
 NOTICE:  insert_event(que3, U, dat2=NULL where id='1', public.rtest)
-CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, null, null, null)"
+CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, $5, null, null)"
 update rtest set dat2 = 'new-nonnull' where id=2;
 NOTICE:  insert_event(que3, U, dat2='new-nonnull' where id='2', public.rtest)
-CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, null, null, null)"
+CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, $5, null, null)"
 delete from rtest where id=1;
 NOTICE:  insert_event(que3, D, id='1', public.rtest)
-CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, null, null, null)"
+CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, $5, null, null)"
 delete from rtest where id=2;
 NOTICE:  insert_event(que3, D, id='2', public.rtest)
-CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, null, null, null)"
+CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, $5, null, null)"
