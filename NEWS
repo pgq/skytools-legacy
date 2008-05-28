@@ -1,3 +1,20 @@
+2008-05-xx  -  SkyTools 2.1.7  -  ""
+
+  = Fixes =
+
+    * Fix pgq trigger compilation with Postgres 8.2 (Marcin Stępnicki)
+    * Replace plain `make` calls with $(MAKE) in Makefiles (Pierre-Emmanuel André)
+    * londiste: Fix incompatibility with Python 2.3 (Dimitri Fontaine)
+    * walmgr: Fix typo in config symlinking code. (pychecker)
+    * pgq.Consumer: Fix bug in retry/failed event handling. (pychecker)
+    * bulk_loader: Fix typo in temp table check. (pychecker)
+    * pgq: Fix pgq.maint_retry_events() - it could create double events
+           when moving retry events back into main queue.
+
+  = Features =
+
+    * Quoting of table and column names.
+
 2008-04-05  -  SkyTools 2.1.6  -  "Quick Bugfix Release"
 
   Now we have upgrade script, see 'man skytools_upgrade'
