@@ -44,6 +44,9 @@ python-install python-all: python/skytools/installer_config.py
 python/skytools/installer_config.py: python/skytools/installer_config.py.in config.mak
 	sed -e 's!@SQLDIR@!$(SQLDIR)!g' $< > $@
 
+realclean:
+	$(MAKE) -C doc $@
+	$(MAKE) distclean
 
 distclean: clean
 	for dir in $(SUBDIRS); do $(MAKE) -C $$dir $@ || exit 1; done

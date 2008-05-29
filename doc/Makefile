@@ -77,7 +77,8 @@ distclean: clean
 realclean: distclean
 	rm -f *.[15] *.xml
 
-ifneq ($(XMLTO),)
+ifneq ($(ASCIIDOC),no)
+ifneq ($(XMLTO),no)
 londiste.1: londiste.cmdline.xml
 	$(XMLTO) man $<
 
@@ -91,7 +92,6 @@ walmgr.1: walmgr.xml
 	$(XMLTO) man $<
 endif
 
-ifneq ($(ASCIIDOC),)
 %.xml: %.txt $(COMMON)
 	$(ASCIIDOC) -b docbook -d manpage `$(GETATTRS) $<` -o - $< \
 	| python fixman.py > $@

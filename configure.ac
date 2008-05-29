@@ -45,7 +45,7 @@ AC_ARG_WITH(asciidoc, [  --with-asciidoc[[=prog]]  path to asciidoc 8.2 (default
     ASCIIDOC=$withval
     AC_MSG_RESULT($ASCIIDOC)
   fi ],
-[ ASCIIDOC="" ])
+[ ASCIIDOC="no" ])
 
 if test -n "$ASCIIDOC"; then
   AC_MSG_CHECKING([whether asciidoc version >= 8.2])
@@ -56,7 +56,7 @@ changequote({, })dnl
   [0-7].*|8.[01]|8.[01].*)
 changequote([, ])dnl
       AC_MSG_RESULT([$ver, too old])
-      ASCIIDOC=""
+      ASCIIDOC="no"
       ;;
   *)  AC_MSG_RESULT([$ver, ok])
       ;;
@@ -67,7 +67,7 @@ dnl check for xmlto, but only if asciidoc is found
 if test -n "$ASCIIDOC"; then
   AC_CHECK_PROGS(XMLTO, [$XMLTO xmlto])
 else
-  XMLTO=""
+  XMLTO="no"
 fi
 
 dnl Postres headers on Solaris define incompat unsetenv without that
