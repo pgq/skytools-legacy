@@ -48,6 +48,15 @@ $script  conf/replic.ini provider remove data2
 
 sleep 2
 
+$script  conf/replic.ini provider add Table
+$script  conf/replic.ini provider remove Table
+$script  conf/replic.ini provider add Table
+$script  conf/replic.ini subscriber add Table
+$script  conf/replic.ini subscriber remove Table
+$script  conf/replic.ini subscriber add Table
+
+sleep 2
+
 $script  conf/replic.ini provider add data2
 
 $script  conf/replic.ini provider add-seq data1_id_seq

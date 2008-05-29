@@ -44,3 +44,15 @@ create table skip_test (
 );
 insert into skip_test (dbname) values (current_database());
 
+create table "Table" (
+    "I D" serial primary key,
+    "table" text,
+    "d1.ref" int4 references data1,
+    constraint "Woof" unique ("table")
+);
+
+create index "idx Table" on "Table" ("table", "I D");
+
+
+
+
