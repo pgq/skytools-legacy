@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 
-import sys, os.path, re
+import sys, os.path, re, glob
 from distutils.core import setup
 from distutils.extension import Extension
 
@@ -53,7 +53,9 @@ setup(
         'scripts/bulk_loader.ini.templ',
         'scripts/scriptmgr.ini.templ',
         ]),
-      ('share/skytools', share_dup_files)],
+      ('share/skytools', share_dup_files),
+      ('share/skytools/upgrade/final', glob.glob('upgrade/final/*.sql')),
+      ],
     ext_modules=[Extension("skytools._cquoting", ['python/modules/cquoting.c'])],
 )
 

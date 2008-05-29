@@ -6,8 +6,10 @@
     * Replace `make` calls with $(MAKE) in Makefiles (Pierre-Emmanuel André)
     * londiste: Fix incompatibility with Python 2.3 (Dimitri Fontaine)
     * walmgr: Fix typo in config symlinking code. (pychecker)
-    * pgq.Consumer: Fix bug in retry/failed event handling. (pychecker)
     * bulk_loader: Fix typo in temp table check. (pychecker)
+    * Install upgrade .sql files.  Otherwise skytools_upgrade.py could
+      be used only from source directory.
+    * pgq.Consumer: Fix bug in retry/failed event handling. (pychecker)
     * pgq: Fix pgq.maint_retry_events() - it could create double events when
       amount of event to be moved back into main queue was more than 10.
 
