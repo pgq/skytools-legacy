@@ -65,7 +65,7 @@ begin
         execute 'truncate ' || tbl;
     exception
         when lock_not_available then
-            raise warning 'truncate of % failed, skipping rotate', tbl;
+            -- cannot truncate, skipping rotate
             return 0;
     end;
 
