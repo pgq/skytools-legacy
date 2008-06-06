@@ -12,10 +12,11 @@ returns integer as $$
 --      nothing
 -- ----------------------------------------------------------------------
 declare
-    badcnt  integer;
-    cf      record;
-    nr      integer;
-    tbl     text;
+    badcnt      integer;
+    cf          record;
+    nr          integer;
+    tbl         text;
+    min_tick_id int8;
 begin
     -- check if needed and load record
     select * from pgq.queue into cf
@@ -28,22 +29,29 @@ begin
         return 0;
     end if;
 
-    -- check if any consumer is on previous table
-    select coalesce(count(*), 0) into badcnt
-        from pgq.subscription, pgq.tick
-        where txid_snapshot_xmin(tick_snapshot) < cf.queue_switch_step2
-          and sub_queue = cf.queue_id
-          and tick_queue = cf.queue_id
-          and tick_id = (select tick_id from pgq.tick
-                           where tick_id < sub_last_tick
-                             and tick_queue = sub_queue
-                           order by tick_queue desc, tick_id desc
-                           limit 1);
-    if badcnt > 0 then
-        return 0;
+    -- load lowest tick for that queue
+    select min(sub_last_tick) into min_tick_id
+      from pgq.subscription
+     where sub_queue = cf.queue_id;
+
+    -- if some consumer exists
+    if min_tick_id is not null then
+        -- is the slowest one still on previous table?
+
+        -- the '<=' is because at startup the tick and
+        -- rotation happen in same tx
+        perform 1 from pgq.tick
+          where tick_queue = cf.queue_id
+            and tick_id = min_tick_id
+            and txid_snapshot_xmin(tick_snapshot) <= cf.queue_switch_step2;
+        if found then
+            return 0; -- skip rotation then
+        end if;
     end if;
 
-    -- all is fine, calc next table number
+    -- all is fine, we can rotate
+    
+    -- calc next table number and name
     nr := cf.queue_cur_table + 1;
     if nr = cf.queue_ntables then
         nr := 0;
