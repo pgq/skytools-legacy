@@ -3,7 +3,7 @@
 """Londiste launcher.
 """
 
-import sys, os, optparse, skytools
+import sys, os, optparse, time, signal, skytools
 
 # python 2.3 will try londiste.py first...
 import sys, os.path
@@ -38,8 +38,12 @@ commands:
   subscriber seqs               list sequences subscriber is interested
   subscriber missing            list tables subscriber has not yet attached to
   subscriber check              compare table structure on both sides
-  subscriber fkeys              print out fkey drop/create commands
   subscriber resync TBL ...     do full copy again
+  subscriber fkeys [pending|active]             show fkeys on tables           
+  subscriber triggers [pending|active]          show triggers on tables
+  subscriber restore-triggers TBL [TGNAME ..]   restore pending triggers
+  subscriber register           register consumer on provider's queue
+  subscriber unregister         unregister consumer on provider's queue
 
   compare [TBL ...]             compare table contents on both sides
   repair [TBL ...]              repair data on subscriber
@@ -112,6 +116,27 @@ class Londiste(skytools.DBScript):
         p.add_option_group(g)
 
         return p
+
+    def send_signal(self, sig):
+        """ Londiste can launch other process for copy, so manages it here """
+        if sig in (signal.SIGTERM, signal.SIGINT):
+            # kill copy process if it exists before stopping
+            copy_pidfile = self.pidfile + ".copy"
+            if os.path.isfile(copy_pidfile):
+                self.log.warning("Signaling running COPY first")
+                copypid = int(open(copy_pidfile, "r").read())
+                while os.path.isfile(copy_pidfile):
+                    try:
+                        os.kill(copypid, signal.SIGTERM)
+                    except OSError:
+                        # No such process: race conditions
+                        break
+                        
+                    self.log.info("Waiting for existing copy to exit")
+                    time.sleep(2)
+
+        # now resort to DBScript send_signal()
+        skytools.DBScript.send_signal(self, sig)
 
 if __name__ == '__main__':
     script = Londiste(sys.argv[1:])

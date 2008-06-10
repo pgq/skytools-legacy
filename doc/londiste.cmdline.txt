@@ -219,6 +219,42 @@ do-sync:<tick_id>::
 ok::
   table is in sync.
 
+=== subscriber fkeys ===
+
+Show pending and active foreign keys on tables.  Takes optional
+type argument - `pending` or `active`.  If no argument is given,
+both types are shown.
+
+Pending foreign keys are those that were removed during COPY time
+but have not restored yet,  The restore happens autmatically if
+both tables are synced.
+
+=== subscriber triggers ===
+
+Show pending and active triggers on tables.  Takes optional type
+argument - `pending` or `active`.  If no argument is given, both
+types are shown.
+
+Pending triggers keys are those that were removed during COPY time
+but have not restored yet,  The restore of triggers does not happen
+autmatically, it needs to be done manually with `restore-triggers`
+command.
+
+=== subscriber restore-triggers <table name> ===
+
+Restores all pending triggers for single table.
+Optionally trigger name can be given as extra
+argument, then only that trigger is restored.
+
+=== subscriber register ===
+
+Register consumer on queue.  This usually happens
+automatically when `replay` is launched, but 
+
+=== subscriber unregister ===
+
+Unregister consumer from provider's queue.  This should be
+done if you want to shut replication down.
 
 == REPLICATION COMMANDS ==
 
