@@ -47,8 +47,27 @@ class Counter(object):
             elif t.state == TABLE_OK:
                 self.ok += 1
         # only one table is allowed to have in-progress copy
-        if self.copy + self.catching_up + self.wanna_sync + self.do_sync > 1:
+        if self.in_progress_copy() > 1:
             raise Exception('Bad table state')
+
+    def in_progress_copy(self):
+        """ return how many tables currently having in-progress copy """
+        return self.copy + self.catching_up + self.wanna_sync + self.do_sync
+
+    def get_running_copy_state(self):
+        """ return TABLE_STATE of current running COPY table """
+
+        if self.in_progress_copy() == 0:
+            return None
+
+        if self.copy:
+            return TABLE_IN_COPY
+        elif self.catching_up:
+            return TABLE_CATCHING_UP
+        elif self.wanna_sync:
+            return TABLE_WANNA_SYNC
+        elif self.do_sync:
+            return TABLE_DO_SYNC
 
 class TableState(object):
     """Keeps state about one table."""
@@ -266,6 +285,7 @@ class Replicator(pgq.SerialConsumer):
 
         self.copy_thread = 0
         self.maint_time = 0
+        self.checked_copy = False
         self.seq_cache = SeqCache()
         self.maint_delay = self.cf.getint('maint_delay', 600)
         self.mirror_queue = self.cf.get('mirror_queue', '')
@@ -347,8 +367,12 @@ class Replicator(pgq.SerialConsumer):
     def sync_from_main_thread(self, cnt, dst_db):
         "Main thread sync logic."
 
+        if not self.checked_copy:
+            self.relaunch_copy(cnt)
+            self.checked_copy = True
+        
         #
-        # decide what to do - order is imortant
+        # decide what to do - order is important
         #
         if cnt.do_sync:
             # wait for copy thread to catch up
@@ -616,6 +640,40 @@ class Replicator(pgq.SerialConsumer):
         self.log.debug("Launch args: "+repr(cmd))
         res = os.system(cmd)
         self.log.debug("Launch result: "+repr(res))
+
+    def relaunch_copy(self, cnt):
+        """ check if a copy was killed before completion """
+
+        # We decide to force to run a COPY if:
+        #  - a table is in "copy" state
+        #  - copy pidfile either does not exists or matches no running pid
+
+        self.log.debug("Sync(main) in_progress_copy = %d" % (cnt.in_progress_copy()))
+
+        if cnt.in_progress_copy() == 0:
+            return
+
+        copy_pidfile = self.pidfile + ".copy"
+        if skytools.signal_pidfile(copy_pidfile, 0):
+            # copy is running
+            return
+
+        self.log.info("Table have in-progress-copy but no process")
+        
+        if os.path.isfile(copy_pidfile):
+            self.log.debug("removing stale copy pid file %s" \
+                           % copy_pidfile)
+            os.remove(copy_pidfile)
+
+        state = cnt.get_running_copy_state()
+        if state:
+            t = self.get_table_by_state(state)
+            self.log.debug("launch copy for %s in state %s" % (str(t), str(state)))
+            self.launch_copy(t)
+        else:
+            self.log.error("Can't find copy-in-progress table " +\
+                           "state to re-launch stale copy")
+    
 
     def sync_database_encodings(self, src_db, dst_db):
         """Make sure client_encoding is same on both side."""

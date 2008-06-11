@@ -3,7 +3,7 @@
 """Londiste launcher.
 """
 
-import sys, os, optparse, time, signal, skytools
+import sys, os, optparse, signal, skytools
 
 # python 2.3 will try londiste.py first...
 import sys, os.path
@@ -123,17 +123,8 @@ class Londiste(skytools.DBScript):
             # kill copy process if it exists before stopping
             copy_pidfile = self.pidfile + ".copy"
             if os.path.isfile(copy_pidfile):
-                self.log.warning("Signaling running COPY first")
-                copypid = int(open(copy_pidfile, "r").read())
-                while os.path.isfile(copy_pidfile):
-                    try:
-                        os.kill(copypid, signal.SIGTERM)
-                    except OSError:
-                        # No such process: race conditions
-                        break
-                        
-                    self.log.info("Waiting for existing copy to exit")
-                    time.sleep(2)
+                self.log.info("Signaling running COPY first")
+                skytools.signal_pidfile(copy_pidfile, sig)
 
         # now resort to DBScript send_signal()
         skytools.DBScript.send_signal(self, sig)

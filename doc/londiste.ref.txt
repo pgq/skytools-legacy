@@ -184,6 +184,12 @@ that some tables are not in sync.  The reason to do table copying in
 separate process is to avoid locking down main replay process for
 long time.
 
+When using either +-s+ or +-k+ to terminate a running londiste
+instance, londiste will check if a +COPY+ subprocess is running and
+kill it first.  When replay starts, it will check if a table is in a state
+which should be handled by a COPY subprocess, and if it's the case will
+ensure that such a process exists and run it it necessary.
+
 Basic logic:
 
  * Register on the same queue in parallel with different name.
