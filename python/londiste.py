@@ -124,7 +124,7 @@ class Londiste(skytools.DBScript):
             copy_pidfile = self.pidfile + ".copy"
             if os.path.isfile(copy_pidfile):
                 self.log.info("Signaling running COPY first")
-                skytools.signal_pidfile(copy_pidfile, sig)
+                skytools.signal_pidfile(copy_pidfile, signal.SIGTERM)
 
         # now resort to DBScript send_signal()
         skytools.DBScript.send_signal(self, sig)
