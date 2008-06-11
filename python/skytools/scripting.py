@@ -520,13 +520,20 @@ class DBScript(object):
             self.send_stats()
             self.log.info("got SystemExit(%s), exiting" % str(d))
             self.reset()
-            raise d
-        except KeyboardInterrupt, d:
+            raise
+        except KeyboardInterrupt:
             self.send_stats()
             self.log.info("got KeyboardInterrupt, exiting")
             self.reset()
             sys.exit(1)
-        except Exception, d:
+        except MemoryError:
+            exc, msg, tb = sys.exc_info()
+            self.log.fatal("Job %s out of memory: %s: '%s' (%s: %s)" % (
+                       self.job_name, str(exc), str(msg).rstrip(),
+                       str(tb), repr(traceback.format_tb(tb))))
+            del tb
+            sys.exit(1)
+        except Exception:
             self.send_stats()
             exc, msg, tb = sys.exc_info()
             self.log.fatal("Job %s crashed: %s: '%s' (%s: %s)" % (
