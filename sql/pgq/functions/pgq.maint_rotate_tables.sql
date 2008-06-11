@@ -9,14 +9,15 @@ returns integer as $$
 --      i_queue_name        - Name of the queue
 --
 -- Returns:
---      nothing
+--      1 if rotation happened, otherwise 0.
 -- ----------------------------------------------------------------------
 declare
-    badcnt      integer;
-    cf          record;
-    nr          integer;
-    tbl         text;
-    min_tick_id int8;
+    badcnt          integer;
+    cf              record;
+    nr              integer;
+    tbl             text;
+    lowest_tick_id  int8;
+    lowest_xmin     int8;
 begin
     -- check if needed and load record
     select * from pgq.queue into cf
@@ -29,27 +30,24 @@ begin
         return 0;
     end if;
 
-    -- load lowest tick for that queue
-    select min(sub_last_tick) into min_tick_id
+    -- find lowest tick for that queue
+    select min(sub_last_tick) into lowest_tick_id
       from pgq.subscription
      where sub_queue = cf.queue_id;
 
     -- if some consumer exists
-    if min_tick_id is not null then
+    if lowest_tick_id is not null then
         -- is the slowest one still on previous table?
-
-        -- the '<=' is because at startup the tick and
-        -- rotation happen in same tx
-        perform 1 from pgq.tick
-          where tick_queue = cf.queue_id
-            and tick_id = min_tick_id
-            and txid_snapshot_xmin(tick_snapshot) <= cf.queue_switch_step2;
-        if found then
+        select txid_snapshot_xmin(tick_snapshot) into lowest_xmin
+          from pgq.tick
+         where tick_queue = cf.queue_id
+           and tick_id = lowest_tick_id;
+        if lowest_xmin <= cf.queue_switch_step2 then
             return 0; -- skip rotation then
         end if;
     end if;
 
-    -- all is fine, we can rotate
+    -- nobody on previous table, we can rotate
     
     -- calc next table number and name
     nr := cf.queue_cur_table + 1;
@@ -77,7 +75,14 @@ begin
             queue_switch_step2 = NULL
         where queue_id = cf.queue_id;
 
-    -- clean ticks - avoid partial batches
+    -- Clean ticks by using step2 txid from previous rotation.
+    -- That should keep all ticks for all batches that are completely
+    -- in old table.  This keeps them for longer than needed, but:
+    -- 1. we want the pgq.tick table to be big, to avoid Postgres
+    --    accitentally switching to seqscans on that.
+    -- 2. that way we guarantee to consumers that they an be moved
+    --    back on the queue at least for one rotation_period.
+    --    (may help in disaster recovery)
     delete from pgq.tick
         where tick_queue = cf.queue_id
           and txid_snapshot_xmin(tick_snapshot) < cf.queue_switch_step2;
@@ -86,16 +91,15 @@ begin
 end;
 $$ language plpgsql; -- need admin access
 
+
+create or replace function pgq.maint_rotate_tables_step2()
+returns integer as $$
 -- ----------------------------------------------------------------------
 -- Function: pgq.maint_rotate_tables_step2(0)
 --
---      It tag rotation as finished where needed.  It should be
+--      Stores the txid when the rotation was visible.  It should be
 --      called in separate transaction than pgq.maint_rotate_tables_step1()
 -- ----------------------------------------------------------------------
-create or replace function pgq.maint_rotate_tables_step2()
-returns integer as $$
--- visibility tracking.  this should run in separate
--- tranaction than step1
 begin
     update pgq.queue
        set queue_switch_step2 = txid_current()
