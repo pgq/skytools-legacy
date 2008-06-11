@@ -19,6 +19,9 @@ __all__ = ['DBScript', 'I_AUTOCOMMIT', 'I_READ_COMMITTED', 'I_SERIALIZABLE',
 def signal_pidfile(pidfile, sig):
     """Send a signal to process whose ID is located in pidfile.
 
+    Read only first line of pidfile to support multiline
+    pifiles like postmaster.pid.
+
     Returns True is successful, False if pidfile does not exist
     or process itself is dead.  Any other errors will passed
     as exceptions.
@@ -30,7 +33,7 @@ def signal_pidfile(pidfile, sig):
     except IOError, ex:
         if ex.errno != errno.ENOENT:
             raise
-    except OSerror, ex:
+    except OSError, ex:
         if ex.errno != errno.ESRCH:
             raise
     return False
