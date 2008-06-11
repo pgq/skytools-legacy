@@ -186,9 +186,10 @@ long time.
 
 When using either +-s+ or +-k+ to terminate a running londiste
 instance, londiste will check if a +COPY+ subprocess is running and
-kill it first.  When replay starts, it will check if a table is in a state
-which should be handled by a COPY subprocess, and if it's the case will
-ensure that such a process exists and run it it necessary.
+kill it first, by sending it SIGTERM.  When replay starts, it will
+check if a table is in a state which should be handled by a COPY
+subprocess, and if it's the case will ensure that such a process
+exists and run it it necessary.
 
 Basic logic:
 
