@@ -24,6 +24,7 @@
 #include <executor/spi.h>
 #include <lib/stringinfo.h>
 #include <utils/memutils.h>
+#include <utils/inval.h>
 #include <utils/hsearch.h>
 
 #include "common.h"
@@ -37,22 +38,39 @@ PG_MODULE_MAGIC;
 #endif
 
 /*
+ * primary key info
+ */
+
+static MemoryContext tbl_cache_ctx;
+static HTAB *tbl_cache_map;
+
+static const char pkey_sql [] =
+	"SELECT k.attnum, k.attname FROM pg_index i, pg_attribute k"
+	" WHERE i.indrelid = $1 AND k.attrelid = i.indexrelid"
+	"   AND i.indisprimary AND k.attnum > 0 AND NOT k.attisdropped"
+	" ORDER BY k.attnum";
+static void *pkey_plan;
+
+static void relcache_reset_cb(Datum arg, Oid relid);
+
+/*
  * helper for queue insertion.
  *
  * does not support NULL arguments.
  */
-void pgq_simple_insert(const char *queue_name, Datum ev_type, Datum ev_data, Datum ev_extra1)
+void pgq_simple_insert(const char *queue_name, Datum ev_type, Datum ev_data, Datum ev_extra1, Datum ev_extra2)
 {
-	Datum values[4];
+	Datum values[5];
+	char nulls[5];
 	static void *plan = NULL;
 	int res;
 
 	if (!plan) {
 		const char *sql;
-		Oid   types[4] = { TEXTOID, TEXTOID, TEXTOID, TEXTOID };
+		Oid   types[5] = { TEXTOID, TEXTOID, TEXTOID, TEXTOID, TEXTOID };
 
-		sql = "select pgq.insert_event($1, $2, $3, $4, null, null, null)";
-		plan = SPI_saveplan(SPI_prepare(sql, 4, types));
+		sql = "select pgq.insert_event($1, $2, $3, $4, $5, null, null)";
+		plan = SPI_saveplan(SPI_prepare(sql, 5, types));
 		if (plan == NULL)
 			elog(ERROR, "logtriga: SPI_prepare() failed");
 	}
@@ -60,9 +78,26 @@ void pgq_simple_insert(const char *queue_name, Datum ev_type, Datum ev_data, Dat
 	values[1] = ev_type;
 	values[2] = ev_data;
 	values[3] = ev_extra1;
-	res = SPI_execute_plan(plan, values, NULL, false, 0);
+	values[4] = ev_extra2;
+	nulls[0] = ' ';
+	nulls[1] = ' ';
+	nulls[2] = ' ';
+	nulls[3] = ' ';
+	nulls[4] = ev_extra2 ? ' ' : 'n';
+	res = SPI_execute_plan(plan, values, nulls, false, 0);
 	if (res != SPI_OK_SELECT)
 		elog(ERROR, "call of pgq.insert_event failed");
+}
+
+void pgq_insert_tg_event(PgqTriggerEvent *ev)
+{
+	pgq_simple_insert(ev->queue_name,
+					  pgq_finish_varbuf(ev->ev_type),
+					  pgq_finish_varbuf(ev->ev_data),
+					  pgq_finish_varbuf(ev->ev_extra1),
+					  ev->ev_extra2
+					  ? pgq_finish_varbuf(ev->ev_extra2)
+					  : (Datum)0);
 }
 
 char *pgq_find_table_name(Relation rel)
@@ -89,41 +124,21 @@ char *pgq_find_table_name(Relation rel)
 	return pstrdup(namebuf);
 }
 
-/*
- * primary key info
- */
-
-static MemoryContext tbl_cache_ctx;
-static HTAB *tbl_cache_map;
-
-static const char pkey_sql [] =
-	"SELECT k.attnum, k.attname FROM pg_index i, pg_attribute k"
-	" WHERE i.indrelid = $1 AND k.attrelid = i.indexrelid"
-	"   AND i.indisprimary AND k.attnum > 0 AND NOT k.attisdropped"
-	" ORDER BY k.attnum";
-static void * pkey_plan;
-
-/*
- * Prepare utility plans and plan cache.
- */
 static void
-init_tbl_cache(void)
+init_pkey_plan(void)
 {
-	static int init_done = 0;
 	Oid types[1] = { OIDOID };
-	HASHCTL     ctl;
-	int         flags;
-	int         max_tables = 128;
-
-	if (init_done)
-		return;
-
-	/*
-	 * Init plans.
-	 */
 	pkey_plan = SPI_saveplan(SPI_prepare(pkey_sql, 1, types));
 	if (pkey_plan == NULL)
 		elog(ERROR, "pgq_triggers: SPI_prepare() failed");
+}
+
+static void
+init_cache(void)
+{
+	HASHCTL     ctl;
+	int         flags;
+	int         max_tables = 128;
 
 	/*
 	 * create own context
@@ -142,8 +157,44 @@ init_tbl_cache(void)
 	ctl.hash = oid_hash;
 	flags = HASH_ELEM | HASH_FUNCTION;
 	tbl_cache_map = hash_create("pgq_triggers pkey cache", max_tables, &ctl, flags);
+}
 
-	init_done = 1;
+/*
+ * Prepare utility plans and plan cache.
+ */
+static void
+init_module(void)
+{
+	static int callback_init = 0;
+
+	/* htab can be occasinally dropped */
+	if (tbl_cache_ctx)
+		return;
+	init_cache();
+
+	/*
+	 * Init plans.
+	 */
+	if (!pkey_plan)
+		init_pkey_plan();
+
+	/* this must be done only once */
+	if (!callback_init) {
+		CacheRegisterRelcacheCallback(relcache_reset_cb, (Datum)0);
+		callback_init = 1;
+	}
+}
+
+static void
+full_reset(void)
+{
+	if (tbl_cache_ctx) {
+		/* needed only if backend has HASH_STATISTICS set */
+		/* hash_destroy(tbl_cache_map); */
+		MemoryContextDelete(tbl_cache_ctx);
+		tbl_cache_map = NULL;
+		tbl_cache_ctx = NULL;
+	}
 }
 
 /*
@@ -184,6 +235,28 @@ fill_tbl_info(Relation rel, struct PgqTableInfo *info)
 	info->pkey_list = MemoryContextStrdup(tbl_cache_ctx, pkeys->data);
 }
 
+static void
+free_info(struct PgqTableInfo *info)
+{
+	pfree(info->table_name);
+	pfree(info->pkey_attno);
+	pfree((void *)info->pkey_list);
+}
+
+static void relcache_reset_cb(Datum arg, Oid relid)
+{
+	if (relid == InvalidOid) {
+		full_reset();
+	} else if (tbl_cache_map) {
+	 	struct PgqTableInfo *entry;
+	 	entry = hash_search(tbl_cache_map, &relid, HASH_FIND, NULL);
+		if (entry) {
+			free_info(entry);
+	 		hash_search(tbl_cache_map, &relid, HASH_REMOVE, NULL);
+		}
+	}
+}
+
 /*
  * fetch insert plan from cache.
  */
@@ -193,7 +266,7 @@ pgq_find_table_info(Relation rel)
 	 struct PgqTableInfo *entry;
 	 bool did_exist = false;
 
-	 init_tbl_cache();
+	 init_module();
 
 	 entry = hash_search(tbl_cache_map, &rel->rd_id, HASH_ENTER, &did_exist);
 	 if (!did_exist)
@@ -218,6 +291,8 @@ parse_newstyle_args(PgqTriggerEvent *ev, TriggerData *tg)
 			ev->ignore_list = arg + 7;
 		else if (strncmp(arg, "pkey=", 5) == 0)
 			ev->pkey_list = arg + 5;
+		else if (strcmp(arg, "backup") == 0)
+			ev->backup = true;
 		else
 			elog(ERROR, "bad param to pgq trigger");
 	}
@@ -290,14 +365,6 @@ void pgq_prepare_event(struct PgqTriggerEvent *ev, TriggerData *tg, bool newstyl
 		elog(ERROR, "unknown event for pgq trigger");
 
 	/*
-	 * init data
-	 */
-	ev->ev_type = pgq_init_varbuf();
-	ev->ev_data = pgq_init_varbuf();
-	ev->ev_extra1 = pgq_init_varbuf();
-	ev->ev_extra2 = pgq_init_varbuf();
-
-	/*
 	 * load table info
 	 */
 	ev->info = pgq_find_table_info(tg->tg_relation);
@@ -311,9 +378,26 @@ void pgq_prepare_event(struct PgqTriggerEvent *ev, TriggerData *tg, bool newstyl
 		parse_newstyle_args(ev, tg);
 	else
 		parse_oldstyle_args(ev, tg);
+
+	/*
+	 * init data
+	 */
+	ev->ev_type = pgq_init_varbuf();
+	ev->ev_data = pgq_init_varbuf();
+	ev->ev_extra1 = pgq_init_varbuf();
+	
+	/*
+	 * Do the backup, if requested.
+	 */
+	if (ev->backup) {
+		ev->ev_extra2 = pgq_init_varbuf();
+		pgq_urlenc_row(ev, tg, tg->tg_trigtuple, ev->ev_extra2);
+	}
 }
 
-
+/*
+ * Check if column should be skipped
+ */
 bool pgqtriga_skip_col(PgqTriggerEvent *ev, TriggerData *tg, int i, int attkind_idx)
 {
 	TupleDesc tupdesc;
@@ -333,6 +417,9 @@ bool pgqtriga_skip_col(PgqTriggerEvent *ev, TriggerData *tg, int i, int attkind_
 	return false;
 }
 
+/*
+ * Check if column is pkey.
+ */
 bool pgqtriga_is_pkey(PgqTriggerEvent *ev, TriggerData *tg, int i, int attkind_idx)
 {
 	TupleDesc tupdesc;

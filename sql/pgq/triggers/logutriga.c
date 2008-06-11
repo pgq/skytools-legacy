@@ -27,8 +27,8 @@
 PG_FUNCTION_INFO_V1(pgq_logutriga);
 Datum pgq_logutriga(PG_FUNCTION_ARGS);
 
-static void
-process_row_data(PgqTriggerEvent *ev, TriggerData *tg, HeapTuple row, StringInfo buf)
+void
+pgq_urlenc_row(PgqTriggerEvent *ev, TriggerData *tg, HeapTuple row, StringInfo buf)
 {
 	TupleDesc	tupdesc = tg->tg_relation->rd_att;
 	bool first = true;
@@ -74,6 +74,7 @@ process_row_data(PgqTriggerEvent *ev, TriggerData *tg, HeapTuple row, StringInfo
  *    ev_type   - operation type, I/U/D
  *    ev_data   - urlencoded column values
  *    ev_extra1 - table name
+ *    ev_extra2 - optional urlencoded backup
  */
 Datum
 pgq_logutriga(PG_FUNCTION_ARGS)
@@ -111,15 +112,12 @@ pgq_logutriga(PG_FUNCTION_ARGS)
 	/*
 	 * create type, data
 	 */
-	process_row_data(&ev, tg, row, ev.ev_data);
+	pgq_urlenc_row(&ev, tg, row, ev.ev_data);
 
 	/*
 	 * Construct the parameter array and insert the log row.
 	 */
-	pgq_simple_insert(ev.queue_name,
-					  pgq_finish_varbuf(ev.ev_type),
-					  pgq_finish_varbuf(ev.ev_data),
-					  pgq_finish_varbuf(ev.ev_extra1));
+	pgq_insert_tg_event(&ev);
 
 	if (SPI_finish() < 0)
 		elog(ERROR, "SPI_finish failed");
