@@ -371,6 +371,10 @@ class DBScript(object):
         "Internal SIGINT handler.  Minimal code here."
         self.stop()
 
+    def stat_add(self, key, value):
+        """Old, deprecated function."""
+        self.stat_put(key, value)
+
     def stat_put(self, key, value):
         """Sets a stat value."""
         self.stat_dict[key] = value
