@@ -95,7 +95,7 @@ def copy_conf(src, dst):
         return False
     if os.path.islink(src):
         linkdst = os.readlink(src)
-        os.symlink(linkdst, listdst)
+        os.symlink(linkdst, dst)
     elif os.path.isfile(src):
         shutil.copy2(src, dst)
     else:
@@ -645,8 +645,8 @@ class WalMgr(skytools.DBScript):
 
         self.log.debug("%s: done", srcname)
         end_time = time.time()
-        self.stat_put('count', 1)
-        self.stat_put('duration', end_time - start_time)
+        self.stat_add('count', 1)
+        self.stat_add('duration', end_time - start_time)
         self.send_stats()
 
     def slave_append_partial(self):
@@ -942,7 +942,7 @@ class WalMgr(skytools.DBScript):
         open(prgrfile, "w").write("1")
 
         # it would be nice to have apply time too
-        self.stat_put('count', 1)
+        self.stat_add('count', 1)
         self.send_stats()
 
     def restore_database(self):
