@@ -1,3 +1,30 @@
+2008-06-xx  -  SkyTools 2.1.8  -  ""
+
+  = Fixes =
+
+    * londiste: Document the fkeys, triggers, restore-triggers commands.
+    * pgq: pgq.maint_rotate_step1() function removed tick #1
+      even if consumer was registered on it.
+    * skytools.DBScript: dont try to stay running if MemoryError was thrown.
+    * deb: Make debian package accept skytools-8.3 too.
+    * pgq triggers: import cache invalidation from HEAD.
+      Now pgq.sqltriga() and pgq.logutriga() should be preferable
+      to pgq.logtriga().
+    * Londiste: runs ANALYZE after table is copied over.
+    * uninstall_pgq.sql: Correct syntax for DROP SCHEMA CASCADE.
+
+  = Features =
+
+    * londiste -s/-k now kill "copy" process too with SIGTERM.
+      Previously the process was left running.  On startup
+      "replay" will check if "copy" process had died before
+      finishing and launches one if needed.  (Dimitri)
+    * New skytools.signal_pidfile() function.
+
+  ? todo ?
+
+    * Make Londiste use new triggers.
+
 2008-06-03  -  SkyTools 2.1.7  -  "Attack of the Werebugs"
 
   = Fixes =
