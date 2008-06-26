@@ -28,7 +28,7 @@ select londiste.provider_add_table('pqueue', 'public.testdata');
 (1 row)
 
 select londiste.provider_add_table('pqueue', 'public.testdata');
-ERROR:  duplicate key violates unique constraint "provider_table_pkey"
+ERROR:  duplicate key value violates unique constraint "provider_table_pkey"
 select londiste.provider_refresh_trigger('pqueue', 'public.testdata');
  provider_refresh_trigger 
 --------------------------
@@ -71,7 +71,7 @@ select londiste.provider_add_seq('pqueue', 'public.testdata_id_seq');
 (1 row)
 
 select londiste.provider_add_seq('pqueue', 'public.testdata_id_seq');
-ERROR:  duplicate key violates unique constraint "provider_seq_pkey"
+ERROR:  duplicate key value violates unique constraint "provider_seq_pkey"
 select * from londiste.provider_get_seq_list('pqueue');
  provider_get_seq_list  
 ------------------------

@@ -26,9 +26,9 @@ select pgq.create_queue('pqueue');
 (1 row)
 
 select londiste.subscriber_add_table('pqueue', 'public.testdata');
-ERROR:  duplicate key violates unique constraint "subscriber_table_pkey"
+ERROR:  duplicate key value violates unique constraint "subscriber_table_pkey"
 select londiste.subscriber_add_table('pqueue', 'public.testdata');
-ERROR:  duplicate key violates unique constraint "subscriber_table_pkey"
+ERROR:  duplicate key value violates unique constraint "subscriber_table_pkey"
 select * from londiste.subscriber_get_table_list('pqueue');
       table_name      | merge_state | snapshot | trigger_name | skip_truncate 
 ----------------------+-------------+----------+--------------+---------------
@@ -71,7 +71,7 @@ select londiste.subscriber_add_seq('pqueue', 'public.testdata_id_seq');
 (1 row)
 
 select londiste.subscriber_add_seq('pqueue', 'public.testdata_id_seq');
-ERROR:  duplicate key violates unique constraint "subscriber_seq_pkey"
+ERROR:  duplicate key value violates unique constraint "subscriber_seq_pkey"
 select * from londiste.subscriber_get_seq_list('pqueue');
  subscriber_get_seq_list 
 -------------------------
@@ -104,7 +104,7 @@ select londiste.subscriber_add_table('pqueue', 'public.testdata');
 
 insert into londiste.link (source, dest) values ('mqueue', 'pqueue');
 select londiste.subscriber_add_table('pqueue', 'public.testdata');
-ERROR:  duplicate key violates unique constraint "subscriber_table_pkey"
+ERROR:  duplicate key value violates unique constraint "subscriber_table_pkey"
 select londiste.subscriber_remove_table('pqueue', 'public.testdata');
  subscriber_remove_table 
 -------------------------
