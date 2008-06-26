@@ -88,6 +88,10 @@ class CopyTable(Replicator):
         self.save_table_state(dst_curs)
         dst_db.commit()
 
+        self.log.debug("%s: ANALYZE" % tbl_stat.name)
+        dst_curs.execute("analyze " + skytools.quote_fqident(tbl_stat.name))
+        dst_db.commit()
+
         # if copy done, request immidiate tick from pgqadm,
         # to make state juggling faster.  on mostly idle db-s
         # each step may take tickers idle_timeout secs, which is pain.
