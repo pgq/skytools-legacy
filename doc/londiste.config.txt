@@ -40,6 +40,15 @@ logfile::
 pidfile::
   Where to store the pid of the main londiste process, the replay one.
 
+lock_timeout::
+  Few operations take lock on provider (provider add/remove, compare, repair).
+  This parameter specifies timeout in seconds (float) how long a lock
+  can be held.  Default: 10
+
+loop_delay::
+  How often to poll events from provider.  In seconds (float).
+  Default: 1.
+
 == EXAMPLE ==
 
   [londiste]
@@ -53,10 +62,7 @@ pidfile::
   
   logfile = /tmp/%(job_name)s.log
   pidfile = /tmp/%(job_name)s.pid
-  
-  # both events and ticks will be copied there
-  #mirror_queue = replika_mirror
-  
+
 
 == SEE ALSO ==
 

@@ -13,9 +13,17 @@ class Syncer(skytools.DBScript):
 
         self.pgq_queue_name = self.cf.get("pgq_queue_name")
         self.pgq_consumer_id = self.cf.get('pgq_consumer_id', self.job_name)
+        self.lock_timeout = self.cf.getfloat('lock_timeout', 10)
 
         if self.pidfile:
             self.pidfile += ".repair"
+
+    def set_lock_timeout(self, curs):
+        ms = int(1000 * self.lock_timeout)
+        if ms > 0:
+            q = "SET LOCAL statement_timeout = %d" % ms
+            self.log.debug(q)
+            curs.execute(q)
 
     def init_optparse(self, p=None):
         p = skytools.DBScript.init_optparse(self, p)
@@ -128,8 +136,9 @@ class Syncer(skytools.DBScript):
         # lock table in separate connection
         self.log.info('Locking %s' % tbl)
         lock_db.commit()
-        lock_curs.execute("LOCK TABLE %s IN SHARE MODE" % skytools.quote_fqident(tbl))
+        self.set_lock_timeout(lock_curs)
         lock_time = time.time()
+        lock_curs.execute("LOCK TABLE %s IN SHARE MODE" % skytools.quote_fqident(tbl))
 
         # now wait until consumer has updated target table until locking
         self.log.info('Syncing %s' % tbl)
@@ -159,8 +168,8 @@ class Syncer(skytools.DBScript):
             if row[0]:
                 break
 
-            # loop max 10 secs
-            if time.time() > lock_time + 10 and not self.options.force:
+            # limit lock time
+            if time.time() > lock_time + self.lock_timeout and not self.options.force:
                 self.log.error('Consumer lagging too much, exiting')
                 lock_db.rollback()
                 sys.exit(1)

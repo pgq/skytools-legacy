@@ -56,10 +56,18 @@ class CommonSetup(skytools.DBScript):
         self.pgq_queue_name = self.cf.get("pgq_queue_name")
         self.consumer_id = self.cf.get("pgq_consumer_id", self.job_name)
         self.fake = self.cf.getint('fake', 0)
+        self.lock_timeout = self.cf.getfloat('lock_timeout', 10)
 
         if len(self.args) < 3:
             self.log.error("need subcommand")
             sys.exit(1)
+
+    def set_lock_timeout(self, curs):
+        ms = int(1000 * self.lock_timeout)
+        if ms > 0:
+            q = "SET LOCAL statement_timeout = %d" % ms
+            self.log.debug(q)
+            curs.execute(q)
 
     def run(self):
         self.admin()
@@ -289,6 +297,8 @@ class ProviderSetup(CommonSetup):
     def exec_provider(self, sql, args):
         src_db = self.get_database('provider_db')
         src_curs = src_db.cursor()
+
+        self.set_lock_timeout(src_curs)
 
         src_curs.execute(sql, args)
 
