@@ -23,7 +23,8 @@ londiste configuration.
 You can configure the following options into the londiste section.
 
 job_name::
-  Each running londiste replay process has a unique job name.
+  Each Skytools daemon process must have a unique job_name.
+  Londiste uses it also as consumer name when subscribing to queue.
 
 provider_db::
   Provider database connection string (DSN).
@@ -32,7 +33,8 @@ subscriber_db::
   Subscriber database connection string (DSN).
 
 pgq_queue_name::
-  Name of the PgQ to use. Must match the PgQ ticker configuration.
+  Name of the queue to read from.  Several subscribers can
+  read from same queue.
 
 logfile::
   Where to log londiste activity.
@@ -43,7 +45,7 @@ pidfile::
 lock_timeout::
   Few operations take lock on provider (provider add/remove, compare, repair).
   This parameter specifies timeout in seconds (float) how long a lock
-  can be held.  Default: 10
+  can be held.  New in version 2.1.8.  Default: 10
 
 loop_delay::
   How often to poll events from provider.  In seconds (float).
