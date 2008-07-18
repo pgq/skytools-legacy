@@ -95,6 +95,8 @@ pgq_logutriga(PG_FUNCTION_ARGS)
 	else
 		row = tg->tg_trigtuple;
 
+	if (pgq_is_logging_disabled())
+		goto skip_it;
 
 	/*
 	 * Connect to the SPI manager
@@ -126,6 +128,7 @@ pgq_logutriga(PG_FUNCTION_ARGS)
 	 * After trigger ignores result,
 	 * before trigger skips event if NULL.
 	 */
+skip_it:
 	if (TRIGGER_FIRED_AFTER(tg->tg_event) || ev.skip)
 		return PointerGetDatum(NULL);
 	else

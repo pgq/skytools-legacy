@@ -439,3 +439,17 @@ bool pgqtriga_is_pkey(PgqTriggerEvent *ev, TriggerData *tg, int i, int attkind_i
 	return false;
 }
 
+
+/*
+ * Check if trigger action should be skipped.
+ */
+
+bool pgq_is_logging_disabled(void)
+{
+#if defined(PG_VERSION_NUM) && PG_VERSION_NUM >= 80300
+	if (SessionReplicationRole != SESSION_REPLICATION_ROLE_ORIGIN)
+		return true;
+#endif
+	return false;
+}
+
