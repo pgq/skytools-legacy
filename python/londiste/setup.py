@@ -194,7 +194,7 @@ class ProviderSetup(CommonSetup):
         if not seq_list and self.options.all:
             seq_list = self.provider_get_all_seqs()
 
-        for seq in self.args[3:]:
+        for seq in seq_list:
             self.provider_add_seq(seq)
         self.provider_notify_change()
 
