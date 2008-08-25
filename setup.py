@@ -44,6 +44,7 @@ setup(
       ('share/doc/skytools/conf', [
         'python/conf/londiste.ini',
         'python/conf/pgqadm.ini',
+        'python/conf/skylog.ini',
         'python/conf/wal-master.ini',
         'python/conf/wal-slave.ini',
         'scripts/queue_mover.ini.templ',
