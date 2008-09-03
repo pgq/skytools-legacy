@@ -20,6 +20,9 @@
       "replay" will check if "copy" process had died before
       finishing and launches one if needed.  (Dimitri)
     * New skytools.signal_pidfile() function.
+    * Londiste: New lock_timeout parameter to limit time
+      locks are held on provider.  Applies to operations:
+      provider add/remove, compare, repair.
 
   ? todo ?
 

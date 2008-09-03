@@ -15,6 +15,7 @@
 
 === Smaller things ===
 
+ * pgq/sql: mention queue/consumer name in error msgs
  * pgq: RemoteConsumer/SerialConsumer/pgq_ext sanity, too much duplication [marko]
  * londiste: create tables on subscriber
  * pgqadm: Utility commands:
