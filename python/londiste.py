@@ -113,8 +113,6 @@ class Londiste(skytools.DBScript):
                 help = "replay: sync queue pos with subscriber")
         g.add_option("--reset", action="store_true",
                 help = "replay: forget queue pos on subscriber")
-        g.add_option("--tgtype",
-                help = "add: trigger type (logtriga/sqltriga/logutriga)")
         p.add_option_group(g)
 
         return p

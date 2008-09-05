@@ -149,8 +149,6 @@ class CommonSetup(skytools.DBScript):
                     help="force", default=False)
         p.add_option("--all", action="store_true",
                     help="include all tables", default=False)
-        p.add_option("--tgtype",
-                    help="which function to use", default=None)
         return p
 
 
@@ -269,13 +267,8 @@ class ProviderSetup(CommonSetup):
         self.provider_notify_change()
 
     def provider_add_table(self, tbl):
-        if self.options.tgtype:
-            func = "pgq.%s" % self.options.tgtype
-            q = "select londiste.provider_add_table(%s, %s, NULL, %s)"
-            self.exec_provider(q, [self.pgq_queue_name, tbl])
-        else:
-            q = "select londiste.provider_add_table(%s, %s)"
-            self.exec_provider(q, [self.pgq_queue_name, tbl])
+        q = "select londiste.provider_add_table(%s, %s)"
+        self.exec_provider(q, [self.pgq_queue_name, tbl])
 
     def provider_remove_table(self, tbl):
         q = "select londiste.provider_remove_table(%s, %s)"
