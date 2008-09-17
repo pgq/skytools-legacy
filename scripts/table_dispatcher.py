@@ -102,12 +102,12 @@ class TableDispatcher(pgq.SerialConsumer):
                     raise Exception('Dest table does not exists and no way to create it.')
 
                 sql = self.part_template
-                sql = sql.replace(DEST_TABLE, tbl)
+                sql = sql.replace(DEST_TABLE, skytools.quote_fqident(tbl))
 
                 # we do this to make sure that constraints for 
                 # tables who contain a schema will still work
                 schema_table = tbl.replace(".", "__")
-                sql = sql.replace(SCHEMA_TABLE, schema_table)
+                sql = sql.replace(SCHEMA_TABLE, skytools.quote_ident(schema_table))
 
                 dcur.execute(sql)
                 dcon.commit()
