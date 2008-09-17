@@ -130,7 +130,7 @@ class ScriptMgr(skytools.DBScript):
         os.chdir(job['cwd'])
         pidfile = job['pidfile']
         if os.path.isfile(pidfile):
-            self.log.warning("Script %s seems running")
+            self.log.warning("Script %s seems running" % job_name)
             return 0
         cmd = "%(script)s %(config)s %(args)s -d" % job
         res = os.system(cmd)
@@ -220,7 +220,7 @@ class ScriptMgr(skytools.DBScript):
                 time.sleep(2)
                 self.cmd_start(n)
         elif cmd == "reload":
-            for n in self.jobs:
+            for n in jobs:
                 self.cmd_reload(n)
         else:
             print "unknown command:", cmd
