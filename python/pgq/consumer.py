@@ -435,7 +435,7 @@ class SerialConsumer(Consumer):
 
         # anything else means problems
         raise Exception('Lost position: batch %d..%d, dst has %d' % (
-                        prev_tick, cur_tick, dst_tick)
+                        prev_tick, cur_tick, dst_tick))
 
     def set_batch_done(self, dst_curs):
         """Helper function to set last successful batch
