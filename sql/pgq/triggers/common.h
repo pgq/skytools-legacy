@@ -47,7 +47,7 @@ bool pgqtriga_skip_col(PgqTriggerEvent *ev, TriggerData *tg, int i, int attkind_
 bool pgqtriga_is_pkey(PgqTriggerEvent *ev, TriggerData *tg, int i, int attkind_idx);
 void pgq_insert_tg_event(PgqTriggerEvent *ev);
 
-void pgq_is_logging_disabled(void);
+bool pgq_is_logging_disabled(void);
 
 /* makesql.c */
 int pgqtriga_make_sql(PgqTriggerEvent *ev, TriggerData *tg, StringInfo sql);
