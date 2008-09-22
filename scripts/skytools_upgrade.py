@@ -19,6 +19,8 @@ version_list = [
 
  ['pgq', '2.1.7', 'v2.1.7_pgq_core.sql', None],
  ['londiste', '2.1.7', 'v2.1.7_londiste.sql', None],
+
+ ['pgq', '2.1.8', 'v2.1.8_pgq_core.sql', None],
 ]
 
 def parse_ver(ver):
