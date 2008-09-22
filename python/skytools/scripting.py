@@ -79,8 +79,11 @@ def run_single_process(runnable, daemon, pidfile):
 
     # check if another process is running
     if pidfile and os.path.isfile(pidfile):
-        print "Pidfile exists, another process running?"
-        sys.exit(1)
+        if signal_pidfile(pidfile, 0):
+            print "Pidfile exists, another process running?"
+            sys.exit(1)
+        else:
+            print "Ignoring stale pidfile"
 
     # daemonize if needed and write pidfile
     if daemon:
@@ -88,21 +91,10 @@ def run_single_process(runnable, daemon, pidfile):
     if pidfile:
         _write_pidfile(pidfile)
     
-    # Catch SIGTERM to cleanup pidfile
-    def sigterm_hook(signum, frame):
-        try:
-            os.remove(pidfile)
-        except: pass
-        sys.exit(0)
-    # attach it to signal
-    if pidfile:
-        signal.signal(signal.SIGTERM, sigterm_hook)
-
-    # run
+    # run and clean pidfile later
     try:
         runnable.run()
     finally:
-        # another try of cleaning up
         if pidfile:
             try:
                 os.remove(pidfile)
