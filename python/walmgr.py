@@ -269,7 +269,7 @@ class WalMgr(skytools.DBScript):
         cmd = "' '".join(cmdline)
         self.log.debug("Execute rsync cmd: '%s'" % (cmd))
         if self.not_really:
-            return
+            return 0
         res = os.spawnvp(os.P_WAIT, cmdline[0], cmdline)
         if res == 24:
             self.log.info("Some files vanished, but thats OK")
