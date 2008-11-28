@@ -222,7 +222,11 @@ Script to stop postmaster on slave.
 Script to start postmaster on slave.
 
 ==== slave ====
-Base directory for slave files (logs.comlete, data.master etc)
+Base directory for slave files (logs.complete, data.master etc)
+
+==== slave_bin ====
+Specifies the location of postgres binaries (pg_controldata, etc). Needed if
+they are not already in the PATH.
 
 ==== completed_wals ====
 Directory where complete WAL files are stored. Also miscellaneous control files
