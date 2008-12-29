@@ -130,8 +130,10 @@ static Py_ssize_t get_buffer(PyObject *obj, unsigned char **buf_p, PyObject **tm
 
 	/* try to get buffer */
 	bfp = obj->ob_type->tp_as_buffer;
-	if (bfp && bfp->bf_getsegcount(obj, NULL) == 1)
-		return bfp->bf_getreadbuffer(obj, 0, (void**)buf_p);
+	if (bfp && bfp->bf_getsegcount && bfp->bf_getreadbuffer) {
+		if (bfp->bf_getsegcount(obj, NULL) == 1)
+			return bfp->bf_getreadbuffer(obj, 0, (void**)buf_p);
+	}
 
 	/*
 	 * Not a string-like object, run str() or it.
