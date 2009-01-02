@@ -108,7 +108,7 @@ class CopyTable(Replicator):
             self.log.info("%s: skipping truncate" % tablename)
         else:
             self.log.info("%s: truncating" % tablename)
-            dstcurs.execute("truncate " + tablename)
+            dstcurs.execute("truncate " + skytools.quote_fqident(tablename))
 
         # do copy
         self.log.info("%s: start copy" % tablename)
