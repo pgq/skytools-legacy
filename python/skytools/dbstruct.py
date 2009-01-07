@@ -96,8 +96,8 @@ class TConstraint(TElem):
             qtbl = quote_fqident(new_table_name)
             qname = quote_ident(name)
         else:
-            qtbl = self.table_name
-            qname = self.name
+            qtbl = quote_fqident(self.table_name)
+            qname = quote_ident(self.name)
         sql = fmt % (qtbl, qname, self.defn)
         return sql
 
