@@ -253,8 +253,9 @@ def magic_insert(curs, tablename, data, fields = None, use_insert = 0):
 class CopyPipe(object):
     "Splits one big COPY to chunks."
 
-    def __init__(self, dstcurs, tablename, limit = 512*1024, cancel_func=None):
+    def __init__(self, dstcurs, tablename = None, limit = 512*1024, cancel_func=None, sql_from = None):
         self.tablename = tablename
+        self.sql_from = sql_from
         self.dstcurs = dstcurs
         self.buf = StringIO()
         self.limit = limit
@@ -287,21 +288,34 @@ class CopyPipe(object):
         if self.cancel_func:
             self.cancel_func()
 
-        if self.buf.tell() > 0:
-            self.buf.seek(0)
+        if self.buf.tell() <= 0:
+            return
+
+        self.buf.seek(0)
+        if self.sql_from:
+            self.dstcurs.copy_expert(self.sql_from, self.buf)
+        else:
             self.dstcurs.copy_from(self.buf, self.tablename)
-            self.buf.seek(0)
-            self.buf.truncate()
+        self.buf.seek(0)
+        self.buf.truncate()
 
 def full_copy(tablename, src_curs, dst_curs, column_list = []):
     """COPY table from one db to another."""
 
+    qtable = quote_fqident(tablename)
     if column_list:
-        hdr = "%s (%s)" % (tablename, ",".join(column_list))
+        qfields = [quote_ident(f) for f in column_list]
+        hdr = "%s (%s)" % (qtable, ",".join(qfields))
     else:
-        hdr = tablename
-    buf = CopyPipe(dst_curs, hdr)
-    src_curs.copy_to(buf, hdr)
+        hdr = qtable
+    if hasattr(src_curs, 'copy_expert'):
+        sql_to = "COPY %s TO stdout" % hdr
+        sql_from = "COPY %s FROM stdout" % hdr
+        buf = CopyPipe(dst_curs, sql_from = sql_from)
+        src_curs.copy_expert(sql_to, buf)
+    else:
+        buf = CopyPipe(dst_curs, hdr)
+        src_curs.copy_to(buf, hdr)
     buf.flush()
 
     return (buf.total_bytes, buf.total_rows)
