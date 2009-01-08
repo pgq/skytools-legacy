@@ -3,7 +3,7 @@
 
 import os
 from cStringIO import StringIO
-from skytools.quoting import quote_copy, quote_literal, quote_fqident, quote_ident
+from skytools.quoting import quote_copy, quote_literal, quote_ident, quote_fqident
 import skytools.installer_config
 
 __all__ = [
@@ -162,35 +162,35 @@ class Snapshot(object):
 # Copy helpers
 #
 
-def _gen_dict_copy(tbl, row, fields):
+def _gen_dict_copy(tbl, row, fields, qfields):
     tmp = []
     for f in fields:
         v = row.get(f)
         tmp.append(quote_copy(v))
     return "\t".join(tmp)
 
-def _gen_dict_insert(tbl, row, fields):
+def _gen_dict_insert(tbl, row, fields, qfields):
     tmp = []
     for f in fields:
         v = row.get(f)
         tmp.append(quote_literal(v))
     fmt = "insert into %s (%s) values (%s);"
-    return fmt % (tbl, ",".join(fields), ",".join(tmp))
+    return fmt % (tbl, ",".join(qfields), ",".join(tmp))
 
-def _gen_list_copy(tbl, row, fields):
+def _gen_list_copy(tbl, row, fields, qfields):
     tmp = []
     for i in range(len(fields)):
         v = row[i]
         tmp.append(quote_copy(v))
     return "\t".join(tmp)
 
-def _gen_list_insert(tbl, row, fields):
+def _gen_list_insert(tbl, row, fields, qfields):
     tmp = []
     for i in range(len(fields)):
         v = row[i]
         tmp.append(quote_literal(v))
     fmt = "insert into %s (%s) values (%s);"
-    return fmt % (tbl, ",".join(fields), ",".join(tmp))
+    return fmt % (tbl, ",".join(qfields), ",".join(tmp))
 
 def magic_insert(curs, tablename, data, fields = None, use_insert = 0):
     """Copy/insert a list of dict/list data to database.
@@ -203,7 +203,7 @@ def magic_insert(curs, tablename, data, fields = None, use_insert = 0):
         return
 
     # decide how to process
-    if type(data[0]) == type({}):
+    if hasattr(data[0], 'keys'):
         if fields == None:
             fields = data[0].keys()
         if use_insert:
@@ -218,15 +218,18 @@ def magic_insert(curs, tablename, data, fields = None, use_insert = 0):
         else:
             row_func = _gen_list_copy
 
+    qfields = [quote_ident(f) for f in fields]
+    qtablename = quote_fqident(tablename)
+
     # init processing
     buf = StringIO()
     if curs == None and use_insert == 0:
         fmt = "COPY %s (%s) FROM STDIN;\n"
-        buf.write(fmt % (tablename, ",".join(fields)))
+        buf.write(fmt % (qtablename, ",".join(qfields)))
  
     # process data
     for row in data:
-        buf.write(row_func(tablename, row, fields))
+        buf.write(row_func(qtablename, row, fields, qfields))
         buf.write("\n")
 
     # if user needs only string, return it
@@ -240,7 +243,7 @@ def magic_insert(curs, tablename, data, fields = None, use_insert = 0):
         curs.execute(buf.getvalue())
     else:
         buf.seek(0)
-        hdr = "%s (%s)" % (tablename, ",".join(fields))
+        hdr = "%s (%s)" % (qtablename, ",".join(qfields))
         curs.copy_from(buf, hdr)
 
 #
