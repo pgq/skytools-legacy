@@ -1,15 +1,42 @@
 
 """Useful functions and classes for database scripts."""
 
-import sys, os, signal, optparse, traceback, time
+import sys, os, signal, optparse, traceback, time, errno
 import logging, logging.handlers, logging.config
 
 from skytools.config import *
 from skytools.psycopgwrapper import connect_database
 import skytools.skylog
 
-__all__ = ['DBScript', 'I_AUTOCOMMIT', 'I_READ_COMMITTED', 'I_SERIALIZABLE']
+__all__ = ['DBScript', 'I_AUTOCOMMIT', 'I_READ_COMMITTED', 'I_SERIALIZABLE',
+           'signal_pidfile']
 #__all__ += ['daemonize', 'run_single_process']
+
+#
+# utils
+#
+
+def signal_pidfile(pidfile, sig):
+    """Send a signal to process whose ID is located in pidfile.
+
+    Read only first line of pidfile to support multiline
+    pifiles like postmaster.pid.
+
+    Returns True is successful, False if pidfile does not exist
+    or process itself is dead.  Any other errors will passed
+    as exceptions.
+    """
+    try:
+        pid = int(open(pidfile, 'r').readline())
+        os.kill(pid, sig)
+        return True
+    except IOError, ex:
+        if ex.errno != errno.ENOENT:
+            raise
+    except OSError, ex:
+        if ex.errno != errno.ESRCH:
+            raise
+    return False
 
 #
 # daemon mode
@@ -52,8 +79,11 @@ def run_single_process(runnable, daemon, pidfile):
 
     # check if another process is running
     if pidfile and os.path.isfile(pidfile):
-        print "Pidfile exists, another process running?"
-        sys.exit(1)
+        if signal_pidfile(pidfile, 0):
+            print "Pidfile exists, another process running?"
+            sys.exit(1)
+        else:
+            print "Ignoring stale pidfile"
 
     # daemonize if needed and write pidfile
     if daemon:
@@ -61,21 +91,10 @@ def run_single_process(runnable, daemon, pidfile):
     if pidfile:
         _write_pidfile(pidfile)
     
-    # Catch SIGTERM to cleanup pidfile
-    def sigterm_hook(signum, frame):
-        try:
-            os.remove(pidfile)
-        except: pass
-        sys.exit(0)
-    # attach it to signal
-    if pidfile:
-        signal.signal(signal.SIGTERM, sigterm_hook)
-
-    # run
+    # run and clean pidfile later
     try:
         runnable.run()
     finally:
-        # another try of cleaning up
         if pidfile:
             try:
                 os.remove(pidfile)
@@ -332,12 +351,12 @@ class DBScript(object):
     def send_signal(self, sig):
         if not self.pidfile:
             self.log.warning("No pidfile in config, nothing todo")
-            sys.exit(0)
-        if not os.path.isfile(self.pidfile):
+        elif os.path.isfile(self.pidfile):
+            alive = signal_pidfile(self.pidfile, sig)
+            if not alive:
+                self.log.warning("pidfile exist, but process not running")
+        else:
             self.log.warning("No pidfile, process not running")
-            sys.exit(0)
-        pid = int(open(self.pidfile, "r").read())
-        os.kill(pid, sig)
         sys.exit(0)
 
     def set_single_loop(self, do_single_loop):
