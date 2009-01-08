@@ -4,6 +4,7 @@
 import sys, re
 
 from skytools.sqltools import fq_name_parts, get_table_oid
+from skytools.quoting import quote_ident, quote_fqident
 
 __all__ = ['TableStruct',
     'T_TABLE', 'T_CONSTRAINT', 'T_INDEX', 'T_TRIGGER',
@@ -92,14 +93,17 @@ class TConstraint(TElem):
             name = self.name
             if self.contype in ('p', 'u'):
                 name = find_new_name(curs, self.name)
-            sql = fmt % (new_table_name, name, self.defn)
+            qtbl = quote_fqident(new_table_name)
+            qname = quote_ident(name)
         else:
-            sql = fmt % (self.table_name, self.name, self.defn)
+            qtbl = quote_fqident(self.table_name)
+            qname = quote_ident(self.name)
+        sql = fmt % (qtbl, qname, self.defn)
         return sql
 
     def get_drop_sql(self, curs):
         fmt = "ALTER TABLE ONLY %s DROP CONSTRAINT %s;"
-        sql = fmt % (self.table_name, self.name)
+        sql = fmt % (quote_fqident(self.table_name), quote_ident(self.name))
         return sql
 
 class TIndex(TElem):
@@ -124,13 +128,14 @@ class TIndex(TElem):
     def get_create_sql(self, curs, new_table_name = None):
         if not new_table_name:
             return self.defn
+        # fixme: seems broken
         name = find_new_name(curs, self.name)
-        pnew = "INDEX %s ON %s " % (name, new_table_name)
+        pnew = "INDEX %s ON %s " % (quote_ident(name), quote_fqident(new_table_name))
         rx = r"\bINDEX[ ][a-z0-9._]+[ ]ON[ ][a-z0-9._]+[ ]"
         sql = rx_replace(rx, self.defn, pnew)
         return sql
     def get_drop_sql(self, curs):
-        return 'DROP INDEX %s;' % self.name
+        return 'DROP INDEX %s;' % quote_fqident(self.name)
 
 class TRule(TElem):
     """Info about rule."""
@@ -148,12 +153,13 @@ class TRule(TElem):
     def get_create_sql(self, curs, new_table_name = None):
         if not new_table_name:
             return self.defn
+        # fixme: broken
         rx = r"\bTO[ ][a-z0-9._]+[ ]DO[ ]"
         pnew = "TO %s DO " % new_table_name
         return rx_replace(rx, self.defn, pnew)
 
     def get_drop_sql(self, curs):
-        return 'DROP RULE %s ON %s' % (self.name, self.table_name)
+        return 'DROP RULE %s ON %s' % (quote_ident(self.name), quote_fqident(self.table_name))
 
 class TTrigger(TElem):
     """Info about trigger."""
@@ -171,13 +177,13 @@ class TTrigger(TElem):
     def get_create_sql(self, curs, new_table_name = None):
         if not new_table_name:
             return self.defn
-
+        # fixme: broken
         rx = r"\bON[ ][a-z0-9._]+[ ]"
         pnew = "ON %s " % new_table_name
         return rx_replace(rx, self.defn, pnew)
 
     def get_drop_sql(self, curs):
-        return 'DROP TRIGGER %s ON %s' % (self.name, self.table_name)
+        return 'DROP TRIGGER %s ON %s' % (quote_ident(self.name), quote_fqident(self.table_name))
 
 class TOwner(TElem):
     """Info about table owner."""
@@ -194,7 +200,7 @@ class TOwner(TElem):
     def get_create_sql(self, curs, new_name = None):
         if not new_name:
             new_name = self.table_name
-        return 'ALTER TABLE %s OWNER TO %s;' % (new_name, self.owner)
+        return 'ALTER TABLE %s OWNER TO %s;' % (quote_fqident(new_name), quote_ident(self.owner))
 
 class TGrant(TElem):
     """Info about permissions."""
@@ -233,14 +239,14 @@ class TGrant(TElem):
         list = []
         for user, acl, who in self.acl_list:
             astr = self.acl_to_grants(acl)
-            sql = "GRANT %s ON %s TO %s;" % (astr, new_name, user)
+            sql = "GRANT %s ON %s TO %s;" % (astr, quote_fqident(new_name), quote_ident(user))
             list.append(sql)
         return "\n".join(list)
 
     def get_drop_sql(self, curs):
         list = []
         for user, acl, who in self.acl_list:
-            sql = "REVOKE ALL FROM %s ON %s;" % (user, self.name)
+            sql = "REVOKE ALL FROM %s ON %s;" % (quote_ident(user), quote_fqident(self.name))
             list.append(sql)
         return "\n".join(list)
 
@@ -274,7 +280,7 @@ class TTable(TElem):
     def get_create_sql(self, curs, new_name = None):
         if not new_name:
             new_name = self.name
-        sql = "create table %s (" % new_name
+        sql = "create table %s (" % quote_fqident(new_name)
         sep = "\n\t"
         for c in self.col_list:
             sql += sep + c.column_def
@@ -283,7 +289,7 @@ class TTable(TElem):
         return sql
     
     def get_drop_sql(self, curs):
-        return "DROP TABLE %s;" % self.name
+        return "DROP TABLE %s;" % quote_fqident(self.name)
 
 #
 # Main table object, loads all the others
