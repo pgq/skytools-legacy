@@ -168,6 +168,66 @@ class BackupLabel:
             if m:
                 self.label_string = m.group(1)
 
+class PostgresConfiguration:
+    """Postgres configuration manipulation"""
+
+    def __init__(self, walmgr):
+        """load the configuration from master_config"""
+        self.walmgr = walmgr
+        self.log = walmgr.log
+        self.cf_file = walmgr.cf.get("master_config")
+        self.cf_buf = open(self.cf_file, "r").read()
+
+    def param_value(self, param_name):
+        """Return value for specified parameter"""
+        m = re.search("^\s*%s\s*=\s*'?(.*)'?\s*#?.*$" % param_name, self.cf_buf, re.M | re.I)
+        if m:
+            return m.group(1)
+        return None
+
+    def modify(self, cf_params):
+        """Change the configuration parameters supplied in cf_params"""
+
+        for (param, value) in cf_params.iteritems():
+            r_active = re.compile("^[ ]*%s[ ]*=[ ]*'(.*)'.*$" % param, re.M)
+            r_disabled = re.compile("^.*%s.*$" % param, re.M)
+
+            cf_full = "%s = '%s'" % (param, value)
+
+            m = r_active.search(self.cf_buf)
+            if m:
+                old_val = m.group(1)
+                if old_val == value:
+                    self.log.debug("parameter %s already set to '%s'" % (param, value))
+                else:
+                    self.log.debug("found parameter %s with value '%s'" % (param, old_val))
+                    self.cf_buf = "%s%s%s" % (self.cf_buf[:m.start()], cf_full, self.cf_buf[m.end():])
+            else:
+                m = r_disabled.search(self.cf_buf)
+                if m:
+                    self.log.debug("found disabled parameter %s" % param)
+                    self.cf_buf = "%s\n%s%s" % (self.cf_buf[:m.end()], cf_full, self.cf_buf[m.end():])
+                else:
+                    self.log.debug("found no value")
+                    self.cf_buf = "%s\n%s\n\n" % (self.cf_buf, cf_full)
+
+    def write(self):
+        """Write the configuration back to file"""
+        cf_old = self.cf_file + ".old"
+        cf_new = self.cf_file + ".new"
+
+        if self.walmgr.not_really:
+            cf_new = "/tmp/postgresql.conf.new"
+            open(cf_new, "w").write(self.cf_buf)
+            self.log.info("Showing diff")
+            os.system("diff -u %s %s" % (self.cf_file, cf_new))
+            self.log.info("Done diff")
+            os.remove(cf_new)
+            return
+
+        # polite method does not work, as usually not enough perms for it
+        open(self.cf_file, "w").write(self.cf_buf)
+
 class WalMgr(skytools.DBScript):
 
     def init_optparse(self, parser=None):
@@ -322,6 +382,12 @@ class WalMgr(skytools.DBScript):
             self.log.fatal("exec failed, res=%d (%s)" % (res, repr(cmdline)))
             sys.exit(1)
 
+    def exec_system(self, cmdline):
+        self.log.debug("Execute cmd: '%s'" % (cmdline))
+        if self.not_really:
+            return 0
+        return os.WEXITSTATUS(os.system(cmdline))
+
     def chdir(self, loc):
         self.log.debug("chdir: '%s'" % (loc))
         if self.not_really:
@@ -364,10 +430,21 @@ class WalMgr(skytools.DBScript):
 
     def master_stop(self):
         """Deconfigure archiving, attempt to stop syncdaemon"""
+        data_dir = self.cf.get("master_data")
+        restart_cmd = self.cf.get("master_restart_cmd", "")
+
         self.assert_valid_role(MASTER)
         self.log.info("Disabling WAL archiving")
 
-        self.master_configure_archiving('')
+        self.master_configure_archiving(False, restart_cmd)
+
+        # if we have a restart command, then use it, otherwise signal
+        if restart_cmd:
+            self.log.info("Restarting postmaster")
+            self.exec_system(restart_cmd)
+        else:
+            self.log.info("Sending SIGHUP to postmaster")
+            self.signal_postmaster(data_dir, signal.SIGHUP)
 
         # stop any running syncdaemons
         pidfile = self.cf.get("pidfile")
@@ -376,63 +453,43 @@ class WalMgr(skytools.DBScript):
             self.exec_cmd([self.script, self.cfgfile, "syncdaemon", "-s"])
         self.log.info("Done")
 
-    def master_configure_archiving(self, cf_val):
-        cf_file = self.cf.get("master_config")
-        data_dir = self.cf.get("master_data")
-        r_active = re.compile("^[ ]*archive_command[ ]*=[ ]*'(.*)'.*$", re.M)
-        r_disabled = re.compile("^.*archive_command.*$", re.M)
+    def master_configure_archiving(self, enable_archiving, can_restart):
+        """Turn the archiving on or off"""
 
-        cf_full = "archive_command = '%s'" % cf_val
+        cf = PostgresConfiguration(self)
 
-        if not os.path.isfile(cf_file):
-            self.log.fatal("Config file not found: %s" % cf_file)
-        self.log.info("Using config file: %s", cf_file)
+        if enable_archiving:
+            # enable archiving
+            cf_file = os.path.abspath(self.cf.filename)
+            xarchive = "%s %s %s" % (self.script, cf_file, "xarchive %p %f")
+            cf_params = { "archive_command": xarchive }
 
-        buf = open(cf_file, "r").read()
-        m = r_active.search(buf)
-        if m:
-            old_val = m.group(1)
-            if old_val == cf_val:
-                self.log.debug("postmaster already configured")
+            if cf.param_value('archive_mode'):
+                # archive mode specified in config, turn it on
+                self.log.debug("found 'archive_mode' in config -- enabling it")
+                cf_params["archive_mode"] = "on"
             else:
-                self.log.debug("found active but different conf")
-                newbuf = "%s%s%s" % (buf[:m.start()], cf_full, buf[m.end():])
-                self.change_config(cf_file, newbuf)
+                self.log.debug("seems that archive_mode is not set, ignoring it.")
+
         else:
-            m = r_disabled.search(buf)
-            if m:
-                self.log.debug("found disabled value")
-                newbuf = "%s\n%s%s" % (buf[:m.end()], cf_full, buf[m.end():])
-                self.change_config(cf_file, newbuf)
+            # disable archiving
+            if not cf.param_value('archive_mode'):
+                # archive_mode not set, just reset archive_command and its done
+                self.log.debug("archive_mode not set in config, leaving as is")
+                cf_params = { "archive_command": "" }
+            elif can_restart:
+                # restart possible, turn off archiving, reset archive_command
+                cf_params = { "archive_mode": "off", "archive_command": "" }
             else:
-                self.log.debug("found no value")
-                newbuf = "%s\n%s\n\n" % (buf, cf_full)
-                self.change_config(cf_file, newbuf)
+                # not possible to change archive_mode (requires restart), so we
+                # just set the archive_command to /bin/true to avoid WAL pileup.
+                self.log.debug("master_restart_cmd not specified, leaving archive_mode as is")
+                cf_params = { "archive_command": "/bin/true" }
 
-        self.log.info("Sending SIGHUP to postmaster")
-        self.signal_postmaster(data_dir, signal.SIGHUP)
+        self.log.debug("modifying configuration: %s" % cf_params)
 
-    def change_config(self, cf_file, buf):
-        cf_old = cf_file + ".old"
-        cf_new = cf_file + ".new"
-
-        if self.not_really:
-            cf_new = "/tmp/postgresql.conf.new"
-            open(cf_new, "w").write(buf)
-            self.log.info("Showing diff")
-            os.system("diff -u %s %s" % (cf_file, cf_new))
-            self.log.info("Done diff")
-            os.remove(cf_new)
-            return
-
-        # polite method does not work, as usually not enough perms for it
-        if 0:
-            open(cf_new, "w").write(buf)
-            bak = open(cf_file, "r").read()
-            open(cf_old, "w").write(bak)
-            os.rename(cf_new, cf_file)
-        else:
-            open(cf_file, "w").write(buf)
+        cf.modify(cf_params)
+        cf.write()
 
     def remote_mkdir(self, remdir):
         tmp = remdir.split(":", 1)
@@ -473,10 +530,19 @@ class WalMgr(skytools.DBScript):
         if self.wtype == MASTER:
             self.log.info("Configuring WAL archiving")
 
-            cf_file = os.path.abspath(self.cf.filename)
-            cf_val = "%s %s %s" % (self.script, cf_file, "xarchive %p %f")
+            data_dir = self.cf.get("master_data")
+            restart_cmd = self.cf.get("master_restart_cmd", "")
 
-            self.master_configure_archiving(cf_val)
+            self.master_configure_archiving(True, restart_cmd)
+
+            # if we have a restart command, then use it, otherwise signal
+            if restart_cmd:
+                self.log.info("Restarting postmaster")
+                self.exec_system(restart_cmd)
+            else:
+                self.log.info("Sending SIGHUP to postmaster")
+                self.signal_postmaster(data_dir, signal.SIGHUP)
+
             # ask slave to init
             self.remote_walmgr("setup")
             self.log.info("Done")
@@ -515,7 +581,7 @@ class WalMgr(skytools.DBScript):
                 self.log.info("Running periodic command: %s" % periodic_command)
                 if not elapsed or elapsed > command_interval:
                     if not self.not_really:
-                        rc = os.WEXITSTATUS(os.system(periodic_command))
+                        rc = os.WEXITSTATUS(self.exec_system(periodic_command))
                         if rc != 0:
                             self.log.error("Periodic command exited with status %d" % rc)
                             # dont update timestamp - try again next time
@@ -1093,9 +1159,8 @@ STOP TIME: %(stop_time)s
         # stop postmaster if ordered
         if stop_cmd and os.path.isfile(pidfile):
             self.log.info("Stopping postmaster: " + stop_cmd)
-            if not self.not_really:
-                os.system(stop_cmd)
-                time.sleep(3)
+            self.exec_system(stop_cmd)
+            time.sleep(3)
 
         # is it dead?
         if pidfile and os.path.isfile(pidfile):
@@ -1215,8 +1280,7 @@ STOP TIME: %(stop_time)s
 
             # run database in recovery mode
             self.log.info("Starting postmaster: " + start_cmd)
-            if not self.not_really:
-                os.system(start_cmd)
+            self.exec_system(start_cmd)
         else:
             self.log.info("Data files restored, recovery.conf created.")
             self.log.info("postgresql.conf and additional WAL files may need to be restored manually.")
@@ -1424,11 +1488,10 @@ STOP TIME: %(stop_time)s
             if archive_command:
                 cmdline = archive_command.replace("$BACKUPDIR", last)
                 self.log.info("Executing archive_command: " + cmdline)
-                if not self.not_really:
-                    rc = os.WEXITSTATUS(os.system(cmdline))
-                    if rc != 0:
-                        self.log.error("Backup archiving returned %d, exiting!" % rc)
-                        sys.exit(1)
+                rc = self.exec_system(cmdline)
+                if rc != 0:
+                    self.log.error("Backup archiving returned %d, exiting!" % rc)
+                    sys.exit(1)
 
             self.log.info("Removing expired backup directory: %s" % last)
             if self.not_really:
