@@ -178,11 +178,17 @@ class PostgresConfiguration:
         self.cf_file = walmgr.cf.get("master_config")
         self.cf_buf = open(self.cf_file, "r").read()
 
-    def param_value(self, param_name):
+    def archive_mode(self):
         """Return value for specified parameter"""
-        m = re.search("^\s*%s\s*=\s*'?(.*)'?\s*#?.*$" % param_name, self.cf_buf, re.M | re.I)
+        # see if explicitly set
+        m = re.search("^\s*archive_mode\s*=\s*'?([a-zA-Z01]+)'?\s*#?.*$", self.cf_buf, re.M | re.I)
         if m:
             return m.group(1)
+        # also, it could be commented out as initdb leaves it
+        # it'd probably be best to check from the database ...
+        m = re.search("^#archive_mode\s*=.*$", self.cf_buf, re.M | re.I)
+        if m:
+            return "off"
         return None
 
     def modify(self, cf_params):
@@ -457,6 +463,7 @@ class WalMgr(skytools.DBScript):
         """Turn the archiving on or off"""
 
         cf = PostgresConfiguration(self)
+        archive_mode = cf.archive_mode()
 
         if enable_archiving:
             # enable archiving
@@ -464,16 +471,19 @@ class WalMgr(skytools.DBScript):
             xarchive = "%s %s %s" % (self.script, cf_file, "xarchive %p %f")
             cf_params = { "archive_command": xarchive }
 
-            if cf.param_value('archive_mode'):
+            if archive_mode:
                 # archive mode specified in config, turn it on
                 self.log.debug("found 'archive_mode' in config -- enabling it")
                 cf_params["archive_mode"] = "on"
+
+                if archive_mode.lower() not in ('1', 'on', 'true') and not can_restart:
+                    self.log.warning("database must be restarted to enable archiving")
             else:
                 self.log.debug("seems that archive_mode is not set, ignoring it.")
 
         else:
             # disable archiving
-            if not cf.param_value('archive_mode'):
+            if not archive_mode:
                 # archive_mode not set, just reset archive_command and its done
                 self.log.debug("archive_mode not set in config, leaving as is")
                 cf_params = { "archive_command": "" }
