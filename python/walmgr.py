@@ -453,7 +453,7 @@ class WalMgr(skytools.DBScript):
             self.signal_postmaster(data_dir, signal.SIGHUP)
 
         # stop any running syncdaemons
-        pidfile = self.cf.get("pidfile")
+        pidfile = self.cf.get("pidfile", "")
         if os.path.exists(pidfile):
             self.log.info('Pidfile %s exists, attempting to stop syncdaemon.' % pidfile)
             self.exec_cmd([self.script, self.cfgfile, "syncdaemon", "-s"])
