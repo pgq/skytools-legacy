@@ -31,7 +31,11 @@ It is both admin and worker script for PostgreSQL PITR replication.
 
      master$ ./walmgr.py master.ini setup
      master$ ./walmgr.py master.ini backup
-     
+
+   Note: starting from PostgreSQL 8.3 the archiving is enabled by setting
+   archive_mode GUC to on. However changing this parameter requires the 
+   server to be restarted.
+
 4. Prepare postgresql.conf and pg_hba.conf on slave and start replay
 
      master$ scp $PGDATA/*.conf slave:
@@ -81,8 +85,9 @@ Synchronizes in-progress WAL files to slave.
 Start WAL synchronization in daemon mode. This will start periodically synching
 the in-progress WAL files to slave. 
 
-loop_delay
-use_xlog_functions
+The following parameters are used to drive the syncdaemon:
+loop_delay - how long to sleep between the synchs.
+use_xlog_functions - use record based shipping to synchronize in-progress WAL segments.
 
 === stop ===
 Deconfigures postgres archiving.
@@ -162,8 +167,16 @@ Master data directory location.
 Master postgresql.conf file location. This is where 
 `archive_command` gets updated.
 
+==== master_restart_cmd  ====
+The command to restart master database, this used after changing
+`archive_mode` parameter. Leave unset, if you cannot afford to 
+restart the database at setup/stop.
+
 ==== slave ====
 Slave host and base directory.
+
+==== slave_config ====
+Configuration file location for the slave walmgr.
 
 ==== completed_wals ====
 Slave directory where archived WAL files are copied.
