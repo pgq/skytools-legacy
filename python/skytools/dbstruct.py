@@ -257,7 +257,7 @@ class TColumn(TElem):
             a.attname || ' '
                 || format_type(a.atttypid, a.atttypmod)
                 || case when a.attnotnull then ' not null' else '' end
-                || case when a.atthasdef then ' ' || d.adsrc else '' end
+                || case when a.atthasdef then ' default ' || d.adsrc else '' end
             as def
           from pg_attribute a left join pg_attrdef d
             on (d.adrelid = a.attrelid and d.adnum = a.attnum)
