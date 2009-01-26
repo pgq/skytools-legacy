@@ -195,7 +195,7 @@ def magic_insert(curs, tablename, data, fields = None, use_insert = 0):
         return
 
     # decide how to process
-    if type(data[0]) == type({}):
+    if hasattr(data[0], 'keys'):
         if fields == None:
             fields = data[0].keys()
         if use_insert:
