@@ -111,10 +111,10 @@ class WalChunk:
     def __str__(self):
         return "%s @ %d +%d" % (self.filename, self.pos, self.bytes)
 
-class CheckpointInfo:
-    """Checkpoint info parsed from pg_controldata"""
+class PgControlData:
+    """Contents of pg_controldata"""
 
-    def __init__(self, pg_controldata, findRestartPoint):
+    def __init__(self, slave_bin, slave_data, findRestartPoint):
         """Collect last checkpoint information from pg_controldata output"""
         self.xlogid = None
         self.xrecoff = None
@@ -122,7 +122,10 @@ class CheckpointInfo:
         self.wal_size = None
         self.wal_name = None
         self.is_valid = False
+        self.pg_version = 0
         matches = 0
+        pg_controldata = "%s %s" % (os.path.join(slave_bin, "pg_controldata"), slave_data)
+
         for line in os.popen(pg_controldata, "r"):
             if findRestartPoint:
                 m = re.match("^Latest checkpoint's REDO location:\s+([0-9A-F]+)/([0-9A-F]+)", line)
@@ -140,8 +143,12 @@ class CheckpointInfo:
             if m:
                 matches += 1
                 self.wal_size = int(m.group(1))
+            m = re.match("^pg_control version number:\s+(\d+)", line)
+            if m:
+                matches += 1
+                self.pg_version = int(m.group(1))
 
-        if matches == 3:
+        if matches == 4:
             self.wal_name = "%08X%08X%08X" % \
                 (self.timeline, self.xlogid, self.xrecoff / self.wal_size)
             self.is_valid = True
@@ -732,14 +739,12 @@ class WalMgr(skytools.DBScript):
                 stop_time = time.localtime()
 
                 # Obtain the last restart point information
-                slave_bin = self.cf.get("slave_bin", "")
-                pg_controldata = "%s %s" % (os.path.join(slave_bin, "pg_controldata"), dst)
-                rp = CheckpointInfo(pg_controldata, False)
+                ctl = PgControlData(self.cf.get("slave_bin", ""), dst, False)
 
                 # TODO: The newly created backup directory probably still contains
                 # backup_label.old and recovery.conf files. Remove these.
 
-                if not rp.is_valid:
+                if not ctl.is_valid:
                     self.log.warning("Unable to determine last restart point, backup_label not created.")
                 else:
                     # Write backup label and history file
@@ -760,9 +765,9 @@ STOP TIME: %(stop_time)s
 """
 
                     label_params = {
-                        "xlogid":       rp.xlogid,
-                        "xrecoff":      rp.xrecoff,
-                        "wal_name":     rp.wal_name,
+                        "xlogid":       ctl.xlogid,
+                        "xrecoff":      ctl.xrecoff,
+                        "wal_name":     ctl.wal_name,
                         "start_time":   time.strftime("%Y-%m-%d %H:%M:%S %Z", start_time),
                         "stop_time":    time.strftime("%Y-%m-%d %H:%M:%S %Z", stop_time),
                     }
@@ -777,7 +782,7 @@ STOP TIME: %(stop_time)s
                         lf.close()
 
                     # Now the history
-                    histfile = "%s.%08X.backup" % (rp.wal_name, rp.xrecoff % rp.wal_size)
+                    histfile = "%s.%08X.backup" % (ctl.wal_name, ctl.xrecoff % ctl.wal_size)
                     completed_wals = self.cf.get("completed_wals")
                     filename = os.path.join(completed_wals, histfile)
                     if os.path.exists(filename):
@@ -1016,13 +1021,16 @@ STOP TIME: %(stop_time)s
 
     def xrestore(self):
         if len(self.args) < 2:
-            die(1, "usage: xrestore srcname dstpath")
+            die(1, "usage: xrestore srcname dstpath [last restartpoint wal]")
         srcname = self.args[0]
         dstpath = self.args[1]
+        lstname = None
+        if len(self.args) > 2:
+            lstname = self.args[2]
         if self.wtype == MASTER:
             self.master_xrestore(srcname, dstpath)
         else:
-            self.slave_xrestore_unsafe(srcname, dstpath, os.getppid())
+            self.slave_xrestore_unsafe(srcname, dstpath, os.getppid(), lstname)
 
     def slave_xrestore(self, srcname, dstpath):
         loop = 1
@@ -1061,7 +1069,7 @@ STOP TIME: %(stop_time)s
             return False
         return True
 
-    def slave_xrestore_unsafe(self, srcname, dstpath, parent_pid):
+    def slave_xrestore_unsafe(self, srcname, dstpath, parent_pid, lstname = None):
         srcdir = self.cf.get("completed_wals")
         partdir = self.cf.get("partial_wals")
         pausefile = os.path.join(srcdir, "PAUSE")
@@ -1117,11 +1125,16 @@ STOP TIME: %(stop_time)s
 
         if self.cf.getint("keep_backups", 0) == 0:
             # cleanup only if we don't keep backup history, keep the files needed
-            # to roll forward from last restart point. historic WAL files are
-            # removed during backup rotation
-            walname = self.last_restart_point(srcname)
+            # to roll forward from last restart point. If the restart point is not
+            # handed to us (i.e 8.3 or later), then calculate it ourselves.
+            # Note that historic WAL files are removed during backup rotation
+            if lstname == None:
+                lstname = self.last_restart_point(srcname)
+                self.log.debug("calculated restart point: %s" % lstname)
+            else:
+                self.log.debug("using supplied restart point: %s" % lstname)
             self.log.debug("%s: copy done, cleanup" % srcname)
-            self.slave_cleanup(walname)
+            self.slave_cleanup(lstname)
 
         if os.path.isfile(partfile) and not srcfile == partfile:
             # Remove any partial files after restore. Only leave the partial if
@@ -1262,15 +1275,31 @@ STOP TIME: %(stop_time)s
                         os.remove(link_loc)
                     os.symlink(link_dst, link_loc)
 
+
         # write recovery.conf
         rconf = os.path.join(data_dir, "recovery.conf")
         cf_file = os.path.abspath(self.cf.filename)
 
-        conf = "\nrestore_command = '%s %s %s'\n" % (self.script, cf_file, 'xrestore %f "%p"')
-        conf += "#recovery_target_time=''\n" + \
-                "#recovery_target_xid=''\n" + \
-                "#recovery_target_inclusive=true\n" + \
-                "#recovery_target_timeline=''\n"
+        # determine if we can use %r in restore_command
+        ctl = PgControlData(self.cf.get("slave_bin", ""), data_dir, True)
+        if ctl.pg_version > 830:
+            self.log.debug('pg_version is %s, adding %%r to restore command' % ctl.pg_version)
+            restore_command = 'xrestore %f "%p" %r'
+        else:
+            if not ctl.is_valid:
+                self.log.warning('unable to run pg_controldata, assuming pre 8.3 environment')
+            else:
+                self.log.debug('using pg_controldata to determine restart points')
+            restore_command = 'xrestore %f "%p"'
+
+        conf = """
+restore_command = '%s %s %s'
+#recovery_target_time=
+#recovery_target_xid=
+#recovery_target_inclusive=true
+#recovery_target_timeline=
+""" % (self.script, cf_file, restore_command)
+
         self.log.info("Write %s" % rconf)
         if self.not_really:
             print conf
@@ -1425,17 +1454,14 @@ STOP TIME: %(stop_time)s
             self.log.debug("Last restart point from backup_label: %s" % lbl.first_wal)
             return lbl.first_wal
 
-        slave_bin = self.cf.get("slave_bin", "")
-        pg_controldata = "%s %s" % (os.path.join(slave_bin, "pg_controldata"), ".")
-
-        rp = CheckpointInfo(pg_controldata, True)
-        if not rp.is_valid:
+        ctl = PgControlData(self.cf.get("slave_bin", ""), ".", True)
+        if not ctl.is_valid:
             # No restart point information, use the given wal name
             self.log.warning("Unable to determine last restart point")
             return walname
 
-        self.log.debug("Last restart point: %s" % rp.wal_name)
-        return rp.wal_name
+        self.log.debug("Last restart point: %s" % ctl.wal_name)
+        return ctl.wal_name
 
     def order_backupdirs(self,prefix,a,b):
         """Compare the backup directory indexes numerically"""
