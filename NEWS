@@ -1,3 +1,29 @@
+2009-xx-xx  -  SkyTools 2.1.9  -  ""
+
+  = Fixes =
+
+    * londiste copy: Add missing identifier quoting for
+      TRUNCATE and ADD CONSTRAINT.  (Luc Van Hoeylandt)
+
+    * Fix crash with pgq.sqltrigq/pgq.logutriga, which automatically
+      detect table structure.  Problem was handling table invalidation
+      event during internal query.
+      (Götz Lange, André Malo)
+
+    * Fix 'uninitialized variable' warning and potentially bad code
+      in pgq.sqltriga().  (Götz Lange, André Malo)
+
+    * skytools._cquoting: Fix crash with Decimal type.
+      (May affects users who have compiled psycopg2 to use
+       Decimal() instead of float for NUMERIC)
+
+    * skytools.DBStruct: The DEFAULT keyword was missing when
+      creating table columns with default value.  Table creation
+      functionality is unused in 2.1.x thus no users should be affected.
+
+    * skytools.magic_insert: be more flexible about whats dict.
+      In particular, now accept DictRow.
+
 2008-10-12  -  SkyTools 2.1.8  -  "Perestroika For Your Data"
 
   = Fixes =
