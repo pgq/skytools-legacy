@@ -51,6 +51,13 @@ loop_delay::
   How often to poll events from provider.  In seconds (float).
   Default: 1.
 
+pgq_lazy_fetch::
+   How many events to fetch at a time when processing a batch. Useful when
+   you know a single transaction (maintenance +UPDATE+ command, e.g.) will
+   produce a lot of events in a single batch. When lazily fetching, a cursor
+   is used so as to still process a single batch in a single transaction.
+   Default: 0, always fetch all events of the batch, not using a cursor.
+
 == EXAMPLE ==
 
   [londiste]
