@@ -18,7 +18,7 @@ mkdir -p $tmp
 cd $tmp
 
 LANG=C
-PATH=/usr/lib/postgresql/8.2/bin:$PATH
+PATH=/usr/lib/postgresql/8.3/bin:$PATH
 export PATH LANG
 
 mkdir log slave slave/logs.complete slave/logs.partial
