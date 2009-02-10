@@ -24,6 +24,17 @@
     * skytools.magic_insert: be more flexible about whats dict.
       In particular, now accept DictRow.
 
+    * walmgr.py: WAL files purge procedure now pays attention to recovery
+      restart points. (%r patch by Omar Kilani, Mark Kirkwood)
+
+    * walmgr.py: archive_mode GUC is now set during setup. Followed by an
+      optional restart if master_restart_cmd is specified (Mark Kirkwood)
+
+    * walmgr.py: Backups taken from slave now generate backup_label and
+      history files.
+
+    * walmgr.py Configuration files now default to PostgreSQL 8.3
+
 2008-10-12  -  SkyTools 2.1.8  -  "Perestroika For Your Data"
 
   = Fixes =
