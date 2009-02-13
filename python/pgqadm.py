@@ -4,11 +4,8 @@
 """
 
 import sys
-import skytools
-
-from pgq.ticker import SmartTicker
-from pgq.status import PGQStatus
-#from pgq.admin import PGQAdmin
+import skytools, pgq
+from pgq.cascade.admin import CascadeAdmin
 
 """TODO:
 pgqadm ini check
@@ -17,7 +14,7 @@ pgqadm ini check
 command_usage = """
 %prog [options] INI CMD [subcmd args]
 
-commands:
+local queue commands:
   ticker                   start ticking & maintenance process
 
   status                   show overview of queue health
@@ -28,6 +25,17 @@ commands:
   register QNAME CONS      install code into db
   unregister QNAME CONS    install code into db
   config QNAME [VAR=VAL]   show or change queue config
+
+cascaded queue commands:
+  create-node
+  rename-node
+  pause-node
+  resume-node
+  change-provider
+  tag-alive
+  tag-dead
+  switchover
+  failover
 """
 
 config_allowed_list = {
@@ -38,12 +46,14 @@ config_allowed_list = {
 }
 
 class PGQAdmin(skytools.DBScript):
+    """PgQ admin + maint script."""
     def __init__(self, args):
+        """Initialize pgqadm."""
         skytools.DBScript.__init__(self, 'pgqadm', args)
         self.set_single_loop(1)
 
         if len(self.args) < 2:
-            print "need command"
+            print("need command")
             sys.exit(1)
 
         int_cmds = {
@@ -55,16 +65,20 @@ class PGQAdmin(skytools.DBScript):
             'config': self.change_config,
         }
 
+        cascade_cmds = ['create-node']
+
         cmd = self.args[1]
         if cmd == "ticker":
-            script = SmartTicker(args)
+            script = pgq.SmallTicker(args)
         elif cmd == "status":
-            script = PGQStatus(args)
+            script = pgq.PGQStatus(args)
+        elif cmd in cascade_cmds:
+            script = CascadeAdmin(self.service_name, 'db', args)
         elif cmd in int_cmds:
             script = None
             self.work = int_cmds[cmd]
         else:
-            print "unknown command"
+            print("unknown command")
             sys.exit(1)
 
         if self.pidfile:
@@ -80,6 +94,7 @@ class PGQAdmin(skytools.DBScript):
     def init_optparse(self, parser=None):
         p = skytools.DBScript.init_optparse(self, parser)
         p.set_usage(command_usage.strip())
+        p.add_option("--queue", help = 'cascading: specify queue name')
         return p
 
     def installer(self):
@@ -118,8 +133,8 @@ class PGQAdmin(skytools.DBScript):
 
     def change_config(self):
         if len(self.args) < 3:
-            list = self.get_queue_list()
-            for qname in list:
+            qlist = self.get_queue_list()
+            for qname in qlist:
                 self.show_config(qname)
             return
 
@@ -139,7 +154,7 @@ class PGQAdmin(skytools.DBScript):
             expr = "%s=%s" % (k, skytools.quote_literal(v))
             alist.append(expr)
         self.log.info('Change queue %s config to: %s' % (qname, ", ".join(alist)))
-        sql = "update pgq.queue set %s where queue_name = %s" % ( 
+        sql = "update pgq.queue set %s where queue_name = %s" % (
                         ", ".join(alist), skytools.quote_literal(qname))
         self.exec_sql(sql, [])
 
@@ -168,15 +183,15 @@ class PGQAdmin(skytools.DBScript):
         db.commit()
 
         if res is None:
-            print "no such queue:", qname
+            print("no such queue: " + qname)
             return
 
-        print qname
+        print(qname)
         for k in config_allowed_list:
             n = k
             if k[:6] == "queue_":
                 n = k[6:]
-            print "    %s\t=%7s" % (n, res[k])
+            print("    %s\t=%7s" % (n, res[k]))
 
     def get_queue_list(self):
         db = self.get_database('db')
@@ -185,10 +200,10 @@ class PGQAdmin(skytools.DBScript):
         rows = curs.fetchall()
         db.commit()
         
-        list = []
+        qlist = []
         for r in rows:
-            list.append(r[0])
-        return list
+            qlist.append(r[0])
+        return qlist
 
 if __name__ == '__main__':
     script = PGQAdmin(sys.argv[1:])

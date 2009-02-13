@@ -1,8 +1,11 @@
 #! /usr/bin/env python
 
-import sys, pgq.setadmin
+"""SetAdmin launcher.
+"""
+
+import sys, pgq.cascade.admin
 
 if __name__ == '__main__':
-    script = pgq.setadmin.SetAdmin('set_admin', sys.argv[1:])
+    script = pgq.cascade.admin.CascadeAdmin('cascade_admin', 'node_db', sys.argv[1:], worker_setup = False)
     script.start()
 

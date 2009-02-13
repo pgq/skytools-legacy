@@ -1,9 +1,9 @@
 
 """PgQ consumer framework for Python.
 
-API problems(?):
-    - process_event() and process_batch() should have db as argument.
-    - should ev.tag*() update db immidiately?
+todo:
+    - pgq.next_batch_details()
+    - tag_done() by default
 
 """
 
@@ -11,7 +11,7 @@ import sys, time, skytools
 
 from pgq.event import *
 
-__all__ = ['Consumer', 'RemoteConsumer', 'SerialConsumer']
+__all__ = ['Consumer']
 
 class _WalkerEvent(Event):
     """Redirects status flags to BatchWalker.
@@ -113,21 +113,41 @@ class Consumer(skytools.DBScript):
         skytools.DBScript.__init__(self, service_name, args)
 
         self.db_name = db_name
-        self.reg_list = []
-        self.consumer_id = self.cf.get("pgq_consumer_id", self.job_name)
-        self.pgq_queue_name = self.cf.get("pgq_queue_name")
+
+        # compat params
+        self.consumer_name = self.cf.get("pgq_consumer_id", '')
+        self.queue_name = self.cf.get("pgq_queue_name", '')
+
+        # proper params
+        if not self.consumer_name:
+            self.consumer_name = self.cf.get("consumer_name", self.job_name)
+        if not self.queue_name:
+            self.queue_name = self.cf.get("queue_name")
+
         self.pgq_lazy_fetch = self.cf.getint("pgq_lazy_fetch", 0)
+        self.stat_batch_start = 0
 
-    def attach(self):
-        """Attach consumer to interesting queues."""
-        res = self.register_consumer(self.pgq_queue_name)
-        return res
+        # compat vars
+        self.pgq_queue_name = self.queue_name
+        self.consumer_id = self.consumer_name
 
-    def detach(self):
-        """Detach consumer from all queues."""
-        tmp = self.reg_list[:]
-        for q in tmp:
-            self.unregister_consumer(q)
+    def startup(self):
+        """Handle commands here.  __init__ does not have error logging."""
+        if self.options.register:
+            self.register_consumer()
+            sys.exit(0)
+        if self.options.unregister:
+            self.unregister_consumer()
+            sys.exit(0)
+        return skytools.DBScript.startup(self)
+
+    def init_optparse(self, parser = None):
+        p = skytools.DBScript.init_optparse(self, parser)
+        p.add_option('--register', action='store_true',
+                     help = 'register consumer on queue')
+        p.add_option('--unregister', action='store_true',
+                     help = 'unregister consumer from queue')
+        return p
 
     def process_event(self, db, event):
         """Process one event.
@@ -152,66 +172,59 @@ class Consumer(skytools.DBScript):
             self.process_event(db, ev)
 
     def work(self):
-        """Do the work loop, once (internal)."""
-
-        if len(self.reg_list) == 0:
-            self.log.debug("Attaching")
-            self.attach()
+        """Do the work loop, once (internal).
+        Returns: true if wants to be called again,
+        false if script can sleep.
+        """
 
         db = self.get_database(self.db_name)
         curs = db.cursor()
 
-        data_avail = 0
-        for queue in self.reg_list:
-            self.stat_start()
+        self.stat_start()
 
-            # acquire batch
-            batch_id = self._load_next_batch(curs, queue)
-            db.commit()
-            if batch_id == None:
-                continue
-            data_avail = 1
+        # acquire batch
+        batch_id = self._load_next_batch(curs)
+        db.commit()
+        if batch_id == None:
+            return 0
 
-            # load events
-            list = self._load_batch_events(curs, batch_id, queue)
-            db.commit()
-            
-            # process events
-            self._launch_process_batch(db, batch_id, list)
+        # load events
+        ev_list = self._load_batch_events(curs, batch_id)
+        db.commit()
+        
+        # process events
+        self._launch_process_batch(db, batch_id, ev_list)
 
-            # done
-            self._finish_batch(curs, batch_id, list)
-            db.commit()
-            self.stat_end(len(list))
+        # done
+        self._finish_batch(curs, batch_id, ev_list)
+        db.commit()
+        self.stat_end(len(ev_list))
 
-        # if false, script sleeps
-        return data_avail
+        return 1
 
-    def register_consumer(self, queue_name):
+    def register_consumer(self):
+        self.log.info("Registering consumer on source queue")
         db = self.get_database(self.db_name)
         cx = db.cursor()
         cx.execute("select pgq.register_consumer(%s, %s)",
-                [queue_name, self.consumer_id])
+                [self.queue_name, self.consumer_name])
         res = cx.fetchone()[0]
         db.commit()
 
-        self.reg_list.append(queue_name)
-
         return res
 
-    def unregister_consumer(self, queue_name):
+    def unregister_consumer(self):
+        self.log.info("Unregistering consumer from source queue")
         db = self.get_database(self.db_name)
         cx = db.cursor()
         cx.execute("select pgq.unregister_consumer(%s, %s)",
-                    [queue_name, self.consumer_id])
+                    [self.queue_name, self.consumer_name])
         db.commit()
-
-        self.reg_list.remove(queue_name)
 
     def _launch_process_batch(self, db, batch_id, list):
         self.process_batch(db, batch_id, list)
 
-    def _load_batch_events_old(self, curs, batch_id, queue_name):
+    def _load_batch_events_old(self, curs, batch_id):
         """Fetch all events for this batch."""
 
         # load events
@@ -220,26 +233,26 @@ class Consumer(skytools.DBScript):
         rows = curs.dictfetchall()
 
         # map them to python objects
-        list = []
+        ev_list = []
         for r in rows:
-            ev = Event(queue_name, r)
-            list.append(ev)
+            ev = Event(self.queue_name, r)
+            ev_list.append(ev)
 
-        return list
+        return ev_list
 
-    def _load_batch_events(self, curs, batch_id, queue_name):
+    def _load_batch_events(self, curs, batch_id):
         """Fetch all events for this batch."""
 
         if self.pgq_lazy_fetch:
-            return _BatchWalker(curs, batch_id, queue_name, self.pgq_lazy_fetch)
+            return _BatchWalker(curs, batch_id, self.queue_name, self.pgq_lazy_fetch)
         else:
-            return self._load_batch_events_old(curs, batch_id, queue_name)
+            return self._load_batch_events_old(curs, batch_id)
 
-    def _load_next_batch(self, curs, queue_name):
+    def _load_next_batch(self, curs):
         """Allocate next batch. (internal)"""
 
         q = "select pgq.next_batch(%s, %s)"
-        curs.execute(q, [queue_name, self.consumer_id])
+        curs.execute(q, [self.queue_name, self.consumer_name])
         return curs.fetchone()[0]
 
     def _finish_batch(self, curs, batch_id, list):
@@ -255,23 +268,24 @@ class Consumer(skytools.DBScript):
                     self._tag_failed(curs, batch_id, ev_id, stat[1])
                     failed += 1
                 elif stat[0] != EV_DONE:
-                    raise Exception("Untagged event: %d" % ev_id)
+                    raise Exception("Untagged event: id=%d" % ev_id)
         else:
             for ev in list:
-                if ev.status == EV_FAILED:
+                if ev._status == EV_FAILED:
                     self._tag_failed(curs, batch_id, ev.id, ev.fail_reason)
                     failed += 1
-                elif ev.status == EV_RETRY:
+                elif ev._status == EV_RETRY:
                     self._tag_retry(curs, batch_id, ev.id, ev.retry_time)
                     retry += 1
-                elif stat[0] != EV_DONE:
-                    raise Exception("Untagged event: %d" % ev_id)
+                elif ev._status != EV_DONE:
+                    raise Exception("Untagged event: (id=%d, type=%s, data=%s, ex1=%s" % (
+                                    ev.id, ev.type, ev.data, ev.extra1))
 
         # report weird events
         if retry:
-            self.stat_add('retry-events', retry)
+            self.stat_increase('retry-events', retry)
         if failed:
-            self.stat_add('failed-events', failed)
+            self.stat_increase('failed-events', failed)
 
         curs.execute("select pgq.finish_batch(%s)", [batch_id])
 
@@ -315,191 +329,5 @@ class Consumer(skytools.DBScript):
         t = time.time()
         self.stat_put('count', count)
         self.stat_put('duration', t - self.stat_batch_start)
-
-
-class RemoteConsumer(Consumer):
-    """Helper for doing event processing in another database.
-
-    Requires that whole batch is processed in one TX.
-    """
-
-    def __init__(self, service_name, db_name, remote_db, args):
-        Consumer.__init__(self, service_name, db_name, args)
-        self.remote_db = remote_db
-
-    def process_batch(self, db, batch_id, event_list):
-        """Process all events in batch.
-        
-        By default calls process_event for each.
-        """
-        dst_db = self.get_database(self.remote_db)
-        curs = dst_db.cursor()
-
-        if self.is_last_batch(curs, batch_id):
-            for ev in event_list:
-                ev.tag_done()
-            return
-
-        self.process_remote_batch(db, batch_id, event_list, dst_db)
-
-        self.set_last_batch(curs, batch_id)
-        dst_db.commit()
-
-    def is_last_batch(self, dst_curs, batch_id):
-        """Helper function to keep track of last successful batch
-        in external database.
-        """
-        q = "select pgq_ext.is_batch_done(%s, %s)"
-        dst_curs.execute(q, [ self.consumer_id, batch_id ])
-        return dst_curs.fetchone()[0]
-
-    def set_last_batch(self, dst_curs, batch_id):
-        """Helper function to set last successful batch
-        in external database.
-        """
-        q = "select pgq_ext.set_batch_done(%s, %s)"
-        dst_curs.execute(q, [ self.consumer_id, batch_id ])
-
-    def process_remote_batch(self, db, batch_id, event_list, dst_db):
-        raise Exception('process_remote_batch not implemented')
-
-class SerialConsumer(Consumer):
-    """Consumer that applies batches sequentially in second database.
-
-    Requirements:
-     - Whole batch in one TX.
-     - Must not use retry queue.
-
-    Features:
-     - Can detect if several batches are already applied to dest db.
-     - If some ticks are lost. allows to seek back on queue.
-       Whether it succeeds, depends on pgq configuration.
-    """
-
-    def __init__(self, service_name, db_name, remote_db, args):
-        Consumer.__init__(self, service_name, db_name, args)
-        self.remote_db = remote_db
-        self.dst_schema = "pgq_ext"
-        self.cur_batch_info = None
-
-    def startup(self):
-        if self.options.rewind:
-            self.rewind()
-            sys.exit(0)
-        if self.options.reset:
-            self.dst_reset()
-            sys.exit(0)
-        return Consumer.startup(self)
-
-    def init_optparse(self, parser = None):
-        p = Consumer.init_optparse(self, parser)
-        p.add_option("--rewind", action = "store_true",
-                help = "change queue position according to destination")
-        p.add_option("--reset", action = "store_true",
-                help = "reset queue pos on destination side")
-        return p
-
-    def process_batch(self, db, batch_id, event_list):
-        """Process all events in batch.
-        """
-
-        dst_db = self.get_database(self.remote_db)
-        curs = dst_db.cursor()
-
-        self.cur_batch_info = self.get_batch_info(batch_id)
-
-        # check if done
-        if self.is_batch_done(curs):
-            for ev in event_list:
-                ev.tag_done()
-            return
-
-        # actual work
-        self.process_remote_batch(db, batch_id, event_list, dst_db)
-
-        # finish work
-        self.set_batch_done(curs)
-        dst_db.commit()
-
-    def is_batch_done(self, dst_curs):
-        """Helper function to keep track of last successful batch
-        in external database.
-        """
-
-        cur_tick = self.cur_batch_info['tick_id']
-        prev_tick = self.cur_batch_info['prev_tick_id']
-
-        dst_tick = self.get_last_tick(dst_curs)
-        if not dst_tick:
-            # seems this consumer has not run yet against dst_db
-            return False
-
-        if prev_tick == dst_tick:
-            # on track
-            return False
-
-        if prev_tick < dst_tick:
-            if dst_tick - prev_tick > 5:
-                 raise Exception('Difference too big, skipping dangerous')
-            self.log.warning('Got tick %d, dst has %d - skipping' % (prev_tick, dst_tick))
-            return True
-        else:
-            self.log.error('Got tick %d, dst has %d - ticks lost' % (prev_tick, dst_tick))
-            raise Exception('Lost ticks')
-
-    def set_batch_done(self, dst_curs):
-        """Helper function to set last successful batch
-        in external database.
-        """
-        tick_id = self.cur_batch_info['tick_id']
-        self.set_last_tick(dst_curs, tick_id)
-
-    def attach(self):
-        new = Consumer.attach(self)
-        if new:
-            self.dst_reset()
-
-    def detach(self):
-        """If detaching, also clean completed tick table on dest."""
-
-        Consumer.detach(self)
-        self.dst_reset()
-
-    def process_remote_batch(self, db, batch_id, event_list, dst_db):
-        raise Exception('process_remote_batch not implemented')
-
-    def rewind(self):
-        self.log.info("Rewinding queue")
-        src_db = self.get_database(self.db_name)
-        dst_db = self.get_database(self.remote_db)
-        src_curs = src_db.cursor()
-        dst_curs = dst_db.cursor()
-
-        dst_tick = self.get_last_tick(dst_curs)
-        if dst_tick:
-            q = "select pgq.register_consumer_at(%s, %s, %s)"
-            src_curs.execute(q, [self.pgq_queue_name, self.consumer_id, dst_tick])
-        else:
-            self.log.warning('No tick found on dst side')
-
-        dst_db.commit()
-        src_db.commit()
-        
-    def dst_reset(self):
-        self.log.info("Resetting queue tracking on dst side")
-        dst_db = self.get_database(self.remote_db)
-        dst_curs = dst_db.cursor()
-        self.set_last_tick(dst_curs, None)
-        dst_db.commit()
-        
-    def get_last_tick(self, dst_curs):
-        q = "select %s.get_last_tick(%%s)" % self.dst_schema
-        dst_curs.execute(q, [self.consumer_id])
-        res = dst_curs.fetchone()
-        return res[0]
-
-    def set_last_tick(self, dst_curs, tick_id):
-        q = "select %s.set_last_tick(%%s, %%s)" % self.dst_schema
-        dst_curs.execute(q, [ self.consumer_id, tick_id ])
 
 

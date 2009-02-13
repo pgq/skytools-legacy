@@ -2,6 +2,8 @@
 
 import skytools, time
 
+__all__ = ['MaintenanceJob']
+
 def get_pgq_api_version(curs):
     q = "select count(1) from pg_proc p, pg_namespace n"\
         " where n.oid = p.pronamespace and n.nspname='pgq'"\

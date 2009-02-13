@@ -38,6 +38,9 @@ class Event(object):
     Consumer is supposed to tag them after processing.
     If not, events will stay in retry queue.
     """
+    __slots__ = ('_event_row', '_status', 'retry_time',
+                 'fail_reason', 'queue_name')
+
     def __init__(self, queue_name, row):
         self._event_row = row
         self._status = EV_UNTAGGED
@@ -62,3 +65,16 @@ class Event(object):
     def get_status(self):
         return self._status
 
+    # be also dict-like
+    def __getitem__(self, k): return self._event_row.__getitem__(k)
+    def __contains__(self, k): return self._event_row.__contains__(k)
+    def get(self, k, d=None): return self._event_row.get(k, d)
+    def has_key(self, k): return self._event_row.has_key(k)
+    def keys(self): return self._event_row.keys()
+    def values(self): return self._event_row.keys()
+    def items(self): return self._event_row.items()
+    def iterkeys(self): return self._event_row.iterkeys()
+    def itervalues(self): return self._event_row.itervalues()
+    def __str__(self):
+        return "<id=%d type=%s data=%s e1=%s e2=%s e3=%s e4=%s>" % (
+                self.id, self.type, self.data, self.extra1, self.extra2, self.extra3, self.extra4)
