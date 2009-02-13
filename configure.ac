@@ -63,6 +63,18 @@ changequote([, ])dnl
   esac
 fi
 
+AC_ARG_ENABLE(extensionless-scripts, AC_HELP_STRING([--enable-extensionless-scripts],[remove .py extension from installed scripts]))
+AC_MSG_CHECKING([if .py should be stripped])
+if test "$enable_extensionless_scripts" = "yes"; then
+  extensionless_scripts=yes
+  AC_MSG_RESULT([yes])
+else
+  AC_MSG_RESULT([no])
+fi
+AC_SUBST(extensionless_scripts)
+
+
+
 dnl check for xmlto, but only if asciidoc is found
 if test -n "$ASCIIDOC"; then
   AC_CHECK_PROGS(XMLTO, [$XMLTO xmlto])

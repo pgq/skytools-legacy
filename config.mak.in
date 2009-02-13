@@ -18,3 +18,4 @@ DESTDIR =
 ASCIIDOC = @ASCIIDOC@
 XMLTO = @XMLTO@
 
+extensionless_scripts = @extensionless_scripts@

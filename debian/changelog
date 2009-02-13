@@ -1,42 +1,6 @@
-skytools (3.0git-0) unstable; urgency=low
+skytools (3.0a-0) unstable; urgency=low
 
-  * tag the tree as 3.0
+  * dev tree for 3.0
 
- -- Marko Kreen <marko.kreen@skype.net>  Wed, 05 Dec 2007 17:53:05 +0200
-
-skytools (2.1.5) unstable; urgency=low
-
-  * New public release.
-
- -- Marko Kreen <marko.kreen@skype.net>  Mon, 19 Nov 2007 15:32:41 +0200
-
-skytools (2.1.4) unstable; urgency=low
-
-  * Upgrade walmgr, some fixes.
-
- -- Marko Kreen <marko.kreen@skype.net>  Fri, 13 Apr 2007 11:08:41 +0300
-
-skytools (2.1.3) unstable; urgency=low
-
-  * brown paper bag
-
- -- Marko Kreen <marko.kreen@skype.net>  Tue, 10 Apr 2007 11:55:47 +0300
-
-skytools (2.1.2) unstable; urgency=low
-
-  * more bugfixes
-
- -- Marko Kreen <marko.kreen@skype.net>  Mon, 09 Apr 2007 17:56:35 +0300
-
-skytools (2.1.1) unstable; urgency=low
-
-  * bugfixes
-
- -- Marko Kreen <marko.kreen@skype.net>  Tue, 03 Apr 2007 15:03:28 +0300
-
-skytools (2.1) unstable; urgency=low
-
-  * cleanup
-
- -- Marko Kreen <marko.kreen@skype.net>  Fri, 02 Feb 2007 12:38:17 +0200
+ -- Marko Kreen <marko.kreen@skype.net>  T, 13 jaan  2009 14:24:17 +0200
 

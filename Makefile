@@ -37,7 +37,11 @@ modules-install: config.mak
 	test \! -d compat || $(MAKE) -C compat $@ DESTDIR=$(DESTDIR)
 
 python-install: config.mak modules-all
-	$(PYTHON) setup.py install --prefix=$(prefix) --root=$(DESTDIR)/
+	$(PYTHON) setup.py install --prefix=$(prefix) --root=$(DESTDIR)/ --record=tmp_files.lst
+#ifeq ($(STRIP_PY), yes)
+	grep '/bin/[a-z_0-9]*.py' tmp_files.lst \
+	| $(PYTHON) misc/strip_ext.py $(if $(DESTDIR), $(DESTDIR), /)
+#endif
 	$(MAKE) -C doc DESTDIR=$(DESTDIR) install
 
 python-install python-all: python/skytools/installer_config.py
@@ -93,6 +97,9 @@ configure: configure.ac
 tags:
 	ctags `find python -name '*.py'`
 
+check:
+	./misc/docheck.sh
+
 .PHONY: all clean distclean install deb debclean tgz tags
-.PHONY: python-all python-clean python-install
+.PHONY: python-all python-clean python-install check
 

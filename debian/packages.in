@@ -20,7 +20,7 @@ Build-Depends: python-dev, postgresql-server-dev-PGVER
 
 Package: skytools
 Architecture: any
-Depends: python-psycopg2 | pythonPYVER-psycopg2 | python-psycopg | pythonPYVER-psycopg, skytools-modules-8.2 | skytools-modules-8.1 | skytools-modules-8.0, []
+Depends: python-psycopg2 | pythonPYVER-psycopg2, skytools-modules-8.4 | skytools-modules-8.3 | skytools-modules-8.2, []
 Description: Skype database tools - Python parts
  .
  londiste - replication
