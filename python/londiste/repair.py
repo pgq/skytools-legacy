@@ -12,6 +12,7 @@ from syncer import Syncer
 __all__ = ['Repairer']
 
 def unescape(s):
+    """Remove copy escapes."""
     return skytools.unescape_copy(s)
 
 def get_pkey_list(curs, tbl):
@@ -45,6 +46,13 @@ def get_column_list(curs, tbl):
 class Repairer(Syncer):
     """Walks tables in primary key order and checks if data matches."""
 
+    cnt_insert = 0
+    cnt_update = 0
+    cnt_delete = 0
+    total_src = 0
+    total_dst = 0
+    pkey_list = []
+    common_fields = []
 
     def process_sync(self, tbl, src_db, dst_db):
         """Actual comparision."""
@@ -89,6 +97,7 @@ class Repairer(Syncer):
         os.unlink(dump_dst + ".sorted")
 
     def gen_copy_tbl(self, tbl, src_curs, dst_curs):
+        """Create COPY expession from common fields."""
         self.pkey_list = get_pkey_list(src_curs, tbl)
         dst_pkey = get_pkey_list(dst_curs, tbl)
         if dst_pkey != self.pkey_list:
@@ -108,20 +117,24 @@ class Repairer(Syncer):
 
         self.common_fields = field_list
 
-        tbl_expr = "%s (%s)" % (tbl, ",".join(field_list))
+        fqlist = [skytools.quote_ident(col) for col in field_list]
+
+        tbl_expr = "%s (%s)" % (skytools.quote_ident(tbl), ",".join(fqlist))
 
         self.log.debug("using copy expr: %s" % tbl_expr)
 
         return tbl_expr
 
     def dump_table(self, tbl, copy_tbl, curs, fn):
+        """Dump table to disk."""
         f = open(fn, "w", 64*1024)
         curs.copy_to(f, copy_tbl)
         size = f.tell()
         f.close()
-        self.log.info('Got %d bytes' % size)
+        self.log.info('%s: Got %d bytes' % (tbl, size))
 
     def get_row(self, ln):
+        """Parse a row into dict."""
         if not ln:
             return None
         t = ln[:-1].split('\t')
@@ -131,6 +144,7 @@ class Repairer(Syncer):
         return row
 
     def dump_compare(self, tbl, src_fn, dst_fn):
+        """Dump + compare single table."""
         self.log.info("Comparing dumps: %s" % tbl)
         self.cnt_insert = 0
         self.cnt_update = 0
@@ -154,12 +168,12 @@ class Repairer(Syncer):
                 src_row = self.get_row(src_ln)
                 dst_row = self.get_row(dst_ln)
 
-                cmp = self.cmp_keys(src_row, dst_row)
-                if cmp > 0:
+                diff = self.cmp_keys(src_row, dst_row)
+                if diff > 0:
                     # src > dst
                     self.got_missed_delete(tbl, dst_row)
                     keep_src = 1
-                elif cmp < 0:
+                elif diff < 0:
                     # src < dst
                     self.got_missed_insert(tbl, src_row)
                     keep_dst = 1
@@ -180,55 +194,63 @@ class Repairer(Syncer):
                 self.cnt_insert, self.cnt_update, self.cnt_delete))
 
     def got_missed_insert(self, tbl, src_row):
+        """Create sql for missed insert."""
         self.cnt_insert += 1
         fld_list = self.common_fields
+        fq_list = []
         val_list = []
         for f in fld_list:
+            fq_list.append(skytools.quote_ident(f))
             v = unescape(src_row[f])
             val_list.append(skytools.quote_literal(v))
         q = "insert into %s (%s) values (%s);" % (
-                tbl, ", ".join(fld_list), ", ".join(val_list))
+                tbl, ", ".join(fq_list), ", ".join(val_list))
         self.show_fix(tbl, q, 'insert')
 
     def got_missed_update(self, tbl, src_row, dst_row):
+        """Create sql for missed update."""
         self.cnt_update += 1
         fld_list = self.common_fields
         set_list = []
         whe_list = []
         for f in self.pkey_list:
-            self.addcmp(whe_list, f, unescape(src_row[f]))
+            self.addcmp(whe_list, skytools.quote_ident(f), unescape(src_row[f]))
         for f in fld_list:
             v1 = src_row[f]
             v2 = dst_row[f]
             if self.cmp_value(v1, v2) == 0:
                 continue
 
-            self.addeq(set_list, f, unescape(v1))
-            self.addcmp(whe_list, f, unescape(v2))
+            self.addeq(set_list, skytools.quote_ident(f), unescape(v1))
+            self.addcmp(whe_list, skytools.quote_ident(f), unescape(v2))
 
         q = "update only %s set %s where %s;" % (
                 tbl, ", ".join(set_list), " and ".join(whe_list))
         self.show_fix(tbl, q, 'update')
 
     def got_missed_delete(self, tbl, dst_row):
+        """Create sql for missed delete."""
         self.cnt_delete += 1
         whe_list = []
         for f in self.pkey_list:
-            self.addcmp(whe_list, f, unescape(dst_row[f]))
-        q = "delete from only %s where %s;" % (tbl, " and ".join(whe_list))
+            self.addcmp(whe_list, skytools.quote_ident(f), unescape(dst_row[f]))
+        q = "delete from only %s where %s;" % (skytools.quote_fqident(tbl), " and ".join(whe_list))
         self.show_fix(tbl, q, 'delete')
 
     def show_fix(self, tbl, q, desc):
-        #self.log.warning("missed %s: %s" % (desc, q))
+        """Print/write/apply repair sql."""
+        self.log.debug("missed %s: %s" % (desc, q))
         fn = "fix.%s.sql" % tbl
         open(fn, "a").write("%s\n" % q)
 
     def addeq(self, list, f, v):
+        """Add quoted SET."""
         vq = skytools.quote_literal(v)
         s = "%s = %s" % (f, vq)
         list.append(s)
 
     def addcmp(self, list, f, v):
+        """Add quoted comparision."""
         if v is None:
             s = "%s is null" % f
         else:
@@ -237,6 +259,7 @@ class Repairer(Syncer):
         list.append(s)
 
     def cmp_data(self, src_row, dst_row):
+        """Compare data field-by-field."""
         for k in self.common_fields:
             v1 = src_row[k]
             v2 = dst_row[k]
@@ -245,6 +268,7 @@ class Repairer(Syncer):
         return 0
 
     def cmp_value(self, v1, v2):
+        """Compare single field, tolerates tz vs notz dates."""
         if v1 == v2:
             return 0
 

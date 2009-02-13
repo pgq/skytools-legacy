@@ -10,9 +10,9 @@ if os.path.exists(os.path.join(sys.path[0], 'londiste.py')) \
     and not os.path.exists(os.path.join(sys.path[0], 'londiste')):
     del sys.path[0]
 
-import londiste, pgq.setadmin
+import londiste, pgq.cascade.admin
 
-command_usage = pgq.setadmin.command_usage + """
+command_usage = pgq.cascade.admin.command_usage + """
 Replication Daemon:
   worker                replay events to subscriber
 
@@ -31,17 +31,18 @@ Replication Extra:
   fkeys                 print out fkey drop/create commands
   compare [TBL ...]     compare table contents on both sides
   repair [TBL ...]      repair data on subscriber
+  execute [FILE ...]    execute SQL files on set
 
 Internal Commands:
   copy                  copy table logic
 """
 
 cmd_handlers = (
-    (('init-root', 'init-branch', 'init-leaf', 'members', 'tag-dead', 'tag-alive',
+    (('create-root', 'create-branch', 'create-leaf', 'members', 'tag-dead', 'tag-alive',
       'change-provider', 'rename-node', 'status', 'pause', 'resume',
       'switchover', 'failover'), londiste.LondisteSetup),
-    (('add', 'remove', 'add-seq', 'remove-seq', 'tables', 'seqs',
-      'missing', 'resync', 'check', 'fkeys'), londiste.LondisteSetup),
+    (('add-table', 'remove-table', 'add-seq', 'remove-seq', 'tables', 'seqs',
+      'missing', 'resync', 'check', 'fkeys', 'execute'), londiste.LondisteSetup),
     (('worker', 'replay'), londiste.Replicator),
     (('compare',), londiste.Comparator),
     (('repair',), londiste.Repairer),
@@ -53,7 +54,7 @@ class Londiste(skytools.DBScript):
         skytools.DBScript.__init__(self, 'londiste', args)
 
         if len(self.args) < 2:
-            print "need command"
+            print("need command")
             sys.exit(1)
         cmd = self.args[1]
         self.script = None
@@ -62,7 +63,7 @@ class Londiste(skytools.DBScript):
                 self.script = cls(args)
                 break
         if not self.script:
-            print "Unknown command '%s', use --help for help" % cmd
+            print("Unknown command '%s', use --help for help" % cmd)
             sys.exit(1)
 
     def start(self):
@@ -83,13 +84,16 @@ class Londiste(skytools.DBScript):
                 help = "add: keep old data", default=False)
         g.add_option("--provider",
                 help = "init: upstream node temp connect string")
-        g.add_option("--create",
+        g.add_option("--create", action="store_true",
+                help = "add: create table/seq if not exist")
+        g.add_option("--create-only",
                 help = "add: create table/seq if not exist (seq,pkey,full,indexes,fkeys)")
+        g.add_option("--target",
+                help = "switchover: target node")
+        g.add_option("--merge",
+                help = "create-leaf: combined queue name")
         p.add_option_group(g)
-
         return p
-    def opt_create_cb(self, option, opt_str, value, parser):
-        print opt_str, '=', value
 
 if __name__ == '__main__':
     script = Londiste(sys.argv[1:])

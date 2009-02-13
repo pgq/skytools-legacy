@@ -8,28 +8,47 @@ class Syncer(skytools.DBScript):
     """Walks tables in primary key order and checks if data matches."""
 
     def __init__(self, args):
+        """Syncer init."""
         skytools.DBScript.__init__(self, 'londiste', args)
         self.set_single_loop(1)
 
-        self.pgq_queue_name = self.cf.get("pgq_queue_name")
-        self.pgq_consumer_id = self.cf.get('pgq_consumer_id', self.job_name)
+        # compat names
+        self.queue_name = self.cf.get("pgq_queue_name", '')
+        self.consumer_name = self.cf.get('pgq_consumer_id', '')
+
+        # good names
+        if not self.queue_name:
+            self.queue_name = self.cf.get("queue_name")
+        if not self.consumer_name:
+            self.consumer_name = self.cf.get('consumer_name', self.job_name)
+
+        self.lock_timeout = self.cf.getfloat('lock_timeout', 10)
 
         if self.pidfile:
             self.pidfile += ".repair"
 
+    def set_lock_timeout(self, curs):
+        ms = int(1000 * self.lock_timeout)
+        if ms > 0:
+            q = "SET LOCAL statement_timeout = %d" % ms
+            self.log.debug(q)
+            curs.execute(q)
+
     def init_optparse(self, p=None):
+        """Initialize cmdline switches."""
         p = skytools.DBScript.init_optparse(self, p)
         p.add_option("--force", action="store_true", help="ignore lag")
         return p
 
     def check_consumer(self, setup_curs):
-        # before locking anything check if consumer is working ok
+        """Before locking anything check if consumer is working ok."""
+
         q = "select extract(epoch from ticker_lag) from pgq.get_queue_info(%s)"
-        setup_curs.execute(q, [self.pgq_queue_name])
+        setup_curs.execute(q, [self.queue_name])
         ticker_lag = setup_curs.fetchone()[0]
         q = "select extract(epoch from lag)"\
             " from pgq.get_consumer_info(%s, %s)"
-        setup_curs.execute(q, [self.pgq_queue_name, self.pgq_consumer_id])
+        setup_curs.execute(q, [self.queue_name, self.consumer_name])
         res = setup_curs.fetchall()
 
         if len(res) == 0:
@@ -42,15 +61,16 @@ class Syncer(skytools.DBScript):
             sys.exit(1)
 
     def get_subscriber_table_state(self, dst_db):
+        """Load table states from subscriber."""
         dst_curs = dst_db.cursor()
         q = "select * from londiste.subscriber_get_table_list(%s)"
-        dst_curs.execute(q, [self.pgq_queue_name])
+        dst_curs.execute(q, [self.queue_name])
         res = dst_curs.dictfetchall()
         dst_db.commit()
         return res
 
     def work(self):
-        src_loc = self.cf.get('provider_db')
+        """Syncer main function."""
         lock_db = self.get_database('provider_db', cache='lock_db')
         setup_db = self.get_database('provider_db', cache='setup_db', autocommit = 1)
 
@@ -92,14 +112,14 @@ class Syncer(skytools.DBScript):
 
     def force_tick(self, setup_curs):
         q = "select pgq.force_tick(%s)"
-        setup_curs.execute(q, [self.pgq_queue_name])
+        setup_curs.execute(q, [self.queue_name])
         res = setup_curs.fetchone()
         cur_pos = res[0]
 
         start = time.time()
         while 1:
             time.sleep(0.5)
-            setup_curs.execute(q, [self.pgq_queue_name])
+            setup_curs.execute(q, [self.queue_name])
             res = setup_curs.fetchone()
             if res[0] != cur_pos:
                 # new pos
@@ -128,8 +148,9 @@ class Syncer(skytools.DBScript):
         # lock table in separate connection
         self.log.info('Locking %s' % tbl)
         lock_db.commit()
-        lock_curs.execute("LOCK TABLE %s IN SHARE MODE" % tbl)
+        self.set_lock_timeout(lock_curs)
         lock_time = time.time()
+        lock_curs.execute("LOCK TABLE %s IN SHARE MODE" % skytools.quote_fqident(tbl))
 
         # now wait until consumer has updated target table until locking
         self.log.info('Syncing %s' % tbl)
@@ -148,7 +169,7 @@ class Syncer(skytools.DBScript):
 
             q = "select now() - lag > timestamp %s, now(), lag"\
                 " from pgq.get_consumer_info(%s, %s)"
-            setup_curs.execute(q, [tpos, self.pgq_queue_name, self.pgq_consumer_id])
+            setup_curs.execute(q, [tpos, self.queue_name, self.consumer_name])
             res = setup_curs.fetchall()
 
             if len(res) == 0:
@@ -159,8 +180,8 @@ class Syncer(skytools.DBScript):
             if row[0]:
                 break
 
-            # loop max 10 secs
-            if time.time() > lock_time + 10 and not self.options.force:
+            # limit lock time
+            if time.time() > lock_time + self.lock_timeout and not self.options.force:
                 self.log.error('Consumer lagging too much, exiting')
                 lock_db.rollback()
                 sys.exit(1)

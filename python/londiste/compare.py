@@ -12,6 +12,9 @@ __all__ = ['Comparator']
 from londiste.syncer import Syncer
 
 class Comparator(Syncer):
+    """Simple checker based in Syncer.
+    When tables are in sync runs simple SQL query on them.
+    """
     def process_sync(self, tbl, src_db, dst_db):
         """Actual comparision."""
 
@@ -22,7 +25,7 @@ class Comparator(Syncer):
 
         q = "select count(1) from only _TABLE_"
         q = self.cf.get('compare_sql', q)
-        q = q.replace('_TABLE_', tbl)
+        q = q.replace('_TABLE_', skytools.quote_fqident(tbl))
 
         self.log.debug("srcdb: " + q)
         src_curs.execute(q)
