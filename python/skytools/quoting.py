@@ -12,7 +12,7 @@ __all__ = [
     # local
     "quote_bytea_literal", "quote_bytea_copy", "quote_statement",
     "quote_ident", "quote_fqident", "quote_json", "unescape_copy",
-    "unquote_ident",
+    "unquote_ident", "unquote_fqident",
 ]
 
 try:
@@ -34,15 +34,19 @@ def quote_bytea_copy(s):
 
     return quote_copy(quote_bytea_raw(s))
 
-def quote_statement(sql, dict):
+def quote_statement(sql, dict_or_list):
     """Quote whole statement.
 
-    Data values are taken from dict.
+    Data values are taken from dict or list or tuple.
     """
-    xdict = {}
-    for k, v in dict.items():
-        xdict[k] = quote_literal(v)
-    return sql % xdict
+    if hasattr(dict_or_list, 'items'):
+        qdict = {}
+        for k, v in dict_or_list.items():
+            qdict[k] = quote_literal(v)
+        return sql % qdict
+    else:
+        qvals = [quote_literal(v) for v in dict_or_list]
+        return sql % tuple(qvals)
 
 # reserved keywords
 _ident_kwmap = {
@@ -58,6 +62,8 @@ _ident_kwmap = {
 "primary":1, "references":1, "returning":1, "select":1, "session_user":1,
 "some":1, "symmetric":1, "table":1, "then":1, "to":1, "trailing":1, "true":1,
 "union":1, "unique":1, "user":1, "using":1, "when":1, "where":1,
+# greenplum?
+"errors":1,
 }
 
 _ident_bad = re.compile(r"[^a-z0-9_]")
@@ -90,6 +96,7 @@ _jsmap = { "\b": "\\b", "\f": "\\f", "\n": "\\n", "\r": "\\r",
 }
 
 def _json_quote_char(m):
+    """Quote single char."""
     c = m.group(0)
     try:
         return _jsmap[c]
@@ -113,4 +120,12 @@ def unquote_ident(val):
     if val[0] == '"' and val[-1] == '"':
         return val[1:-1].replace('""', '"')
     return val
+
+def unquote_fqident(val):
+    """Unquotes fully-qualified possibly quoted SQL identifier.
+
+    It must be prefixed schema, which does not contain dots.
+    """
+    tmp = val.split('.', 1)
+    return "%s.%s" % (unquote_ident(tmp[0]), unquote_ident(tmp[1]))
 

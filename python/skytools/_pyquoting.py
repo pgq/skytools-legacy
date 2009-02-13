@@ -136,6 +136,7 @@ _esc_map = {
 }
 
 def _sub_unescape_c(m):
+    """unescape single escape seq."""
     v = m.group(1)
     if (len(v) == 1) and (v < '0' or v > '7'):
         try:
@@ -152,8 +153,9 @@ def unescape(val):
     return _esc_rc.sub(_sub_unescape_c, val)
 
 _esql_re = r"''|\\([0-7]{1,3}|.)"
-_esql_rc = re.compile(_esc_re)
+_esql_rc = re.compile(_esql_re)
 def _sub_unescape_sqlext(m):
+    """Unescape extended-quoted string."""
     if m.group() == "''":
         return "'"
     v = m.group(1)

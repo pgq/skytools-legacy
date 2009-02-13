@@ -1,7 +1,7 @@
 
 """Nicer config class."""
 
-import sys, os, ConfigParser, socket
+import os, ConfigParser, socket
 
 __all__ = ['Config']
 
@@ -52,7 +52,7 @@ class Config(object):
         """Reads string value, if not set then default."""
         try:
             return self.cf.get(self.main_section, key)
-        except ConfigParser.NoOptionError, det:
+        except ConfigParser.NoOptionError:
             if default == None:
                 raise Exception("Config value not set: " + key)
             return default
@@ -61,7 +61,7 @@ class Config(object):
         """Reads int value, if not set then default."""
         try:
             return self.cf.getint(self.main_section, key)
-        except ConfigParser.NoOptionError, det:
+        except ConfigParser.NoOptionError:
             if default == None:
                 raise Exception("Config value not set: " + key)
             return default
@@ -70,7 +70,7 @@ class Config(object):
         """Reads boolean value, if not set then default."""
         try:
             return self.cf.getboolean(self.main_section, key)
-        except ConfigParser.NoOptionError, det:
+        except ConfigParser.NoOptionError:
             if default == None:
                 raise Exception("Config value not set: " + key)
             return default
@@ -79,7 +79,7 @@ class Config(object):
         """Reads float value, if not set then default."""
         try:
             return self.cf.getfloat(self.main_section, key)
-        except ConfigParser.NoOptionError, det:
+        except ConfigParser.NoOptionError:
             if default == None:
                 raise Exception("Config value not set: " + key)
             return default
@@ -94,7 +94,7 @@ class Config(object):
             for v in s.split(","):
                 res.append(v.strip())
             return res
-        except ConfigParser.NoOptionError, det:
+        except ConfigParser.NoOptionError:
             if default == None:
                 raise Exception("Config value not set: " + key)
             return default
@@ -129,7 +129,7 @@ class Config(object):
         for key in keys:
             try:
                 return self.cf.get(self.main_section, key)
-            except ConfigParser.NoOptionError, det:
+            except ConfigParser.NoOptionError:
                 pass
 
         if default == None:

@@ -1,6 +1,10 @@
 
 """Tools for Python database scripts."""
 
+__version__ = '3.0'
+
+__pychecker__ = 'no-miximport'
+
 import skytools.quoting
 import skytools.config
 import skytools.psycopgwrapper

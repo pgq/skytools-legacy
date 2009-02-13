@@ -1,4 +1,8 @@
 
+"""SQL script locations."""
+
+__all__ = ['sql_locations']
+
 sql_locations = [
     "@SQLDIR@",
 ]

@@ -11,15 +11,25 @@ from skytools.quoting import quote_statement
 __all__ = ['AdminScript']
 
 class AdminScript(DBScript):
+    """Contains common admin script tools.
+
+    Second argument (first is .ini file) is takes as command
+    name.  If class method 'cmd_' + arg exists, it is called,
+    otherwise error is given.
+    """
     def __init__(self, service_name, args):
+        """AdminScript init."""
         DBScript.__init__(self, service_name, args)
-        self.pidfile = self.pidfile + ".admin"
+        if self.pidfile:
+            self.pidfile = self.pidfile + ".admin"
 
         if len(self.args) < 2:
             self.log.error("need command")
             sys.exit(1)
 
     def work(self):
+        """Non-looping work function, calls command function."""
+
         self.set_single_loop(1)
 
         cmd = self.args[1]
@@ -47,6 +57,7 @@ class AdminScript(DBScript):
         fn(*cmdargs)
 
     def fetch_list(self, db, sql, args, keycol = None):
+        """Fetch a resultset from db, optionally turnin it info value list."""
         curs = db.cursor()
         curs.execute(sql, args)
         rows = curs.fetchall()
@@ -81,85 +92,25 @@ class AdminScript(DBScript):
         fmt = '%%-%ds' * (len(widths) - 1) + '%%s'
         fmt = fmt % tuple(widths[:-1])
         if desc:
-            print desc
-        print fmt % tuple(fields)
-        print fmt % tuple(['-'*15] * len(fields))
+            print(desc)
+        print(fmt % tuple(fields))
+        print(fmt % tuple(['-'*15] * len(fields)))
 
         for row in rows:
-            print fmt % tuple([row[k] for k in fields])
-        print '\n'
+            print(fmt % tuple([row[k] for k in fields]))
+        print('\n')
         return 1
 
 
-    def _exec_cmd(self, curs, sql, args):
-        self.log.debug("exec_cmd: %s" % quote_statement(sql, args))
-        curs.execute(sql, args)
-        ok = True
-        rows = curs.fetchall()
-        for row in rows:
-            try:
-                code = row['ret_code']
-                msg = row['ret_note']
-            except KeyError:
-                self.log.error("Query does not conform to exec_cmd API:")
-                self.log.error("SQL: %s" % quote_statement(sql, args))
-                self.log.error("Row: %s" % repr(row.copy()))
-                sys.exit(1)
-            level = code / 100
-            if level == 1:
-                self.log.debug("%d %s" % (code, msg))
-            elif level == 2:
-                self.log.info("%d %s" % (code, msg))
-            elif level == 3:
-                self.log.warning("%d %s" % (code, msg))
-            else:
-                self.log.error("%d %s" % (code, msg))
-                self.log.error("Query was: %s" % skytools.quote_statement(sql, args))
-                ok = False
-        return (ok, rows)
-
-    def _exec_cmd_many(self, curs, sql, baseargs, extra_list):
-        ok = True
-        rows = []
-        for a in extra_list:
-            (tmp_ok, tmp_rows) = self._exec_cmd(curs, sql, baseargs + [a])
-            ok = tmp_ok and ok
-            rows += tmp_rows
-        return (ok, rows)
-
-    def exec_cmd(self, db, q, args, commit = True):
-        (ok, rows) = self._exec_cmd(db.cursor(), q, args)
-        if ok:
-            if commit:
-                self.log.info("COMMIT")
-                db.commit()
-            return rows
-        else:
-            self.log.info("ROLLBACK")
-            db.rollback()
-            raise EXception("rollback")
-
-    def exec_cmd_many(self, db, sql, baseargs, extra_list, commit = True):
-        curs = db.cursor()
-        (ok, rows) = self._exec_cmd_many(curs, sql, baseargs, extra_list)
-        if ok:
-            if commit:
-                self.log.info("COMMIT")
-                db.commit()
-            return rows
-        else:
-            self.log.info("ROLLBACK")
-            db.rollback()
-            raise EXception("rollback")
-
-
     def exec_stmt(self, db, sql, args):
+        """Run regular non-query SQL on db."""
         self.log.debug("exec_stmt: %s" % quote_statement(sql, args))
         curs = db.cursor()
         curs.execute(sql, args)
         db.commit()
 
     def exec_query(self, db, sql, args):
+        """Run regular query SQL on db."""
         self.log.debug("exec_query: %s" % quote_statement(sql, args))
         curs = db.cursor()
         curs.execute(sql, args)

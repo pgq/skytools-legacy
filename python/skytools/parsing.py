@@ -42,11 +42,14 @@ def parse_pgarray(array):
 #
 
 class _logtriga_parser:
+    """Parses logtriga/sqltriga partial SQL to values."""
     def tokenizer(self, sql):
+        """Token generator."""
         for typ, tok in sql_tokenizer(sql, ignore_whitespace = True):
             yield tok
 
     def parse_insert(self, tk, fields, values):
+        """Handler for inserts."""
         # (col1, col2) values ('data', null)
         if tk.next() != "(":
             raise Exception("syntax error")
@@ -73,6 +76,7 @@ class _logtriga_parser:
         raise Exception("expected EOF, got " + repr(t))
 
     def parse_update(self, tk, fields, values):
+        """Handler for updates."""
         # col1 = 'data1', col2 = null where pk1 = 'pk1' and pk2 = 'pk2'
         while 1:
             fields.append(tk.next())
@@ -97,6 +101,7 @@ class _logtriga_parser:
                 raise Exception("syntax error, expected AND got "+repr(t))
 
     def parse_delete(self, tk, fields, values):
+        """Handler for deletes."""
         # pk1 = 'pk1' and pk2 = 'pk2'
         while 1:
             fields.append(tk.next())
@@ -108,6 +113,7 @@ class _logtriga_parser:
                 raise Exception("syntax error, expected AND, got "+repr(t))
 
     def parse_sql(self, op, sql):
+        """Main entry point."""
         tk = self.tokenizer(sql)
         fields = []
         values = []

@@ -1,12 +1,28 @@
 
 """Useful functions and classes for database scripts."""
 
-import sys, os, signal, optparse, traceback, time, errno
+import sys, os, signal, optparse, time, errno
 import logging, logging.handlers, logging.config
 
 from skytools.config import *
 from skytools.psycopgwrapper import connect_database
+from skytools.quoting import quote_statement
 import skytools.skylog
+
+__pychecker__ = 'no-badexcept'
+
+#: how old connections need to be closed
+DEF_CONN_AGE = 20*60  # 20 min
+
+#: isolation level not set
+I_DEFAULT = -1
+
+#: isolation level constant for AUTOCOMMIT
+I_AUTOCOMMIT = 0
+#: isolation level constant for READ COMMITTED
+I_READ_COMMITTED = 1
+#: isolation level constant for SERIALIZABLE
+I_SERIALIZABLE = 2
 
 __all__ = ['DBScript', 'I_AUTOCOMMIT', 'I_READ_COMMITTED', 'I_SERIALIZABLE',
            'signal_pidfile']
@@ -80,10 +96,10 @@ def run_single_process(runnable, daemon, pidfile):
     # check if another process is running
     if pidfile and os.path.isfile(pidfile):
         if signal_pidfile(pidfile, 0):
-            print "Pidfile exists, another process running?"
+            print("Pidfile exists, another process running?")
             sys.exit(1)
         else:
-            print "Ignoring stale pidfile"
+            print("Ignoring stale pidfile")
 
     # daemonize if needed and write pidfile
     if daemon:
@@ -122,8 +138,8 @@ def _init_log(job_name, service_name, cf, log_level):
         skytools.skylog.set_service_name(service_name)
 
         # load general config
-        list = ['skylog.ini', '~/.skylog.ini', '/etc/skylog.ini']
-        for fn in list:
+        flist = ['skylog.ini', '~/.skylog.ini', '/etc/skylog.ini']
+        for fn in flist:
             fn = os.path.expanduser(fn)
             if os.path.isfile(fn):
                 defs = {'job_name': job_name, 'service_name': service_name}
@@ -163,33 +179,24 @@ def _init_log(job_name, service_name, cf, log_level):
 
     return log
 
-#: how old connections need to be closed
-DEF_CONN_AGE = 20*60  # 20 min
-
-#: isolation level not set
-I_DEFAULT = -1
-
-#: isolation level constant for AUTOCOMMIT
-I_AUTOCOMMIT = 0
-#: isolation level constant for READ COMMITTED
-I_READ_COMMITTED = 1
-#: isolation level constant for SERIALIZABLE
-I_SERIALIZABLE = 2
-
 class DBCachedConn(object):
     """Cache a db connection."""
-    def __init__(self, name, loc, max_age = DEF_CONN_AGE):
+    def __init__(self, name, loc, max_age = DEF_CONN_AGE, verbose = False, setup_func=None):
         self.name = name
         self.loc = loc
         self.conn = None
         self.conn_time = 0
         self.max_age = max_age
         self.autocommit = -1
-        self.isolation_level = -1
+        self.isolation_level = I_DEFAULT
+        self.verbose = verbose
+        self.setup_func = setup_func
 
-    def get_connection(self, autocommit = 0, isolation_level = -1):
+    def get_connection(self, autocommit = 0, isolation_level = I_DEFAULT):
         # autocommit overrider isolation_level
         if autocommit:
+            if isolation_level == I_SERIALIZABLE:
+                raise Exception('autocommit is not compatible with I_SERIALIZABLE')
             isolation_level = I_AUTOCOMMIT
 
         # default isolation_level is READ COMMITTED
@@ -200,9 +207,12 @@ class DBCachedConn(object):
         if not self.conn:
             self.isolation_level = isolation_level
             self.conn = connect_database(self.loc)
+            self.conn.my_name = self.name
 
             self.conn.set_isolation_level(isolation_level)
             self.conn_time = time.time()
+            if self.setup_func:
+                self.setup_func(self.name, self.conn)
         else:
             if self.isolation_level != isolation_level:
                 raise Exception("Conflict in isolation_level")
@@ -250,6 +260,8 @@ class DBScript(object):
     job_name = None
     cf = None
     log = None
+    pidfile = None
+    loop_delay = 1
 
     def __init__(self, service_name, args):
         """Script setup.
@@ -286,7 +298,7 @@ class DBScript(object):
         if self.options.verbose:
             self.log_level = logging.DEBUG
         if len(self.args) < 1:
-            print "need config file"
+            print("need config file")
             sys.exit(1)
 
         # read config file
@@ -305,6 +317,8 @@ class DBScript(object):
             self.send_signal(signal.SIGHUP)
 
     def load_config(self):
+        """Loads and returns skytools.Config instance."""
+
         conf_file = self.args[0]
         return Config(self.service_name, conf_file)
 
@@ -369,7 +383,21 @@ class DBScript(object):
             if not self.pidfile:
                 self.log.error("Daemon needs pidfile")
                 sys.exit(1)
-        run_single_process(self, self.go_daemon, self.pidfile)
+
+        try:
+            run_single_process(self, self.go_daemon, self.pidfile)
+        except KeyboardInterrupt:
+            raise
+        except SystemExit:
+            raise
+        except Exception:
+            # catch startup errors
+            exc, msg, tb = sys.exc_info()
+            self.log.exception("Job %s crashed on startup: %s: %s" % (
+                       self.job_name, str(exc), str(msg).rstrip()))
+            del tb
+            sys.exit(1)
+
 
     def stop(self):
         """Safely stops processing loop."""
@@ -386,9 +414,15 @@ class DBScript(object):
         "Internal SIGHUP handler.  Minimal code here."
         self.need_reload = 1
 
+    last_sigint = 0
     def hook_sigint(self, sig, frame):
         "Internal SIGINT handler.  Minimal code here."
         self.stop()
+        t = time.time()
+        if t - self.last_sigint < 1:
+            self.log.warning("Double ^C, fast exit")
+            sys.exit(1)
+        self.last_sigint = t
 
     def stat_add(self, key, value):
         """Old, deprecated function."""
@@ -419,6 +453,9 @@ class DBScript(object):
         self.log.info(logmsg)
         self.stat_dict = {}
 
+    def connection_setup(self, dbname, conn):
+        pass
+
     def get_database(self, dbname, autocommit = 0, isolation_level = -1,
                      cache = None, connstr = None):
         """Load cached database connection.
@@ -435,7 +472,7 @@ class DBScript(object):
         else:
             if not connstr:
                 connstr = self.cf.get(dbname)
-            dbc = DBCachedConn(cache, connstr, max_age)
+            dbc = DBCachedConn(cache, connstr, max_age, setup_func = self.connection_setup)
             self.db_cache[cache] = dbc
 
         return dbc.get_connection(autocommit, isolation_level)
@@ -462,15 +499,14 @@ class DBScript(object):
         # run startup, safely
         try:
             self.startup()
-        except KeyboardInterrupt, det:
+        except KeyboardInterrupt:
             raise
-        except SystemExit, det:
+        except SystemExit:
             raise
-        except Exception, det:
+        except Exception:
             exc, msg, tb = sys.exc_info()
-            self.log.fatal("Job %s crashed: %s: '%s' (%s: %s)" % (
-                       self.job_name, str(exc), str(msg).rstrip(),
-                       str(tb), repr(traceback.format_tb(tb))))
+            self.log.exception("Job %s crashed: %s: %s" % (
+                       self.job_name, str(exc), str(msg).rstrip()))
             del tb
             self.reset()
             sys.exit(1)
@@ -523,10 +559,9 @@ class DBScript(object):
         except Exception, d:
             self.send_stats()
             exc, msg, tb = sys.exc_info()
-            self.log.fatal("Job %s crashed: %s: '%s' (%s: %s)" % (
-                       self.job_name, str(exc), str(msg).rstrip(),
-                       str(tb), repr(traceback.format_tb(tb))))
             del tb
+            self.log.exception("Job %s crashed: %s: %s" % (
+                       self.job_name, str(exc), str(msg).rstrip()))
             self.reset()
             if self.looping and not self.do_single_loop:
                 time.sleep(20)
@@ -552,5 +587,83 @@ class DBScript(object):
         # set signals
         signal.signal(signal.SIGHUP, self.hook_sighup)
         signal.signal(signal.SIGINT, self.hook_sigint)
+
+    def _exec_cmd(self, curs, sql, args, quiet = False):
+        """Internal tool: Run SQL on cursor."""
+        self.log.debug("exec_cmd: %s" % quote_statement(sql, args))
+        curs.execute(sql, args)
+        ok = True
+        rows = curs.fetchall()
+        for row in rows:
+            try:
+                code = row['ret_code']
+                msg = row['ret_note']
+            except KeyError:
+                self.log.error("Query does not conform to exec_cmd API:")
+                self.log.error("SQL: %s" % quote_statement(sql, args))
+                self.log.error("Row: %s" % repr(row.copy()))
+                sys.exit(1)
+            level = code / 100
+            if level == 1:
+                self.log.debug("%d %s" % (code, msg))
+            elif level == 2:
+                if quiet:
+                    self.log.debug("%d %s" % (code, msg))
+                else:
+                    self.log.info("%s" % (msg,))
+            elif level == 3:
+                self.log.warning("%s" % (msg,))
+            else:
+                self.log.error("%s" % (msg,))
+                self.log.error("Query was: %s" % quote_statement(sql, args))
+                ok = False
+        return (ok, rows)
+
+    def _exec_cmd_many(self, curs, sql, baseargs, extra_list, quiet = False):
+        """Internal tool: Run SQL on cursor multiple times."""
+        ok = True
+        rows = []
+        for a in extra_list:
+            (tmp_ok, tmp_rows) = self._exec_cmd(curs, sql, baseargs + [a], quiet=quiet)
+            if not tmp_ok:
+                ok = False
+            rows += tmp_rows
+        return (ok, rows)
+
+    def exec_cmd(self, db_or_curs, q, args, commit = True, quiet = False):
+        """Run SQL on db with code/value error handling."""
+        if hasattr(db_or_curs, 'cursor'):
+            db = db_or_curs
+            curs = db.cursor()
+        else:
+            db = None
+            curs = db_or_curs
+        (ok, rows) = self._exec_cmd(curs, q, args, quiet = quiet)
+        if ok:
+            if commit and db:
+                db.commit()
+            return rows
+        else:
+            if db:
+                db.rollback()
+            raise Exception("db error")
+
+    def exec_cmd_many(self, db_or_curs, sql, baseargs, extra_list, commit = True, quiet = False):
+        """Run SQL on db multiple times."""
+        if hasattr(db_or_curs, 'cursor'):
+            db = db_or_curs
+            curs = db.cursor()
+        else:
+            db = None
+            curs = db_or_curs
+        (ok, rows) = self._exec_cmd_many(curs, sql, baseargs, extra_list, quiet=quiet)
+        if ok:
+            if commit and db:
+                db.commit()
+            return rows
+        else:
+            if db:
+                db.rollback()
+            raise Exception("db error")
 
 

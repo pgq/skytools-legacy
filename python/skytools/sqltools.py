@@ -9,6 +9,7 @@ import skytools.installer_config
 __all__ = [
     "fq_name_parts", "fq_name", "get_table_oid", "get_table_pkeys",
     "get_table_columns", "exists_schema", "exists_table", "exists_type",
+    "exists_sequence",
     "exists_function", "exists_language", "Snapshot", "magic_insert",
     "CopyPipe", "full_copy", "DBObject", "DBSchema", "DBTable", "DBFunction",
     "DBLanguage", "db_install", "installer_find_file", "installer_apply_file",
@@ -19,9 +20,15 @@ class dbdict(dict):
     """Wrapper on actual dict that allows
     accessing dict keys as attributes."""
     # obj.foo access
-    def __getattr__(self, k):       return self[k]
-    def __setattr__(self, k, v):    self[k] = v
-    def __delattr__(self, k):       del self[k]
+    def __getattr__(self, k):
+        "Return attribute."
+        return self[k]
+    def __setattr__(self, k, v):
+        "Set attribute."
+        self[k] = v
+    def __delattr__(self, k):
+        "Remove attribute"
+        del self[k]
 
 #
 # Fully qualified table name
@@ -46,6 +53,7 @@ def fq_name(tbl):
 # info about table
 #
 def get_table_oid(curs, table_name):
+    """Find Postgres OID for table."""
     schema, name = fq_name_parts(table_name)
     q = """select c.oid from pg_namespace n, pg_class c
            where c.relnamespace = n.oid
@@ -57,6 +65,7 @@ def get_table_oid(curs, table_name):
     return res[0][0]
 
 def get_table_pkeys(curs, tbl):
+    """Return list of pkey column names."""
     oid = get_table_oid(curs, tbl)
     q = "SELECT k.attname FROM pg_index i, pg_attribute k"\
         " WHERE i.indrelid = %s AND k.attrelid = i.indexrelid"\
@@ -66,6 +75,7 @@ def get_table_pkeys(curs, tbl):
     return map(lambda x: x[0], curs.fetchall())
 
 def get_table_columns(curs, tbl):
+    """Return list of column names for table."""
     oid = get_table_oid(curs, tbl)
     q = "SELECT k.attname FROM pg_attribute k"\
         " WHERE k.attrelid = %s"\
@@ -78,12 +88,14 @@ def get_table_columns(curs, tbl):
 # exist checks
 #
 def exists_schema(curs, schema):
+    """Does schema exists?"""
     q = "select count(1) from pg_namespace where nspname = %s"
     curs.execute(q, [schema])
     res = curs.fetchone()
     return res[0]
 
 def exists_table(curs, table_name):
+    """Does table exists?"""
     schema, name = fq_name_parts(table_name)
     q = """select count(1) from pg_namespace n, pg_class c
            where c.relnamespace = n.oid and c.relkind = 'r'
@@ -92,7 +104,18 @@ def exists_table(curs, table_name):
     res = curs.fetchone()
     return res[0]
 
+def exists_sequence(curs, seq_name):
+    """Does sequence exists?"""
+    schema, name = fq_name_parts(seq_name)
+    q = """select count(1) from pg_namespace n, pg_class c
+           where c.relnamespace = n.oid and c.relkind = 'S'
+             and n.nspname = %s and c.relname = %s"""
+    curs.execute(q, [schema, name])
+    res = curs.fetchone()
+    return res[0]
+
 def exists_type(curs, type_name):
+    """Does type exists?"""
     schema, name = fq_name_parts(type_name)
     q = """select count(1) from pg_namespace n, pg_type t
            where t.typnamespace = n.oid
@@ -102,6 +125,7 @@ def exists_type(curs, type_name):
     return res[0]
 
 def exists_function(curs, function_name, nargs):
+    """Does function exists?"""
     # this does not check arg types, so may match several functions
     schema, name = fq_name_parts(function_name)
     q = """select count(1) from pg_namespace n, pg_proc p
@@ -118,6 +142,7 @@ def exists_function(curs, function_name, nargs):
     return res[0]
 
 def exists_language(curs, lang_name):
+    """Does PL exists?"""
     q = """select count(1) from pg_language
            where lanname = %s"""
     curs.execute(q, [lang_name])
@@ -331,11 +356,13 @@ class DBObject(object):
     sql = None
     sql_file = None
     def __init__(self, name, sql = None, sql_file = None):
+        """Generic dbobject init."""
         self.name = name
         self.sql = sql
         self.sql_file = sql_file
 
     def create(self, curs, log = None):
+        """Create a dbobject."""
         if log:
             log.info('Installing %s' % self.name)
         if self.sql:
@@ -352,13 +379,14 @@ class DBObject(object):
             curs.execute(stmt)
 
     def find_file(self):
+        """Find install script file."""
         full_fn = None
         if self.sql_file[0] == "/":
             full_fn = self.sql_file
         else:
             dir_list = skytools.installer_config.sql_locations
-            for dir in dir_list:
-                fn = os.path.join(dir, self.sql_file)
+            for fdir in dir_list:
+                fn = os.path.join(fdir, self.sql_file)
                 if os.path.isfile(fn):
                     full_fn = fn
                     break
@@ -370,26 +398,32 @@ class DBObject(object):
 class DBSchema(DBObject):
     """Handles db schema."""
     def exists(self, curs):
+        """Does schema exists."""
         return exists_schema(curs, self.name)
 
 class DBTable(DBObject):
     """Handles db table."""
     def exists(self, curs):
+        """Does table exists."""
         return exists_table(curs, self.name)
 
 class DBFunction(DBObject):
     """Handles db function."""
     def __init__(self, name, nargs, sql = None, sql_file = None):
+        """Function object - number of args is significant."""
         DBObject.__init__(self, name, sql, sql_file)
         self.nargs = nargs
     def exists(self, curs):
+        """Does function exists."""
         return exists_function(curs, self.name, self.nargs)
 
 class DBLanguage(DBObject):
     """Handles db language."""
     def __init__(self, name):
+        """PL object - creation happens with CREATE LANGUAGE."""
         DBObject.__init__(self, name, sql = "create language %s" % name)
     def exists(self, curs):
+        """Does PL exists."""
         return exists_language(curs, self.name)
 
 def db_install(curs, list, log = None):
@@ -402,14 +436,15 @@ def db_install(curs, list, log = None):
                 log.info('%s is installed' % obj.name)
 
 def installer_find_file(filename):
+    """Find SQL script from pre-defined paths."""
     full_fn = None
     if filename[0] == "/":
         if os.path.isfile(filename):
             full_fn = filename
     else:
         dir_list = ["."] + skytools.installer_config.sql_locations
-        for dir in dir_list:
-            fn = os.path.join(dir, filename)
+        for fdir in dir_list:
+            fn = os.path.join(fdir, filename)
             if os.path.isfile(fn):
                 full_fn = fn
                 break
@@ -419,6 +454,7 @@ def installer_find_file(filename):
     return full_fn
 
 def installer_apply_file(db, filename, log):
+    """Find SQL file and apply it to db, statement-by-statement."""
     fn = installer_find_file(filename)
     sql = open(fn, "r").read()
     if log:

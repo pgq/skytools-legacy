@@ -1,16 +1,60 @@
 
-"""Wrapper around psycopg1/2.
+"""Wrapper around psycopg2.
 
-Preferred is psycopg2, fallback to psycopg1.
+Database connection provides regular DB-API 2.0 interface.
 
-Interface provided is psycopg1:
-    - dict* methods.
-    - new columns can be assigned to row.
+Connection object methods::
+
+    .cursor()
+
+    .commit()
+
+    .rollback()
+
+    .close()
+
+Cursor methods::
+
+    .execute(query[, args])
+
+    .fetchone()
+
+    .fetchall()
+
+
+Sample usage::
+
+    db = self.get_database('somedb')
+    curs = db.cursor()
+
+    # query arguments as array
+    q = "select * from table where id = %s and name = %s"
+    curs.execute(q, [1, 'somename'])
+
+    # query arguments as dict
+    q = "select id, name from table where id = %(id)s and name = %(name)s"
+    curs.execute(q, {'id': 1, 'name': 'somename'})
+
+    # loop over resultset
+    for row in curs.fetchall():
+
+        # columns can be asked by index:
+        id = row[0]
+        name = row[1]
+
+        # and by name:
+        id = row['id']
+        name = row['name']
+
+    # now commit the transaction
+    db.commit()
+
+Deprecated interface:  .dictfetchall/.dictfetchone functions on cursor.
+Plain .fetchall() / .fetchone() give exact same result.
 
 """
 
-import sys
-
+# no exports
 __all__ = []
 
 ##from psycopg2.psycopg1 import connect as _pgconnect
@@ -54,6 +98,7 @@ class _CompatCursor(psycopg2.extras.DictCursor):
 
 class _CompatConnection(psycopg2.extensions.connection):
     """Connection object that uses _CompatCursor."""
+    my_name = '?'
     def cursor(self):
         return psycopg2.extensions.connection.cursor(self, cursor_factory = _CompatCursor)
 
