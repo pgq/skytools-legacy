@@ -19,8 +19,7 @@ share_dup_files = [
    'sql/pgq/pgq.sql',
    'sql/londiste/londiste.sql',
    'sql/pgq_ext/pgq_ext.sql',
-   'sql/pgq_set/pgq_set.sql',
-   'sql/logtriga/logtriga.sql',
+   'sql/pgq_node/pgq_node.sql',
 ]
 if os.path.isfile('sql/txid/txid.sql'):
    share_dup_files.append('sql/txid/txid.sql')

@@ -1,18 +1,18 @@
 
-create or replace function pgq_set.get_member_info(
-    in i_set_name text,
+create or replace function pgq_node.get_queue_locations(
+    in i_queue_name text,
 
     out node_name text,
     out node_location text,
     out dead boolean
 ) returns setof record as $$
 -- ----------------------------------------------------------------------
--- Function: pgq_set.get_member_info(1)
+-- Function: pgq_node.get_queue_locations(1)
 --
---      Get member list for the set.
+--      Get node list for the queue.
 --
 -- Parameters:
---      i_set_name  - set name
+--      i_queue_name    - queue name
 --
 -- Returns:
 --      node_name       - node name
@@ -21,9 +21,9 @@ create or replace function pgq_set.get_member_info(
 -- ----------------------------------------------------------------------
 begin
     for node_name, node_location, dead in
-        select m.node_name, m.node_location, m.dead
-          from pgq_set.member_info m
-         where m.set_name = i_set_name
+        select l.node_name, l.node_location, l.dead
+          from pgq_node.node_location l
+         where l.queue_name = i_queue_name
     loop
         return next;
     end loop;

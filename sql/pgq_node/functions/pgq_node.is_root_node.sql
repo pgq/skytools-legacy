@@ -1,21 +1,21 @@
-create or replace function pgq_set.is_root(i_set_name text)
+create or replace function pgq_node.is_root_node(i_queue_name text)
 returns bool as $$
 -- ----------------------------------------------------------------------
--- Function: pgq_set.is_root(1)
+-- Function: pgq_node.is_root_node(1)
 --
 --      Checs if node is root.
 --
 -- Parameters:
---      i_set_name  - set name
+--      i_queue_name  - queue name
 -- ----------------------------------------------------------------------
 declare
     res bool;
 begin
     select n.node_type = 'root' into res
-      from pgq_set.set_info n
-      where n.set_name = i_set_name;
+      from pgq_node.node_info n
+      where n.queue_name = i_queue_name;
     if not found then
-        raise exception 'set does not exist: %', i_set_name;
+        raise exception 'queue does not exist: %', i_queue_name;
     end if;
     return res;
 end;

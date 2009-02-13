@@ -1,0 +1,328 @@
+\set ECHO none
+select * from pgq_node.register_location('aqueue', 'node1', 'dbname=node1', false);
+ ret_code |      ret_note       
+----------+---------------------
+      200 | Location registered
+(1 row)
+
+select * from pgq_node.register_location('aqueue', 'node2', 'dbname=node2', false);
+ ret_code |      ret_note       
+----------+---------------------
+      200 | Location registered
+(1 row)
+
+select * from pgq_node.register_location('aqueue', 'node3', 'dbname=node3', false);
+ ret_code |      ret_note       
+----------+---------------------
+      200 | Location registered
+(1 row)
+
+select * from pgq_node.register_location('aqueue', 'node4', 'dbname=node44', false);
+ ret_code |      ret_note       
+----------+---------------------
+      200 | Location registered
+(1 row)
+
+select * from pgq_node.register_location('aqueue', 'node4', 'dbname=node4', false);
+ ret_code |      ret_note       
+----------+---------------------
+      200 | Location registered
+(1 row)
+
+select * from pgq_node.register_location('aqueue', 'node5', 'dbname=node4', false);
+ ret_code |      ret_note       
+----------+---------------------
+      200 | Location registered
+(1 row)
+
+select * from pgq_node.get_queue_locations('aqueue');
+ node_name | node_location | dead 
+-----------+---------------+------
+ node1     | dbname=node1  | f
+ node2     | dbname=node2  | f
+ node3     | dbname=node3  | f
+ node4     | dbname=node4  | f
+ node5     | dbname=node4  | f
+(5 rows)
+
+select * from pgq_node.unregister_location('aqueue', 'node5');
+ ret_code | ret_note 
+----------+----------
+      200 | Ok
+(1 row)
+
+select * from pgq_node.unregister_location('aqueue', 'node5');
+ ret_code |             ret_note             
+----------+----------------------------------
+      301 | Location not found: aqueue/node5
+(1 row)
+
+select * from pgq_node.get_queue_locations('aqueue');
+ node_name | node_location | dead 
+-----------+---------------+------
+ node1     | dbname=node1  | f
+ node2     | dbname=node2  | f
+ node3     | dbname=node3  | f
+ node4     | dbname=node4  | f
+(4 rows)
+
+select * from pgq_node.create_node('aqueue', 'root', 'node1', 'node1_worker', null, null, null);
+ ret_code |                          ret_note                           
+----------+-------------------------------------------------------------
+      200 | Node "node1" initialized for queue "node1" with type "root"
+(1 row)
+
+select * from pgq_node.register_subscriber('aqueue', 'node2', 'node2_worker', null);
+ ret_code |           ret_note           | global_watermark 
+----------+------------------------------+------------------
+      200 | Subscriber registered: node2 |                1
+(1 row)
+
+select * from pgq_node.register_subscriber('aqueue', 'node3', 'node3_worker', null);
+ ret_code |           ret_note           | global_watermark 
+----------+------------------------------+------------------
+      200 | Subscriber registered: node3 |                1
+(1 row)
+
+select * from pgq_node.get_consumer_info('aqueue');
+ consumer_name | provider_node | last_tick_id | paused | uptodate 
+---------------+---------------+--------------+--------+----------
+ node1_worker  | node1         |            1 | f      | f
+(1 row)
+
+select * from pgq_node.unregister_subscriber('aqueue', 'node3');
+ ret_code |            ret_note            
+----------+--------------------------------
+      200 | Subscriber unregistered: node3
+(1 row)
+
+select queue_name, consumer_name, last_tick from pgq.get_consumer_info();
+ queue_name |   consumer_name   | last_tick 
+------------+-------------------+-----------
+ aqueue     | .global_watermark |         1
+ aqueue     | .node2.watermark  |         1
+ aqueue     | node2_worker      |         1
+(3 rows)
+
+update pgq.queue set queue_ticker_max_lag = '0', queue_ticker_idle_period = '0';
+select * from pgq.ticker('aqueue');
+ ticker 
+--------
+      2
+(1 row)
+
+select * from pgq.ticker('aqueue');
+ ticker 
+--------
+      3
+(1 row)
+
+select * from pgq_node.set_subscriber_watermark('aqueue', 'node2', 3);
+ ret_code | ret_note 
+----------+----------
+      200 | Ok
+(1 row)
+
+select queue_name, consumer_name, last_tick from pgq.get_consumer_info();
+ queue_name |   consumer_name   | last_tick 
+------------+-------------------+-----------
+ aqueue     | .global_watermark |         1
+ aqueue     | .node2.watermark  |         3
+ aqueue     | node2_worker      |         1
+(3 rows)
+
+select * from pgq_node.get_node_info('aqueue');
+ ret_code | ret_note | node_type | node_name | global_watermark | local_watermark | provider_node | provider_location | combined_queue | combined_type | worker_name  | worker_paused | worker_uptodate | worker_last_tick 
+----------+----------+-----------+-----------+------------------+-----------------+---------------+-------------------+----------------+---------------+--------------+---------------+-----------------+------------------
+      200 | Ok       | root      | node1     |                1 |               1 | node1         | dbname=node1      |                |               | node1_worker | f             | f               |                1
+(1 row)
+
+select * from pgq_node.get_subscriber_info('aqueue');
+ node_name | worker_name  | node_watermark 
+-----------+--------------+----------------
+ node2     | node2_worker |              3
+(1 row)
+
+-- branch node
+select * from pgq_node.register_location('bqueue', 'node1', 'dbname=node1', false);
+ ret_code |      ret_note       
+----------+---------------------
+      200 | Location registered
+(1 row)
+
+select * from pgq_node.register_location('bqueue', 'node2', 'dbname=node2', false);
+ ret_code |      ret_note       
+----------+---------------------
+      200 | Location registered
+(1 row)
+
+select * from pgq_node.register_location('bqueue', 'node3', 'dbname=node3', false);
+ ret_code |      ret_note       
+----------+---------------------
+      200 | Location registered
+(1 row)
+
+select * from pgq_node.create_node('bqueue', 'branch', 'node2', 'node2_worker', 'node1', 1, null);
+ ret_code |                           ret_note                            
+----------+---------------------------------------------------------------
+      200 | Node "node2" initialized for queue "node2" with type "branch"
+(1 row)
+
+select * from pgq_node.register_consumer('bqueue', 'random_consumer', 'node1', 1);
+ ret_code |                      ret_note                       
+----------+-----------------------------------------------------
+      200 | Consumer random_consumer registered on queue bqueue
+(1 row)
+
+select * from pgq_node.register_consumer('bqueue', 'random_consumer2', 'node1', 1);
+ ret_code |                       ret_note                       
+----------+------------------------------------------------------
+      200 | Consumer random_consumer2 registered on queue bqueue
+(1 row)
+
+select * from pgq_node.local_state;
+ queue_name |  consumer_name   | provider_node | last_tick_id | paused | uptodate 
+------------+------------------+---------------+--------------+--------+----------
+ aqueue     | node1_worker     | node1         |            1 | f      | f
+ bqueue     | node2_worker     | node1         |            1 | f      | f
+ bqueue     | random_consumer  | node1         |            1 | f      | f
+ bqueue     | random_consumer2 | node1         |            1 | f      | f
+(4 rows)
+
+select * from pgq_node.node_info;
+ queue_name | node_type | node_name | worker_name  | combined_queue 
+------------+-----------+-----------+--------------+----------------
+ aqueue     | root      | node1     | node1_worker | 
+ bqueue     | branch    | node2     | node2_worker | 
+(2 rows)
+
+select * from pgq_node.get_node_info('aqueue');
+ ret_code | ret_note | node_type | node_name | global_watermark | local_watermark | provider_node | provider_location | combined_queue | combined_type | worker_name  | worker_paused | worker_uptodate | worker_last_tick 
+----------+----------+-----------+-----------+------------------+-----------------+---------------+-------------------+----------------+---------------+--------------+---------------+-----------------+------------------
+      200 | Ok       | root      | node1     |                1 |               1 | node1         | dbname=node1      |                |               | node1_worker | f             | f               |                1
+(1 row)
+
+select * from pgq_node.get_node_info('bqueue');
+ ret_code | ret_note | node_type | node_name | global_watermark | local_watermark | provider_node | provider_location | combined_queue | combined_type | worker_name  | worker_paused | worker_uptodate | worker_last_tick 
+----------+----------+-----------+-----------+------------------+-----------------+---------------+-------------------+----------------+---------------+--------------+---------------+-----------------+------------------
+      200 | Ok       | branch    | node2     |                1 |               1 | node1         | dbname=node1      |                |               | node2_worker | f             | f               |                1
+(1 row)
+
+select * from pgq_node.get_node_info('cqueue');
+ ret_code |       ret_note        | node_type | node_name | global_watermark | local_watermark | provider_node | provider_location | combined_queue | combined_type | worker_name | worker_paused | worker_uptodate | worker_last_tick 
+----------+-----------------------+-----------+-----------+------------------+-----------------+---------------+-------------------+----------------+---------------+-------------+---------------+-----------------+------------------
+      404 | Unknown queue: cqueue |           |           |                  |                 |               |                   |                |               |             |               |                 |                 
+(1 row)
+
+select * from pgq_node.is_root_node('aqueue');
+ is_root_node 
+--------------
+ t
+(1 row)
+
+select * from pgq_node.is_root_node('bqueue');
+ is_root_node 
+--------------
+ f
+(1 row)
+
+select * from pgq_node.is_root_node('cqueue');
+ERROR:  queue does not exist: cqueue
+select * from pgq_node.get_consumer_state('bqueue', 'random_consumer');
+ ret_code | ret_note | node_type | node_name | completed_tick | provider_node | provider_location | paused | uptodate 
+----------+----------+-----------+-----------+----------------+---------------+-------------------+--------+----------
+      200 | Ok       | branch    | node2     |              1 | node1         | dbname=node1      | f      | f
+(1 row)
+
+select * from pgq_node.get_consumer_state('bqueue', 'random_consumer2');
+ ret_code | ret_note | node_type | node_name | completed_tick | provider_node | provider_location | paused | uptodate 
+----------+----------+-----------+-----------+----------------+---------------+-------------------+--------+----------
+      200 | Ok       | branch    | node2     |              1 | node1         | dbname=node1      | f      | f
+(1 row)
+
+select * from pgq_node.set_consumer_completed('bqueue', 'random_consumer2', 2);
+ ret_code | ret_note 
+----------+----------
+      200 | Ok
+(1 row)
+
+select * from pgq_node.set_consumer_paused('bqueue', 'random_consumer2', true);
+ ret_code |                  ret_note                  
+----------+--------------------------------------------
+      200 | Consumer random_consumer2 tagged as paused
+(1 row)
+
+select * from pgq_node.set_consumer_uptodate('bqueue', 'random_consumer2', true);
+ ret_code |         ret_note         
+----------+--------------------------
+      200 | Consumer uptodate = true
+(1 row)
+
+select * from pgq_node.change_consumer_provider('bqueue', 'random_consumer2', 'node3');
+ ret_code |               ret_note                
+----------+---------------------------------------
+      200 | Consumer provider node set to : node3
+(1 row)
+
+select * from pgq_node.get_consumer_state('bqueue', 'random_consumer2');
+ ret_code | ret_note | node_type | node_name | completed_tick | provider_node | provider_location | paused | uptodate 
+----------+----------+-----------+-----------+----------------+---------------+-------------------+--------+----------
+      200 | Ok       | branch    | node2     |              2 | node3         | dbname=node3      | t      | f
+(1 row)
+
+select * from pgq_node.unregister_consumer('bqueue', 'random_consumer2');
+ ret_code |                      ret_note                      
+----------+----------------------------------------------------
+      200 | Consumer random_consumer2 unregistered from bqueue
+(1 row)
+
+select * from pgq_node.get_consumer_state('bqueue', 'random_consumer2');
+ ret_code |                 ret_note                  | node_type | node_name | completed_tick | provider_node | provider_location | paused | uptodate 
+----------+-------------------------------------------+-----------+-----------+----------------+---------------+-------------------+--------+----------
+      404 | Unknown consumer: bqueue/random_consumer2 |           |           |                |               |                   |        | 
+(1 row)
+
+select * from pgq_node.get_node_info('bqueue');
+ ret_code | ret_note | node_type | node_name | global_watermark | local_watermark | provider_node | provider_location | combined_queue | combined_type | worker_name  | worker_paused | worker_uptodate | worker_last_tick 
+----------+----------+-----------+-----------+------------------+-----------------+---------------+-------------------+----------------+---------------+--------------+---------------+-----------------+------------------
+      200 | Ok       | branch    | node2     |                1 |               1 | node1         | dbname=node1      |                |               | node2_worker | f             | f               |                1
+(1 row)
+
+set session_replication_role = 'replica';
+select * from pgq_node.demote_root('aqueue', 1, 'node3');
+ ret_code |               ret_note               | last_tick 
+----------+--------------------------------------+-----------
+      200 | Step 1: Writing disabled for: aqueue |          
+(1 row)
+
+select * from pgq_node.demote_root('aqueue', 1, 'node3');
+ ret_code |               ret_note               | last_tick 
+----------+--------------------------------------+-----------
+      200 | Step 1: Writing disabled for: aqueue |          
+(1 row)
+
+select * from pgq_node.demote_root('aqueue', 2, 'node3');
+ ret_code |              ret_note              | last_tick 
+----------+------------------------------------+-----------
+      200 | Step 2: Inserted last tick: aqueue |         4
+(1 row)
+
+select * from pgq_node.demote_root('aqueue', 2, 'node3');
+ ret_code |              ret_note              | last_tick 
+----------+------------------------------------+-----------
+      200 | Step 2: Inserted last tick: aqueue |         5
+(1 row)
+
+select * from pgq_node.demote_root('aqueue', 3, 'node3');
+ ret_code |                ret_note                | last_tick 
+----------+----------------------------------------+-----------
+      200 | Step 3: Demoted root to branch: aqueue |         5
+(1 row)
+
+select * from pgq_node.demote_root('aqueue', 3, 'node3');
+ ret_code |   ret_note    | last_tick 
+----------+---------------+-----------
+      301 | Node not root |          
+(1 row)
+
+\q

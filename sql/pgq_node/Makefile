@@ -1,10 +1,10 @@
 
-DATA_built = pgq_set.sql pgq_set.upgrade.sql
+DATA_built = pgq_node.sql pgq_node.upgrade.sql
 
 FUNCS = $(shell sed -n -e '/^\\/{s/\\i //;p}' structure/functions.sql)
-SRCS = structure/pgq_set.sql structure/functions.sql $(FUNCS)
+SRCS = structure/tables.sql structure/functions.sql $(FUNCS)
 
-REGRESS = pgq_set
+REGRESS = pgq_node_test
 REGRESS_OPTS = --load-language=plpgsql
 
 include ../../config.mak
@@ -18,10 +18,10 @@ CATSQL = ../../scripts/catsql.py
 # combined SQL files
 #
 
-pgq_set.sql: $(SRCS)
-	$(CATSQL) structure/pgq_set.sql structure/functions.sql > $@
+pgq_node.sql: $(SRCS)
+	$(CATSQL) structure/tables.sql structure/functions.sql > $@
 
-pgq_set.upgrade.sql: $(SRCS)
+pgq_node.upgrade.sql: $(SRCS)
 	$(CATSQL) structure/functions.sql > $@
 
 #
@@ -30,7 +30,7 @@ pgq_set.upgrade.sql: $(SRCS)
 dox: cleandox $(SRCS)
 	mkdir -p docs/html
 	mkdir -p docs/sql
-	$(CATSQL) --ndoc structure/pgq_set.sql > docs/sql/pgq_set.sql
+	$(CATSQL) --ndoc structure/tables.sql > docs/sql/pgq_node.sql
 	$(CATSQL) --ndoc structure/functions.sql > docs/sql/functions.sql
 	$(NDOC) $(NDOCARGS)
 
@@ -46,7 +46,7 @@ upload: dox
 # regtest shortcuts
 #
 
-test: pgq_set.sql
+test: pgq_node.sql
 	$(MAKE) installcheck || { less regression.diffs; exit 1; }
 
 ack:
