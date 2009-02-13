@@ -17,59 +17,59 @@ select current_database();
  regression
 (1 row)
 
-select * from pgq_set.add_member('aset', 'rnode', 'dbname=db', false);
- ret_code | ret_note 
-----------+----------
-      200 | Ok
+select * from pgq_node.register_location('aset', 'rnode', 'dbname=db', false);
+ ret_code |      ret_note       
+----------+---------------------
+      200 | Location registered
 (1 row)
 
-select * from pgq_set.create_node('aset', 'root', 'rnode', 'londiste_root', null::text, null::int8, null::text);
- ret_code | ret_note 
-----------+----------
-      200 | Ok
+select * from pgq_node.create_node('aset', 'root', 'rnode', 'londiste_root', null::text, null::int8, null::text);
+ ret_code |                          ret_note                           
+----------+-------------------------------------------------------------
+      200 | Node "rnode" initialized for queue "rnode" with type "root"
 (1 row)
 
-select * from londiste.node_add_table('aset', 'public.testdata_nopk');
+select * from londiste.local_add_table('aset', 'public.testdata_nopk');
  ret_code |                      ret_note                      
 ----------+----------------------------------------------------
       400 | Primary key missing on table: public.testdata_nopk
 (1 row)
 
-select * from londiste.node_add_table('aset', 'public.testdata');
+select * from londiste.local_add_table('aset', 'public.testdata');
  ret_code |           ret_note           
 ----------+------------------------------
       200 | Table added: public.testdata
 (1 row)
 
 insert into testdata (data) values ('test-data');
-select * from londiste.node_get_table_list('aset');
-   table_name    | merge_state | custom_snapshot | skip_truncate 
------------------+-------------+-----------------+---------------
- public.testdata | ok          |                 | 
+select * from londiste.get_table_list('aset');
+   table_name    | local | merge_state | custom_snapshot | skip_truncate | dropped_ddl | copy_role 
+-----------------+-------+-------------+-----------------+---------------+-------------+-----------
+ public.testdata | t     | ok          |                 |               |             | 
 (1 row)
 
-select * from londiste.node_remove_table('aset', 'public.testdata');
+select * from londiste.local_remove_table('aset', 'public.testdata');
  ret_code |            ret_note            
 ----------+--------------------------------
       200 | Table removed: public.testdata
 (1 row)
 
-select * from londiste.node_remove_table('aset', 'public.testdata');
- ret_code |          ret_note          
-----------+----------------------------
-      400 | Not found: public.testdata
+select * from londiste.local_remove_table('aset', 'public.testdata');
+ ret_code |             ret_note             
+----------+----------------------------------
+      400 | Table not found: public.testdata
 (1 row)
 
-select * from londiste.node_get_table_list('aset');
- table_name | merge_state | custom_snapshot | skip_truncate 
-------------+-------------+-----------------+---------------
+select * from londiste.get_table_list('aset');
+ table_name | local | merge_state | custom_snapshot | skip_truncate | dropped_ddl | copy_role 
+------------+-------+-------------+-----------------+---------------+-------------+-----------
 (0 rows)
 
 select ev_id, ev_type, ev_data, ev_extra1 from pgq.event_template;
- ev_id |   ev_type    |              ev_data               |    ev_extra1    
--------+--------------+------------------------------------+-----------------
-     1 | add-table    | public.testdata                    | 
-     2 | I            | (id,data) values ('1','test-data') | public.testdata
-     3 | remove-table | public.testdata                    | 
+ ev_id |        ev_type        |              ev_data               |    ev_extra1    
+-------+-----------------------+------------------------------------+-----------------
+     1 | londiste.add-table    | public.testdata                    | 
+     2 | I                     | (id,data) values ('1','test-data') | public.testdata
+     3 | londiste.remove-table | public.testdata                    | 
 (3 rows)
 

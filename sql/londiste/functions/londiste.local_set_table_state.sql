@@ -1,18 +1,18 @@
 
-create or replace function londiste.node_set_table_state(
-    i_set_name text,
+create or replace function londiste.local_set_table_state(
+    i_queue_name text,
     i_table_name text,
     i_snapshot text,
     i_merge_state text)
 returns integer as $$
 -- ----------------------------------------------------------------------
--- Function: londiste.node_set_table_state(4)
+-- Function: londiste.local_set_table_state(4)
 --
 --      Change table state.
 --
 -- Parameters:
---      i_set_name      - set name
---      i-table         - table name
+--      i_queue_name    - cascaded queue name
+--      i_table         - table name
 --      i_snapshot      - optional remote snapshot info
 --      i_merge_state   - merge state
 --
@@ -20,7 +20,7 @@ returns integer as $$
 --      nothing
 -- ----------------------------------------------------------------------
 begin
-    update londiste.node_table
+    update londiste.table_info
         set custom_snapshot = i_snapshot,
             merge_state = i_merge_state,
             -- reset skip_snapshot when table is copied over
@@ -28,8 +28,9 @@ begin
                                  then null
                                  else skip_truncate
                             end
-      where set_name = i_set_name
-        and table_name = i_table_name;
+      where queue_name = i_queue_name
+        and table_name = i_table_name
+        and local;
     if not found then
         raise exception 'no such table';
     end if;

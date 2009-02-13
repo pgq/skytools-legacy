@@ -1,7 +1,7 @@
 
 grant usage on schema londiste to public;
-grant select on londiste.node_table to public;
-grant select on londiste.node_seq to public;
+grant select on londiste.table_info to public;
+grant select on londiste.seq_info to public;
 grant select on londiste.pending_fkeys to public;
-grant select on londiste.pending_triggers to public;
+grant select on londiste.applied_execute to public;
 

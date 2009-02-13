@@ -1,0 +1,67 @@
+set log_error_verbosity = 'terse';
+select * from londiste.execute_start('branch_set', 'DDL-A.sql', 'drop all', false);
+ ret_code |       ret_note       
+----------+----------------------
+      200 | Executing: DDL-A.sql
+(1 row)
+
+select * from londiste.execute_start('branch_set', 'DDL-A.sql', 'drop all', false);
+ ret_code |              ret_note              
+----------+------------------------------------
+      301 | EXECUTE(DDL-A.sql) already applied
+(1 row)
+
+select * from londiste.execute_finish('branch_set', 'DDL-A.sql');
+ ret_code |          ret_note           
+----------+-----------------------------
+      200 | Execute finished: DDL-A.sql
+(1 row)
+
+select * from londiste.execute_finish('branch_set', 'DDL-A.sql');
+ ret_code |          ret_note           
+----------+-----------------------------
+      200 | Execute finished: DDL-A.sql
+(1 row)
+
+select * from londiste.execute_finish('branch_set', 'DDL-XXX.sql');
+ ret_code |                 ret_note                  
+----------+-------------------------------------------
+      404 | execute_file called without execute_start
+(1 row)
+
+select * from londiste.execute_start('branch_set', 'DDL-B.sql', 'drop all', true);
+ ret_code |             ret_note              
+----------+-----------------------------------
+      401 | Node is not root node: branch_set
+(1 row)
+
+select * from londiste.execute_start('branch_set', 'DDL-B.sql', 'drop all', true);
+ ret_code |             ret_note              
+----------+-----------------------------------
+      401 | Node is not root node: branch_set
+(1 row)
+
+select * from londiste.execute_start('aset', 'DDL-root.sql', 'drop all', true);
+ ret_code |        ret_note         
+----------+-------------------------
+      200 | Executing: DDL-root.sql
+(1 row)
+
+select * from londiste.execute_start('aset', 'DDL-root.sql', 'drop all', true);
+ ret_code |               ret_note                
+----------+---------------------------------------
+      301 | EXECUTE(DDL-root.sql) already applied
+(1 row)
+
+select * from londiste.execute_finish('aset', 'DDL-root.sql');
+ ret_code |            ret_note            
+----------+--------------------------------
+      200 | Execute finished: DDL-root.sql
+(1 row)
+
+select * from londiste.execute_finish('aset', 'DDL-root.sql');
+ ret_code |            ret_note            
+----------+--------------------------------
+      200 | Execute finished: DDL-root.sql
+(1 row)
+

@@ -1,12 +1,12 @@
 
 DATA_built = londiste.sql londiste.upgrade.sql
-DOCS = README.londiste
 
 SQLS = structure/tables.sql structure/grants.sql structure/functions.sql
 FUNCS = $(shell sed -n -e '/^\\/{s/\\i //;p}' $(SQLS))
 SRCS = $(SQLS) $(FUNCS)
 
-REGRESS = londiste_install londiste_provider londiste_subscriber londiste_fkeys
+REGRESS = londiste_install londiste_provider londiste_subscriber \
+	  londiste_fkeys londiste_execute londiste_seqs londiste_merge
 # londiste_denytrigger
 REGRESS_OPTS = --load-language=plpgsql
 

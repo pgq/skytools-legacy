@@ -28,15 +28,15 @@ end;
 $$ language plpgsql strict stable;
 
 
-create or replace function londiste.node_get_valid_pending_fkeys(i_set_name text)
+create or replace function londiste.get_valid_pending_fkeys(i_queue_name text)
 returns setof londiste.pending_fkeys as $$
 -- ----------------------------------------------------------------------
--- Function: londiste.node_get_valid_pending_fkeys(1)
+-- Function: londiste.get_valid_pending_fkeys(1)
 --
 --      Returns dropped fkeys where both sides are in sync now.
 --
 -- Parameters:
---      i_set_name - sets name
+--      i_queue_name - cascaded queue name
 --
 -- Returns:
 --      desc
@@ -47,12 +47,12 @@ begin
     for fkeys in
         select pf.*
         from londiste.pending_fkeys pf
-             left join londiste.node_table st_from on (st_from.table_name = pf.from_table)
-             left join londiste.node_table st_to on (st_to.table_name = pf.to_table)
+             left join londiste.table_info st_from on (st_from.table_name = pf.from_table)
+             left join londiste.table_info st_to on (st_to.table_name = pf.to_table)
         where (st_from.table_name is null or (st_from.merge_state = 'ok' and st_from.custom_snapshot is null))
           and (st_to.table_name is null or (st_to.merge_state = 'ok' and st_to.custom_snapshot is null))
-          and (coalesce(st_from.set_name = i_set_name, false)
-               or coalesce(st_to.set_name = i_set_name, false))
+          and (coalesce(st_from.queue_name = i_queue_name, false)
+               or coalesce(st_to.queue_name = i_queue_name, false))
         order by 1, 2, 3
     loop
         return next fkeys;
@@ -66,7 +66,7 @@ $$ language plpgsql strict stable;
 create or replace function londiste.drop_table_fkey(i_from_table text, i_fkey_name text)
 returns integer as $$
 -- ----------------------------------------------------------------------
--- Function: londiste.drop_table_fkey(x)
+-- Function: londiste.drop_table_fkey(2)
 --
 --      Drop one fkey, save in pending table.
 -- ----------------------------------------------------------------------

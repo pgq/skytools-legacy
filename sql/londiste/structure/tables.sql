@@ -4,13 +4,58 @@
 --      Londiste storage: tables/seqs/fkeys/triggers/events.
 --
 -- Londiste event types:
---      I/U/D       - ev_data: table update in partial-sql format, ev_extra1: fq table name
---      I:/U:/D:    - ev_data: table update in urlencoded format, ev_extra1: fq table name
---      add-seq     - ev_data: seq name that was added on root
---      del-seq     - ev_data: seq name that was removed on root
---      add-tbl     - ev_data: table name that was added on root
---      del-tbl     - ev_data: table name that was removed on root
---      seq-values  - ev_data: urlencoded fqname:value pairs
+--      I/U/D                   - partial SQL event from pgq.sqltriga()
+--      I:/U:/D: <pk>           - urlencoded event from pgq.logutriga()
+--      EXECUTE                 - SQL script execution
+--      TRUNCATE                - table truncation
+--      londiste.add-table      - global table addition
+--      londiste.remove-table   - global table removal
+--      londiste.update-seq     - sequence update
+--      londiste.remove-seq     - global sequence removal
+--
+-- pgq.sqltriga() event:
+--      ev_type     - I/U/D which means insert/update/delete
+--      ev_data     - partial SQL
+--      ev_extra1   - table name
+--
+--      Insert: ev_type = "I", ev_data = "(col1, col2) values (2, 'foo')", ev_extra1 = "public.tblname"
+--
+--      Update: ev_type = "U", ev_data = "col2 = null where col1 = 2", ev_extra1 = "public.tblname"
+--
+--      Delete: ev_type = "D", ev_data = "col1 = 2", ev_extra1 = "public.tblname"
+--
+-- pgq.logutriga() event:
+--      ev_type     - I:/U:/D: plus comma separated list of pkey columns
+--      ev_data     - urlencoded row columns
+--      ev_extra1   - table name
+--
+--      Insert: ev_type = "I:col1", ev_data = ""
+--
+-- Truncate trigger event:
+--      ev_type     - TRUNCATE
+--      ev_extra1   - table name
+--
+-- Execute SQL event:
+--      ev_type     - EXECUTE
+--      ev_data     - SQL script
+--      ev_extra1   - Script ID
+--
+-- Global table addition:
+--      ev_type     - londiste.add-table
+--      ev_data     - table name
+--
+-- Global table removal:
+--      ev_type     - londiste.remove-table
+--      ev_data     - table name
+--
+-- Global sequence update:
+--      ev_type     - londiste.update-seq
+--      ev_data     - seq value
+--      ev_extra1   - seq name
+--5)
+-- Global sequence removal:
+--      ev_type     - londiste.remove-seq
+--      ev_data     - seq name
 -- ----------------------------------------------------------------------
 create schema londiste;
 
@@ -18,131 +63,85 @@ set default_with_oids = 'off';
 
 
 -- ----------------------------------------------------------------------
--- Table: londiste.set_table
+-- Table: londiste.table_info
 --
---      Tables available on root, meaning that events for only
---      tables specified here can appear in queue.
---
--- Columns:
---      nr          - just to have stable order
---      set_name    - which set the table belongs to
---      table_name  - fq table name
--- ----------------------------------------------------------------------
-create table londiste.set_table (
-    nr                  serial not null,
-    set_name            text not null,
-    table_name          text not null,
-    foreign key (set_name) references pgq_set.set_info,
-    primary key (set_name, table_name)
-);
-
--- ----------------------------------------------------------------------
--- Table: londiste.set_seq
---
---      Sequences available on root, meaning that events for only
---      sequences specified here can appear in queue.
+--      Info about registered tables.
 --
 -- Columns:
---      nr          - just to have stable order
---      set_name    - which set the table belongs to
---      seq_name    - fq seq name
--- ----------------------------------------------------------------------
-create table londiste.set_seq (
-    nr                  serial not null,
-    set_name            text not null,
-    seq_name            text not null,
-    foreign key (set_name) references pgq_set.set_info,
-    primary key (set_name, seq_name)
-);
-
-
--- ----------------------------------------------------------------------
--- Table: londiste.node_table
---
---      Info about attached tables.
---
--- Columns:
---      nr              - Dummy number for visual ordering
---      set_name        - Set name
+--      nr              - number for visual ordering
+--      queue_name      - Cascaded queue name
 --      table_name      - fully-qualified table name
+--      local           - Is used locally
 --      merge_state     - State for tables
---      trigger_type    - trigger type
---      trigger_name    - londiste trigger name
---      copy_snapshot   - remote snapshot for COPY command
---      custom_tg_args  - user-specified 
+--      custom_snapshot - remote snapshot for COPY command
 --      skip_truncate   - if 'in-copy' should not do TRUNCATE
+--      dropped_ddl     - temp place to store ddl
 --
 -- Tables merge states:
---      master          - master: all in sync
---      ok              - slave: all in sync
---      in-copy         -
---      catching-up     -
---      wanna-sync:%    -
---      do-sync:%       -
---      unsynced        -
---
--- Trigger type:
---      notrigger       - no trigger applied
---      pgq.logtriga    - Partial SQL trigger with fixed column list
---      pgq.sqltriga    - Partial SQL trigger with autodetection
---      pgq.logutriga   - urlenc trigger with autodetection
---      pgq.denytrigger - deny trigger
+--      NULL            - copy has not yet happened
+--      in-copy         - ongoing bulk copy
+--      catching-up     - copy process applies events that happened during copy
+--      wanna-sync:%    - copy process caught up, wants to hand table over to replay
+--      do-sync:%       - replay process is ready to accept the table
+--      ok              - in sync, replay applies events
 -- ----------------------------------------------------------------------
-create table londiste.node_table (
+create table londiste.table_info (
     nr                  serial not null,
-    set_name            text not null,
+    queue_name          text not null,
     table_name          text not null,
+    local               boolean not null default false,
     merge_state         text,
     custom_snapshot     text,
     skip_truncate       bool,
+    dropped_ddl         text,
 
-    foreign key (set_name, table_name) references londiste.set_table,
-    primary key (set_name, table_name)
+    primary key (queue_name, table_name),
+    foreign key (queue_name) references pgq_node.node_info (queue_name),
+    check (dropped_ddl is null or merge_state = 'in-copy')
 );
 
 
 -- ----------------------------------------------------------------------
--- Table: londiste.node_trigger
+-- Table: londiste.seq_info
 --
---      Node-specific triggers.  When node type changes,
---      Londiste will make sure unnecessary triggers are
---      dropped and new triggers created.
+--      Sequences available on this queue.
 --
 -- Columns:
---      set_name        - set it belongs to
---      table_name      - table name
---      tg_type         - any / root / non-root / unknown?
---      tg_name         - name for the trigger
---      tg_def          - full statement for trigger creation
+--      nr          - number for visual ordering
+--      queue_name  - cascaded queue name
+--      seq_name    - fully-qualified seq name
+--      local       - there is actual seq on local node
+--      last_value  - last published value from root
 -- ----------------------------------------------------------------------
-create table londiste.node_trigger (
-    set_name            text not null,
-    table_name          text not null,
-    tg_name             text not null,
-    tg_type             text not null,
-    tg_def              text not null,
-    foreign key (set_name, table_name) references londiste.node_table,
-    primary key (set_name, table_name, tg_name),
-    check (tg_type in ('root', 'non-root'))
-    -- check (tg_type in ('always', 'origin', 'replica', 'disabled'))
-);
-
--- ----------------------------------------------------------------------
--- Table: londiste.node_seq
---
---      Info about attached sequences.
---
--- Columns:
---      nr              - dummy number for ordering
---      set_name        - which set it belongs to
---      seq_name        - fully-qualified seq name
--- ----------------------------------------------------------------------
-create table londiste.node_seq (
+create table londiste.seq_info (
     nr                  serial not null,
-    set_name            text not null,
+    queue_name          text not null,
     seq_name            text not null,
-    foreign key (set_name, seq_name) references londiste.set_seq,
-    primary key (set_name, seq_name)
+    local               boolean not null default false,
+    last_value          int8 not null,
+
+    primary key (queue_name, seq_name),
+    foreign key (queue_name) references pgq_node.node_info (queue_name)
+);
+
+
+-- ----------------------------------------------------------------------
+-- Table: londiste.applied_execute
+--
+--      Info about EXECUTE commands that are ran.
+--
+-- Columns:
+--      queue_name      - cascaded queue name
+--      execute_file    - filename / unique id
+--      execute_time    - the time execute happened
+--      execute_sql     - contains SQL for EXECUTE event (informative)
+-- ----------------------------------------------------------------------
+create table londiste.applied_execute (
+    queue_name          text not null,
+    execute_file        text not null,
+    execute_time        timestamptz not null default now(),
+    execute_sql         text not null,
+    primary key (queue_name, execute_file)
 );
 
 
@@ -166,22 +165,4 @@ create table londiste.pending_fkeys (
     primary key (from_table, fkey_name)
 );
 
-
--- ----------------------------------------------------------------------
--- Table: londiste.pending_triggers
---
---      Details on dropped triggers.  Global, not specific to any set.
---
--- Columns:
---      table_name      - fully-qualified table name
---      trigger_name    - trigger name
---      trigger_def     - full trigger definition
--- ----------------------------------------------------------------------
-create table londiste.pending_triggers (
-    table_name          text not null,
-    trigger_name        text not null,
-    trigger_def         text not null,
-    
-    primary key (table_name, trigger_name)
-);
 

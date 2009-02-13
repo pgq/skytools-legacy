@@ -1,37 +1,39 @@
 -- Section: Londiste functions
 
--- Group: Main operations
-\i functions/londiste.node_add_seq.sql
-\i functions/londiste.node_add_table.sql
-\i functions/londiste.node_get_seq_list.sql
-\i functions/londiste.node_get_table_list.sql
-\i functions/londiste.node_remove_seq.sql
-\i functions/londiste.node_remove_table.sql
-\i functions/londiste.node_set_table_state.sql
+-- Group: Information
+\i functions/londiste.get_seq_list.sql
+\i functions/londiste.get_table_list.sql
 
--- Group: Set object registrations
-\i functions/londiste.set_add_table.sql
-\i functions/londiste.set_remove_table.sql
-\i functions/londiste.set_get_table_list.sql
+-- Group: Local object registration (setup tool)
+\i functions/londiste.local_add_seq.sql
+\i functions/londiste.local_add_table.sql
+\i functions/londiste.local_remove_seq.sql
+\i functions/londiste.local_remove_table.sql
+
+-- Group: Global object registrations (internal)
+\i functions/londiste.global_add_table.sql
+\i functions/londiste.global_remove_table.sql
+\i functions/londiste.global_update_seq.sql
+\i functions/londiste.global_remove_seq.sql
 
 -- Group: FKey handling
 \i functions/londiste.handle_fkeys.sql
 
--- Group: Trigger handling
-\i functions/londiste.handle_triggers.sql
+-- Group: Execute handling
+\i functions/londiste.execute_start.sql
+\i functions/londiste.execute_finish.sql
 
 -- Group: Internal functions
-\i functions/londiste.node_set_skip_truncate.sql
-\i functions/londiste.node_prepare_triggers.sql
-\i functions/londiste.node_refresh_triggers.sql
-\i functions/londiste.node_disable_triggers.sql
+\i functions/londiste.root_check_seqs.sql
 \i functions/londiste.root_notify_change.sql
+\i functions/londiste.local_set_table_state.sql
+\i functions/londiste.local_set_skip_truncate.sql
+\i functions/londiste.local_set_table_struct.sql
 
 -- Group: Utility functions
 \i functions/londiste.find_column_types.sql
 \i functions/londiste.find_table_fkeys.sql
 \i functions/londiste.find_table_oid.sql
-\i functions/londiste.find_table_triggers.sql
 \i functions/londiste.quote_fqname.sql
 \i functions/londiste.make_fqname.sql
 

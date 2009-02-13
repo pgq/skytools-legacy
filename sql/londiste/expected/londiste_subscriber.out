@@ -13,62 +13,76 @@ select current_database();
  regression
 (1 row)
 
-select * from pgq_set.add_member('branch_set', 'snode', 'dbname=db', false);
- ret_code | ret_note 
-----------+----------
-      200 | Ok
+select * from pgq_node.register_location('branch_set', 'snode', 'dbname=db', false);
+ ret_code |      ret_note       
+----------+---------------------
+      200 | Location registered
 (1 row)
 
-select * from pgq_set.add_member('branch_set', 'pnode', 'dbname=db2', false);
- ret_code | ret_note 
-----------+----------
-      200 | Ok
+select * from pgq_node.register_location('branch_set', 'pnode', 'dbname=db2', false);
+ ret_code |      ret_note       
+----------+---------------------
+      200 | Location registered
 (1 row)
 
-select * from pgq_set.create_node('branch_set', 'branch', 'snode', 'londiste_branch', 'pnode', 100, null::text);
- ret_code | ret_note 
-----------+----------
-      200 | Ok
+select * from pgq_node.create_node('branch_set', 'branch', 'snode', 'londiste_branch', 'pnode', 100, null::text);
+ ret_code |                           ret_note                            
+----------+---------------------------------------------------------------
+      200 | Node "snode" initialized for queue "snode" with type "branch"
 (1 row)
 
-select * from londiste.node_add_table('branch_set', 'public.slavedata');
- ret_code |                   ret_note                    
-----------+-----------------------------------------------
-      400 | Table not registered in set: public.slavedata
+select * from londiste.local_add_table('branch_set', 'public.slavedata');
+ ret_code |                    ret_note                    
+----------+------------------------------------------------
+      404 | Table not available on queue: public.slavedata
 (1 row)
 
-select * from londiste.set_add_table('branch_set', 'public.slavedata');
+select * from londiste.global_add_table('branch_set', 'public.slavedata');
  ret_code | ret_note 
 ----------+----------
       200 | OK
 (1 row)
 
-select * from londiste.node_add_table('branch_set', 'public.slavedata');
+select * from londiste.local_add_table('branch_set', 'public.slavedata');
  ret_code |           ret_note            
 ----------+-------------------------------
       200 | Table added: public.slavedata
 (1 row)
 
-select * from londiste.node_get_table_list('branch_set');
-    table_name    | merge_state | custom_snapshot | skip_truncate 
-------------------+-------------+-----------------+---------------
- public.slavedata |             |                 | 
+select * from londiste.global_add_table('branch_set', 'public.tmp');
+ ret_code | ret_note 
+----------+----------
+      200 | OK
 (1 row)
 
-select * from londiste.node_remove_table('branch_set', 'public.slavedata');
+select * from londiste.get_table_list('branch_set');
+    table_name    | local | merge_state | custom_snapshot | skip_truncate | dropped_ddl | copy_role 
+------------------+-------+-------------+-----------------+---------------+-------------+-----------
+ public.slavedata | t     |             |                 |               |             | 
+ public.tmp       | f     |             |                 |               |             | 
+(2 rows)
+
+select * from londiste.global_remove_table('branch_set', 'public.tmp');
+ ret_code | ret_note 
+----------+----------
+      200 | OK
+(1 row)
+
+select * from londiste.local_remove_table('branch_set', 'public.slavedata');
  ret_code |            ret_note             
 ----------+---------------------------------
       200 | Table removed: public.slavedata
 (1 row)
 
-select * from londiste.node_remove_table('branch_set', 'public.slavedata');
- ret_code |          ret_note           
-----------+-----------------------------
-      400 | Not found: public.slavedata
+select * from londiste.local_remove_table('branch_set', 'public.slavedata');
+ ret_code |                    ret_note                    
+----------+------------------------------------------------
+      400 | Table not registered locally: public.slavedata
 (1 row)
 
-select * from londiste.node_get_table_list('branch_set');
- table_name | merge_state | custom_snapshot | skip_truncate 
-------------+-------------+-----------------+---------------
-(0 rows)
+select * from londiste.get_table_list('branch_set');
+    table_name    | local | merge_state | custom_snapshot | skip_truncate | dropped_ddl | copy_role 
+------------------+-------+-------------+-----------------+---------------+-------------+-----------
+ public.slavedata | f     |             |                 |               |             | 
+(1 row)
 
