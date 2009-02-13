@@ -26,6 +26,11 @@ def job_sort_cmp(j1, j2):
     else: return 0
 
 class ScriptMgr(skytools.DBScript):
+    svc_list = []
+    svc_map = {}
+    config_list = []
+    job_map = {}
+    job_list = []
     def init_optparse(self, p = None):
         p = skytools.DBScript.init_optparse(self, p)
         p.add_option("-a", "--all", action="store_true", help="apply command to all jobs")
@@ -94,7 +99,7 @@ class ScriptMgr(skytools.DBScript):
             'args': svc['args'],
             'service': svc['service'],
             'job_name': cf.get('job_name'),
-            'pidfile': cf.getfile('pidfile'),
+            'pidfile': cf.getfile('pidfile', ''),
         }
         self.job_list.append(job)
         self.job_map[job['job_name']] = job
@@ -103,20 +108,22 @@ class ScriptMgr(skytools.DBScript):
         for job in self.job_list:
             os.chdir(job['cwd'])
             cf = skytools.Config(job['service'], job['config'])
-            pidfile = cf.getfile('pidfile')
+            pidfile = cf.getfile('pidfile', '')
             name = job['job_name']
             svc = job['service']
             if job['disabled']:
                 name += "  (disabled)"
             
-            if os.path.isfile(pidfile):
-                print " OK       [%s] %s" % (svc, name)
+            if not pidfile:
+                print(" pidfile? [%s] %s" % (svc, name))
+            elif os.path.isfile(pidfile):
+                print(" OK       [%s] %s" % (svc, name))
             else:
-                print " STOPPED  [%s] %s" % (svc, name)
+                print(" STOPPED  [%s] %s" % (svc, name))
 
     def cmd_info(self):
         for job in self.job_list:
-            print job
+            print(job)
 
     def cmd_start(self, job_name):
         if job_name not in self.job_map:
@@ -129,6 +136,9 @@ class ScriptMgr(skytools.DBScript):
         self.log.info('Starting %s' % job_name)
         os.chdir(job['cwd'])
         pidfile = job['pidfile']
+        if not pidfile:
+            self.log.warning("No pidfile for %s cannot launch")
+            return 0
         if os.path.isfile(pidfile):
             self.log.warning("Script %s seems running" % job_name)
             return 0
@@ -166,6 +176,9 @@ class ScriptMgr(skytools.DBScript):
     def signal_job(self, job, sig):
         os.chdir(job['cwd'])
         pidfile = job['pidfile']
+        if not pidfile:
+            self.log.warning("No pidfile for %s (%s)" % (job['job_name'], job['config']))
+            return
         if os.path.isfile(pidfile):
             pid = int(open(pidfile).read())
             try:
@@ -182,7 +195,7 @@ class ScriptMgr(skytools.DBScript):
         self.load_jobs()
 
         if len(self.args) < 2:
-            print "need command"
+            print("need command")
             sys.exit(1)
 
         jobs = self.args[2:]
@@ -201,7 +214,7 @@ class ScriptMgr(skytools.DBScript):
             return
 
         if len(jobs) == 0:
-            print "no jobs given?"
+            print("no jobs given?")
             sys.exit(1)
 
         if cmd == "start":
@@ -223,7 +236,7 @@ class ScriptMgr(skytools.DBScript):
             for n in jobs:
                 self.cmd_reload(n)
         else:
-            print "unknown command:", cmd
+            print("unknown command: " + cmd)
             sys.exit(1)
 
 if __name__ == '__main__':

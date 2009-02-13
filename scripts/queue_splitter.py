@@ -1,10 +1,11 @@
 #! /usr/bin/env python
 
-# puts events into queue specified by field from 'queue_field' config parameter
+"""Puts events into queue specified by field from 'queue_field' config parameter"""
 
-import sys, os, pgq, skytools
+import sys, pgq
 
 class QueueSplitter(pgq.SerialConsumer):
+    """Split events from one queue into several."""
     def __init__(self, args):
         pgq.SerialConsumer.__init__(self, "queue_splitter", "src_db", "dst_db", args)
 

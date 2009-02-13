@@ -1,5 +1,7 @@
 #! /usr/bin/env python
 
+"""Simple upgrade script for versioned schemas."""
+
 import sys, os, re, skytools
 
 ver_rx = r"(\d+)([.](\d+)([.](\d+))?)?"
@@ -16,6 +18,11 @@ version_list = [
 
  ['pgq_ext', '2.1.6', 'v2.1.6_pgq_ext.sql', None],
  ['londiste', '2.1.6', 'v2.1.6_londiste.sql', None],
+
+ ['pgq', '2.1.7', 'v2.1.7_pgq_core.sql', None],
+ ['londiste', '2.1.7', 'v2.1.7_londiste.sql', None],
+
+ ['pgq', '2.1.8', 'v2.1.8_pgq_core.sql', None],
 ]
 
 def parse_ver(ver):

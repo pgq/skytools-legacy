@@ -1,10 +1,11 @@
 #! /usr/bin/env python
 
-# this script simply mover events from one queue to another
+"""This script simply mover events from one queue to another."""
 
-import sys, os, pgq, skytools
+import sys, os, pgq
 
 class QueueMover(pgq.SerialConsumer):
+    """Plain queue copy."""
     def __init__(self, args):
         pgq.SerialConsumer.__init__(self, "queue_mover", "src_db", "dst_db", args)
 

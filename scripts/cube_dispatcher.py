@@ -1,7 +1,8 @@
 #! /usr/bin/env python
 
-# it accepts urlencoded rows for multiple tables from queue
-# and insert them into actual tables, with partitioning on tick time
+"""It accepts urlencoded rows for multiple tables from queue
+and insert them into actual tables, with partitioning on tick time.
+"""
 
 import sys, os, pgq, skytools
 
@@ -11,6 +12,7 @@ alter table only _DEST_TABLE add primary key (_PKEY);
 """
 
 class CubeDispatcher(pgq.SerialConsumer):
+    """Partition on tick time, multiple tables."""
     def __init__(self, args):
         pgq.SerialConsumer.__init__(self, "cube_dispatcher", "src_db", "dst_db", args)
 
@@ -40,9 +42,7 @@ class CubeDispatcher(pgq.SerialConsumer):
         return curs.fetchone()[0]
 
     def process_remote_batch(self, src_db, batch_id, ev_list, dst_db):
-        
         # actual processing
-        date_str = self.get_part_date(batch_id)
         self.dispatch(dst_db, ev_list, self.get_part_date(batch_id))
 
     def dispatch(self, dst_db, ev_list, date_str):
@@ -156,7 +156,6 @@ class CubeDispatcher(pgq.SerialConsumer):
         """
 
         dcur = dcon.cursor()
-        exist_map = {}
         for tbl, inf in tables.items():
             if skytools.exists_table(dcur, tbl):
                 continue

@@ -1,7 +1,8 @@
 #! /usr/bin/env python
 
-# it loads urlencoded rows for one trable from queue and inserts
-# them into actual tables, with optional partitioning
+"""It loads urlencoded rows for one trable from queue and inserts
+them into actual tables, with optional partitioning.
+"""
 
 import sys, os, pgq, skytools
 
@@ -9,6 +10,7 @@ DEST_TABLE = "_DEST_TABLE"
 SCHEMA_TABLE = "_SCHEMA_TABLE"
 
 class TableDispatcher(pgq.SerialConsumer):
+    """Single-table partitioner."""
     def __init__(self, args):
         pgq.SerialConsumer.__init__(self, "table_dispatcher", "src_db", "dst_db", args)
 
@@ -95,7 +97,6 @@ class TableDispatcher(pgq.SerialConsumer):
         """
 
         dcur = dcon.cursor()
-        exist_map = {}
         for tbl in tables.keys():
             if not skytools.exists_table(dcur, tbl):
                 if not self.part_template:

@@ -34,7 +34,7 @@ Note:
 import sys, os, re, getopt
 
 def usage(x):
-    print "usage: catsql [--ndoc] FILE [FILE ...]"
+    print("usage: catsql [--ndoc] FILE [FILE ...]")
     sys.exit(x)
 
 # NDoc specific changes
@@ -65,7 +65,6 @@ def proc_func(f, ln):
     ln = fix_func(ln)
     pre_list = [ln]
     comm_list = []
-    n_comm = 0
     while 1:
         ln = f.readline()
         if not ln:
@@ -109,8 +108,8 @@ def cat_file(fn):
             elif cmd == "q":        # quit
                 sys.exit(0)
             elif cmd == "cd":       # chdir
-                dir = m.group(2).strip()
-                os.chdir(dir)
+                cd_dir = m.group(2).strip()
+                os.chdir(cd_dir)
             else:                   # skip all others
                 pass
         else:
@@ -126,7 +125,7 @@ def main():
     try:
         opts, args = getopt.gnu_getopt(sys.argv[1:], 'h', ['ndoc'])
     except getopt.error, d:
-        print d
+        print(str(d))
         usage(1)
     for o, v in opts:
         if o == "-h":

@@ -20,6 +20,8 @@ of minutes.
 """
 
 import sys, os, pgq, skytools
+from skytools import quote_ident, quote_fqident
+
 
 ## several methods for applying data
 
@@ -32,6 +34,8 @@ METH_MERGED = 2
 
 # no good method for temp table check before 8.2
 USE_LONGLIVED_TEMP_TABLES = False
+
+AVOID_BIZGRES_BUG = 1
 
 def find_dist_fields(curs, fqtbl):
     if not skytools.exists_table(curs, "pg_catalog.mpp_distribution_policy"):
@@ -65,7 +69,7 @@ def exists_temp_table(curs, tbl):
     #  and substr(n.nspname, 1, 8) = 'pg_temp_'
     #  and t.relname = %s;
     #"""
-    curs.execute(q, [tempname])
+    curs.execute(q, [tbl])
     tmp = curs.fetchall()
     return len(tmp) > 0
 
@@ -190,6 +194,9 @@ class TableCache:
         self.final_del_list = del_list
 
 class BulkLoader(pgq.SerialConsumer):
+    """Bulk loader script."""
+    load_method = METH_CORRECT
+    remap_tables = {}
     def __init__(self, args):
         pgq.SerialConsumer.__init__(self, "bulk_loader", "src_db", "dst_db", args)
 
@@ -197,12 +204,12 @@ class BulkLoader(pgq.SerialConsumer):
         pgq.SerialConsumer.reload(self)
 
         self.load_method = self.cf.getint("load_method", METH_CORRECT)
-        if self.load_method not in (0,1,2):
+        if self.load_method not in (METH_CORRECT,METH_DELETE,METH_MERGED):
             raise Exception("bad load_method")
 
         self.remap_tables = {}
-        for map in self.cf.getlist("remap_tables", ''):
-            tmp = map.split(':')
+        for mapelem in self.cf.getlist("remap_tables", ''):
+            tmp = mapelem.split(':')
             tbl = tmp[0].strip()
             new = tmp[1].strip()
             self.remap_tables[tbl] = new
@@ -267,32 +274,35 @@ class BulkLoader(pgq.SerialConsumer):
         # where expr must have pkey and dist fields
         klist = []
         for pk in cache.pkey_list + extra_fields:
-            exp = "%s.%s = %s.%s" % (tbl, pk, temp, pk)
+            exp = "%s.%s = %s.%s" % (quote_fqident(tbl), quote_ident(pk),
+                                     quote_fqident(temp), quote_ident(pk))
             klist.append(exp)
         whe_expr = " and ".join(klist)
 
         # create del sql
-        del_sql = "delete from only %s using %s where %s" % (tbl, temp, whe_expr)
+        del_sql = "delete from only %s using %s where %s" % (
+                  quote_fqident(tbl), quote_fqident(temp), whe_expr)
 
         # create update sql
         slist = []
         key_fields = cache.pkey_list + extra_fields
         for col in cache.col_list:
             if col not in key_fields:
-                exp = "%s = %s.%s" % (col, temp, col)
+                exp = "%s = %s.%s" % (quote_ident(col), quote_fqident(temp), quote_ident(col))
                 slist.append(exp)
         upd_sql = "update only %s set %s from %s where %s" % (
-                    tbl, ", ".join(slist), temp, whe_expr)
+                    quote_fqident(tbl), ", ".join(slist), quote_fqident(temp), whe_expr)
 
         # insert sql
-        colstr = ",".join(cache.col_list)
-        ins_sql = "insert into %s (%s) select %s from %s" % (tbl, colstr, colstr, temp)
+        colstr = ",".join([quote_ident(c) for c in cache.col_list])
+        ins_sql = "insert into %s (%s) select %s from %s" % (
+                  quote_fqident(tbl), colstr, colstr, quote_fqident(temp))
 
         # process deleted rows
         if len(del_list) > 0:
             self.log.info("Deleting %d rows from %s" % (len(del_list), tbl))
             # delete old rows
-            q = "truncate %s" % temp
+            q = "truncate %s" % quote_fqident(temp)
             self.log.debug(q)
             curs.execute(q)
             # copy rows
@@ -311,7 +321,7 @@ class BulkLoader(pgq.SerialConsumer):
         if len(upd_list) > 0:
             self.log.info("Updating %d rows in %s" % (len(upd_list), tbl))
             # delete old rows
-            q = "truncate %s" % temp
+            q = "truncate %s" % quote_fqident(temp)
             self.log.debug(q)
             curs.execute(q)
             # copy rows
@@ -336,15 +346,15 @@ class BulkLoader(pgq.SerialConsumer):
                     self.log.warning("Update mismatch: expected=%s deleted=%d"
                             % (real_update_count, curs.rowcount))
                 # insert into main table
-                if 0:
-                    # does not work due bizgres bug
-                    self.log.debug(ins_sql)
-                    curs.execute(ins_sql)
-                    self.log.debug(curs.statusmessage)
-                else:
+                if AVOID_BIZGRES_BUG:
                     # copy again, into main table
                     self.log.debug("COPY %d rows into %s" % (len(upd_list), tbl))
                     skytools.magic_insert(curs, tbl, upd_list, col_list)
+                else:
+                    # better way, but does not work due bizgres bug
+                    self.log.debug(ins_sql)
+                    curs.execute(ins_sql)
+                    self.log.debug(curs.statusmessage)
 
         # process new rows
         if len(ins_list) > 0:
@@ -353,10 +363,10 @@ class BulkLoader(pgq.SerialConsumer):
 
         # delete remaining rows
         if USE_LONGLIVED_TEMP_TABLES:
-            q = "truncate %s" % temp
+            q = "truncate %s" % quote_fqident(temp)
         else:
             # fscking problems with long-lived temp tables
-            q = "drop table %s" % temp
+            q = "drop table %s" % quote_fqident(temp)
         self.log.debug(q)
         curs.execute(q)
 
@@ -375,7 +385,7 @@ class BulkLoader(pgq.SerialConsumer):
         arg = "on commit preserve rows"
         # create temp table for loading
         q = "create temp table %s (like %s) %s" % (
-                tempname, tbl, arg)
+                quote_fqident(tempname), quote_fqident(tbl), arg)
         self.log.debug("Creating temp table: %s" % q)
         curs.execute(q)
         return tempname
