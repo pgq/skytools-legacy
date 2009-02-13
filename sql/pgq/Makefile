@@ -7,9 +7,9 @@ DATA = structure/uninstall_pgq.sql
 LDRS = structure/func_internal.sql structure/func_public.sql structure/triggers.sql
 FUNCS = $(shell sed -n -e '/^\\/{s/\\i //;p}' $(LDRS))
 SRCS = structure/tables.sql structure/grants.sql structure/install.sql \
-       structure/types.sql structure/uninstall_pgq.sql $(FUNCS)
+       structure/uninstall_pgq.sql $(FUNCS)
 
-REGRESS = pgq_init pgq_core logutriga sqltriga denytriga
+REGRESS = pgq_init pgq_core logutriga sqltriga
 REGRESS_OPTS = --load-language=plpgsql
 
 include ../../config.mak
@@ -51,7 +51,7 @@ pgq.upgrade.sql: $(SRCS)
 dox: cleandox $(SRCS)
 	mkdir -p docs/html
 	mkdir -p docs/sql
-	$(CATSQL) --ndoc structure/tables.sql structure/types.sql > docs/sql/schema.sql
+	$(CATSQL) --ndoc structure/tables.sql > docs/sql/schema.sql
 	$(CATSQL) --ndoc structure/func_public.sql > docs/sql/external.sql
 	$(CATSQL) --ndoc structure/func_internal.sql > docs/sql/internal.sql
 	$(CATSQL) --ndoc structure/triggers.sql > docs/sql/triggers.sql

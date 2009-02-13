@@ -9,13 +9,14 @@ select pgq.drop_queue('tmpqueue');
 
 select pgq.create_queue('myqueue');
 select pgq.register_consumer('myqueue', 'consumer');
+update pgq.queue set queue_ticker_max_lag = '0', queue_ticker_idle_period = '0';
 select pgq.next_batch('myqueue', 'consumer');
 select pgq.next_batch('myqueue', 'consumer');
 select pgq.ticker();
 select pgq.next_batch('myqueue', 'consumer');
 select pgq.next_batch('myqueue', 'consumer');
 
-select queue_name, consumer_name, prev_tick_id, tick_id, lag from pgq.get_batch_info(1);
+select queue_name, consumer_name, prev_tick_id, tick_id, lag < '30 seconds' as lag_exists from pgq.get_batch_info(1);
 
 select queue_name, queue_ntables, queue_cur_table, queue_rotation_period,
        queue_switch_time <= now() as switch_time_exists,
@@ -85,4 +86,10 @@ select pgq.seq_setval('tmptest_seq', 5);
 select pgq.seq_setval('tmptest_seq', 15);
 select pgq.seq_getval('tmptest_seq');
 
+-- test disabled
+select pgq.insert_event('myqueue', 'test', 'event');
+update pgq.queue set queue_disable_insert = true where queue_name = 'myqueue';
+select pgq.insert_event('myqueue', 'test', 'event');
+update pgq.queue set queue_disable_insert = false where queue_name = 'myqueue';
+select pgq.insert_event('myqueue', 'test', 'event');
 

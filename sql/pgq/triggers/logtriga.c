@@ -56,6 +56,9 @@ pgq_logtriga(PG_FUNCTION_ARGS)
 	if (!TRIGGER_FIRED_AFTER(tg->tg_event))
 		elog(ERROR, "pgq.logtriga must be fired AFTER");
 
+	if (pgq_is_logging_disabled())
+		goto skip_it;
+
 	/*
 	 * Connect to the SPI manager
 	 */
@@ -76,6 +79,7 @@ pgq_logtriga(PG_FUNCTION_ARGS)
 	if (SPI_finish() < 0)
 		elog(ERROR, "SPI_finish failed");
 
+skip_it:
 	return PointerGetDatum(NULL);
 }
 

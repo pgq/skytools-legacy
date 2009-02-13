@@ -198,11 +198,12 @@ full_reset(void)
 }
 
 /*
- * Create new plan for insertion into current queue table.
+ * Fill table information in hash table.
  */
-static void
-fill_tbl_info(Relation rel, struct PgqTableInfo *info)
+static struct PgqTableInfo *
+fill_tbl_info(Relation rel)
 {
+	struct PgqTableInfo *info;
 	StringInfo pkeys;
 	Datum values[1];
 	const char *name = pgq_find_table_name(rel);
@@ -211,12 +212,24 @@ fill_tbl_info(Relation rel, struct PgqTableInfo *info)
 	bool isnull;
 	int res, i, attno;
 
+	/* load pkeys */
 	values[0] = ObjectIdGetDatum(rel->rd_id);
 	res = SPI_execute_plan(pkey_plan, values, NULL, false, 0);
 	if (res != SPI_OK_SELECT)
 		elog(ERROR, "pkey_plan exec failed");
-	desc = SPI_tuptable->tupdesc;
 
+	/*
+	 * SPI_execute_plan may launch reset callback, thus we need
+	 * to load the final position after calling it.
+	 */
+	init_module();
+	info = hash_search(tbl_cache_map, &rel->rd_id, HASH_ENTER, NULL);
+
+	/*
+	 * Fill info
+	 */
+
+	desc = SPI_tuptable->tupdesc;
 	pkeys = makeStringInfo();
 	info->n_pkeys = SPI_processed;
 	info->table_name = MemoryContextStrdup(tbl_cache_ctx, name);
@@ -233,6 +246,8 @@ fill_tbl_info(Relation rel, struct PgqTableInfo *info)
 		appendStringInfoString(pkeys, name);
 	}
 	info->pkey_list = MemoryContextStrdup(tbl_cache_ctx, pkeys->data);
+
+	return info;
 }
 
 static void
@@ -263,15 +278,15 @@ static void relcache_reset_cb(Datum arg, Oid relid)
 struct PgqTableInfo *
 pgq_find_table_info(Relation rel)
 {
-	 struct PgqTableInfo *entry;
-	 bool did_exist = false;
+	struct PgqTableInfo *entry;
 
-	 init_module();
+	init_module();
 
-	 entry = hash_search(tbl_cache_map, &rel->rd_id, HASH_ENTER, &did_exist);
-	 if (!did_exist)
-		 fill_tbl_info(rel, entry);
-	 return entry;
+	entry = hash_search(tbl_cache_map, &rel->rd_id, HASH_FIND, NULL);
+	if (!entry)
+		entry = fill_tbl_info(rel);
+
+	return entry;
 }
 
 static void
@@ -436,6 +451,20 @@ bool pgqtriga_is_pkey(PgqTriggerEvent *ev, TriggerData *tg, int i, int attkind_i
 		name = NameStr(tupdesc->attrs[i]->attname);
 		return pgq_strlist_contains(ev->pkey_list, name);
 	}
+	return false;
+}
+
+
+/*
+ * Check if trigger action should be skipped.
+ */
+
+bool pgq_is_logging_disabled(void)
+{
+#if defined(PG_VERSION_NUM) && PG_VERSION_NUM >= 80300
+	if (SessionReplicationRole != SESSION_REPLICATION_ROLE_ORIGIN)
+		return true;
+#endif
 	return false;
 }
 

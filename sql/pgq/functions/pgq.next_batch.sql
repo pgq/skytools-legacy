@@ -1,67 +1,129 @@
-create or replace function pgq.next_batch(x_queue_name text, x_consumer_name text)
-returns bigint as $$
+create or replace function pgq.next_batch_info(
+    in i_queue_name text,
+    in i_consumer_name text,
+    out batch_id int8,
+    out cur_tick_id int8,
+    out prev_tick_id int8,
+    out cur_tick_time timestamptz,
+    out prev_tick_time timestamptz,
+    out cur_tick_event_seq int8,
+    out prev_tick_event_seq int8)
+as $$
 -- ----------------------------------------------------------------------
--- Function: pgq.next_batch(2)
+-- Function: pgq.next_batch_info(2)
 --
 --      Makes next block of events active.
 --
 --      If it returns NULL, there is no events available in queue.
---      Consumer should sleep a bith then.
+--      Consumer should sleep then.
+--
+--      The values from event_id sequence may give hint how big the
+--      batch may be.  But they are inexact, they do not give exact size.
+--      Client *MUST NOT* use them to detect whether the batch contains any
+--      events at all - the values are unfit for that purpose.
 --
 -- Parameters:
---      x_queue_name        - Name of the queue
---      x_consumer_name     - Name of the consumer
+--      i_queue_name        - Name of the queue
+--      i_consumer_name     - Name of the consumer
 --
 -- Returns:
---      Batch ID or NULL if there are no more events available.
+--      batch_id            - Batch ID or NULL if there are no more events available.
+--      cur_tick_id         - End tick id.
+--      cur_tick_time       - End tick time.
+--      cur_tick_event_seq  - Value from event id sequence at the time tick was issued.
+--      prev_tick_id        - Start tick id.
+--      prev_tick_time      - Start tick time.
+--      prev_tick_event_seq - value from event id sequence at the time tick was issued.
 -- ----------------------------------------------------------------------
 declare
-    next_tick       bigint;
-    batch_id        bigint;
     errmsg          text;
-    sub             record;
+    queue_id        integer;
+    sub_id          integer;
+    cons_id         integer;
 begin
-    select sub_queue, sub_consumer, sub_id, sub_last_tick, sub_batch into sub
-        from pgq.queue q, pgq.consumer c, pgq.subscription s
-        where q.queue_name = x_queue_name
-          and c.co_name = x_consumer_name
+    select s.sub_queue, s.sub_consumer, s.sub_id, s.sub_batch,
+            t1.tick_id, t1.tick_time, t1.tick_event_seq,
+            t2.tick_id, t2.tick_time, t2.tick_event_seq
+        into queue_id, cons_id, sub_id, batch_id,
+             prev_tick_id, prev_tick_time, prev_tick_event_seq,
+             cur_tick_id, cur_tick_time, cur_tick_event_seq
+        from pgq.consumer c,
+             pgq.queue q,
+             pgq.subscription s
+             left join pgq.tick t1
+                on (t1.tick_queue = s.sub_queue
+                    and t1.tick_id = s.sub_last_tick)
+             left join pgq.tick t2
+                on (t2.tick_queue = s.sub_queue
+                    and t2.tick_id = s.sub_next_tick)
+        where q.queue_name = i_queue_name
+          and c.co_name = i_consumer_name
           and s.sub_queue = q.queue_id
           and s.sub_consumer = c.co_id;
     if not found then
         errmsg := 'Not subscriber to queue: '
-            || coalesce(x_queue_name, 'NULL')
+            || coalesce(i_queue_name, 'NULL')
             || '/'
-            || coalesce(x_consumer_name, 'NULL');
+            || coalesce(i_consumer_name, 'NULL');
         raise exception '%', errmsg;
     end if;
 
     -- has already active batch
-    if sub.sub_batch is not null then
-        return sub.sub_batch;
+    if batch_id is not null then
+        return;
     end if;
 
     -- find next tick
-    select tick_id into next_tick
+    select tick_id, tick_time, tick_event_seq
+        into cur_tick_id, cur_tick_time, cur_tick_event_seq
         from pgq.tick
-        where tick_id > sub.sub_last_tick
-          and tick_queue = sub.sub_queue
+        where tick_id > prev_tick_id
+          and tick_queue = queue_id
         order by tick_queue asc, tick_id asc
         limit 1;
     if not found then
         -- nothing to do
-        return null;
+        prev_tick_id := null;
+        prev_tick_time := null;
+        prev_tick_event_seq := null;
+        return;
     end if;
 
     -- get next batch
     batch_id := nextval('pgq.batch_id_seq');
     update pgq.subscription
         set sub_batch = batch_id,
-            sub_next_tick = next_tick,
+            sub_next_tick = cur_tick_id,
             sub_active = now()
-        where sub_queue = sub.sub_queue
-          and sub_consumer = sub.sub_consumer;
-    return batch_id;
+        where sub_queue = queue_id
+          and sub_consumer = cons_id;
+    return;
 end;
 $$ language plpgsql security definer;
 
+
+create or replace function pgq.next_batch(
+    in i_queue_name text,
+    in i_consumer_name text)
+returns int8 as $$
+-- ----------------------------------------------------------------------
+-- Function: pgq.next_batch(2)
+--
+--      Old function that returns just batch_id.
+--
+-- Parameters:
+--      i_queue_name        - Name of the queue
+--      i_consumer_name     - Name of the consumer
+--
+-- Returns:
+--      Batch ID or NULL if there are no more events available.
+-- ----------------------------------------------------------------------
+declare
+    res int8;
+begin
+    select batch_id into res
+        from pgq.next_batch_info(i_queue_name, i_consumer_name);
+    return res;
+end;
+$$ language plpgsql;
 

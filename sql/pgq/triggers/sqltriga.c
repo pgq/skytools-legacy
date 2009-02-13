@@ -49,13 +49,17 @@ pgq_sqltriga(PG_FUNCTION_ARGS)
 	if (!CALLED_AS_TRIGGER(fcinfo))
 		elog(ERROR, "pgq.logutriga not called as trigger");
 
+	tg = (TriggerData *) (fcinfo->context);
+
+	if (pgq_is_logging_disabled())
+		goto skip_it;
+
 	/*
 	 * Connect to the SPI manager
 	 */
 	if (SPI_connect() < 0)
 		elog(ERROR, "logtriga: SPI_connect() failed");
 
-	tg = (TriggerData *) (fcinfo->context);
 	pgq_prepare_event(&ev, tg, true);
 
 	appendStringInfoChar(ev.ev_type, ev.op_type);
@@ -74,6 +78,7 @@ pgq_sqltriga(PG_FUNCTION_ARGS)
 	 * After trigger ignores result,
 	 * before trigger skips event if NULL.
 	 */
+skip_it:
 	if (TRIGGER_FIRED_AFTER(tg->tg_event) || ev.skip)
 		return PointerGetDatum(NULL);
 	else if (TRIGGER_FIRED_BY_UPDATE(tg->tg_event))

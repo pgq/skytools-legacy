@@ -46,12 +46,14 @@ PG_FUNCTION_INFO_V1(pgq_insert_event_raw);
  */
 #define QUEUE_SQL \
 	"select queue_id::int4, queue_data_pfx::text," \
-	" queue_cur_table::int4, nextval(queue_event_seq)::int8 " \
+	" queue_cur_table::int4, nextval(queue_event_seq)::int8," \
+	" queue_disable_insert::bool" \
 	" from pgq.queue where queue_name = $1"
 #define COL_QUEUE_ID	1
 #define COL_PREFIX		2
 #define COL_TBLNO		3
 #define COL_EVENT_ID	4
+#define COL_DISABLED	5
 
 /*
  * Plan cache entry in HTAB.
@@ -70,6 +72,7 @@ struct QueueState {
 	int cur_table;
 	char *table_prefix;
 	Datum next_event_id;
+	bool disabled;
 };
 
 /*
@@ -193,6 +196,9 @@ static void load_queue_info(Datum queue_name, struct QueueState *state)
 	state->next_event_id = SPI_getbinval(row, desc, COL_EVENT_ID, &isnull);
 	if (isnull)
 		elog(ERROR, "Seq name NULL");
+	state->disabled = SPI_getbinval(row, desc, COL_DISABLED, &isnull);
+	if (isnull)
+		elog(ERROR, "insert_disabled NULL");
 }
 
 /*
@@ -221,7 +227,7 @@ pgq_insert_event_raw(PG_FUNCTION_ARGS)
 	int i, res;
 
 	if (PG_NARGS() < 6)
-		elog(ERROR, "too few args");
+		elog(ERROR, "Need at least 6 arguments");
 	if (PG_ARGISNULL(0))
 		elog(ERROR, "Queue name must not be NULL");
 
@@ -231,6 +237,9 @@ pgq_insert_event_raw(PG_FUNCTION_ARGS)
 	init_cache();
 
 	load_queue_info(PG_GETARG_DATUM(0), &state);
+
+	if (state.disabled)
+		elog(ERROR, "Insert into queue disallowed");
 
 	if (PG_ARGISNULL(1))
 		ev_id = state.next_event_id;

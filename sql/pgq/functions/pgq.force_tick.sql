@@ -27,13 +27,14 @@ begin
     -- bump seq and get queue id
     select queue_id,
            setval(queue_event_seq, nextval(queue_event_seq)
-                                   + queue_ticker_max_count * 2) as tmp
+                                   + queue_ticker_max_count * 2 + 1000) as tmp
       into q from pgq.queue
      where queue_name = i_queue_name
        and not queue_external_ticker;
-    if not found then
-        raise exception 'queue not found or ticks not allowed';
-    end if;
+
+    --if not found then
+    --    raise notice 'queue not found or ticks not allowed';
+    --end if;
 
     -- return last tick id
     select tick_id into t from pgq.tick

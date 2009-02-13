@@ -50,6 +50,7 @@ select pgq.register_consumer('myqueue', 'consumer');
                  1
 (1 row)
 
+update pgq.queue set queue_ticker_max_lag = '0', queue_ticker_idle_period = '0';
 select pgq.next_batch('myqueue', 'consumer');
  next_batch 
 ------------
@@ -80,10 +81,10 @@ select pgq.next_batch('myqueue', 'consumer');
           1
 (1 row)
 
-select queue_name, consumer_name, prev_tick_id, tick_id, lag from pgq.get_batch_info(1);
- queue_name | consumer_name | prev_tick_id | tick_id |     lag     
-------------+---------------+--------------+---------+-------------
- myqueue    | consumer      |            1 |       2 | @ 0.00 secs
+select queue_name, consumer_name, prev_tick_id, tick_id, lag < '30 seconds' as lag_exists from pgq.get_batch_info(1);
+ queue_name | consumer_name | prev_tick_id | tick_id | lag_exists 
+------------+---------------+--------------+---------+------------
+ myqueue    | consumer      |            1 |       2 | t
 (1 row)
 
 select queue_name, queue_ntables, queue_cur_table, queue_rotation_period,
@@ -93,7 +94,7 @@ select queue_name, queue_ntables, queue_cur_table, queue_rotation_period,
   from pgq.get_queue_info() order by 1;
  queue_name | queue_ntables | queue_cur_table | queue_rotation_period | switch_time_exists | queue_external_ticker | queue_ticker_max_count | queue_ticker_max_lag | queue_ticker_idle_period | ticker_lag_exists 
 ------------+---------------+-----------------+-----------------------+--------------------+-----------------------+------------------------+----------------------+--------------------------+-------------------
- myqueue    |             3 |               0 | @ 2 hours             | t                  | f                     |                    500 | @ 3 secs             | @ 1 min                  | t
+ myqueue    |             3 |               0 | @ 2 hours             | t                  | f                     |                    500 | @ 0                  | @ 0                      | t
 (1 row)
 
 select queue_name, consumer_name, lag < '30 seconds' as lag_exists,
@@ -290,6 +291,56 @@ select pgq.force_tick('myqueue');
 select nextval(queue_event_seq) from pgq.queue where queue_name = 'myqueue';
  nextval 
 ---------
-    1006
+    2006
+(1 row)
+
+create sequence tmptest_seq;
+select pgq.seq_getval('tmptest_seq');
+ seq_getval 
+------------
+          1
+(1 row)
+
+select pgq.seq_setval('tmptest_seq', 10);
+ seq_setval 
+------------
+         10
+(1 row)
+
+select pgq.seq_setval('tmptest_seq', 5);
+ seq_setval 
+------------
+         10
+(1 row)
+
+select pgq.seq_setval('tmptest_seq', 15);
+ seq_setval 
+------------
+         15
+(1 row)
+
+select pgq.seq_getval('tmptest_seq');
+ seq_getval 
+------------
+         15
+(1 row)
+
+-- test disabled
+select pgq.insert_event('myqueue', 'test', 'event');
+ insert_event 
+--------------
+         2007
+(1 row)
+
+update pgq.queue set queue_disable_insert = true where queue_name = 'myqueue';
+select pgq.insert_event('myqueue', 'test', 'event');
+ERROR:  Insert into queue disallowed
+CONTEXT:  PL/pgSQL function "insert_event" line 19 at RETURN
+PL/pgSQL function "insert_event" line 15 at RETURN
+update pgq.queue set queue_disable_insert = false where queue_name = 'myqueue';
+select pgq.insert_event('myqueue', 'test', 'event');
+ insert_event 
+--------------
+         2009
 (1 row)
 

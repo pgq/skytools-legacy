@@ -1,4 +1,4 @@
 
 -- brute-force uninstall
-drop schema cascade pgq;
+drop schema pgq cascade;
 

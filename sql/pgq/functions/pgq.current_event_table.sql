@@ -18,11 +18,19 @@ returns text as $$
 -- ----------------------------------------------------------------------
 declare
     res text;
+    disabled boolean;
 begin
-    select queue_data_pfx || '_' || queue_cur_table into res
+    select queue_data_pfx || '_' || queue_cur_table,
+           queue_disable_insert
+        into res, disabled
         from pgq.queue where queue_name = x_queue_name;
     if not found then
         raise exception 'Event queue not found';
+    end if;
+    if disabled then
+        if current_setting('session_replication_role') <> 'replica' then
+            raise exception 'Writing to queue disabled';
+        end if;
     end if;
     return res;
 end;

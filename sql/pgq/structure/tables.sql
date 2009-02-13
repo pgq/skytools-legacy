@@ -36,11 +36,11 @@ create schema pgq;
 --      co_name     - consumer's id for external usage
 -- ----------------------------------------------------------------------
 create table pgq.consumer (
-	co_id       serial,
-	co_name     text        not null default 'fooz',
+        co_id       serial,
+        co_name     text        not null default 'fooz',
 
-	constraint consumer_pkey primary key (co_id),
-	constraint consumer_name_uq UNIQUE (co_name)
+        constraint consumer_pkey primary key (co_id),
+        constraint consumer_name_uq UNIQUE (co_name)
 );
 
 
@@ -59,6 +59,7 @@ create table pgq.consumer (
 --      queue_switch_step2          - tx after rotation was committed
 --      queue_switch_time           - time when switch happened
 --      queue_external_ticker       - ticks come from some external sources
+--      queue_disable_insert        - disallow pgq.insert_event()
 --      queue_ticker_max_count      - batch should not contain more events
 --      queue_ticker_max_lag        - events should not age more
 --      queue_ticker_idle_period    - how often to tick when no events happen
@@ -67,8 +68,8 @@ create table pgq.consumer (
 --      queue_tick_seq              - sequence for tick id's
 -- ----------------------------------------------------------------------
 create table pgq.queue (
-	queue_id		    serial,
-	queue_name		    text        not null,
+        queue_id                    serial,
+        queue_name                  text        not null,
 
         queue_ntables               integer     not null default 3,
         queue_cur_table             integer     not null default 0,
@@ -78,6 +79,8 @@ create table pgq.queue (
         queue_switch_time           timestamptz not null default now(),
 
         queue_external_ticker       boolean     not null default false,
+        queue_disable_insert        boolean     not null default false,
+
         queue_ticker_max_count      integer     not null default 500,
         queue_ticker_max_lag        interval    not null default '3 seconds',
         queue_ticker_idle_period    interval    not null default '1 minute',
@@ -86,8 +89,8 @@ create table pgq.queue (
         queue_event_seq             text        not null,
         queue_tick_seq              text        not null,
 
-	constraint queue_pkey primary key (queue_id),
-	constraint queue_name_uq unique (queue_name)
+        constraint queue_pkey primary key (queue_id),
+        constraint queue_name_uq unique (queue_name)
 );
 
 -- ----------------------------------------------------------------------
@@ -100,14 +103,16 @@ create table pgq.queue (
 --      tick_id         - ticks id (per-queue)
 --      tick_time       - time when tick happened
 --      tick_snapshot   - transaction state
+--      tick_event_seq  - last value for event seq
 -- ----------------------------------------------------------------------
 create table pgq.tick (
         tick_queue                  int4            not null,
         tick_id                     bigint          not null,
         tick_time                   timestamptz     not null default now(),
         tick_snapshot               txid_snapshot   not null default txid_current_snapshot(),
+        tick_event_seq              bigint          not null, -- may be NULL on upgraded dbs
 
-	constraint tick_pkey primary key (tick_queue, tick_id),
+        constraint tick_pkey primary key (tick_queue, tick_id),
         constraint tick_queue_fkey foreign key (tick_queue)
                                    references pgq.queue (queue_id)
 );
@@ -134,16 +139,16 @@ create sequence pgq.batch_id_seq;
 --      sub_next_tick   - batch end pos
 -- ----------------------------------------------------------------------
 create table pgq.subscription (
-	sub_id				serial      not null,
-	sub_queue			int4        not null,
-	sub_consumer			int4        not null,
-	sub_last_tick                   bigint      not null,
+        sub_id                          serial      not null,
+        sub_queue                       int4        not null,
+        sub_consumer                    int4        not null,
+        sub_last_tick                   bigint      not null,
         sub_active                      timestamptz not null default now(),
         sub_batch                       bigint,
         sub_next_tick                   bigint,
 
-	constraint subscription_pkey primary key (sub_id),
-	constraint subscription_ukey unique (sub_queue, sub_consumer),
+        constraint subscription_pkey primary key (sub_id),
+        constraint subscription_ukey unique (sub_queue, sub_consumer),
         constraint sub_queue_fkey foreign key (sub_queue)
                                    references pgq.queue (queue_id),
         constraint sub_consumer_fkey foreign key (sub_consumer)
@@ -170,7 +175,7 @@ create table pgq.subscription (
 --      ev_extra4           - extra data field
 -- ----------------------------------------------------------------------
 create table pgq.event_template (
-	ev_id	            bigint          not null,
+        ev_id               bigint          not null,
         ev_time             timestamptz     not null,
 
         ev_txid             bigint          not null default txid_current(),

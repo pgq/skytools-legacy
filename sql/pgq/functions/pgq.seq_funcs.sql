@@ -4,7 +4,7 @@ returns bigint as $$
 -- ----------------------------------------------------------------------
 -- Function: pgq.seq_getval(1)
 --
---      read current last_val from seq, without offecting it.
+--      Read current last_val from seq, without affecting it.
 --
 -- Parameters:
 --      i_seq_name     - Name of the sequence
@@ -13,9 +13,23 @@ returns bigint as $$
 --      last value.
 -- ----------------------------------------------------------------------
 declare
-    res  int8;
+    res     int8;
+    fqname  text;
+    pos     integer;
+    s       text;
+    n       text;
 begin
-    execute 'select last_value from ' || i_seq_name into res;
+    pos := position('.' in i_seq_name);
+    if pos > 0 then
+        s := substring(i_seq_name for pos - 1);
+        n := substring(i_seq_name from pos + 1);
+    else
+        s := 'public';
+        n := i_seq_name;
+    end if;
+    fqname := quote_ident(s) || '.' || quote_ident(n);
+
+    execute 'select last_value from ' || fqname into res;
     return res;
 end;
 $$ language plpgsql;
@@ -35,11 +49,25 @@ returns bigint as $$
 --      current last value.
 -- ----------------------------------------------------------------------
 declare
-    res  int8;
+    res     int8;
+    fqname  text;
+    pos     integer;
+    s       text;
+    n       text;
 begin
+    pos := position('.' in i_seq_name);
+    if pos > 0 then
+        s := substring(i_seq_name for pos - 1);
+        n := substring(i_seq_name from pos + 1);
+    else
+        s := 'public';
+        n := i_seq_name;
+    end if;
+    fqname := quote_ident(s) || '.' || quote_ident(n);
+
     res := pgq.seq_getval(i_seq_name);
     if res < i_new_value then
-        perform setval(i_seq_name, i_new_value);
+        perform setval(fqname, i_new_value);
         return i_new_value;
     end if;
     return res;

@@ -1,7 +1,13 @@
 
--------------------------------------------------------------------------
-create or replace function pgq.get_consumer_info()
-returns setof pgq.ret_consumer_info as $$
+create or replace function pgq.get_consumer_info(
+    out queue_name      text,
+    out consumer_name   text,
+    out lag             interval,
+    out last_seen       interval,
+    out last_tick       bigint,
+    out current_batch   bigint,
+    out next_tick       bigint)
+returns setof record as $$
 -- ----------------------------------------------------------------------
 -- Function: pgq.get_consumer_info(0)
 --
@@ -10,73 +16,75 @@ returns setof pgq.ret_consumer_info as $$
 -- Returns:
 --      See pgq.get_consumer_info(2)
 -- ----------------------------------------------------------------------
-declare
-    ret  pgq.ret_consumer_info%rowtype;
-    i    record;
 begin
-    for i in select queue_name from pgq.queue order by 1
+    for queue_name, consumer_name, lag, last_seen,
+        last_tick, current_batch, next_tick
+    in
+        select f.queue_name, f.consumer_name, f.lag, f.last_seen,
+               f.last_tick, f.current_batch, f.next_tick
+            from pgq.get_consumer_info(null, null) f
     loop
-        for ret in
-            select * from pgq.get_consumer_info(i.queue_name)
-        loop
-            return next ret;
-        end loop;
+        return next;
     end loop;
     return;
 end;
 $$ language plpgsql security definer;
 
 
--------------------------------------------------------------------------
-create or replace function pgq.get_consumer_info(x_queue_name text)
-returns setof pgq.ret_consumer_info as $$
+
+create or replace function pgq.get_consumer_info(
+    in i_queue_name     text,
+    out queue_name      text,
+    out consumer_name   text,
+    out lag             interval,
+    out last_seen       interval,
+    out last_tick       bigint,
+    out current_batch   bigint,
+    out next_tick       bigint)
+returns setof record as $$
 -- ----------------------------------------------------------------------
 -- Function: pgq.get_consumer_info(1)
 --
---      Returns info about consumers on one particular queue.
---
--- Parameters:
---      x_queue_name    - Queue name
+--      Returns info about all consumers on single queue.
 --
 -- Returns:
 --      See pgq.get_consumer_info(2)
 -- ----------------------------------------------------------------------
-declare
-    ret  pgq.ret_consumer_info%rowtype;
-    tmp record;
 begin
-    for tmp in
-        select queue_name, co_name
-          from pgq.queue, pgq.consumer, pgq.subscription
-         where queue_id = sub_queue
-           and co_id = sub_consumer
-           and queue_name = x_queue_name
-         order by 1, 2
+    for queue_name, consumer_name, lag, last_seen,
+        last_tick, current_batch, next_tick
+    in
+        select f.queue_name, f.consumer_name, f.lag, f.last_seen,
+               f.last_tick, f.current_batch, f.next_tick
+            from pgq.get_consumer_info(i_queue_name, null) f
     loop
-        for ret in
-            select * from pgq.get_consumer_info(tmp.queue_name, tmp.co_name)
-        loop
-            return next ret;
-        end loop;
+        return next;
     end loop;
     return;
 end;
 $$ language plpgsql security definer;
 
 
-------------------------------------------------------------------------
+
 create or replace function pgq.get_consumer_info(
-    x_queue_name text,
-    x_consumer_name text)
-returns setof pgq.ret_consumer_info as $$
+    in i_queue_name     text,
+    in i_consumer_name  text,
+    out queue_name      text,
+    out consumer_name   text,
+    out lag             interval,
+    out last_seen       interval,
+    out last_tick       bigint,
+    out current_batch   bigint,
+    out next_tick       bigint)
+returns setof record as $$
 -- ----------------------------------------------------------------------
 -- Function: pgq.get_consumer_info(2)
 --
 --      Get info about particular consumer on particular queue.
 --
 -- Parameters:
---      x_queue_name        - name of a queue.
---      x_consumer_name     - name of a consumer
+--      i_queue_name        - name of a queue. (null = all)
+--      i_consumer_name     - name of a consumer (null = all)
 --
 -- Returns:
 --      queue_name          - Queue name
@@ -87,26 +95,24 @@ returns setof pgq.ret_consumer_info as $$
 --      current_batch       - Current batch ID, if one is active or NULL
 --      next_tick           - If batch is active, then its final tick.
 -- ----------------------------------------------------------------------
-declare
-    ret  pgq.ret_consumer_info%rowtype;
 begin
-    for ret in 
-        select queue_name, co_name,
-               current_timestamp - tick_time as lag,
-               current_timestamp - sub_active as last_seen,
-               sub_last_tick as last_tick,
-               sub_batch as current_batch,
-               sub_next_tick as next_tick
-          from pgq.subscription, pgq.tick, pgq.queue, pgq.consumer
-         where tick_id = sub_last_tick
-           and queue_id = sub_queue
-           and tick_queue = sub_queue
-           and co_id = sub_consumer
-           and queue_name = x_queue_name
-           and co_name = x_consumer_name
+    for queue_name, consumer_name, lag, last_seen,
+        last_tick, current_batch, next_tick
+    in
+        select q.queue_name, c.co_name,
+               current_timestamp - t.tick_time,
+               current_timestamp - s.sub_active,
+               s.sub_last_tick, s.sub_batch, s.sub_next_tick
+          from pgq.subscription s, pgq.tick t, pgq.queue q, pgq.consumer c
+         where t.tick_id = s.sub_last_tick
+           and q.queue_id = s.sub_queue
+           and t.tick_queue = s.sub_queue
+           and c.co_id = s.sub_consumer
+           and (i_queue_name is null or q.queue_name = i_queue_name)
+           and (i_consumer_name is null or c.co_name = i_consumer_name)
          order by 1,2
     loop
-        return next ret;
+        return next;
     end loop;
     return;
 end;

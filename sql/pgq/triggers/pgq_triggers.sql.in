@@ -97,34 +97,3 @@ AS 'MODULE_PATHNAME', 'pgq_sqltriga' LANGUAGE C;
 CREATE OR REPLACE FUNCTION pgq.logutriga() RETURNS TRIGGER
 AS 'MODULE_PATHNAME', 'pgq_logutriga' LANGUAGE C;
 
--- ----------------------------------------------------------------------
--- Function: pgq.denytriga()
---
---      Trigger function that denies operation unless in particular context.
---
--- Purpose:
---	Used as producer for several PgQ standard consumers (cube_dispatcher, 
---      queue_mover, table_dispatcher).  Basically for cases where the
---      consumer wants to parse the event and look at the actual column values.
---
--- Trigger parameters:
---      One or more context names to allow.
---
--- Regular listen trigger example:
--- >   CREATE TRIGGER triga_nimi AFTER INSERT OR UPDATE ON customer
--- >   FOR EACH ROW EXECUTE PROCEDURE pgq.denytriga('my_replica');
--- ----------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION pgq.denytriga() RETURNS TRIGGER
-AS 'MODULE_PATHNAME', 'pgq_denytriga' LANGUAGE C;
-
--- ----------------------------------------------------------------------
--- Function: pgq.set_connection_context(1)
---
---      This function sets the context for current connections.
---
--- Parameters:
---      context - context name
--- ----------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION pgq.set_connection_context(i_context text) RETURNS void
-AS 'MODULE_PATHNAME', 'pgq_set_connection_context' LANGUAGE C;
-
