@@ -40,12 +40,14 @@ branch::
   * carries full contents of the queue.
   * may subscribe to all/some/none of the tables.
   * can be provider for initial copy only if subscribes to table
-  * attached tags: mirror/subset/queue ???
 
 leaf::
   Data-only node.  Events are replayed, but no queue, thus cannot be provider to other nodes.
+  Nodes where sets from partitions are merged together are also tagged 'leaf', because
+  in per-partition set it cannot be provider to other nodes.
 
 merge-leaf::
+  [Does not exist as separate type, detected as 'leaf' that has 'combined_queue' set.]
   Exists in per-partition set.
   - Does not have it's own queue.
   - Initial COPY is done with --skip-truncate,
@@ -56,11 +58,13 @@ merge-leaf::
     from combined-root
   
 combined-root::
+  [Does not exist as separate type, detected as 'root' that has 'leaf's with 'combined_queue' set.]
   - Master for combined set.  Received data from several per-partition set's.
   - also is merge-leaf in every part-set.
   - queue is filled directly from partition sets.
 
 combined-failover::
+  [Does not exist as separate type, detected as 'branch' that has 'leaf's with 'combined_queue' set.]
   - participates in combined-set, receives events.
   - also is queue-only node in every part-set.
   - but no processing is done, just tracking
@@ -85,11 +89,11 @@ combined-failover::
 * Subscriber gets its own provider url from database, so switching to
   another provider does not need config changes.
 * Ticks+data can only be deleted if all nodes have already applied it.
-  - Special consumer registration on all queues - <setname>_watermark.
-    This avoid PgQ deleting old events.
-  - Nodes propagate upwards their lowest tick
-  - Root sends new watermark events to the queue
-  - When branch/leaf gets new watermark event, it moves the <setname>_watermark registration.
+  - Special consumer registration on all queues - ".global_watermark".
+    This avoids PgQ from deleting old events.
+  - Nodes propagate upwards their lowest tick: (local_watermark)
+  - Root sends it's local watermark as "pgq.global-watermark" event to the queue.
+  - When branch/leaf gets new watermark event, it moves the ".global_watermark" registration.
 
 == Illustrations ==
 
@@ -134,37 +138,18 @@ On the loss of S3, it should be possible to direct S4 to receive data from S1/S2
 On the loss of S1, it should be possible to redirect S3 to S2
 and ABCD -> S2 -> S3 must stay in sync.
 
-== UI spec (incomplete) ==
+== UI spec (incomplete) [obsolete] ==
 
 Here should be end-user interface specced.
 
- setmgr.py <set.ini> init-master ( <node>  --connstr <connstr> | --infoset <infoset> )
- setmgr.py <set.ini> init-node <node> --type <type> --connstr <connstr> --provider <node>
+ setmgr.py <set.ini> create-node TYPE NODE_NAME  NODE_LOCATION --provider=<provider_connstr>
  setmgr.py <set.ini> change-provider <node> --provider <node>
  setmgr.py <set.ini> set-dead <node>
  setmgr.py <set.ini> set-live <node>
- setmgr.py <set.ini> pause <node>
- setmgr.py <set.ini> resume <node>
- setmgr.py <set.ini> master-failover <newmaster>
- setmgr.py <set.ini> master-switchover <newmaster>
- setmgr.py <set.ini> node-failover <newnode>
- setmgr.py <set.ini> node-switchover <newnode>
- setmgr.py <set.ini> candidates <node>
+ setmgr.py <set.ini> pause --node=<node> [--consumer=]
+ setmgr.py <set.ini> resume --node=<node> [--consumer=]
 
 
- setmgr.py <set.ini> londiste <node> add-table <tbl> ....
- setmgr.py <set.ini> remove-table <node> <tbl> ....
- setmgr.py <set.ini> add-seq <node> <seq> ....
- setmgr.py <set.ini> remove-seq <node> <seq> ....
- setmgr.py <set.ini> tables <node>
- setmgr.py <set.ini> seqs <node>
- setmgr.py <set.ini> missing <node> --seqs --tables
- setmgr.py <set.ini> check-tables
- setmgr.py <set.ini> show-fkeys
- setmgr.py <set.ini> show-triggers
- setmgr.py <set.ini> show-tables
- setmgr.py <set.ini> show-seqs
- setmgr.py <set.ini> <node> resync-table
 
  londiste.py <node.ini> add-table <tbl> ....
  londiste.py <node.ini> remove-table <tbl> ....

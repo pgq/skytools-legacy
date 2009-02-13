@@ -19,14 +19,19 @@ Keep old design from Skytools 2
 New features in Skytools 3
 --------------------------
 
-* Cascading is implemented as generic layer on top of PgQ - *pgq_set*.
+* Cascading is implemented as generic layer on top of PgQ - *Cascaded PgQ*.
   - Its goal is to keep identical copy of queue contents in several nodes.
   - Not replication-specific - can be used for any queue.
 
-* Parallel copy - during inital sync several tables can be
-  copied at the same time.
-  - In 2.1 the copy already happened in separate process,
-    making it parallel was just a matter of tuning launching/syncing logic.
+* New Londiste features:
+  - Parallel copy - during inital sync several tables can be
+    copied at the same time.   In 2.1.x the copy already happened in separate
+    process, making it parallel was just a matter of tuning launching/syncing logic.
+
+  - EXECUTE command, to run random SQL script on all nodes.
+
+  - Automatic table or sequence creation by importing the structure
+    from provider node.  Activeted with --create switch for add-table, add-seq.
 
 * Advanced admin operations:
   - switchover
@@ -35,19 +40,7 @@ New features in Skytools 3
   - pause / resume node
   - rename node
 
-Open Questions
---------------
+Example session
+---------------
 
-* terminology
-  - 'set' vs 'cluster' vs ???
-  - (root / branch / leaf) vs. (master / slave) vs. (provider / subscriber)
-  - add <table> vs. attach <table>
-
-* own trigger handling
-  - fullblown custom
-  - minimal custom + wait for 8.3
-
-* compatibility with v2.1.x (python scripts + modules):
-  - bundle old modules and scripts with different name
-  - rename new modules and scripts
 

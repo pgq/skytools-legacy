@@ -3,7 +3,7 @@ include ../config.mak
 
 wiki = https://developer.skype.com/SkypeGarage/DbProjects/SkyTools
 
-web = mkz@shell.pgfoundry.org:/home/pgfoundry.org/groups/skytools/htdocs/
+web = mkz@shell.pgfoundry.org:/home/pgfoundry.org/groups/skytools/htdocs/skytools-3.0
 
 EPYDOC = epydoc
 EPYARGS = --no-private --url="http://pgfoundry.org/projects/skytools/" \
@@ -11,7 +11,7 @@ EPYARGS = --no-private --url="http://pgfoundry.org/projects/skytools/" \
 
 HTMLS = londiste.cmdline.html londiste.config.html README.html INSTALL.html \
 	londiste.ref.html TODO.html pgq-sql.html pgq-admin.html pgq-nodupes.html \
-	$(SCRIPT_HTMLS) skytools3.html
+	$(SCRIPT_HTMLS) faq.html set.notes.html
 
 SCRIPT_TXTS = walmgr.txt cube_dispatcher.txt table_dispatcher.txt \
 	      queue_mover.txt queue_splitter.txt bulk_loader.txt \
@@ -67,6 +67,10 @@ apiupload: apidoc
 	rsync -rtlz api/* $(web)/api
 	cd ../sql/pgq && rm -rf docs/html && $(MAKE) dox
 	rsync -rtlz ../sql/pgq/docs/html/* $(web)/pgq/
+	cd ../sql/pgq_node && rm -rf docs/html && $(MAKE) dox
+	rsync -rtlz ../sql/pgq_node/docs/html/* $(web)/pgq_node/
+	cd ../sql/londiste && rm -rf docs/html && $(MAKE) dox
+	rsync -rtlz ../sql/londiste/docs/html/* $(web)/londiste/
 
 clean:
 	rm -rf api *.html
