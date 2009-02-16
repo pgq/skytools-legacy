@@ -33,7 +33,7 @@ setup(
     maintainer_email = "marko.kreen@skype.net",
     url = "http://pgfoundry.org/projects/skytools/",
     package_dir = {'': 'python'},
-    packages = ['skytools', 'londiste', 'pgq'],
+    packages = ['skytools', 'londiste', 'pgq', 'pgq.cascade'],
     scripts = ['python/londiste.py', 'python/pgqadm.py', 'python/walmgr.py',
                'python/setadm.py',
                'scripts/cube_dispatcher.py', 'scripts/queue_mover.py',
