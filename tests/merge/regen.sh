@@ -105,42 +105,42 @@ rm -f log/*.log
 set -e
 
 for db in $all_list; do
-  run pgqadm.py $v conf/ticker_$db.ini install
+  run pgqadm $v conf/ticker_$db.ini install
 done
 
-run londiste.py $v conf/londiste_full1.ini create-root fnode1 'dbname=full1'
-run londiste.py $v conf/londiste_full2.ini create-branch fnode2 'dbname=full2' --provider='dbname=full1'
-run londiste.py $v conf/londiste_full3.ini create-branch fnode3 'dbname=full3' --provider='dbname=full1'
-run londiste.py $v conf/londiste_full4.ini create-leaf fnode4 'dbname=full4' --provider='dbname=full2'
+run londiste $v conf/londiste_full1.ini create-root fnode1 'dbname=full1'
+run londiste $v conf/londiste_full2.ini create-branch fnode2 'dbname=full2' --provider='dbname=full1'
+run londiste $v conf/londiste_full3.ini create-branch fnode3 'dbname=full3' --provider='dbname=full1'
+run londiste $v conf/londiste_full4.ini create-leaf fnode4 'dbname=full4' --provider='dbname=full2'
 
-run londiste.py $v conf/londiste_part1.ini create-root p1root 'dbname=part1'
-run londiste.py $v conf/londiste_part2.ini create-root p2root 'dbname=part2'
-run londiste.py $v conf/londiste_part3.ini create-root p3root 'dbname=part3'
-run londiste.py $v conf/londiste_part4.ini create-root p4root 'dbname=part4'
+run londiste $v conf/londiste_part1.ini create-root p1root 'dbname=part1'
+run londiste $v conf/londiste_part2.ini create-root p2root 'dbname=part2'
+run londiste $v conf/londiste_part3.ini create-root p3root 'dbname=part3'
+run londiste $v conf/londiste_part4.ini create-root p4root 'dbname=part4'
 
 
 for dst in full1 full2; do
   for src in $part_list; do
-    run londiste.py $v conf/londiste_${src}_${dst}.ini \
+    run londiste $v conf/londiste_${src}_${dst}.ini \
                     create-leaf merge_${src}_${dst} "dbname=$dst" \
                     --provider="dbname=$src" --merge="replika"
   done
 done
 
 for db in $all_list; do
-  run pgqadm.py $v -d conf/ticker_$db.ini ticker
-  run londiste.py $v -d conf/londiste_$db.ini replay
+  run pgqadm $v -d conf/ticker_$db.ini ticker
+  run londiste $v -d conf/londiste_$db.ini replay
 done
 
 for dst in full1 full2; do
   for src in $part_list; do
-    run londiste.py $v -d conf/londiste_${src}_${dst}.ini replay
+    run londiste $v -d conf/londiste_${src}_${dst}.ini replay
   done
 done
 
 for db in $part_list; do
   run psql $db -c "create table mydata (id int4 primary key, data text)"
-  run londiste.py $v conf/londiste_$db.ini add-table mydata
+  run londiste $v conf/londiste_$db.ini add-table mydata
 done
 for n in 1 2 3 4; do
   run psql -d part$n -c "insert into mydata values ($n, 'part$n')"
@@ -148,9 +148,9 @@ done
 
 for db in full1; do
   run psql $db -c "create table mydata (id int4 primary key, data text)"
-  run londiste.py $v conf/londiste_$db.ini add-table mydata
+  run londiste $v conf/londiste_$db.ini add-table mydata
   for src in $part_list; do
-    run londiste.py $v conf/londiste_${src}_${db}.ini add-table mydata
+    run londiste $v conf/londiste_${src}_${db}.ini add-table mydata
   done
 done
 
