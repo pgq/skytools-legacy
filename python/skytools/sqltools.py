@@ -9,7 +9,7 @@ import skytools.installer_config
 __all__ = [
     "fq_name_parts", "fq_name", "get_table_oid", "get_table_pkeys",
     "get_table_columns", "exists_schema", "exists_table", "exists_type",
-    "exists_sequence",
+    "exists_sequence", "exists_temp_table",
     "exists_function", "exists_language", "Snapshot", "magic_insert",
     "CopyPipe", "full_copy", "DBObject", "DBSchema", "DBTable", "DBFunction",
     "DBLanguage", "db_install", "installer_find_file", "installer_apply_file",
@@ -148,6 +148,14 @@ def exists_language(curs, lang_name):
     curs.execute(q, [lang_name])
     res = curs.fetchone()
     return res[0]
+
+def exists_temp_table(curs, tbl):
+    """Does temp table exists?"""
+    # correct way, works only on 8.2
+    q = "select 1 from pg_class where relname = %s and relnamespace = pg_my_temp_schema()"
+    curs.execute(q, [tbl])
+    tmp = curs.fetchall()
+    return len(tmp) > 0
 
 #
 # Support for PostgreSQL snapshot
