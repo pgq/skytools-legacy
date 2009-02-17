@@ -155,6 +155,9 @@ class CascadeAdmin(skytools.AdminScript):
                           [self.queue_name, node_type, node_name, worker_name, provider_name, global_watermark, combined_queue])
             provider_db = None
         else:
+            if not provider_loc:
+                raise Exception('Please specify --provider')
+
             root_db = self.find_root_db(provider_loc)
             queue_info = self.load_queue_info(root_db)
 
