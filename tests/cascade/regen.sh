@@ -32,7 +32,7 @@ for db in db1 db2 db3; do
   cleardb $db
 done
 
-run ./plainconsumer -s conf/nop_consumer.ini
+run ./plainconsumer.py -s conf/nop_consumer.ini
 
 rm -f log/*.log
 
@@ -61,13 +61,13 @@ run setadm $v --worker=node3_worker conf/setadm.ini create-branch node3 'dbname=
 run setadm $v conf/setadm.ini status
 
 #echo " # plainconsumer # "
-run ./plainconsumer $v conf/nop_consumer.ini --register --provider='dbname=db1'
-run ./plainconsumer $v -d conf/nop_consumer.ini
+run ./plainconsumer.py $v conf/nop_consumer.ini --register --provider='dbname=db1'
+run ./plainconsumer.py $v -d conf/nop_consumer.ini
 
 #echo " # plainworker # "
-run ./plainworker $v -d conf/worker_db1.ini
-run ./plainworker $v -d conf/worker_db2.ini
-run ./plainworker $v -d conf/worker_db3.ini
+run ./plainworker.py $v -d conf/worker_db1.ini
+run ./plainworker.py $v -d conf/worker_db2.ini
+run ./plainworker.py $v -d conf/worker_db3.ini
 
 
 #echo " # insert_event() # "
