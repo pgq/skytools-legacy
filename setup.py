@@ -39,7 +39,7 @@ setup(
                'scripts/cube_dispatcher.py', 'scripts/queue_mover.py',
                'scripts/table_dispatcher.py', 'scripts/bulk_loader.py',
                'scripts/scriptmgr.py', 'scripts/queue_splitter.py',
-               'scripts/skytools_upgrade.py',
+               'scripts/skytools_upgrade.py', 'scripts/queue_loader.py',
                ],
     data_files = [
       ('share/doc/skytools/conf', [

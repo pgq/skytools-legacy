@@ -25,8 +25,12 @@ I_READ_COMMITTED = 1
 I_SERIALIZABLE = 2
 
 __all__ = ['DBScript', 'I_AUTOCOMMIT', 'I_READ_COMMITTED', 'I_SERIALIZABLE',
-           'signal_pidfile']
+           'signal_pidfile', 'UsageError']
 #__all__ += ['daemonize', 'run_single_process']
+
+class UsageError(Exception):
+    """User induced error."""
+    pass
 
 #
 # utils
@@ -386,6 +390,9 @@ class DBScript(object):
 
         try:
             run_single_process(self, self.go_daemon, self.pidfile)
+        except UsageError, ex:
+            self.log.error(str(ex))
+            sys.exit(1)
         except KeyboardInterrupt:
             raise
         except SystemExit:
@@ -499,6 +506,9 @@ class DBScript(object):
         # run startup, safely
         try:
             self.startup()
+        except UsageError, ex:
+            self.log.error(str(ex))
+            sys.exit(1)
         except KeyboardInterrupt:
             raise
         except SystemExit:
@@ -546,6 +556,9 @@ class DBScript(object):
         "Run users work function, safely."
         try:
             return self.work()
+        except UsageError, ex:
+            self.log.error(str(ex))
+            # should we exit here?
         except SystemExit, d:
             self.send_stats()
             self.log.info("got SystemExit(%s), exiting" % str(d))
@@ -562,12 +575,14 @@ class DBScript(object):
             del tb
             self.log.exception("Job %s crashed: %s: %s" % (
                        self.job_name, str(exc), str(msg).rstrip()))
-            self.reset()
-            if self.looping and not self.do_single_loop:
-                time.sleep(20)
-                return 1
-            else:
-                sys.exit(1)
+
+        # reset and sleep
+        self.reset()
+        if self.looping and not self.do_single_loop:
+            time.sleep(20)
+            return 1
+        else:
+            sys.exit(1)
 
     def work(self):
         """Here should user's processing happen.
