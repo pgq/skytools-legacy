@@ -187,6 +187,9 @@ Slave directory where incomplete WAL files are stored.
 ==== full_backup ====
 Slave directory where full backups are stored.
 
+==== config_backup ====
+Slave directory where configuration file backups are stored. Optional.
+
 ==== loop_delay ====
 The frequency of syncdaemon updates. In record shipping mode only
 incremental updates are sent, so smaller interval can be used.
@@ -227,6 +230,10 @@ at log switch times.
 ==== slave_data ====
 Postgres data directory for the slave. This is where the restored
 backup is copied/moved.
+
+==== slave_config_dir ====
+Directory for postgres configuration files. If specified, "walmgr restore"
+attempts to restore configuration files from config_backup directory.
 
 ==== slave_stop_cmd ====
 Script to stop postmaster on slave.
