@@ -178,11 +178,11 @@ class BackupLabel:
 class PostgresConfiguration:
     """Postgres configuration manipulation"""
 
-    def __init__(self, walmgr):
+    def __init__(self, walmgr, cf_file):
         """load the configuration from master_config"""
         self.walmgr = walmgr
         self.log = walmgr.log
-        self.cf_file = walmgr.cf.get("master_config")
+        self.cf_file = cf_file
         self.cf_buf = open(self.cf_file, "r").read()
 
     def archive_mode(self):
@@ -469,7 +469,7 @@ class WalMgr(skytools.DBScript):
     def master_configure_archiving(self, enable_archiving, can_restart):
         """Turn the archiving on or off"""
 
-        cf = PostgresConfiguration(self)
+        cf = PostgresConfiguration(self, self.cf.get("master_config"))
         archive_mode = cf.archive_mode()
 
         if enable_archiving:
@@ -505,6 +505,21 @@ class WalMgr(skytools.DBScript):
 
         self.log.debug("modifying configuration: %s" % cf_params)
 
+        cf.modify(cf_params)
+        cf.write()
+
+    def slave_deconfigure_archiving(self, cf_file):
+        """Turn the archiving off for the slave"""
+
+        self.log.debug("Disable archiving in %s" % cf_file)
+
+        cf = PostgresConfiguration(self, cf_file)
+
+        cf_params = { "archive_command": "" }
+        if cf.archive_mode():
+            cf_params["archive_mode"] = "off"
+
+        self.log.debug("modifying configuration: %s" % cf_params)
         cf.modify(cf_params)
         cf.write()
 
@@ -573,6 +588,11 @@ class WalMgr(skytools.DBScript):
             mkdir(self.cf.get("completed_wals"))
             mkdir(self.cf.get("partial_wals"))
             mkdir(self.cf.get("full_backup"))
+
+            cf_backup = self.cf.get("config_backup", "")
+            if cf_backup:
+                mkdir(cf_backup)
+
 
     def master_periodic(self):
         """
@@ -683,6 +703,18 @@ class WalMgr(skytools.DBScript):
                 "--copy-unsafe-links",
                 "--delete", "pg_xlog", dst_loc]
             self.exec_big_rsync(cmdline)
+
+            # copy config files
+            conf_dst_loc = self.cf.get("config_backup", "")
+            if conf_dst_loc:
+                master_conf_dir = os.path.dirname(self.cf.get("master_config"))
+                self.log.info("Backup conf files from %s" % master_conf_dir)
+                self.chdir(master_conf_dir)
+                cmdline = [
+                     "--include", "*.conf",
+                     "--exclude", "*",
+                     ".", conf_dst_loc]
+                self.exec_big_rsync(cmdline)
 
             self.remote_walmgr("xpurgewals")
         except Exception, e:
@@ -1214,8 +1246,9 @@ STOP TIME: %(stop_time)s
             createbackup = False
 
         if not setname and os.path.isdir(data_dir):
-            # compatibility mode - default restore on slave and data directory exists
-            self.log.warning("Old data directory is in the way, gotta move it.")
+            # compatibility mode - restore without a set name and data directory 
+            # already exists. Move it out of the way.
+            self.log.warning("Data directory already exists, moving it out of the way.")
             createbackup = True
 
         # move old data away
@@ -1230,7 +1263,8 @@ STOP TIME: %(stop_time)s
             if not setname:
                 os.rename(full_dir, data_dir)
             else:
-                self.exec_rsync(["--delete", "--no-relative", "--exclude=pg_xlog/*", os.path.join(full_dir,""), data_dir], True)
+                self.exec_rsync(["--delete", "--no-relative", "--exclude=pg_xlog/*",
+                    os.path.join(full_dir,""), data_dir], True)
                 if self.wtype == MASTER and createbackup and os.path.isdir(bak):
                     # restore original xlog files to data_dir/pg_xlog   
                     # symlinked directories are dereferences
@@ -1238,6 +1272,7 @@ STOP TIME: %(stop_time)s
         else:
             data_dir = full_dir
 
+        # copy configuration files to rotated backup directory
         if createbackup and os.path.isdir(bak):
             for cf in ('postgresql.conf', 'pg_hba.conf', 'pg_ident.conf'):
                 cfsrc = os.path.join(bak, cf)
@@ -1245,7 +1280,7 @@ STOP TIME: %(stop_time)s
                 if os.path.exists(cfdst):
                     self.log.info("Already exists: %s" % cfdst)
                 elif os.path.exists(cfsrc):
-                    self.log.info("Copy %s to %s" % (cfsrc, cfdst))
+                    self.log.debug("Copy %s to %s" % (cfsrc, cfdst))
                     if not self.not_really:
                         copy_conf(cfsrc, cfdst)
 
@@ -1317,6 +1352,11 @@ restore_command = '%s %s %s'
                 if not self.not_really:
                     os.remove(stopfile)
 
+            # attempt to restore configuration. Note that we cannot
+            # postpone this to boot time, as the configuration is needed
+            # to start postmaster.
+            self.slave_restore_config()
+
             # run database in recovery mode
             self.log.info("Starting postmaster: " + start_cmd)
             self.exec_system(start_cmd)
@@ -1324,6 +1364,40 @@ restore_command = '%s %s %s'
             self.log.info("Data files restored, recovery.conf created.")
             self.log.info("postgresql.conf and additional WAL files may need to be restored manually.")
 
+    def slave_restore_config(self):
+        """Restore the configuration files if target directory specified."""
+        self.assert_valid_role(SLAVE)
+
+        cf_source_dir = self.cf.get("config_backup", "")
+        cf_target_dir = self.cf.get("slave_config_dir", "")
+
+        if not cf_source_dir:
+            self.log.info("Configuration backup location not specified.")
+            return
+
+        if not cf_target_dir:
+            self.log.info("Configuration directory not specified, config files not restored.")
+            return
+
+        if not os.path.exists(cf_target_dir):
+            self.log.warning("Configuration directory does not exist: %s" % cf_target_dir)
+            return
+
+        self.log.info("Restoring configuration files")
+        for cf in ('postgresql.conf', 'pg_hba.conf', 'pg_ident.conf'):
+            cfsrc = os.path.join(cf_source_dir, cf)
+            cfdst = os.path.join(cf_target_dir, cf)
+
+            if not os.path.isfile(cfsrc):
+                self.log.warning("Missing configuration file backup: %s" % cf)
+                continue
+
+            self.log.debug("Copy %s to %s" % (cfsrc, cfdst))
+            if not self.not_really:
+                copy_conf(cfsrc, cfdst)
+                if cf == 'postgresql.conf':
+                    self.slave_deconfigure_archiving(cfdst)
+          
     def slave_boot(self):
         self.assert_valid_role(SLAVE)
 
