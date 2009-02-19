@@ -30,6 +30,9 @@
     * walmgr.py: archive_mode GUC is now set during setup. Followed by an
       optional restart if master_restart_cmd is specified (Mark Kirkwood)
 
+    * walmgr.py: PostgreSQL configuration files are backed up to 
+      "config_backup" and restored to "slave_config_dir". (Mark Kirkwood)
+
     * walmgr.py: Backups taken from slave now generate backup_label and
       history files.
 
