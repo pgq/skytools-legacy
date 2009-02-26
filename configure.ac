@@ -47,7 +47,7 @@ AC_ARG_WITH(asciidoc, [  --with-asciidoc[[=prog]]  path to asciidoc 8.2 (default
   fi ],
 [ ASCIIDOC="no" ])
 
-if test -n "$ASCIIDOC"; then
+if test "$ASCIIDOC" != "no"; then
   AC_MSG_CHECKING([whether asciidoc version >= 8.2])
   ver=`$ASCIIDOC --version 2>&1 | sed -e 's/asciidoc //'`
   case "$ver" in
@@ -64,7 +64,7 @@ changequote([, ])dnl
 fi
 
 dnl check for xmlto, but only if asciidoc is found
-if test -n "$ASCIIDOC"; then
+if test "$ASCIIDOC" != "no"; then
   AC_CHECK_PROGS(XMLTO, [$XMLTO xmlto])
 else
   XMLTO="no"
