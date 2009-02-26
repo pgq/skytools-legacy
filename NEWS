@@ -1,5 +1,21 @@
 2009-xx-xx  -  SkyTools 2.1.9  -  ""
 
+  = WalMgr improvements =
+
+    * walmgr.py: WAL files purge procedure now pays attention to recovery
+      restart points. (%r patch by Omar Kilani, Mark Kirkwood)
+
+    * walmgr.py: archive_mode GUC is now set during setup. Followed by an
+      optional restart if master_restart_cmd is specified (Mark Kirkwood)
+
+    * walmgr.py: PostgreSQL configuration files are backed up to 
+      "config_backup" and restored to "slave_config_dir". (Mark Kirkwood)
+
+    * walmgr.py: Backups taken from slave now generate backup_label and
+      history files.
+
+    * walmgr.py Configuration files now default to PostgreSQL 8.3
+
   = Fixes =
 
     * londiste copy: Add missing identifier quoting for
@@ -24,19 +40,9 @@
     * skytools.magic_insert: be more flexible about whats dict.
       In particular, now accept DictRow.
 
-    * walmgr.py: WAL files purge procedure now pays attention to recovery
-      restart points. (%r patch by Omar Kilani, Mark Kirkwood)
-
-    * walmgr.py: archive_mode GUC is now set during setup. Followed by an
-      optional restart if master_restart_cmd is specified (Mark Kirkwood)
-
-    * walmgr.py: PostgreSQL configuration files are backed up to 
-      "config_backup" and restored to "slave_config_dir". (Mark Kirkwood)
-
-    * walmgr.py: Backups taken from slave now generate backup_label and
-      history files.
-
-    * walmgr.py Configuration files now default to PostgreSQL 8.3
+    * configure.ac: don't detect xmlto and asciidoc version
+      if --with-asciidoc is not used.  Otherwise unnecessary error
+      message was printed.
 
 2008-10-12  -  SkyTools 2.1.8  -  "Perestroika For Your Data"
 
