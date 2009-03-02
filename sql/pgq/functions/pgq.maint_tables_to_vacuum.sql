@@ -15,6 +15,11 @@ declare
     tbl text;
     fqname text;
 begin
+    -- assume autovacuum handles them fine
+    if current_setting('autovacuum') = 'on' then
+        return;
+    end if;
+
     for scm, tbl in values
         ('pgq', 'subscription'),
         ('pgq', 'consumer'),
