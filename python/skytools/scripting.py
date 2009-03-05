@@ -302,7 +302,7 @@ class DBScript(object):
         if self.options.verbose:
             self.log_level = logging.DEBUG
         if len(self.args) < 1:
-            print("need config file")
+            print("need config file, use --help for help.")
             sys.exit(1)
 
         # read config file

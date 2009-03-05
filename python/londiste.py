@@ -17,8 +17,8 @@ Replication Daemon:
   worker                replay events to subscriber
 
 Replication Administration:
-  add TBL ...           add table to queue
-  remove TBL ...        remove table from queue
+  add-table TBL ...     add table to queue
+  remove-table TBL ...  remove table from queue
   add-seq SEQ ...       add sequence to provider
   remove-seq SEQ ...    remove sequence from provider
   tables                show all tables on provider
