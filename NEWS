@@ -21,6 +21,8 @@
     * londiste copy: Add missing identifier quoting for
       TRUNCATE and ADD CONSTRAINT.  (Luc Van Hoeylandt)
 
+    * Quote identifiers starting with numeric.  (Andrew Dunstan)
+
     * Fix crash with pgq.sqltrigq/pgq.logutriga, which automatically
       detect table structure.  Problem was handling table invalidation
       event during internal query.
