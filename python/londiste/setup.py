@@ -127,13 +127,22 @@ class LondisteSetup(CascadeAdmin):
     def add_table(self, src_db, dst_db, tbl, create_flags):
         src_curs = src_db.cursor()
         dst_curs = dst_db.cursor()
+        tbl_exists = skytools.exists_table(dst_curs, tbl)
         if create_flags:
-            if skytools.exists_table(dst_curs, tbl):
+            if tbl_exists:
                 self.log.info('Table %s already exist, not touching' % tbl)
             else:
+                if not skytools.exists_table(src_curs, tbl):
+                    # table not present on provider - nowhere to get the DDL from
+                    self.log.warning('Table "%s" missing on provider, skipping' % tbl)
+                    return
                 s = skytools.TableStruct(src_curs, tbl)
                 src_db.commit()
                 s.create(dst_curs, create_flags, log = self.log)
+        elif not tbl_exists:
+            self.log.warning('Table "%s" missing on subscriber, use --create if necessary' % tbl)
+            return
+
         q = "select * from londiste.local_add_table(%s, %s)"
         self.exec_cmd(dst_curs, q, [self.set_name, tbl])
         dst_db.commit()
@@ -142,7 +151,7 @@ class LondisteSetup(CascadeAdmin):
         for tbl in src_tbls.keys():
             q = "select * from londiste.global_add_table(%s, %s)"
             if tbl not in dst_tbls:
-                self.log.info("Table %s info missing from subscriber, adding")
+                self.log.info("Table %s info missing from subscriber, adding" % tbl)
                 self.exec_cmd(dst_curs, q, [self.set_name, tbl])
                 dst_tbls[tbl] = False
         for tbl in dst_tbls.keys():
