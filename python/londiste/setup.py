@@ -71,7 +71,7 @@ class LondisteSetup(CascadeAdmin):
         for row in pcurs.fetchall():
             seq = row['seq_name']
             val = row['last_value']
-            q = "select * from londiste.update_seq(%s, %s, %s)"
+            q = "select * from londiste.global_update_seq(%s, %s, %s)"
             ncurs.execute(q, [self.set_name, seq, val])
 
         # done
@@ -203,13 +203,22 @@ class LondisteSetup(CascadeAdmin):
     def add_seq(self, src_db, dst_db, seq, create_flags):
         src_curs = src_db.cursor()
         dst_curs = dst_db.cursor()
+        seq_exists = skytools.exists_sequence(dst_curs, seq)
         if create_flags:
-            if skytools.exists_sequence(dst_curs, seq):
+            if seq_exists:
                 self.log.info('Sequence %s already exist, not creating' % seq)
             else:
+                if not skytools.exists_sequence(src_curs, seq):
+                    # sequence not present on provider - nowhere to get the DDL from
+                    self.log.warning('Sequence "%s" missing on provider, skipping' % seq)
+                    return
                 s = skytools.SeqStruct(src_curs, seq)
                 src_db.commit()
                 s.create(dst_curs, create_flags, log = self.log)
+        elif not seq_exists:
+            self.log.warning('Sequence "%s" missing on subscriber, use --create if necessary' % seq)
+            return
+
         q = "select * from londiste.local_add_seq(%s, %s)"
         self.exec_cmd(dst_curs, q, [self.set_name, seq])
 
