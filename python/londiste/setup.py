@@ -243,7 +243,7 @@ class LondisteSetup(CascadeAdmin):
         for seq in src_seqs.keys():
             q = "select * from londiste.global_update_seq(%s, %s, %s)"
             if seq not in dst_seqs:
-                self.log.info("Sequence %s info missing from subscriber, adding")
+                self.log.info("Sequence %s info missing from subscriber, adding" % seq)
                 self.exec_cmd(dst_curs, q, [self.set_name, seq, src_seqs[seq]['last_value']])
                 tmp = src_seqs[seq].copy()
                 tmp['local'] = False
