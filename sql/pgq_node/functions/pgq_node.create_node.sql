@@ -97,7 +97,7 @@ begin
         end if;
 
     select 200, 'Node "' || i_node_name || '" initialized for queue "'
-           || i_node_name || '" with type "' || i_node_type || '"'
+           || i_queue_name || '" with type "' || i_node_type || '"'
         into ret_code, ret_note;
     return;
 end;
