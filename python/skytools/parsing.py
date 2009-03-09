@@ -6,7 +6,9 @@ import re
 from skytools.quoting import unescape, unquote_literal, unquote_ident
 from skytools.sqltools import dbdict
 
-__all__ = ["parse_pgarray", "parse_logtriga_sql", "parse_tabbed_table", "parse_statements"]
+__all__ = [
+    "parse_pgarray", "parse_logtriga_sql", "parse_tabbed_table",
+    "parse_statements", 'sql_tokenizer']
 
 _rc_listelem = re.compile(r'( [^,"}]+ | ["] ( [^"\\]+ | [\\]. )* ["] )', re.X)
 
@@ -185,6 +187,7 @@ _base_sql = r"""
     | (?P<pyold>  [%][(] [a-z0-9_]+ [)][s] | [%][%] )
     | (?P<pynew>  [{] [^}]+ [}] | [{][{] | [}] [}] )
     | (?P<ws>     (?: \s+ | [/][*] .*? [*][/] | [-][-][^\n]* )+ )
+    | (?P<error>  ['"$\\] )
     | (?P<sym>    . )"""
 _std_sql = r"""(?: (?P<str> [E] %s | %s ) | %s )""" % (_extstr, _stdstr, _base_sql)
 _ext_sql = r"""(?: (?P<str> [E]? %s ) | %s )""" % (_extstr, _base_sql)
