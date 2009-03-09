@@ -55,7 +55,7 @@ Plain .fetchall() / .fetchone() give exact same result.
 """
 
 # no exports
-__all__ = []
+__all__ = ['connect_database']
 
 ##from psycopg2.psycopg1 import connect as _pgconnect
 # psycopg2.psycopg1.cursor is too backwards compatible,
