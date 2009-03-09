@@ -3,7 +3,22 @@
 
 == Next major release - 3.0 ==
 
+=== Open Questions ===
+
+ * Ticker in C for all db's in one Postgres instance?
+ * seq / watermark functions to ticker?
+ * pgq.CascadedConsumer event processing
+
 === Standalone changes ===
+
+ - copy_event check
+
+ - usr/share default .ini files up-to-date
+ - drop_queue(force)
+ - public vs. local connect string
+ - node connstr change
+ - unregister_node / drop_node
+ - pk vs table exists check - missing tables gets pk error
 
  * Make Londiste support table wildcards.
  * plpgsql trigger for TRUNCATE / support for installing such trigger
