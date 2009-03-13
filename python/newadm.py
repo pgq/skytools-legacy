@@ -1,40 +1,35 @@
 #! /usr/bin/env python
 
-"""New admin tool.
+"""Commands that require only database connection:
 
-connect dbname=.. host=.. service=.. queue=..;
-connect queue=..;
-connect queue=.. node=..;
+    connect dbname=.. host=.. service=.. queue=..;
+    connect queue=.. [ node=.. ];
+    install pgq | londiste;
+    create queue <qname>;
+    drop queue <qname>;
+    show queue *;
 
-install pgq;
-install londiste;
+Following commands expect default queue:
 
-create queue <qname>;
-drop queue <qname>;
+    register consumer foo;
+    unregister consumer foo;
 
-show queue *;
+    show queue <qname>;
+    show batch <batch_id>;
+    show batch <consumer>;
 
-// following cmds expect default queue
+Only syntax:
 
-register consumer foo;
-unregister consumer foo;
+    alter queue <qname> set param = , ...;
+"""
 
-show queue <qname>;
-show batch <batch_id>;
-show batch <consumer>;
-
-// only syntax
-
-alter queue <qname> set param = , ...;
-
----------------------
+# unimplemented:
+"""
 show consumers;
 show_queue_stats <q>;
 create node <foo>; // 
 create node <qname>.<foo>; // 
 add location <node> <loc>; // db, queue
-----------------
-
 """
 
 __version__ = '0.1'
@@ -260,6 +255,7 @@ w_show_queue = WList(
 
 w_show = WList(
     Word('batch', w_show_batch),
+    Word('help', w_done),
     Word('queue', w_show_queue),
     name = "cmd2")
 
@@ -506,6 +502,7 @@ class AdminConsole:
         except IOError:
             pass
 
+        print "Use 'show help;' to see available commands."
         while 1:
             try:
                 ln = self.line_input()
@@ -604,7 +601,7 @@ class AdminConsole:
             print "multi-line commands not supported:", repr(ln)
 
     def exec_params(self, params):
-        print 'RUN', params
+        #print 'RUN', params
         cmd = params.get('cmd')
         cmd2 = params.get('cmd2')
         if not cmd:
@@ -616,7 +613,7 @@ class AdminConsole:
         fn = getattr(self, 'cmd_' + cmd, self.bad_cmd)
         try:
             fn(params)
-            print 'OK'
+            #print 'OK'
         except Exception, ex:
             print str(ex)
 
@@ -769,6 +766,9 @@ class AdminConsole:
         curs = self.db.cursor()
         q = "select * from pgq.drop_queue(%(queue)s)"
         curs.execute(q, params)
+
+    def cmd_show_help(self, params):
+        print __doc__
 
 def main():
     global script
