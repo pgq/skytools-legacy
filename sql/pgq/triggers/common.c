@@ -23,10 +23,11 @@
 #include <catalog/pg_namespace.h>
 #include <executor/spi.h>
 #include <lib/stringinfo.h>
+#include <utils/builtins.h>
 #include <utils/memutils.h>
 #include <utils/inval.h>
 #include <utils/hsearch.h>
-
+#include <utils/syscache.h>
 #include "common.h"
 #include "stringutil.h"
 
