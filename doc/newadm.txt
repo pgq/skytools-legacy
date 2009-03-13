@@ -31,6 +31,7 @@ Main feature is psql like tab-completion for everything (queue/consumer names).
 == Command line ==
 
 
+  -Q:: queue name
   -U:: username
   -h:: host
   -p:: port
@@ -58,10 +59,11 @@ Connect to node on default queue:
 Plain queue modification:
 
   CREATE QUEUE <qname> [params?];
-  ALTER QUEUE <qname> SET ..;
-  REGISTER CONSUMER <cons> ON QUEUE <qname> [AT <tick_id>];
-  UNREGISTER CONSUMER <cons> FROM QUEUE <qname>;
+  REGISTER CONSUMER <cons>;
+  UNREGISTER CONSUMER <cons>;
   DROP QUEUE <qname>;
+
+  ALTER QUEUE <qname> SET ..; (only syntax works)
 
 Install code:
 
@@ -89,4 +91,32 @@ Information:
  - SHOW_BATCH_EVENTS <id>;
 
 * Default queue vs. queue name in commands.
+
+== ToDo ==
+
+* General:
+  - Lots of useful commands.
+
+* Parsing:
+
+  - Node naming is not consistent, as it has grown, not designed.
+    Suggestions: (Word -> Ident, WList->TokenList?/NodeList?,
+    DynList->DynIdent?, SWord->Param?)
+  - Quoted idents/strings not supported.  Fix: nodes should unquote early.
+    IIRC libpq connect string generation in "connect" code assumes already
+    quoted values, quoting needs to be added there.
+  - Tab-completion of uppercase keywords.
+  - Disable lowercasing of quoted indents. (?)
+  - Tab-completion of quoted idents. (?)
+  - Multi-line commands. (?)
+
+* Cascading: It would be useful to also have cascading commands available in newadm.
+   ( SWITCHOVER / CREATE NODE / PAUSE NODE / CHANGE PROVIDER ).
+   But currently they are implemented using DBScript framework.  And
+   we don't want to have several implementations of the commands.
+   There seems to be 2 ways forward:
+   - Convert newadm to DBScript.  It is possible to make config-less DBScript.
+   - Implement command under newadm in non-DBScript way and make
+     CascadeAdmin call newadm implementation.
+
 
