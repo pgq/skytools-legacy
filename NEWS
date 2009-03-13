@@ -1,4 +1,4 @@
-2009-xx-xx  -  SkyTools 2.1.9  -  ""
+2009-03-13  -  SkyTools 2.1.9  -  "Six Pack of Luck"
 
   = WalMgr improvements =
 
@@ -45,6 +45,9 @@
     * configure.ac: don't detect xmlto and asciidoc version
       if --with-asciidoc is not used.  Otherwise unnecessary error
       message was printed.
+
+    * Add few headers for Postgres 8.4 that are not included
+      automatically anymore.  (Devrim Gündüz)
 
 2008-10-12  -  SkyTools 2.1.8  -  "Perestroika For Your Data"
 
