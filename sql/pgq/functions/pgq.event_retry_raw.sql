@@ -38,7 +38,7 @@ declare
     q record;
     id bigint;
 begin
-    select sub_id, queue_event_seq into q
+    select sub_id, queue_event_seq, sub_queue into q
       from pgq.consumer, pgq.queue, pgq.subscription
      where queue_name = x_queue
        and co_name = x_consumer
@@ -53,10 +53,11 @@ begin
         id := nextval(q.queue_event_seq);
     end if;
 
-    insert into pgq.retry_queue (ev_retry_after,
+    insert into pgq.retry_queue (ev_retry_after, ev_queue,
             ev_id, ev_time, ev_owner, ev_retry,
             ev_type, ev_data, ev_extra1, ev_extra2, ev_extra3, ev_extra4)
-    values (x_retry_after, x_ev_id, x_ev_time, q.sub_id, x_ev_retry,
+    values (x_retry_after, q.sub_queue,
+            x_ev_id, x_ev_time, q.sub_id, x_ev_retry,
             x_ev_type, x_ev_data, x_ev_extra1, x_ev_extra2,
             x_ev_extra3, x_ev_extra4);
 

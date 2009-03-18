@@ -17,10 +17,10 @@ returns integer as $$
 --     nothing
 -- ----------------------------------------------------------------------
 begin
-    insert into pgq.retry_queue (ev_retry_after,
+    insert into pgq.retry_queue (ev_retry_after, ev_queue,
         ev_id, ev_time, ev_txid, ev_owner, ev_retry, ev_type, ev_data,
         ev_extra1, ev_extra2, ev_extra3, ev_extra4)
-    select x_retry_time,
+    select x_retry_time, sub_queue,
            ev_id, ev_time, NULL, sub_id, coalesce(ev_retry, 0) + 1,
            ev_type, ev_data, ev_extra1, ev_extra2, ev_extra3, ev_extra4
       from pgq.get_batch_events(x_batch_id),

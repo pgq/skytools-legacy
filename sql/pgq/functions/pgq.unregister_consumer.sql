@@ -18,6 +18,7 @@ returns integer as $$
 -- ----------------------------------------------------------------------
 declare
     x_sub_id integer;
+    _sub_id_cnt integer;
 begin
     select sub_id into x_sub_id
         from pgq.subscription, pgq.consumer, pgq.queue
@@ -27,6 +28,14 @@ begin
           and co_name = x_consumer_name;
     if not found then
         raise exception 'consumer not registered on queue';
+    end if;
+
+    -- subconsumer-aware
+    select count(*) into _sub_id_cnt
+        from pgq.subscription
+       where sub_id = x_sub_id;
+    if _sub_id_cnt > 1 then
+        raise exception 'unregistered subconsumers detected';
     end if;
 
     delete from pgq.retry_queue

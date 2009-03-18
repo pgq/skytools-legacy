@@ -147,14 +147,13 @@ create table pgq.subscription (
         sub_batch                       bigint,
         sub_next_tick                   bigint,
 
-        constraint subscription_pkey primary key (sub_id),
-        constraint subscription_ukey unique (sub_queue, sub_consumer),
+        constraint subscription_pkey primary key (sub_queue, sub_consumer),
+        constraint subscription_batch_idx unique (sub_batch),
         constraint sub_queue_fkey foreign key (sub_queue)
                                    references pgq.queue (queue_id),
         constraint sub_consumer_fkey foreign key (sub_consumer)
                                    references pgq.consumer (co_id)
 );
-
 
 -- ----------------------------------------------------------------------
 -- Table: pgq.event_template
@@ -198,21 +197,22 @@ create table pgq.event_template (
 --
 -- Columns:
 --      ev_retry_after          - time when it should be re-inserted to main queue
+--      ev_queue                - queue id, used to speed up event copy into queue
 --      *                       - same as pgq.event_template
 -- ----------------------------------------------------------------------
 create table pgq.retry_queue (
     ev_retry_after          timestamptz     not null,
+    ev_queue                int4            not null,
 
     like pgq.event_template,
 
     constraint rq_pkey primary key (ev_owner, ev_id),
-    constraint rq_owner_fkey foreign key (ev_owner)
-                             references pgq.subscription (sub_id)
+    constraint rq_queue_id_fkey foreign key (ev_queue)
+                             references pgq.queue (queue_id)
 );
 alter table pgq.retry_queue alter column ev_owner set not null;
 alter table pgq.retry_queue alter column ev_txid drop not null;
 create index rq_retry_idx on pgq.retry_queue (ev_retry_after);
-create index rq_retry_owner_idx on pgq.retry_queue (ev_owner, ev_id);
 
 -- ----------------------------------------------------------------------
 -- Table: pgq.failed_queue
@@ -222,6 +222,7 @@ create index rq_retry_owner_idx on pgq.retry_queue (ev_owner, ev_id);
 -- Columns:
 --      ev_failed_reason               - consumer's excuse for not processing
 --      ev_failed_time                 - when it was tagged failed
+--      ev_queue                       - queue id
 --      *                              - same as pgq.event_template
 -- ----------------------------------------------------------------------
 create table pgq.failed_queue (
@@ -231,9 +232,7 @@ create table pgq.failed_queue (
     -- all event fields
     like pgq.event_template,
 
-    constraint fq_pkey primary key (ev_owner, ev_id),
-    constraint fq_owner_fkey foreign key (ev_owner)
-                             references pgq.subscription (sub_id)
+    constraint fq_pkey primary key (ev_owner, ev_id)
 );
 alter table pgq.failed_queue alter column ev_owner set not null;
 alter table pgq.failed_queue alter column ev_txid drop not null;

@@ -20,10 +20,9 @@ begin
         select queue_name,
                ev_id, ev_time, ev_owner, ev_retry, ev_type, ev_data,
                ev_extra1, ev_extra2, ev_extra3, ev_extra4
-          from pgq.retry_queue, pgq.queue, pgq.subscription
+          from pgq.retry_queue, pgq.queue
          where ev_retry_after <= current_timestamp
-           and sub_id = ev_owner
-           and queue_id = sub_queue
+           and queue_id = ev_queue
          order by ev_retry_after
          limit 10
     loop
