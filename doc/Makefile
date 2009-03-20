@@ -90,7 +90,6 @@ pgqadm.1: pgq-admin.xml
 
 walmgr.1: walmgr.xml
 	$(XMLTO) man $<
-endif
 
 %.xml: %.txt $(COMMON)
 	$(ASCIIDOC) -b docbook -d manpage `$(GETATTRS) $<` -o - $< \
@@ -98,6 +97,7 @@ endif
 
 %.1: %.xml
 	$(XMLTO) man $<
+endif
 
 %.html: %.txt $(COMMON)
 	$(ASCIIDOC) -a toc `$(GETATTRS) $<` $<
