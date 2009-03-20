@@ -40,6 +40,7 @@ dnl asciidoc >= 8.2
 AC_ARG_WITH(asciidoc, [  --with-asciidoc[[=prog]]  path to asciidoc 8.2 (default: asciidoc)],
 [ if test "$withval" = "yes"; then
     AC_CHECK_PROGS(ASCIIDOC, [$ASCIIDOC asciidoc])
+    test -n "$ASCIIDOC" || ASCIIDOC=no
   else
     AC_MSG_CHECKING(for asciidoc)
     ASCIIDOC=$withval
@@ -66,6 +67,7 @@ fi
 dnl check for xmlto, but only if asciidoc is found
 if test "$ASCIIDOC" != "no"; then
   AC_CHECK_PROGS(XMLTO, [$XMLTO xmlto])
+  test -n "$XMLTO" || XMLTO=no
 else
   XMLTO="no"
 fi
