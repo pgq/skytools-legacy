@@ -4,6 +4,7 @@
 
 \i functions/pgq.create_queue.sql
 \i functions/pgq.drop_queue.sql
+\i functions/pgq.set_queue_config.sql
 
 -- Group: Event publishing
 
