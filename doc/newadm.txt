@@ -63,7 +63,7 @@ Plain queue modification:
   UNREGISTER CONSUMER <cons>;
   DROP QUEUE <qname>;
 
-  ALTER QUEUE <qname> SET ..; (only syntax works)
+  ALTER QUEUE <qname> SET ..;
 
 Install code:
 
@@ -96,6 +96,9 @@ Information:
 
 * General:
   - Lots of useful commands.
+  - Unable to disconnect from queue?
+  - "show queue" without args should show all queues. Only current queue
+    if connected.
 
 * Parsing:
 

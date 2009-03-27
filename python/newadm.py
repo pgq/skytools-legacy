@@ -8,6 +8,7 @@
     create queue <qname>;
     drop queue <qname>;
     show queue <qname | *>;
+    show consumer <cname | *> [ on <qname> ];
     alter queue <qname | *> set param = , ...;
 
 Following commands expect default queue:
@@ -15,7 +16,7 @@ Following commands expect default queue:
     register consumer foo;
     unregister consumer foo;
 
-    show queue <qname>;
+    show queue;
     show batch <batch_id>;
     show batch <consumer>;
 """
@@ -39,6 +40,7 @@ Initial connection options:
     -p port
     -U user
     -d dbname
+    -Q queuename
 
 Command options:
     -c cmd_string
@@ -250,10 +252,23 @@ w_show_queue = WList(
     Queue(w_done, name = 'queue'),
     w_done)
 
+w_show_on_queue = WList(
+    Symbol('*', w_done, name = 'queue'),
+    Queue(w_done, name = 'queue'),
+    )
+
+w_on_queue = WList(Word('on', w_show_on_queue), w_done)
+
+w_show_consumer = WList(
+    Symbol('*', w_on_queue, name = 'consumer'),
+    Consumer(w_on_queue, name = 'consumer'),
+    )
+
 w_show = WList(
     Word('batch', w_show_batch),
     Word('help', w_done),
     Word('queue', w_show_queue),
+    Word('consumer', w_show_consumer),
     name = "cmd2")
 
 w_install = WList(
@@ -609,15 +624,12 @@ class AdminConsole:
         if not cmd:
             print 'parse error: no command found'
             return
-        runcmd = cmd
         if cmd2:
-            runcmd += "_" + cmd2
+            cmd = "%s_%s" % (cmd, cmd2)
         #print 'RUN', repr(params)
-        fn = getattr(self, 'cmd_' + runcmd, self.bad_cmd)
+        fn = getattr(self, 'cmd_' + cmd, self.bad_cmd)
         try:
             fn(params)
-            if cmd != "show":
-                print cmd.upper()
         except Exception, ex:
             print "ERROR: %s" % str(ex).strip()
 
@@ -663,7 +675,8 @@ class AdminConsole:
         # set default queue
         if 'queue' in params:
             self.cur_queue = qname
-            print 'queue=', qname
+        
+        print "CONNECT"
 
     def cmd_install(self, params):
         pgq_objs = [
@@ -687,7 +700,7 @@ class AdminConsole:
             return
         curs = self.db.cursor()
         skytools.db_install(curs, objs, None)
-        print "%s installed" % mod_name
+        print "INSTALL"
 
     def cmd_show_queue(self, params):
         queue = params.get('queue')
@@ -717,6 +730,28 @@ class AdminConsole:
 
         display_result(curs, 'Queues')
 
+    def cmd_show_consumer(self, params):
+        """Show consumer status"""
+        consumer = params.get('consumer')
+        queue = params.get('queue')
+
+        if not queue:
+            # queue not provided, see if we have default.
+            queue = self.cur_queue
+
+        if not consumer:
+            print 'Consumer not specified'
+            return
+
+        q_queue = (queue != '*' and queue or None)
+        q_consumer = (consumer != '*' and consumer or None)
+
+        curs = self.db.cursor()
+        q = "select * from pgq.get_consumer_info(%s, %s)"
+        curs.execute(q, [q_queue, q_consumer])
+
+        display_result(curs, 'Consumers')
+
     def cmd_show_batch(self, params):
         batch_id = params.get('batch_id')
         consumer = params.get('consumer')
@@ -729,7 +764,7 @@ class AdminConsole:
             q = "select current_batch from pgq.get_consumer_info(%s, %s)"
             curs.execute(q, [queue, consumer])
             res = curs.fetchall()
-            if len != 1:
+            if len(res) != 1:
                 print 'no such consumer'
                 return
             batch_id = res[0]['current_batch']
@@ -749,8 +784,14 @@ class AdminConsole:
             return
         consumer = params['consumer']
         curs = self.db.cursor()
+        q = "select * from pgq.get_consumer_info(%s, %s)"
+        curs.execute(q, [queue, consumer])
+        if curs.fetchone():
+            print 'Consumer already registered'
+            return
         q = "select * from pgq.register_consumer(%s, %s)"
         curs.execute(q, [queue, consumer])
+        print "REGISTER"
 
     def cmd_unregister_consumer(self, params):
         queue = self.cur_queue
@@ -761,16 +802,24 @@ class AdminConsole:
         curs = self.db.cursor()
         q = "select * from pgq.unregister_consumer(%s, %s)"
         curs.execute(q, [queue, consumer])
+        print "UNREGISTER"
 
     def cmd_create_queue(self, params):
         curs = self.db.cursor()
+        q = "select * from pgq.get_queue_info(%(queue)s)"
+        curs.execute(q, params)
+        if curs.fetchone():
+            print "Queue already exists"
+            return
         q = "select * from pgq.create_queue(%(queue)s)"
         curs.execute(q, params)
+        print "CREATE"
 
     def cmd_drop_queue(self, params):
         curs = self.db.cursor()
         q = "select * from pgq.drop_queue(%(queue)s)"
         curs.execute(q, params)
+        print "DROP"
 
     def cmd_alter_queue(self, params):
         """Alter queue parameters, accepts * for all queues"""
@@ -798,6 +847,7 @@ class AdminConsole:
                     "(%%(queue)s, '%s', %%(%s)s)" % (k, k)
 
                 curs.execute(q, params)
+        print "ALTER"
 
     def cmd_show_help(self, params):
         print __doc__
