@@ -37,11 +37,10 @@ Datum pgq_sqltriga(PG_FUNCTION_ARGS);
  *    ev_extra1 - table name
  *    ev_extra2 - optional urlencoded backup
  */
-Datum
-pgq_sqltriga(PG_FUNCTION_ARGS)
+Datum pgq_sqltriga(PG_FUNCTION_ARGS)
 {
 	TriggerData *tg;
-	PgqTriggerEvent	ev;
+	PgqTriggerEvent ev;
 
 	/*
 	 * Get the trigger call context
@@ -49,7 +48,7 @@ pgq_sqltriga(PG_FUNCTION_ARGS)
 	if (!CALLED_AS_TRIGGER(fcinfo))
 		elog(ERROR, "pgq.logutriga not called as trigger");
 
-	tg = (TriggerData *) (fcinfo->context);
+	tg = (TriggerData *)(fcinfo->context);
 
 	if (pgq_is_logging_disabled())
 		goto skip_it;
@@ -86,4 +85,3 @@ skip_it:
 	else
 		return PointerGetDatum(tg->tg_trigtuple);
 }
-

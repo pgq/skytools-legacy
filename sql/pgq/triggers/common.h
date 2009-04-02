@@ -42,7 +42,8 @@ struct PgqTableInfo {
 struct PgqTableInfo *pgq_find_table_info(Relation rel);
 void pgq_prepare_event(struct PgqTriggerEvent *ev, TriggerData *tg, bool newstyle);
 char *pgq_find_table_name(Relation rel);
-void pgq_simple_insert(const char *queue_name, Datum ev_type, Datum ev_data, Datum ev_extra1, Datum ev_extra2);
+void pgq_simple_insert(const char *queue_name, Datum ev_type, Datum ev_data, Datum ev_extra1,
+		       Datum ev_extra2);
 bool pgqtriga_skip_col(PgqTriggerEvent *ev, TriggerData *tg, int i, int attkind_idx);
 bool pgqtriga_is_pkey(PgqTriggerEvent *ev, TriggerData *tg, int i, int attkind_idx);
 void pgq_insert_tg_event(PgqTriggerEvent *ev);
@@ -54,4 +55,3 @@ int pgqtriga_make_sql(PgqTriggerEvent *ev, TriggerData *tg, StringInfo sql);
 
 /* logutriga.c */
 void pgq_urlenc_row(PgqTriggerEvent *ev, TriggerData *tg, HeapTuple row, StringInfo buf);
-

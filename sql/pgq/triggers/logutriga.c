@@ -27,17 +27,15 @@
 PG_FUNCTION_INFO_V1(pgq_logutriga);
 Datum pgq_logutriga(PG_FUNCTION_ARGS);
 
-void
-pgq_urlenc_row(PgqTriggerEvent *ev, TriggerData *tg, HeapTuple row, StringInfo buf)
+void pgq_urlenc_row(PgqTriggerEvent *ev, TriggerData *tg, HeapTuple row, StringInfo buf)
 {
-	TupleDesc	tupdesc = tg->tg_relation->rd_att;
+	TupleDesc tupdesc = tg->tg_relation->rd_att;
 	bool first = true;
 	int i;
 	const char *col_ident, *col_value;
 	int attkind_idx = -1;
 
-	for (i = 0; i < tg->tg_relation->rd_att->natts; i++)
-	{
+	for (i = 0; i < tg->tg_relation->rd_att->natts; i++) {
 		/* Skip dropped columns */
 		if (tupdesc->attrs[i]->attisdropped)
 			continue;
@@ -58,8 +56,7 @@ pgq_urlenc_row(PgqTriggerEvent *ev, TriggerData *tg, HeapTuple row, StringInfo b
 
 		/* quote column value */
 		col_value = SPI_getvalue(row, tupdesc, i + 1);
-		if (col_value != NULL)
-		{
+		if (col_value != NULL) {
 			appendStringInfoChar(buf, '=');
 			pgq_encode_cstring(buf, col_value, TBUF_QUOTE_URLENC);
 		}
@@ -76,12 +73,11 @@ pgq_urlenc_row(PgqTriggerEvent *ev, TriggerData *tg, HeapTuple row, StringInfo b
  *    ev_extra1 - table name
  *    ev_extra2 - optional urlencoded backup
  */
-Datum
-pgq_logutriga(PG_FUNCTION_ARGS)
+Datum pgq_logutriga(PG_FUNCTION_ARGS)
 {
 	TriggerData *tg;
-	struct PgqTriggerEvent	ev;
-	HeapTuple	row;
+	struct PgqTriggerEvent ev;
+	HeapTuple row;
 
 	/*
 	 * Get the trigger call context
@@ -89,7 +85,7 @@ pgq_logutriga(PG_FUNCTION_ARGS)
 	if (!CALLED_AS_TRIGGER(fcinfo))
 		elog(ERROR, "pgq.logutriga not called as trigger");
 
-	tg = (TriggerData *) (fcinfo->context);
+	tg = (TriggerData *)(fcinfo->context);
 	if (TRIGGER_FIRED_BY_UPDATE(tg->tg_event))
 		row = tg->tg_newtuple;
 	else
@@ -134,4 +130,3 @@ skip_it:
 	else
 		return PointerGetDatum(row);
 }
-

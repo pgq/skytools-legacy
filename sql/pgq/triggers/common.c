@@ -44,11 +44,10 @@ PG_MODULE_MAGIC;
 static MemoryContext tbl_cache_ctx;
 static HTAB *tbl_cache_map;
 
-static const char pkey_sql [] =
-	"SELECT k.attnum, k.attname FROM pg_index i, pg_attribute k"
-	" WHERE i.indrelid = $1 AND k.attrelid = i.indexrelid"
-	"   AND i.indisprimary AND k.attnum > 0 AND NOT k.attisdropped"
-	" ORDER BY k.attnum";
+static const char pkey_sql[] =
+    "SELECT k.attnum, k.attname FROM pg_index i, pg_attribute k"
+    " WHERE i.indrelid = $1 AND k.attrelid = i.indexrelid"
+    "   AND i.indisprimary AND k.attnum > 0 AND NOT k.attisdropped" " ORDER BY k.attnum";
 static void *pkey_plan;
 
 static void relcache_reset_cb(Datum arg, Oid relid);
@@ -67,7 +66,7 @@ void pgq_simple_insert(const char *queue_name, Datum ev_type, Datum ev_data, Dat
 
 	if (!plan) {
 		const char *sql;
-		Oid   types[5] = { TEXTOID, TEXTOID, TEXTOID, TEXTOID, TEXTOID };
+		Oid types[5] = { TEXTOID, TEXTOID, TEXTOID, TEXTOID, TEXTOID };
 
 		sql = "select pgq.insert_event($1, $2, $3, $4, $5, null, null)";
 		plan = SPI_saveplan(SPI_prepare(sql, 5, types));
@@ -92,26 +91,23 @@ void pgq_simple_insert(const char *queue_name, Datum ev_type, Datum ev_data, Dat
 void pgq_insert_tg_event(PgqTriggerEvent *ev)
 {
 	pgq_simple_insert(ev->queue_name,
-					  pgq_finish_varbuf(ev->ev_type),
-					  pgq_finish_varbuf(ev->ev_data),
-					  pgq_finish_varbuf(ev->ev_extra1),
-					  ev->ev_extra2
-					  ? pgq_finish_varbuf(ev->ev_extra2)
-					  : (Datum)0);
+			  pgq_finish_varbuf(ev->ev_type),
+			  pgq_finish_varbuf(ev->ev_data),
+			  pgq_finish_varbuf(ev->ev_extra1),
+			  ev->ev_extra2 ? pgq_finish_varbuf(ev->ev_extra2) : (Datum)0);
 }
 
 char *pgq_find_table_name(Relation rel)
 {
-	NameData	tname = rel->rd_rel->relname;
-	Oid			nsoid = rel->rd_rel->relnamespace;
-	char        namebuf[NAMEDATALEN * 2 + 3];
-	HeapTuple   ns_tup;
+	NameData tname = rel->rd_rel->relname;
+	Oid nsoid = rel->rd_rel->relnamespace;
+	char namebuf[NAMEDATALEN * 2 + 3];
+	HeapTuple ns_tup;
 	Form_pg_namespace ns_struct;
-	NameData	nspname;
+	NameData nspname;
 
 	/* find namespace info */
-	ns_tup = SearchSysCache(NAMESPACEOID,
-							ObjectIdGetDatum(nsoid), 0, 0, 0);
+	ns_tup = SearchSysCache(NAMESPACEOID, ObjectIdGetDatum(nsoid), 0, 0, 0);
 	if (!HeapTupleIsValid(ns_tup))
 		elog(ERROR, "Cannot find namespace %u", nsoid);
 	ns_struct = (Form_pg_namespace) GETSTRUCT(ns_tup);
@@ -124,8 +120,7 @@ char *pgq_find_table_name(Relation rel)
 	return pstrdup(namebuf);
 }
 
-static void
-init_pkey_plan(void)
+static void init_pkey_plan(void)
 {
 	Oid types[1] = { OIDOID };
 	pkey_plan = SPI_saveplan(SPI_prepare(pkey_sql, 1, types));
@@ -133,12 +128,11 @@ init_pkey_plan(void)
 		elog(ERROR, "pgq_triggers: SPI_prepare() failed");
 }
 
-static void
-init_cache(void)
+static void init_cache(void)
 {
-	HASHCTL     ctl;
-	int         flags;
-	int         max_tables = 128;
+	HASHCTL ctl;
+	int flags;
+	int max_tables = 128;
 
 	/*
 	 * create own context
@@ -148,6 +142,7 @@ init_cache(void)
 					      ALLOCSET_SMALL_MINSIZE,
 					      ALLOCSET_SMALL_INITSIZE,
 					      ALLOCSET_SMALL_MAXSIZE);
+
 	/*
 	 * init pkey cache.
 	 */
@@ -162,8 +157,7 @@ init_cache(void)
 /*
  * Prepare utility plans and plan cache.
  */
-static void
-init_module(void)
+static void init_module(void)
 {
 	static int callback_init = 0;
 
@@ -185,8 +179,7 @@ init_module(void)
 	}
 }
 
-static void
-full_reset(void)
+static void full_reset(void)
 {
 	if (tbl_cache_ctx) {
 		/* needed only if backend has HASH_STATISTICS set */
@@ -200,8 +193,7 @@ full_reset(void)
 /*
  * Fill table information in hash table.
  */
-static struct PgqTableInfo *
-fill_tbl_info(Relation rel)
+static struct PgqTableInfo *fill_tbl_info(Relation rel)
 {
 	struct PgqTableInfo *info;
 	StringInfo pkeys;
@@ -250,8 +242,7 @@ fill_tbl_info(Relation rel)
 	return info;
 }
 
-static void
-free_info(struct PgqTableInfo *info)
+static void free_info(struct PgqTableInfo *info)
 {
 	pfree(info->table_name);
 	pfree(info->pkey_attno);
@@ -263,11 +254,11 @@ static void relcache_reset_cb(Datum arg, Oid relid)
 	if (relid == InvalidOid) {
 		full_reset();
 	} else if (tbl_cache_map) {
-	 	struct PgqTableInfo *entry;
-	 	entry = hash_search(tbl_cache_map, &relid, HASH_FIND, NULL);
+		struct PgqTableInfo *entry;
+		entry = hash_search(tbl_cache_map, &relid, HASH_FIND, NULL);
 		if (entry) {
 			free_info(entry);
-	 		hash_search(tbl_cache_map, &relid, HASH_REMOVE, NULL);
+			hash_search(tbl_cache_map, &relid, HASH_REMOVE, NULL);
 		}
 	}
 }
@@ -275,8 +266,7 @@ static void relcache_reset_cb(Datum arg, Oid relid)
 /*
  * fetch insert plan from cache.
  */
-struct PgqTableInfo *
-pgq_find_table_info(Relation rel)
+struct PgqTableInfo *pgq_find_table_info(Relation rel)
 {
 	struct PgqTableInfo *entry;
 
@@ -289,8 +279,7 @@ pgq_find_table_info(Relation rel)
 	return entry;
 }
 
-static void
-parse_newstyle_args(PgqTriggerEvent *ev, TriggerData *tg)
+static void parse_newstyle_args(PgqTriggerEvent *ev, TriggerData *tg)
 {
 	int i;
 	/*
@@ -313,8 +302,7 @@ parse_newstyle_args(PgqTriggerEvent *ev, TriggerData *tg)
 	}
 }
 
-static void
-parse_oldstyle_args(PgqTriggerEvent *ev, TriggerData *tg)
+static void parse_oldstyle_args(PgqTriggerEvent *ev, TriggerData *tg)
 {
 	const char *kpos;
 	int attcnt, i;
@@ -327,15 +315,14 @@ parse_oldstyle_args(PgqTriggerEvent *ev, TriggerData *tg)
 	ev->attkind = tg->tg_trigger->tgargs[1];
 	ev->attkind_len = strlen(ev->attkind);
 	if (tg->tg_trigger->tgnargs > 2)
-		ev->table_name =  tg->tg_trigger->tgargs[2];
+		ev->table_name = tg->tg_trigger->tgargs[2];
 
 
 	/*
 	 * Count number of active columns
 	 */
 	tupdesc = tg->tg_relation->rd_att;
-	for (i = 0, attcnt = 0; i < tupdesc->natts; i++)
-	{
+	for (i = 0, attcnt = 0; i < tupdesc->natts; i++) {
 		if (!tupdesc->attrs[i]->attisdropped)
 			attcnt++;
 	}
@@ -361,7 +348,7 @@ void pgq_prepare_event(struct PgqTriggerEvent *ev, TriggerData *tg, bool newstyl
 	 * Check trigger calling conventions
 	 */
 	if (!TRIGGER_FIRED_AFTER(tg->tg_event))
-		/* dont care */;
+		/* dont care */ ;
 	if (!TRIGGER_FIRED_FOR_ROW(tg->tg_event))
 		elog(ERROR, "pgq trigger must be fired FOR EACH ROW");
 	if (tg->tg_trigger->tgnargs < 1)
@@ -400,7 +387,7 @@ void pgq_prepare_event(struct PgqTriggerEvent *ev, TriggerData *tg, bool newstyl
 	ev->ev_type = pgq_init_varbuf();
 	ev->ev_data = pgq_init_varbuf();
 	ev->ev_extra1 = pgq_init_varbuf();
-	
+
 	/*
 	 * Do the backup, if requested.
 	 */
@@ -467,4 +454,3 @@ bool pgq_is_logging_disabled(void)
 #endif
 	return false;
 }
-

@@ -50,8 +50,8 @@ PG_FUNCTION_INFO_V1(pgq_insert_event_raw);
 	" queue_disable_insert::bool" \
 	" from pgq.queue where queue_name = $1"
 #define COL_QUEUE_ID	1
-#define COL_PREFIX		2
-#define COL_TBLNO		3
+#define COL_PREFIX	2
+#define COL_TBLNO	3
 #define COL_EVENT_ID	4
 #define COL_DISABLED	5
 
@@ -59,7 +59,7 @@ PG_FUNCTION_INFO_V1(pgq_insert_event_raw);
  * Plan cache entry in HTAB.
  */
 struct InsertCacheEntry {
-	Oid queue_id;	/* actually int32, but we want to use oid_hash */
+	Oid queue_id;		/* actually int32, but we want to use oid_hash */
 	int cur_table;
 	void *plan;
 };
@@ -84,14 +84,13 @@ static HTAB *insert_cache;
 /*
  * Prepare utility plans and plan cache.
  */
-static void
-init_cache(void)
+static void init_cache(void)
 {
 	static int init_done = 0;
 	Oid types[1] = { TEXTOID };
-	HASHCTL     ctl;
-	int         flags;
-	int         max_queues = 128;
+	HASHCTL ctl;
+	int flags;
+	int max_queues = 128;
 
 	if (init_done)
 		return;
@@ -133,9 +132,9 @@ static void *make_plan(struct QueueState *state)
 	 */
 	sql = makeStringInfo();
 	appendStringInfo(sql, "insert into %s_%d (ev_id, ev_time, ev_owner, ev_retry,"
-					 " ev_type, ev_data, ev_extra1, ev_extra2, ev_extra3, ev_extra4)"
-					 " values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
-					 state->table_prefix, state->cur_table);
+			 " ev_type, ev_data, ev_extra1, ev_extra2, ev_extra3, ev_extra4)"
+			 " values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
+			 state->table_prefix, state->cur_table);
 	/*
 	 * create plan
 	 */
@@ -148,20 +147,19 @@ static void *make_plan(struct QueueState *state)
  */
 static void *load_insert_plan(struct QueueState *state)
 {
-	 struct InsertCacheEntry  *entry;
-	 Oid queue_id = state->queue_id;
-	 bool did_exist = false;
+	struct InsertCacheEntry *entry;
+	Oid queue_id = state->queue_id;
+	bool did_exist = false;
 
-	 entry = hash_search(insert_cache, &queue_id, HASH_ENTER, &did_exist);
-	 if (did_exist)
-	 {
-		 if (state->cur_table == entry->cur_table)
-			 return entry->plan;
-		 SPI_freeplan(entry->plan);
-	 }
-	 entry->cur_table = state->cur_table;
-	 entry->plan = make_plan(state);
-	 return entry->plan;
+	entry = hash_search(insert_cache, &queue_id, HASH_ENTER, &did_exist);
+	if (did_exist) {
+		if (state->cur_table == entry->cur_table)
+			return entry->plan;
+		SPI_freeplan(entry->plan);
+	}
+	entry->cur_table = state->cur_table;
+	entry->plan = make_plan(state);
+	return entry->plan;
 }
 
 /*
@@ -171,8 +169,8 @@ static void load_queue_info(Datum queue_name, struct QueueState *state)
 {
 	Datum values[1];
 	int res;
-	TupleDesc   desc;
-	HeapTuple   row;
+	TupleDesc desc;
+	HeapTuple row;
 	bool isnull;
 
 	values[0] = queue_name;
@@ -203,9 +201,9 @@ static void load_queue_info(Datum queue_name, struct QueueState *state)
 
 /*
  * Arguments:
- * 0: queue_name  text          NOT NULL
- * 1: ev_id       int8			if NULL take from SEQ
- * 2: ev_time     timestamptz   if NULL use now()
+ * 0: queue_name  text		NOT NULL
+ * 1: ev_id       int8		if NULL take from SEQ
+ * 2: ev_time     timestamptz	if NULL use now()
  * 3: ev_owner    int4
  * 4: ev_retry    int4
  * 5: ev_type     text
@@ -215,8 +213,7 @@ static void load_queue_info(Datum queue_name, struct QueueState *state)
  * 9: ev_extra3   text
  * 10:ev_extra4   text
  */
-Datum
-pgq_insert_event_raw(PG_FUNCTION_ARGS)
+Datum pgq_insert_event_raw(PG_FUNCTION_ARGS)
 {
 	Datum values[11];
 	char nulls[11];
@@ -233,7 +230,7 @@ pgq_insert_event_raw(PG_FUNCTION_ARGS)
 
 	if (SPI_connect() < 0)
 		elog(ERROR, "SPI_connect() failed");
-	
+
 	init_cache();
 
 	load_queue_info(PG_GETARG_DATUM(0), &state);
@@ -287,4 +284,3 @@ pgq_insert_event_raw(PG_FUNCTION_ARGS)
 
 	PG_RETURN_INT64(ret_id);
 }
-
