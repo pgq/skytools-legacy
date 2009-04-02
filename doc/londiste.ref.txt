@@ -6,8 +6,8 @@
 === PgQ daemon ===
 
 Londiste runs as a consumer on PgQ.  Thus `pgqadm.py ticker` must be running
-on provider database.  It is preferable to run it in same machine, because
-it needs low latency, but that is not a requirement.
+on provider database.  It is preferable to run ticker on same machine as database,
+because it needs low latency, but that is not a requirement.
 
 For monitoring you can use `pgqadm.py status` command.
 
@@ -17,9 +17,9 @@ Londiste internally uses table names always fully schema-qualified.
 If table name without schema is given on command line, it just
 puts "public." in front of it, without looking at search_path.
 
-=== PgQ events ===
+=== PgQ events used ===
 
-==== Table change event ====
+==== Table data change event in SQL format ====
 
 Those events will be inserted by triggers on tables.
 
@@ -33,18 +33,50 @@ Those events will be inserted by triggers on tables.
 Such partial SQL format is used for 2 reasons - to conserve space
 and to make possible to redirect events to another table.
 
-==== Registration change event ====
+==== Table data change event in urlencoded format ====
 
-Those events will be inserted by `provider add` and `provider remove`
-commands.  Then full registered tables list will be sent to the queue
-so subscribers can update their own registrations.
+Those events will be inserted by triggers on tables.
 
- * ev_type = 'T'
- * ev_data = comma-separated list of table names.
+ * ev_type = 'I' / 'U' / 'D' + ':' + list of pkey columns
+   Eg: I:lastname,firstname
+ * ev_data = urlencoded values of all columns of the row.
+   NULL is signified by omitting '=' after column name.
+ * ev_extra1 = table name with schema
 
-Currently subscribers only remove tables that were removed from provider.
-In the future it's possible to make subscribers also automatically add
-tables that were added on provider.
+Urlencoded events take more space that SQL events, but are more
+easily parseable by other scripts.
+
+==== Table addition event ====
+
+This event will be inserted by 'londiste add-table' on root.
+
+ * ev_type = 'londiste.add-table'
+ * ev_data = table name
+
+All subscribers downstream will also registister this table 
+as being available on the queue.
+
+==== Table removal event ====
+
+This event will be inserted by 'londiste remove-table' on root.
+
+ * ev_type = 'londiste.remove-table'
+ * ev_data = table name
+
+All subscribers downstream will now unregistister this table 
+as being available on the queue.  If they happen to be subscriber
+to this table locally, the table is unsubscribed.
+
+==== SQL script execution event ====
+
+This event is inserted by 'londiste execute' on root node.
+The insert happens in same TX as the actual command are executed.
+
+ * ev_type = 'EXECUTE'
+ * ev_data = script body
+ * ev_extra1 = script name
+
+Script name is used as unique ID - the event is registered as applied.
 
 == log file ==
 
@@ -52,12 +84,20 @@ Londiste normal log consist just of statistics log-lines, key-value
 pairs between `{}`.  Their meaning:
 
  * count: how many event was in batch.
- * ignored: how many of them was ignores - table not registered on subscriber or not yet in sync.
- * duration: how long the batch processing took.
+ * ignored: how many of them was ignored - table not registered on subscriber or not yet in sync.
+ * duration: how long the batch processing took, in seconds.
 
 Example:
 
   {count: 110, duration: 0.88}
+
+
+
+
+
+
+
+
 
 == Commands for managing provider database ==
 

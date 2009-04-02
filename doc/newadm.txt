@@ -119,4 +119,15 @@ Information:
    - Implement command under newadm in non-DBScript way and make
      CascadeAdmin call newadm implementation.
 
+* Londiste: It seems to be good idea to make Londiste management also available in newadm.
+  - LONDISTE ADD|REMOVE TABLE <tbl>
+  - LONDISTE ADD|REMOVE SEQUENCE <seq>
+  - LONDISTE SHOW TABLES / SHOW LONDISTE TABLES / SHOW TABLES ?
+  - SHOW MISSING TABLES?
+
+* random other ideas:
+  - queue rename.  (on remote side too?)
+  - copy consumer pos
+  - rename consumer
+  - event del?
 
