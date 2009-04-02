@@ -63,6 +63,7 @@ create table pgq.consumer (
 --      queue_ticker_max_count      - batch should not contain more events
 --      queue_ticker_max_lag        - events should not age more
 --      queue_ticker_idle_period    - how often to tick when no events happen
+--      queue_per_tx_limit          - Max number of events single TX can insert
 --      queue_data_pfx              - prefix for data table names
 --      queue_event_seq             - sequence for event id's
 --      queue_tick_seq              - sequence for tick id's
@@ -84,6 +85,7 @@ create table pgq.queue (
         queue_ticker_max_count      integer     not null default 500,
         queue_ticker_max_lag        interval    not null default '3 seconds',
         queue_ticker_idle_period    interval    not null default '1 minute',
+        queue_per_tx_limit          integer,
 
         queue_data_pfx              text        not null,
         queue_event_seq             text        not null,

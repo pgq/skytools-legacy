@@ -32,6 +32,11 @@
 PG_MODULE_MAGIC;
 #endif
 
+#ifndef TextDatumGetCString
+#define TextDatumGetCString(d) DatumGetCString(DirectFunctionCall1(textout, d))
+#endif
+
+
 /*
  * Function tag
  */
@@ -47,13 +52,15 @@ PG_FUNCTION_INFO_V1(pgq_insert_event_raw);
 #define QUEUE_SQL \
 	"select queue_id::int4, queue_data_pfx::text," \
 	" queue_cur_table::int4, nextval(queue_event_seq)::int8," \
-	" queue_disable_insert::bool" \
+	" queue_disable_insert::bool," \
+	" queue_per_tx_limit::int4" \
 	" from pgq.queue where queue_name = $1"
 #define COL_QUEUE_ID	1
 #define COL_PREFIX	2
 #define COL_TBLNO	3
 #define COL_EVENT_ID	4
 #define COL_DISABLED	5
+#define COL_LIMIT	6
 
 /*
  * Plan cache entry in HTAB.
@@ -61,6 +68,10 @@ PG_FUNCTION_INFO_V1(pgq_insert_event_raw);
 struct InsertCacheEntry {
 	Oid queue_id;		/* actually int32, but we want to use oid_hash */
 	int cur_table;
+
+	TransactionId last_xid;
+	int last_count;
+
 	void *plan;
 };
 
@@ -73,6 +84,7 @@ struct QueueState {
 	char *table_prefix;
 	Datum next_event_id;
 	bool disabled;
+	int per_tx_limit;
 };
 
 /*
@@ -145,7 +157,7 @@ static void *make_plan(struct QueueState *state)
 /*
  * fetch insert plan from cache.
  */
-static void *load_insert_plan(struct QueueState *state)
+static void *load_insert_plan(Datum qname, struct QueueState *state)
 {
 	struct InsertCacheEntry *entry;
 	Oid queue_id = state->queue_id;
@@ -154,11 +166,27 @@ static void *load_insert_plan(struct QueueState *state)
 	entry = hash_search(insert_cache, &queue_id, HASH_ENTER, &did_exist);
 	if (did_exist) {
 		if (state->cur_table == entry->cur_table)
-			return entry->plan;
+			goto valid_table;
 		SPI_freeplan(entry->plan);
+	} else {
+		entry->last_xid = 0;
 	}
 	entry->cur_table = state->cur_table;
 	entry->plan = make_plan(state);
+valid_table:
+
+	if (state->per_tx_limit >= 0) {
+		TransactionId xid = GetTopTransactionId();
+		if (entry->last_xid != xid) {
+			entry->last_xid = xid;
+			entry->last_count = 0;
+		}
+		entry->last_count++;
+		if (entry->last_count > state->per_tx_limit)
+			elog(ERROR, "Queue '%s' allows max %d events from one TX",
+			     TextDatumGetCString(qname), state->per_tx_limit);
+	}
+
 	return entry->plan;
 }
 
@@ -197,6 +225,9 @@ static void load_queue_info(Datum queue_name, struct QueueState *state)
 	state->disabled = SPI_getbinval(row, desc, COL_DISABLED, &isnull);
 	if (isnull)
 		elog(ERROR, "insert_disabled NULL");
+	state->per_tx_limit = SPI_getbinval(row, desc, COL_LIMIT, &isnull);
+	if (isnull)
+		state->per_tx_limit = -1;
 }
 
 /*
@@ -222,18 +253,20 @@ Datum pgq_insert_event_raw(PG_FUNCTION_ARGS)
 	void *ins_plan;
 	Datum ev_id, ev_time;
 	int i, res;
+	Datum qname;
 
 	if (PG_NARGS() < 6)
 		elog(ERROR, "Need at least 6 arguments");
 	if (PG_ARGISNULL(0))
 		elog(ERROR, "Queue name must not be NULL");
+	qname = PG_GETARG_DATUM(0);
 
 	if (SPI_connect() < 0)
 		elog(ERROR, "SPI_connect() failed");
 
 	init_cache();
 
-	load_queue_info(PG_GETARG_DATUM(0), &state);
+	load_queue_info(qname, &state);
 
 	if (state.disabled)
 		elog(ERROR, "Insert into queue disallowed");
@@ -269,7 +302,7 @@ Datum pgq_insert_event_raw(PG_FUNCTION_ARGS)
 	/*
 	 * Perform INSERT into queue table.
 	 */
-	ins_plan = load_insert_plan(&state);
+	ins_plan = load_insert_plan(qname, &state);
 	res = SPI_execute_plan(ins_plan, values, nulls, false, 0);
 	if (res != SPI_OK_INSERT)
 		elog(ERROR, "Queue insert failed");

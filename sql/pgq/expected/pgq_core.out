@@ -344,3 +344,55 @@ select pgq.insert_event('myqueue', 'test', 'event');
          2009
 (1 row)
 
+-- test limit
+update pgq.queue set queue_per_tx_limit = 2 where queue_name = 'myqueue';
+begin;
+select pgq.insert_event('myqueue', 'test', 'event1');
+ insert_event 
+--------------
+         2010
+(1 row)
+
+select pgq.insert_event('myqueue', 'test', 'event2');
+ insert_event 
+--------------
+         2011
+(1 row)
+
+select pgq.insert_event('myqueue', 'test', 'event3');
+ERROR:  Queue 'myqueue' allows max 2 events from one TX
+CONTEXT:  PL/pgSQL function "insert_event" line 19 at RETURN
+PL/pgSQL function "insert_event" line 15 at RETURN
+end;
+update pgq.queue set queue_per_tx_limit = 0 where queue_name = 'myqueue';
+begin;
+select pgq.insert_event('myqueue', 'test', 'event1');
+ERROR:  Queue 'myqueue' allows max 0 events from one TX
+CONTEXT:  PL/pgSQL function "insert_event" line 19 at RETURN
+PL/pgSQL function "insert_event" line 15 at RETURN
+select pgq.insert_event('myqueue', 'test', 'event2');
+ERROR:  current transaction is aborted, commands ignored until end of transaction block
+select pgq.insert_event('myqueue', 'test', 'event3');
+ERROR:  current transaction is aborted, commands ignored until end of transaction block
+end;
+update pgq.queue set queue_per_tx_limit = null where queue_name = 'myqueue';
+begin;
+select pgq.insert_event('myqueue', 'test', 'event1');
+ insert_event 
+--------------
+         2014
+(1 row)
+
+select pgq.insert_event('myqueue', 'test', 'event2');
+ insert_event 
+--------------
+         2015
+(1 row)
+
+select pgq.insert_event('myqueue', 'test', 'event3');
+ insert_event 
+--------------
+         2016
+(1 row)
+
+end;
