@@ -13,8 +13,8 @@ Keep old design from Skytools 2
   - Can go down anytime, without affecting anything else
 * Relaxed attitude about tables
   - Tables can be added/removed any time.
-  - Inital sync happens table-by-table, no attempt is made to keep
-    consistent picture between tables when syncing.
+  - Inital data sync happens table-by-table, no attempt is made to keep
+    consistent picture between tables during initial copy.
 
 New features in Skytools 3
 --------------------------
@@ -22,25 +22,91 @@ New features in Skytools 3
 * Cascading is implemented as generic layer on top of PgQ - *Cascaded PgQ*.
   - Its goal is to keep identical copy of queue contents in several nodes.
   - Not replication-specific - can be used for any queue.
+  - Advanced admin operations: switchover, failover, change-provider, pause/resume.
 
 * New Londiste features:
   - Parallel copy - during inital sync several tables can be
     copied at the same time.   In 2.1.x the copy already happened in separate
     process, making it parallel was just a matter of tuning launching/syncing logic.
 
-  - EXECUTE command, to run random SQL script on all nodes.
+  - EXECUTE command, to run random SQL script on all nodes.  The script is executed
+    in single TX on root, and insterted as event into queue, in the same TX.
+    Bascially it emulates DDL AFTER TRIGGER that way.
+
+    Londiste does no locking and no coordination between nodes.  The assumption
+    is that the DDL commands itself do enough locking.
 
   - Automatic table or sequence creation by importing the structure
     from provider node.  Activeted with --create switch for add-table, add-seq.
 
-* Advanced admin operations:
-  - switchover
-  - failover
-  - change provider for node
-  - pause / resume node
-  - rename node
+    By default *everything* is copied, including Londiste own triggers.
+    The basic idea is that the triggers may be customized and that way
+    we avoid the need to keep track of trigger customizations.
 
-Example session
+  - Ability to merge replication queues coming from partitioned database.
+
+  - Now it uses the intelligent log-triggers by default.  The triggers
+    were introduced in 
+
+* New interactive admin console.
+
+* New multi-database ticker.  It is possible to set up one process that
+  maintains all PgQ databases in one PostgreSQL instance.  It will
+  auto-detect both databases and whether they have PgQ installed.
+
+* New cascaded dispatcher script.
+
+Minor improvements
+------------------
+
+* sql/pgq: ticks also store last sequence pos with them.  This allowed
+  also to move most of the ticker functionality into database.  Ticker
+  daemon now just needs to call SQL function periodically, it does not
+  need to keep track of seq positions.
+
+* sql/pgq: Ability to enforce max number of events that one TX can insert.
+  In addition to simply keeping queue healthy, it also gives a way to
+  survive bad UPDATE/DELETE statements with buggy or missing WHERE clause.
+
+* sql/pgq: If Postgres has autovacuum turned on, internal vacuuming for
+  fast-changing tables is disabled.
+
+* python/pgq: pgq.Consumer does not register consumer automatically,
+  cmdline switches --register / --unregister need to be used for that.
+
+* londiste: sequences are now pushed (into queue), instead pulled,
+  from root node.  This reduces load on root and also allows
+  in-between nodes that do not have sequences.
+
+* psycopg1 is not supported anymore.
+
+Open questions
+--------------
+
+* New ticker
+  - Should it use libevent-based async or multi-threaded architecture?
+  - Name for final executable: pgqd, pgq-ticker, or something else?
+
+* Python modules
+  - Skytools 3 modules should be parallel installable with Skytools 2.
+    we decided to solve it via loader module (pygtk does).  The question
+    is 
+
+* PgQ Cascading
+  - There are some periodic operations that should be done on root node.
+    Should we let the ticker do them or do we require a Londiste daemon there?
+
+* Londiste EXECUTE command
+  - Should the scripts have some sort of 
+
+* Newadm:
+  - Good name for it.
+
+
+Further reading
 ---------------
 
+* Skytools 3 todo list: TODO.txt
+* Newadm design and todo list: newadm.txt
+* Technical notes about cascading: set.notes.txt
 

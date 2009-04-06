@@ -32,8 +32,7 @@
 #include "stringutil.h"
 
 
-static void
-append_key_eq(StringInfo buf, const char *col_ident, const char *col_value)
+static void append_key_eq(StringInfo buf, const char *col_ident, const char *col_value)
 {
 	if (col_value == NULL)
 		elog(ERROR, "logtriga: Unexpected NULL key value");
@@ -43,8 +42,7 @@ append_key_eq(StringInfo buf, const char *col_ident, const char *col_value)
 	pgq_encode_cstring(buf, col_value, TBUF_QUOTE_LITERAL);
 }
 
-static void
-append_normal_eq(StringInfo buf, const char *col_ident, const char *col_value)
+static void append_normal_eq(StringInfo buf, const char *col_ident, const char *col_value)
 {
 	pgq_encode_cstring(buf, col_ident, TBUF_QUOTE_IDENT);
 	appendStringInfoChar(buf, '=');
@@ -54,22 +52,20 @@ append_normal_eq(StringInfo buf, const char *col_ident, const char *col_value)
 		appendStringInfoString(buf, "NULL");
 }
 
-static void
-process_insert(PgqTriggerEvent *ev, TriggerData *tg, StringInfo sql)
+static void process_insert(PgqTriggerEvent *ev, TriggerData *tg, StringInfo sql)
 {
-	HeapTuple	new_row = tg->tg_trigtuple;
-	TupleDesc	tupdesc = tg->tg_relation->rd_att;
-	int			i;
-	int			need_comma = false;
-	int			attkind_idx;
+	HeapTuple new_row = tg->tg_trigtuple;
+	TupleDesc tupdesc = tg->tg_relation->rd_att;
+	int i;
+	int need_comma = false;
+	int attkind_idx;
 
 	/*
 	 * Specify all the columns
 	 */
 	appendStringInfoChar(sql, '(');
 	attkind_idx = -1;
-	for (i = 0; i < tupdesc->natts; i++)
-	{
+	for (i = 0; i < tupdesc->natts; i++) {
 		char *col_ident;
 
 		/* Skip dropped columns */
@@ -101,8 +97,7 @@ process_insert(PgqTriggerEvent *ev, TriggerData *tg, StringInfo sql)
 	 */
 	need_comma = false;
 	attkind_idx = -1;
-	for (i = 0; i < tupdesc->natts; i++)
-	{
+	for (i = 0; i < tupdesc->natts; i++) {
 		char *col_value;
 
 		/* Skip dropped columns */
@@ -133,28 +128,26 @@ process_insert(PgqTriggerEvent *ev, TriggerData *tg, StringInfo sql)
 	appendStringInfoChar(sql, ')');
 }
 
-static int
-process_update(PgqTriggerEvent *ev, TriggerData *tg, StringInfo sql)
+static int process_update(PgqTriggerEvent *ev, TriggerData *tg, StringInfo sql)
 {
-	HeapTuple	old_row = tg->tg_trigtuple;
-	HeapTuple	new_row = tg->tg_newtuple;
-	TupleDesc	tupdesc = tg->tg_relation->rd_att;
-	Datum		old_value;
-	Datum		new_value;
-	bool		old_isnull;
-	bool		new_isnull;
+	HeapTuple old_row = tg->tg_trigtuple;
+	HeapTuple new_row = tg->tg_newtuple;
+	TupleDesc tupdesc = tg->tg_relation->rd_att;
+	Datum old_value;
+	Datum new_value;
+	bool old_isnull;
+	bool new_isnull;
 
-	char	   *col_ident;
-	char	   *col_value;
-	int			i;
-	int			need_comma = false;
-	int			need_and = false;
-	int			attkind_idx;
-	int			ignore_count = 0;
+	char *col_ident;
+	char *col_value;
+	int i;
+	int need_comma = false;
+	int need_and = false;
+	int attkind_idx;
+	int ignore_count = 0;
 
 	attkind_idx = -1;
-	for (i = 0; i < tupdesc->natts; i++)
-	{
+	for (i = 0; i < tupdesc->natts; i++) {
 		/*
 		 * Ignore dropped columns
 		 */
@@ -176,10 +169,9 @@ process_update(PgqTriggerEvent *ev, TriggerData *tg, StringInfo sql)
 		 * If both are NOT NULL, we need to compare the values and skip
 		 * setting the column if equal
 		 */
-		if (!old_isnull && !new_isnull)
-		{
-			Oid			opr_oid;
-			FmgrInfo   *opr_finfo_p;
+		if (!old_isnull && !new_isnull) {
+			Oid opr_oid;
+			FmgrInfo *opr_finfo_p;
 
 			/*
 			 * Lookup the equal operators function call info using the
@@ -188,7 +180,7 @@ process_update(PgqTriggerEvent *ev, TriggerData *tg, StringInfo sql)
 			TypeCacheEntry *type_cache;
 
 			type_cache = lookup_type_cache(SPI_gettypeid(tupdesc, i + 1),
-							  TYPECACHE_EQ_OPR | TYPECACHE_EQ_OPR_FINFO);
+						       TYPECACHE_EQ_OPR | TYPECACHE_EQ_OPR_FINFO);
 			opr_oid = type_cache->eq_opr;
 			if (opr_oid == ARRAY_EQ_OP)
 				opr_oid = InvalidOid;
@@ -200,24 +192,19 @@ process_update(PgqTriggerEvent *ev, TriggerData *tg, StringInfo sql)
 			 * comparision. Else get the string representation of both
 			 * attributes and do string comparision.
 			 */
-			if (OidIsValid(opr_oid))
-			{
-				if (DatumGetBool(FunctionCall2(opr_finfo_p,
-											   old_value, new_value)))
+			if (OidIsValid(opr_oid)) {
+				if (DatumGetBool(FunctionCall2(opr_finfo_p, old_value, new_value)))
 					continue;
-			}
-			else
-			{
-				char	   *old_strval = SPI_getvalue(old_row, tupdesc, i + 1);
-				char	   *new_strval = SPI_getvalue(new_row, tupdesc, i + 1);
+			} else {
+				char *old_strval = SPI_getvalue(old_row, tupdesc, i + 1);
+				char *new_strval = SPI_getvalue(new_row, tupdesc, i + 1);
 
 				if (strcmp(old_strval, new_strval) == 0)
 					continue;
 			}
 		}
 
-		if (pgqtriga_skip_col(ev, tg, i, attkind_idx))
-		{
+		if (pgqtriga_skip_col(ev, tg, i, attkind_idx)) {
 			/* this change should be ignored */
 			ignore_count++;
 			continue;
@@ -241,14 +228,12 @@ process_update(PgqTriggerEvent *ev, TriggerData *tg, StringInfo sql)
 	 * with it's old value to simulate the same for the replication
 	 * engine.
 	 */
-	if (!need_comma)
-	{
+	if (!need_comma) {
 		/* there was change in ignored columns, skip whole event */
 		if (ignore_count > 0)
 			return 0;
 
-		for (i = 0, attkind_idx = -1; i < tupdesc->natts; i++)
-		{
+		for (i = 0, attkind_idx = -1; i < tupdesc->natts; i++) {
 			if (tupdesc->attrs[i]->attisdropped)
 				continue;
 
@@ -264,8 +249,7 @@ process_update(PgqTriggerEvent *ev, TriggerData *tg, StringInfo sql)
 
 	appendStringInfoString(sql, " where ");
 
-	for (i = 0, attkind_idx = -1; i < tupdesc->natts; i++)
-	{
+	for (i = 0, attkind_idx = -1; i < tupdesc->natts; i++) {
 		/*
 		 * Ignore dropped columns
 		 */
@@ -289,19 +273,17 @@ process_update(PgqTriggerEvent *ev, TriggerData *tg, StringInfo sql)
 	return 1;
 }
 
-static void
-process_delete(PgqTriggerEvent *ev, TriggerData *tg, StringInfo sql)
+static void process_delete(PgqTriggerEvent *ev, TriggerData *tg, StringInfo sql)
 {
-	HeapTuple	old_row = tg->tg_trigtuple;
-	TupleDesc	tupdesc = tg->tg_relation->rd_att;
-	char	   *col_ident;
-	char	   *col_value;
-	int			i;
-	int			need_and = false;
-	int			attkind_idx;
+	HeapTuple old_row = tg->tg_trigtuple;
+	TupleDesc tupdesc = tg->tg_relation->rd_att;
+	char *col_ident;
+	char *col_value;
+	int i;
+	int need_and = false;
+	int attkind_idx;
 
-	for (i = 0, attkind_idx = -1; i < tupdesc->natts; i++)
-	{
+	for (i = 0, attkind_idx = -1; i < tupdesc->natts; i++) {
 		if (tupdesc->attrs[i]->attisdropped)
 			continue;
 
@@ -320,21 +302,19 @@ process_delete(PgqTriggerEvent *ev, TriggerData *tg, StringInfo sql)
 	}
 }
 
-int
-pgqtriga_make_sql(PgqTriggerEvent *ev, TriggerData *tg, StringInfo sql)
+int pgqtriga_make_sql(PgqTriggerEvent *ev, TriggerData *tg, StringInfo sql)
 {
-	TupleDesc	tupdesc;
-	int			i;
-	int			attcnt;
-	int			need_event = 1;
+	TupleDesc tupdesc;
+	int i;
+	int attcnt;
+	int need_event = 1;
 
 	tupdesc = tg->tg_relation->rd_att;
 
 	/*
 	 * Count number of active columns
 	 */
-	for (i = 0, attcnt = 0; i < tupdesc->natts; i++)
-	{
+	for (i = 0, attcnt = 0; i < tupdesc->natts; i++) {
 		if (tupdesc->attrs[i]->attisdropped)
 			continue;
 		attcnt++;
@@ -357,4 +337,3 @@ pgqtriga_make_sql(PgqTriggerEvent *ev, TriggerData *tg, StringInfo sql)
 
 	return need_event;
 }
-

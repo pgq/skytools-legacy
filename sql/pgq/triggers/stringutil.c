@@ -53,7 +53,7 @@ bool pgq_strlist_contains(const char *liststr, const char *str)
 {
 	int c, len = strlen(str);
 	const char *p, *listpos = liststr;
-	
+
 loop:
 	/* find string fragment, later check if actual token */
 	p = strstr(listpos, str);
@@ -95,10 +95,9 @@ static int pgq_urlencode(char *dst, const uint8 *src, int srclen)
 		if (c == ' ') {
 			*p++ = '+';
 		} else if ((c >= '0' && c <= '9')
-			|| (c >= 'A' && c <= 'Z')
-			|| (c >= 'a' && c <= 'z')
-			|| c == '_' || c == '.')
-		{
+			   || (c >= 'A' && c <= 'Z')
+			   || (c >= 'a' && c <= 'z')
+			   || c == '_' || c == '.') {
 			*p++ = c;
 		} else {
 			*p++ = '%';
@@ -147,8 +146,7 @@ static int pgq_quote_literal(char *dst, const uint8 *src, int srclen)
 /*
  * slon_quote_identifier - Quote an identifier only if needed
  */
-static int
-pgq_quote_ident(char *dst, const uint8 *src, int srclen)
+static int pgq_quote_ident(char *dst, const uint8 *src, int srclen)
 {
 	/*
 	 * Can avoid quoting if ident starts with a lowercase letter or
@@ -156,10 +154,10 @@ pgq_quote_ident(char *dst, const uint8 *src, int srclen)
 	 * underscores, *and* is not any SQL keyword.  Otherwise, supply
 	 * quotes.
 	 */
-	int                     nquotes = 0;
-	bool            safe;
+	int nquotes = 0;
+	bool safe;
 	const char *ptr;
-	char       *optr;
+	char *optr;
 	char ident[NAMEDATALEN + 1];
 
 	/* expect idents be not bigger than NAMEDATALEN */
@@ -174,22 +172,18 @@ pgq_quote_ident(char *dst, const uint8 *src, int srclen)
 	 */
 	safe = ((ident[0] >= 'a' && ident[0] <= 'z') || ident[0] == '_');
 
-	for (ptr = ident; *ptr; ptr++)
-	{
-		char            ch = *ptr;
+	for (ptr = ident; *ptr; ptr++) {
+		char ch = *ptr;
 
-		if ((ch >= 'a' && ch <= 'z') ||
-			(ch >= '0' && ch <= '9') ||
-			(ch == '_'))
-			continue; /* okay */
+		if ((ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9') || (ch == '_'))
+			continue;	/* okay */
 
 		safe = false;
 		if (ch == '"')
 			nquotes++;
 	}
 
-	if (safe)
-	{
+	if (safe) {
 		/*
 		 * Check for keyword.  This test is overly strong, since many of
 		 * the "keywords" known to the parser are usable as column names,
@@ -207,9 +201,8 @@ pgq_quote_ident(char *dst, const uint8 *src, int srclen)
 	if (!safe)
 		*optr++ = '"';
 
-	for (ptr = ident; *ptr; ptr++)
-	{
-		char            ch = *ptr;
+	for (ptr = ident; *ptr; ptr++) {
+		char ch = *ptr;
 
 		if (ch == '"')
 			*optr++ = '"';
@@ -235,10 +228,7 @@ static void finish_append(StringInfo buf, int final_len)
 }
 
 
-static void
-tbuf_encode_data(StringInfo buf,
-				 const uint8 *data, int len,
-				 enum PgqEncode encoding)
+static void tbuf_encode_data(StringInfo buf, const uint8 *data, int len, enum PgqEncode encoding)
 {
 	int dlen = 0;
 	char *dst;
@@ -266,13 +256,9 @@ tbuf_encode_data(StringInfo buf,
 	finish_append(buf, dlen);
 }
 
-void
-pgq_encode_cstring(StringInfo tbuf,
-					const char *str,
-					enum PgqEncode encoding)
+void pgq_encode_cstring(StringInfo tbuf, const char *str, enum PgqEncode encoding)
 {
 	if (str == NULL)
 		elog(ERROR, "tbuf_encode_cstring: NULL");
 	tbuf_encode_data(tbuf, (const uint8 *)str, strlen(str), encoding);
 }
-

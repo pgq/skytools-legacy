@@ -93,3 +93,26 @@ select pgq.insert_event('myqueue', 'test', 'event');
 update pgq.queue set queue_disable_insert = false where queue_name = 'myqueue';
 select pgq.insert_event('myqueue', 'test', 'event');
 
+-- test limit
+update pgq.queue set queue_per_tx_limit = 2 where queue_name = 'myqueue';
+begin;
+select pgq.insert_event('myqueue', 'test', 'event1');
+select pgq.insert_event('myqueue', 'test', 'event2');
+select pgq.insert_event('myqueue', 'test', 'event3');
+end;
+
+update pgq.queue set queue_per_tx_limit = 0 where queue_name = 'myqueue';
+begin;
+select pgq.insert_event('myqueue', 'test', 'event1');
+select pgq.insert_event('myqueue', 'test', 'event2');
+select pgq.insert_event('myqueue', 'test', 'event3');
+end;
+
+update pgq.queue set queue_per_tx_limit = null where queue_name = 'myqueue';
+begin;
+select pgq.insert_event('myqueue', 'test', 'event1');
+select pgq.insert_event('myqueue', 'test', 'event2');
+select pgq.insert_event('myqueue', 'test', 'event3');
+end;
+
+

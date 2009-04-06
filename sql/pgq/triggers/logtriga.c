@@ -39,11 +39,10 @@ Datum pgq_logtriga(PG_FUNCTION_ARGS);
  *    ev_extra1 - table name
  */
 
-Datum
-pgq_logtriga(PG_FUNCTION_ARGS)
+Datum pgq_logtriga(PG_FUNCTION_ARGS)
 {
 	TriggerData *tg;
-	PgqTriggerEvent	ev;
+	PgqTriggerEvent ev;
 
 	/*
 	 * Get the trigger call context
@@ -51,7 +50,7 @@ pgq_logtriga(PG_FUNCTION_ARGS)
 	if (!CALLED_AS_TRIGGER(fcinfo))
 		elog(ERROR, "pgq.logutriga not called as trigger");
 
-	tg = (TriggerData *) (fcinfo->context);
+	tg = (TriggerData *)(fcinfo->context);
 
 	if (!TRIGGER_FIRED_AFTER(tg->tg_event))
 		elog(ERROR, "pgq.logtriga must be fired AFTER");
@@ -82,4 +81,3 @@ pgq_logtriga(PG_FUNCTION_ARGS)
 skip_it:
 	return PointerGetDatum(NULL);
 }
-

@@ -1,0 +1,15 @@
+#!/bin/sh
+
+PARAM="-npro -kr -i8 -ts8 -sob -l120 -ss -ncs -cp1"
+PARAM="-npro -kr -i8 -ts8 -nsob -l80 -ss -ncs -cp1 -il0"
+PARAM="-npro -kr -i8 -ts8 -nsob -hnl -l110 -ss -ncs -cp1 -il0"
+
+for t in Datum PgqTriggerEvent TriggerData uint8 uint32 uint64 \
+	StringInfo Oid TransactionId
+do
+  PARAM="$PARAM -T $t"
+done
+
+echo indent $PARAM "$@"
+indent $PARAM "$@"
+

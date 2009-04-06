@@ -1,45 +1,43 @@
 
-= Cascaded replication =
-
-== Goals ==
-
-* Main goals:
-  - Nodes in set are in sync - that means they can change their provider to
-    any other node in set.
-  - Combining data from partitioned plproxy db's.
-
-* Extra goals:
-  - Queue-only nodes.  Cannot be initial providers to other nodes, because initial COPY cannot be done.
-  - Data-only nodes, without queue - leafs.  Cannot be providers to other nodes.
-
-* Extra-extra goals:
-  - The node that combines events from partitions can be queue-only.
+= Technical notes about cascaded queuing =
 
 == Termins ==
 
 set::
-  Group of nodes that synchronise set of tables using same data (same events, batch boundaries and tick_ids).
+  Group of nodes that distribute a single queue.  In addition to
+  copying events around, they also keep same batch boundaries
+  and tick_ids.
 
 node::
-  A database that participates in a set.
-  - contains tables which are updated by replaying events from queue.
-  - contains queue which has events from.
+  A database that participates in cascaded copy of a queue.
 
 provider::
-  Node that provides data to another.
+  Node that provides queue data to another.
 
 subscriber::
-  Node that receives data from another.
+  Node that receives queue data from another.
+
+== Goals ==
+
+* Main goals:
+  - Nodes share same queue structure - in addition to events, also
+    batches and their tick_ids are same.  That means they can change
+    their provider to any other node in set.
+  - (Londiste) Queue-only nodes.  Cannot be initial providers to other nodes, because initial COPY cannot be done.
+
+* Extra goals:
+  - Combining data from partitioned plproxy db's.
+  - (Londiste) Data-only nodes, without queue - leafs.  Cannot be providers to other nodes.
 
 == Node types ==
 
 root::
-  current master for set data.
+  Place where queue data is generated.
 
 branch::
-  * carries full contents of the queue.
-  * may subscribe to all/some/none of the tables.
-  * can be provider for initial copy only if subscribes to table
+  * Carries full contents of the queue.
+  * (Londiste) May subscribe to all/some/none of the tables.
+  * (Londiste) Can be provider for initial copy only if subscribes to table
 
 leaf::
   Data-only node.  Events are replayed, but no queue, thus cannot be provider to other nodes.
@@ -50,18 +48,18 @@ merge-leaf::
   [Does not exist as separate type, detected as 'leaf' that has 'combined_queue' set.]
   Exists in per-partition set.
   - Does not have it's own queue.
-  - Initial COPY is done with --skip-truncate,
+  - (Londiste) Initial COPY is done with --skip-truncate,
   - Event data is sent to combined queue.
   - tick_id for each batch is sent to combined queue.
 
-  - replica from part to combined-failover must lag behind combined set coming
-    from combined-root
+  - Queue reader from partition to combined-failover must lag behind
+    combined queue coming from combined-root
   
 combined-root::
   [Does not exist as separate type, detected as 'root' that has 'leaf's with 'combined_queue' set.]
-  - Master for combined set.  Received data from several per-partition set's.
-  - also is merge-leaf in every part-set.
-  - queue is filled directly from partition sets.
+  - Master for combined queue.  Received data from several per-partition queues.
+  - Also is merge-leaf in every per-partition queue.
+  - Queue is filled directly from partition queues.
 
 combined-failover::
   [Does not exist as separate type, detected as 'branch' that has 'leaf's with 'combined_queue' set.]
@@ -91,7 +89,7 @@ combined-failover::
 * Ticks+data can only be deleted if all nodes have already applied it.
   - Special consumer registration on all queues - ".global_watermark".
     This avoids PgQ from deleting old events.
-  - Nodes propagate upwards their lowest tick: (local_watermark)
+  - Nodes propagate upwards their lowest tick: local_watermark
   - Root sends it's local watermark as "pgq.global-watermark" event to the queue.
   - When branch/leaf gets new watermark event, it moves the ".global_watermark" registration.
 
@@ -137,66 +135,4 @@ On the loss of S3, it should be possible to direct S4 to receive data from S1/S2
 
 On the loss of S1, it should be possible to redirect S3 to S2
 and ABCD -> S2 -> S3 must stay in sync.
-
-== UI spec (incomplete) [obsolete] ==
-
-Here should be end-user interface specced.
-
- setmgr.py <set.ini> create-node TYPE NODE_NAME  NODE_LOCATION --provider=<provider_connstr>
- setmgr.py <set.ini> change-provider <node> --provider <node>
- setmgr.py <set.ini> set-dead <node>
- setmgr.py <set.ini> set-live <node>
- setmgr.py <set.ini> pause --node=<node> [--consumer=]
- setmgr.py <set.ini> resume --node=<node> [--consumer=]
-
-
-
- londiste.py <node.ini> add-table <tbl> ....
- londiste.py <node.ini> remove-table <tbl> ....
- londiste.py <node.ini> add-seq <seq> ....
- londiste.py <node.ini> remove-seq <seq> ....
- londiste.py <node.ini> tables
- londiste.py <node.ini> seqs
- londiste.py <node.ini> missing --seqs --tables
- londiste.py <node.ini> check
- londiste.py <node.ini> fkeys
- londiste.py <node.ini> triggers
- londiste.py <node.ini> tables
- londiste.py <node.ini> seqs
- londiste.py <node.ini> resync TBL
- londiste.py <node.ini> compare TBL
- londiste.py <node.ini> repair TBL
-
- ** actions must be resumable **
-
- setmgr.py <set.ini> init-master ( <node>  --connstr <connstr> | --infoset <infoset> )
-  - install pgq, pgq_set
-  - check if db is already in set
-  - add member to set
-  - create_node()
- setmgr.py <set.ini> init-node <node> --type <type> --connstr <connstr> --provider <node>
-  - install pgq, pgq_set
-  - check if db is alreeady in set
-  - add to node master member list
-  - fetch full list of member from master
-  - add full list to node
-  - subscribe to provider
-  - create_node
- setmgr.py <set.ini> change-provider <node> --provider <node>
-  - pause node, wait until reacts
-  - fetch pos from old provider
-  - subscribe to new provider
-  - change info in subscriber
-  - resume script
-  - unregister in old provider
- setmgr.py <set.ini> set-dead <node>
- setmgr.py <set.ini> set-live <node>
- setmgr.py <set.ini> pause <node>
- setmgr.py <set.ini> resume <node>
- setmgr.py <set.ini> master-failover <newmaster>
- setmgr.py <set.ini> master-switchover <newmaster>
- setmgr.py <set.ini> node-failover <newnode>
- setmgr.py <set.ini> node-switchover <newnode>
- setmgr.py <set.ini> candidates <node>
-
 

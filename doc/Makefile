@@ -11,7 +11,7 @@ EPYARGS = --no-private --url="http://pgfoundry.org/projects/skytools/" \
 
 HTMLS = londiste.cmdline.html londiste.config.html README.html INSTALL.html \
 	londiste.ref.html TODO.html pgq-sql.html pgq-admin.html pgq-nodupes.html \
-	$(SCRIPT_HTMLS) faq.html set.notes.html newadm.html
+	$(SCRIPT_HTMLS) faq.html set.notes.html newadm.html skytools3.html
 
 SCRIPT_TXTS = walmgr.txt cube_dispatcher.txt table_dispatcher.txt \
 	      queue_mover.txt queue_splitter.txt bulk_loader.txt \
@@ -97,14 +97,18 @@ endif
 
 ifneq ($(ASCIIDOC),)
 %.xml: %.txt $(COMMON)
-	$(ASCIIDOC) -b docbook -d manpage `$(GETATTRS) $<` -o - $< \
+	$(ASCIIDOC) -b docbook `$(GETATTRS) $<` -o - $< \
 	| python fixman.py > $@
 
 %.1: %.xml
 	$(XMLTO) man $<
 
 %.html: %.txt $(COMMON)
-	$(ASCIIDOC) -a toc `$(GETATTRS) $<` $<
+	LANG=C cat $< \
+	| sed -e '/^include/b;s,\([A-Za-z.0-9]*\)[.]txt,link:\1.html[],g' \
+	      -e 's,http:[!-~]*,&[],g' \
+	| $(ASCIIDOC) -a toc `$(GETATTRS) $<` -o $@ -
+	#$(ASCIIDOC) -a toc `$(GETATTRS) $<` $<
 
 README.html: ../README
 	cat $< \
