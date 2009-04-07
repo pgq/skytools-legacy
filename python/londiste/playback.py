@@ -759,11 +759,12 @@ class Replicator(CascadedWorker):
         q = "select * from londiste.global_update_seq(%s, %s, %s)"
         self.exec_cmd(dst_curs, q, [self.queue_name, seq, val])
 
-    def copy_event(self, dst_curs, ev):
+    def copy_event(self, dst_curs, ev, filtered_copy):
         # send only data events down (skipping seqs also)
-        if ev.type[:9] in ('londiste.', 'EXECUTE', 'TRUNCATE'):
-            return
-        CascadedWorker.copy_event(self, dst_curs, ev)
+        if filtered_copy:
+            if ev.type[:9] in ('londiste.', 'EXECUTE', 'TRUNCATE'):
+                return
+        CascadedWorker.copy_event(self, dst_curs, ev, filtered_copy)
 
 if __name__ == '__main__':
     script = Replicator(sys.argv[1:])
