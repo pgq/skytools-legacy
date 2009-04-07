@@ -26,9 +26,9 @@ select * from pgq_node.register_location('branch_set', 'pnode', 'dbname=db2', fa
 (1 row)
 
 select * from pgq_node.create_node('branch_set', 'branch', 'snode', 'londiste_branch', 'pnode', 100, null::text);
- ret_code |                           ret_note                            
-----------+---------------------------------------------------------------
-      200 | Node "snode" initialized for queue "snode" with type "branch"
+ ret_code |                              ret_note                              
+----------+--------------------------------------------------------------------
+      200 | Node "snode" initialized for queue "branch_set" with type "branch"
 (1 row)
 
 select * from londiste.local_add_table('branch_set', 'public.slavedata');
