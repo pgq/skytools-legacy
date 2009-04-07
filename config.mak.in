@@ -1,7 +1,13 @@
 
 prefix = @prefix@
 datarootdir = @datarootdir@
+docdir = @docdir@
 mandir = @mandir@
+
+PACKAGE_NAME = @PACKAGE_NAME@
+PACKAGE_TARNAME = @PACKAGE_TARNAME@
+PACKAGE_VERSION = @PACKAGE_VERSION@
+
 
 override PYTHON = @PYTHON@
 override PG_CONFIG = @PG_CONFIG@
@@ -18,4 +24,3 @@ DESTDIR =
 ASCIIDOC = @ASCIIDOC@
 XMLTO = @XMLTO@
 
-extensionless_scripts = @extensionless_scripts@
