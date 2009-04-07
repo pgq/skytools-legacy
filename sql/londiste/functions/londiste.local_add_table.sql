@@ -25,8 +25,21 @@ begin
     fq_table_name := londiste.make_fqname(i_table_name);
     col_types := londiste.find_column_types(fq_table_name);
     if position('k' in col_types) < 1 then
-        select 400, 'Primary key missing on table: ' || fq_table_name into ret_code, ret_note;
-        return;
+        -- allow missing primary key in case of combined table where
+        -- pkey was removed by londiste
+        perform 1 from londiste.table_info t,
+            pgq_node.node_info n_this,
+            pgq_node.node_info n_other
+          where n_this.queue_name = i_queue_name
+            and n_other.combined_queue = n_this.combined_queue
+            and n_other.queue_name <> n_this.queue_name
+            and t.queue_name = n_other.queue_name
+            and t.table_name = fq_table_name
+            and t.dropped_ddl is not null;
+        if not found then
+            select 400, 'Primary key missing on table: ' || fq_table_name into ret_code, ret_note;
+            return;
+        end if;
     end if;
 
     perform 1 from pgq_node.node_info where queue_name = i_queue_name;
