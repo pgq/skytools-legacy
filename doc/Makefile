@@ -23,13 +23,13 @@ COMMON = common.switches.txt common.config.txt common.logutriga.txt
 
 GETATTRS = python ./getattrs.py
 
-all: man
+all: man $(HTMLS)
 
 man: londiste.1 londiste.5 pgqadm.1 $(SCRIPT_MANS)
 
 html: $(HTMLS)
 
-install: man
+install: man $(HTMLS)
 	mkdir -p $(DESTDIR)/$(mandir)/man1
 	mkdir -p $(DESTDIR)/$(mandir)/man5
 	install -m 644 londiste.1 $(DESTDIR)/$(mandir)/man1
@@ -37,6 +37,9 @@ install: man
 	install -m 644 pgqadm.1 $(DESTDIR)/$(mandir)/man1
 	for m in $(SCRIPT_MANS); do \
 	  install -m 644 $$m $(DESTDIR)/$(mandir)/man1 ; \
+	done
+	for h in $(HTMLS); do \
+	  install -m 644 $$h $(DESTDIR)/$(docdir) ; \
 	done
 
 old.wiki.upload:
@@ -73,7 +76,7 @@ apiupload: apidoc
 	rsync -rtlz ../sql/londiste/docs/html/* $(web)/londiste/
 
 clean:
-	rm -rf api *.html
+	rm -rf api *.html *.xml
 
 distclean: clean
 	rm -rf ../sql/pgq/docs/pgq
@@ -81,7 +84,8 @@ distclean: clean
 realclean: distclean
 	rm -f *.[15] *.xml
 
-ifneq ($(XMLTO),)
+ifneq ($(ASCIIDOC),no)
+ifneq ($(XMLTO),no)
 londiste.1: londiste.cmdline.xml
 	$(XMLTO) man $<
 
@@ -93,15 +97,14 @@ pgqadm.1: pgq-admin.xml
 
 walmgr.1: walmgr.xml
 	$(XMLTO) man $<
-endif
 
-ifneq ($(ASCIIDOC),)
 %.xml: %.txt $(COMMON)
-	$(ASCIIDOC) -b docbook `$(GETATTRS) $<` -o - $< \
+	$(ASCIIDOC) -b docbook -d manpage `$(GETATTRS) $<` -o - $< \
 	| python fixman.py > $@
 
 %.1: %.xml
 	$(XMLTO) man $<
+endif
 
 %.html: %.txt $(COMMON)
 	LANG=C cat $< \

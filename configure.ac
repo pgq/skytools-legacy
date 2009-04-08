@@ -40,14 +40,15 @@ dnl asciidoc >= 8.2
 AC_ARG_WITH(asciidoc, [  --with-asciidoc[[=prog]]  path to asciidoc 8.2 (default: asciidoc)],
 [ if test "$withval" = "yes"; then
     AC_CHECK_PROGS(ASCIIDOC, [$ASCIIDOC asciidoc])
+    test -n "$ASCIIDOC" || ASCIIDOC=no
   else
     AC_MSG_CHECKING(for asciidoc)
     ASCIIDOC=$withval
     AC_MSG_RESULT($ASCIIDOC)
   fi ],
-[ ASCIIDOC="" ])
+[ ASCIIDOC="no" ])
 
-if test -n "$ASCIIDOC"; then
+if test "$ASCIIDOC" != "no"; then
   AC_MSG_CHECKING([whether asciidoc version >= 8.2])
   ver=`$ASCIIDOC --version 2>&1 | sed -e 's/asciidoc //'`
   case "$ver" in
@@ -56,30 +57,19 @@ changequote({, })dnl
   [0-7].*|8.[01]|8.[01].*)
 changequote([, ])dnl
       AC_MSG_RESULT([$ver, too old])
-      ASCIIDOC=""
+      ASCIIDOC="no"
       ;;
   *)  AC_MSG_RESULT([$ver, ok])
       ;;
   esac
 fi
 
-AC_ARG_ENABLE(extensionless-scripts, AC_HELP_STRING([--enable-extensionless-scripts],[remove .py extension from installed scripts]))
-AC_MSG_CHECKING([if .py should be stripped])
-if test "$enable_extensionless_scripts" = "yes"; then
-  extensionless_scripts=yes
-  AC_MSG_RESULT([yes])
-else
-  AC_MSG_RESULT([no])
-fi
-AC_SUBST(extensionless_scripts)
-
-
-
 dnl check for xmlto, but only if asciidoc is found
-if test -n "$ASCIIDOC"; then
+if test "$ASCIIDOC" != "no"; then
   AC_CHECK_PROGS(XMLTO, [$XMLTO xmlto])
+  test -n "$XMLTO" || XMLTO=no
 else
-  XMLTO=""
+  XMLTO="no"
 fi
 
 dnl Postres headers on Solaris define incompat unsetenv without that

@@ -29,6 +29,7 @@ class WorkerState:
     target_queue = ''       # ok
     keep_event_ids = 0      # ok
     create_tick = 0         # ok
+    filtered_copy = 0       # ok
     def __init__(self, queue_name, nst):
         ntype = nst['node_type']
         ctype = nst['combined_type']
@@ -52,6 +53,7 @@ class WorkerState:
                 self.process_batch = 1
                 self.process_events = 1
                 self.copy_events = 1
+                self.filtered_copy = 1
                 self.send_tick_event = 1
             elif ctype == 'branch':
                 self.process_batch = 1
@@ -106,7 +108,7 @@ class CascadedWorker(CascadedConsumer):
         dst_curs = dst_db.cursor()
         for ev in event_list:
             if st.copy_events:
-                self.copy_event(dst_curs, ev)
+                self.copy_event(dst_curs, ev, st.filtered_copy)
             if ev.ev_type[:4] == "pgq.":
                 # process cascade events even on waiting leaf node
                 self.process_remote_event(src_curs, dst_curs, ev)
@@ -212,13 +214,14 @@ class CascadedWorker(CascadedConsumer):
 
         CascadedConsumer.finish_remote_batch(self, src_db, dst_db, tick_id)
 
-    def copy_event(self, dst_curs, ev):
+    def copy_event(self, dst_curs, ev, filtered_copy):
         """Add event to copy buffer.
         """
         if not self.main_worker:
             return
-        if ev.type[:4] == "pgq.":
-            return
+        if filtered_copy:
+            if ev.type[:4] == "pgq.":
+                return
         if len(self.ev_buf) >= self.max_evbuf:
             self.flush_events(dst_curs)
         self.ev_buf.append(ev)

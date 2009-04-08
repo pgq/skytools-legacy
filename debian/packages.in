@@ -10,13 +10,13 @@ Copyright: BSD
  Copyright 2006 Marko Kreen
 Build: sh
  PATH=/usr/lib/postgresql/PGVER/bin:$PATH \
- ./configure --prefix=/usr --with-pgconfig=/usr/lib/postgresql/PGVER/bin/pg_config
+ ./configure --prefix=/usr --with-pgconfig=/usr/lib/postgresql/PGVER/bin/pg_config --with-asciidoc
  PATH=/usr/lib/postgresql/PGVER/bin:$PATH \
  make DESTDIR=$ROOT
 Clean: sh
  PATH=/usr/lib/postgresql/PGVER/bin:$PATH \
  make distclean || make clean || true
-Build-Depends: python-dev, postgresql-server-dev-PGVER
+Build-Depends: python-dev, postgresql-server-dev-PGVER, xmlto, asciidoc (>= 8.2)
 
 Package: skytools
 Architecture: any

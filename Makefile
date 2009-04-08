@@ -38,16 +38,18 @@ modules-install: config.mak
 
 python-install: config.mak modules-all
 	$(PYTHON) setup.py install --prefix=$(prefix) --root=$(DESTDIR)/ --record=tmp_files.lst
-#ifeq ($(STRIP_PY), yes)
 	grep '/bin/[a-z_0-9]*.py' tmp_files.lst \
 	| $(PYTHON) misc/strip_ext.py $(if $(DESTDIR), $(DESTDIR), /)
-#endif
+	rm -f tmp_files.lst
 	$(MAKE) -C doc DESTDIR=$(DESTDIR) install
 
 python-install python-all: python/skytools/installer_config.py
 python/skytools/installer_config.py: python/skytools/installer_config.py.in config.mak
 	sed -e 's!@SQLDIR@!$(SQLDIR)!g' $< > $@
 
+realclean:
+	$(MAKE) -C doc $@
+	$(MAKE) distclean
 
 distclean: clean
 	for dir in $(SUBDIRS); do $(MAKE) -C $$dir $@ || exit 1; done
@@ -78,6 +80,12 @@ deb82:
 deb83:
 	./configure --with-pgconfig=/usr/lib/postgresql/8.3/bin/pg_config
 	sed -e s/PGVER/8.3/g -e s/PYVER/$(pyver)/g < debian/packages.in > debian/packages
+	yada rebuild
+	debuild -uc -us -b
+
+deb84:
+	./configure --with-pgconfig=/usr/lib/postgresql/8.4/bin/pg_config
+	sed -e s/PGVER/8.4/g -e s/PYVER/$(pyver)/g < debian/packages.in > debian/packages
 	yada rebuild
 	debuild -uc -us -b
 
