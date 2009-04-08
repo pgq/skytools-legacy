@@ -12,6 +12,8 @@
 #define W_SOCK 1
 #define W_TIME 2
 
+typedef void (*libev_cb)(int sock, short flags, void *arg);
+
 struct PgSocket {
 	struct event ev;
 
@@ -21,8 +23,6 @@ struct PgSocket {
 	db_handler_f handler_func;
 	void *handler_arg;
 };
-
-typedef void (*libev_cb)(int sock, short flags, void *arg);
 
 static void send_event(struct PgSocket *db, enum PgEvent ev)
 {

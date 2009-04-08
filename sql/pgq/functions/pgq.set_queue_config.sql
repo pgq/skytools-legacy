@@ -38,6 +38,7 @@ begin
         'queue_ticker_max_count',
         'queue_ticker_max_lag',
         'queue_ticker_idle_period',
+        'queue_ticker_paused',
         'queue_rotation_period',
         'queue_external_ticker')
     then

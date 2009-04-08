@@ -30,7 +30,8 @@ begin
                                    + queue_ticker_max_count * 2 + 1000) as tmp
       into q from pgq.queue
      where queue_name = i_queue_name
-       and not queue_external_ticker;
+       and not queue_external_ticker
+       and not queue_ticker_paused;
 
     --if not found then
     --    raise notice 'queue not found or ticks not allowed';

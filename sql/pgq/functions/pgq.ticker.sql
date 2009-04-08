@@ -17,9 +17,10 @@ begin
     select queue_id, i_tick_id, i_orig_timestamp, i_event_seq
         from pgq.queue
         where queue_name = i_queue_name
-          and queue_external_ticker;
+          and queue_external_ticker
+          and not queue_ticker_paused;
     if not found then
-        raise exception 'queue not found or external ticker disabled: %', i_queue_name;
+        raise exception 'queue not found or ticker disabled: %', i_queue_name;
     end if;
 
     -- make sure seqs stay current
@@ -57,7 +58,8 @@ begin
     select queue_id, queue_tick_seq, queue_external_ticker,
             queue_ticker_max_count, queue_ticker_max_lag,
             queue_ticker_idle_period, queue_event_seq,
-            pgq.seq_getval(queue_event_seq) as event_seq
+            pgq.seq_getval(queue_event_seq) as event_seq,
+            queue_ticker_paused
         into q
         from pgq.queue where queue_name = i_queue_name;
     if not found then
@@ -66,6 +68,10 @@ begin
 
     if q.queue_external_ticker then
         raise exception 'This queue has external tick source.';
+    end if;
+
+    if q.queue_ticker_paused then
+        raise exception 'Ticker has been paused for this queue';
     end if;
 
     -- load state from last tick
@@ -120,7 +126,7 @@ create or replace function pgq.ticker() returns bigint as $$
 -- ----------------------------------------------------------------------
 -- Function: pgq.ticker(0)
 --
---     Creates ticks for all queues which dont have external ticker.
+--     Creates ticks for all unpaused queues which dont have external ticker.
 --
 -- Returns:
 --     Number of queues that were processed.
@@ -133,6 +139,7 @@ begin
     for q in
         select queue_name from pgq.queue
             where not queue_external_ticker
+                  and not queue_ticker_paused
             order by queue_name
     loop
         if pgq.ticker(q.queue_name) > 0 then
