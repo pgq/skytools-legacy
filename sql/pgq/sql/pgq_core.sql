@@ -46,6 +46,14 @@ select pgq.ticker();
 select pgq.next_batch('myqueue', 'consumer');
 select ev_id,ev_retry,ev_type,ev_data,ev_extra1,ev_extra2,ev_extra3,ev_extra4 from pgq.get_batch_events(3);
 
+begin;
+select ev_id,ev_retry,ev_type,ev_data,ev_extra1,ev_extra2,ev_extra3,ev_extra4
+    from pgq.get_batch_cursor(3, 'acurs', 10);
+select ev_id,ev_retry,ev_type,ev_data,ev_extra1,ev_extra2,ev_extra3,ev_extra4
+    from pgq.get_batch_cursor(3, 'acurs', 2);
+close acurs;
+end;
+
 select * from pgq.failed_event_list('myqueue', 'consumer');
 
 select pgq.event_failed(3, 1, 'failure test');

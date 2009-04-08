@@ -20,6 +20,7 @@
 
 \i functions/pgq.next_batch.sql
 \i functions/pgq.get_batch_events.sql
+\i functions/pgq.get_batch_cursor.sql
 \i functions/pgq.event_failed.sql
 \i functions/pgq.event_retry.sql
 \i functions/pgq.finish_batch.sql

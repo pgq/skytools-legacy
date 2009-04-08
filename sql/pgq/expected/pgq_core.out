@@ -192,6 +192,26 @@ select ev_id,ev_retry,ev_type,ev_data,ev_extra1,ev_extra2,ev_extra3,ev_extra4 fr
      3 |          | r3      | data    |           |           |           | 
 (3 rows)
 
+begin;
+select ev_id,ev_retry,ev_type,ev_data,ev_extra1,ev_extra2,ev_extra3,ev_extra4
+    from pgq.get_batch_cursor(3, 'acurs', 10);
+ ev_id | ev_retry | ev_type | ev_data | ev_extra1 | ev_extra2 | ev_extra3 | ev_extra4 
+-------+----------+---------+---------+-----------+-----------+-----------+-----------
+     1 |          | r1      | data    |           |           |           | 
+     2 |          | r2      | data    | extra1    | extra2    | extra3    | extra4
+     3 |          | r3      | data    |           |           |           | 
+(3 rows)
+
+select ev_id,ev_retry,ev_type,ev_data,ev_extra1,ev_extra2,ev_extra3,ev_extra4
+    from pgq.get_batch_cursor(3, 'acurs', 2);
+ ev_id | ev_retry | ev_type | ev_data | ev_extra1 | ev_extra2 | ev_extra3 | ev_extra4 
+-------+----------+---------+---------+-----------+-----------+-----------+-----------
+     1 |          | r1      | data    |           |           |           | 
+     2 |          | r2      | data    | extra1    | extra2    | extra3    | extra4
+(2 rows)
+
+close acurs;
+end;
 select * from pgq.failed_event_list('myqueue', 'consumer');
  ev_failed_reason | ev_failed_time | ev_id | ev_time | ev_txid | ev_owner | ev_retry | ev_type | ev_data | ev_extra1 | ev_extra2 | ev_extra3 | ev_extra4 
 ------------------+----------------+-------+---------+---------+----------+----------+---------+---------+-----------+-----------+-----------+-----------
