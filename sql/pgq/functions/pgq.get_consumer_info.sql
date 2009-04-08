@@ -103,10 +103,10 @@ begin
                current_timestamp - t.tick_time,
                current_timestamp - s.sub_active,
                s.sub_last_tick, s.sub_batch, s.sub_next_tick
-          from pgq.subscription s, pgq.tick t, pgq.queue q, pgq.consumer c
-         where t.tick_id = s.sub_last_tick
-           and q.queue_id = s.sub_queue
-           and t.tick_queue = s.sub_queue
+          from pgq.queue q, pgq.consumer c,
+               pgq.subscription s left join pgq.tick t
+               on (t.tick_queue = s.sub_queue and t.tick_id = s.sub_last_tick)
+         where q.queue_id = s.sub_queue
            and c.co_id = s.sub_consumer
            and (i_queue_name is null or q.queue_name = i_queue_name)
            and (i_consumer_name is null or c.co_name = i_consumer_name)

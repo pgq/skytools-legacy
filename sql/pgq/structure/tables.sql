@@ -144,7 +144,7 @@ create table pgq.subscription (
         sub_id                          serial      not null,
         sub_queue                       int4        not null,
         sub_consumer                    int4        not null,
-        sub_last_tick                   bigint      not null,
+        sub_last_tick                   bigint,
         sub_active                      timestamptz not null default now(),
         sub_batch                       bigint,
         sub_next_tick                   bigint,
