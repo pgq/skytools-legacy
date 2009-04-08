@@ -2,6 +2,185 @@
 
     * Some changes
 
+2009-03-13  -  SkyTools 2.1.9  -  "Six Pack of Luck"
+
+  = WalMgr improvements =
+
+    * walmgr.py: WAL files purge procedure now pays attention to recovery
+      restart points. (%r patch by Omar Kilani, Mark Kirkwood)
+
+    * walmgr.py: archive_mode GUC is now set during setup. Followed by an
+      optional restart if master_restart_cmd is specified (Mark Kirkwood)
+
+    * walmgr.py: PostgreSQL configuration files are backed up to 
+      "config_backup" and restored to "slave_config_dir". (Mark Kirkwood)
+
+    * walmgr.py: Backups taken from slave now generate backup_label and
+      history files.
+
+    * walmgr.py Configuration files now default to PostgreSQL 8.3
+
+  = Fixes =
+
+    * londiste copy: Add missing identifier quoting for
+      TRUNCATE and ADD CONSTRAINT.  (Luc Van Hoeylandt)
+
+    * Quote identifiers starting with numeric.  (Andrew Dunstan)
+
+    * Fix crash with pgq.sqltrigq/pgq.logutriga, which automatically
+      detect table structure.  Problem was handling table invalidation
+      event during internal query.
+      (Götz Lange, André Malo)
+
+    * Fix 'uninitialized variable' warning and potentially bad code
+      in pgq.sqltriga().  (Götz Lange, André Malo)
+
+    * skytools._cquoting: Fix crash with Decimal type.
+      (May affects users who have compiled psycopg2 to use
+       Decimal() instead of float for NUMERIC)
+
+    * skytools.DBStruct: The DEFAULT keyword was missing when
+      creating table columns with default value.  Table creation
+      functionality is unused in 2.1.x thus no users should be affected.
+
+    * skytools.magic_insert: be more flexible about whats dict.
+      In particular, now accept DictRow.
+
+    * configure.ac: don't detect xmlto and asciidoc version
+      if --with-asciidoc is not used.  Otherwise unnecessary error
+      message was printed.
+
+    * Add few headers for Postgres 8.4 that are not included
+      automatically anymore.  (Devrim Gündüz)
+
+2008-10-12  -  SkyTools 2.1.8  -  "Perestroika For Your Data"
+
+  = Fixes =
+
+    * deb: Make debian package accept skytools-8.3 too.
+    * add skylog.ini as installalble file (David Fetter)
+    * Londiste:
+      - Document the fkeys, triggers, restore-triggers commands.
+      - Run ANALYZE after table is copied over.
+      - Fix "provider add-seq --all"
+    * pgq.SerialConsumer (used by Londiste) - fix position check,
+      which got confused when sequence numbers did large jump.
+    * PgQ database functions:
+      - pgq.maint_rotate_step1() function removed tick #1
+        even if consumer was registered on it.
+      - pgq triggers: import cache invalidation from HEAD.
+        Now pgq.sqltriga() and pgq.logutriga() should be preferable
+        to pgq.logtriga().
+      - uninstall_pgq.sql: Correct syntax for DROP SCHEMA CASCADE.
+    * skytools.DBScript, used by all Python scripts:
+      - Don't try to stay running if MemoryError was thrown.
+      - Detect stale pidfile and ignore it.
+      - Stop hooking SIGTERM anymore.  Python signal handling and
+        libpq polling did not interact well.
+    * scriptmgr:
+      - Don't crash on missing pidfile.
+      - Fix few typos on scriptmgr  (Martin Pihlak)
+    * walmgr  (Martin Pihlak):
+      - improved error messages on startup if no config file specified.
+      - walmgr.py stop now also stops syncdaemon
+      - pg_auth file is copied to slave as part of archiving. restored during boot.
+      - cleanup in remote_walmgr() to always pass config file to slave walmgr.
+      - master_backup() now reports exceptions.
+
+  = Features =
+
+    * londiste -s/-k now kill "copy" process with SIGTERM.
+      Previously the process was left running.  On startup
+      "replay" will check if "copy" process had died before
+      finishing and launches one if needed.  (Dimitri Fontaine)
+    * New skytools.signal_pidfile() function.
+    * Londiste: New lock_timeout parameter to limit time
+      locks are held on provider.  Applies to operations:
+      provider add/remove, compare, repair.
+    * Londiste: on psycopg2 v2.0.6+ use new .copy_expert() API,
+      which does not crash on tables with large number of columns.
+
+2008-06-03  -  SkyTools 2.1.7  -  "Attack of the Werebugs"
+
+  = Fixes =
+
+    * Fix pgq trigger compilation with Postgres 8.2 (Marcin Stępnicki)
+    * Replace `make` calls with $(MAKE) in Makefiles (Pierre-Emmanuel André)
+    * londiste: Fix incompatibility with Python 2.3 (Dimitri Fontaine)
+    * walmgr: Fix typo in config symlinking code. (pychecker)
+    * bulk_loader: Fix typo in temp table check. (pychecker)
+    * Install upgrade .sql files.  Otherwise skytools_upgrade.py could
+      be used only from source directory.
+    * pgq.Consumer: Fix bug in retry/failed event handling. (pychecker)
+    * pgq: Fix pgq.maint_retry_events() - it could create double events when
+      amount of event to be moved back into main queue was more than 10.
+
+  = Features =
+
+    * Quoting of table and column names in Londiste and dispatcher scripts.
+
+  = Upgrade procedure =
+
+    * Database code under pgq and londiste schemas need to be upgraded.
+      That can be done on running databases with following command:
+
+        $ skytools_upgrade.py "connstr"
+
+      Or by applying 'londiste.upgrade.sql' and 'pgq.upgrade.sql' by hand.
+      The changes were only in functions, no table sctructure changed.
+
+2008-04-05  -  SkyTools 2.1.6  -  "Quick Bugfix Release"
+
+  Now we have upgrade script, see 'man skytools_upgrade'
+  for info how to upgrade database code.
+
+  = Fixes =
+
+    * Include upgrade sql scripts in .tgz
+    * Fix 'londiste provider seqs'
+    * Fix 'londiste provider fkeys' in no tables added.
+    * Fix "londiste copy" pidfile timing race
+    * Fix Solaris build - avoid grep -q / define HAVE_UNSETENV
+    * Fix "make debXX" when several Postgres version are installed.
+    * New-style AC_OUTPUT usage.
+    * Disable manpage creation by default, --with-asciidoc to enable.
+      They are still included in .tgz so users should have less problems now.
+    * Restore iter-on-values behaviour for rows from curs.fetch*.  The attempt
+      to make them iter-on-keys seems now misguided, as iter-on-values is already
+      used in existing code, and iter-on-keys returns keys in random order.
+    * londiste subscriber add: Dont drop triggers on table if --expect-sync is used.
+    * londiste copy: drop triggers and fkeys in case "replay" or "subscriber add" was skipped
+    * walmgr restore: better detection if old postmaster is running (Charles Duffy)
+    * walmgr xrestore: detect the death of parent process
+    * walmgr restore: create pg_tblspc - its required for 8.3 (Zoltán Böszörményi)
+    * walmgr restore: copy old config files over if exist (Zoltán Böszörményi)
+
+  = Features =
+
+    * Table name globbing for Londiste commands (Erik Jones)
+    * New manpages for scripts (Asko Oja & me)
+    * Upgrade script with manpage: scripts/skytools_upgrade.py
+    * Add .version() function to pgq_ext & londiste schemas.
+    * pgqadm: allow parameters without queue_ prefix in 'config' command.
+    * skytools Python module:
+      - intern() keys in db_urldecode() to decrease memory usage
+      - udp-logger: more fields: hostaddr, service_name
+      - udp-logger: dont cache udp socket, seem to hang in some cases
+      - DBScript.get_database() allows explicit connect string
+      - DBScript allows disabling config file loading
+      - magic_insert on dicts allows missing columns, uses NULL
+      - new parsing functions:
+        - parse_pgarray(), parse_logtriga_sql(), parse_tabbed_table(),
+        - parse_statements() - this one is used to split SQL install
+          files to separate statements.
+      - exists_function() checks both 'public' and 'pg_catalog'
+        for unqualified functions names.
+      - skytools.quoting: add C implementation for quote_literal, quote_copy,
+        quote_bytea_raw, unescape, db_urlencode, db_urldecode.  This gives
+        20x speedup for db_urlencode and 50x for db_urldecode on some
+        real-life data.
+      - unquote_ident(), unquote_literal()
+
 2007-11-19  -  SkyTools 2.1.5  -  "Enterprise-Grade Duct Tape"
 
     = Big changes =

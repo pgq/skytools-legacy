@@ -12,29 +12,34 @@ skytool applications.
 
 === Build dependencies ===
 
-  libevent-dev postgresql-8.2 postgresql-server-dev-8.2 autoconf
-  devscripts yada
+  postgresql libpq-dev postgresql-server-dev
+  python python-dev
+  libevent-dev
+
+When building code from CVS:
+
+  autoconf asciidoc xmlto
 
 === Runtime dependencies ===
 
   python
-  python-psycopg or python2.4-psycopg
-  skytools-modules-8.2 or the version matching your PostgreSQL installation
-  postgresql-plpython-8.2 (or your version of PostgreSQL)
+  psycopg2 or psycopg1
+  rsync
 
 == Building a debian package ==
 
 The main Makefile provides a target for building a +.deb+ package
-suitable for installation. You need to install some packages to be
-able to build the debian package, the list is given in previous
-section.
+suitable for installation. You need to install some additional
+packages to be able to build the debian package:
+
+  devscripts yada
 
 Then the build:
 
-  $ make deb82
+  $ make deb83
 
 You can build skytools for older PostgreSQL systems by choosing one of
-+deb81+ or +deb80+ targets.
++deb82+, +deb81+ or +deb80+ targets.
 
 The build should give you two debian package files to install, such as
 +skytools_2.1.5_i386.deb+ and
@@ -45,8 +50,7 @@ for notes about where to install those packages.
 
 The build and install from sources step are the following:
 
-  $ autoconf
-  $ ./configure [--prefix] [--with-python] [--with-pgconfig]
+  $ ./configure [--prefix] [--with-python] [--with-pgconfig] [--with-asciidoc]
   $ make
   $ sudo make install
 
@@ -60,6 +64,9 @@ The following configure options are available:
   
 --with-pgconfig::
   path to pg_config (default: pg_config)
+
+--with-asciidoc
+  If asciidoc should be used to re-generate manpages.
 
 
 == Documentation ==
