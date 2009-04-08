@@ -102,7 +102,7 @@ int main(int argc, char *argv[])
 {
 	int c, i;
 
-	while ((c = getopt(argc, argv, "T:p:U:h:HvVd") != -1)) {
+	while ((c = getopt(argc, argv, "T:p:U:h:HvVd")) != -1) {
 		switch (c) {
 		case 'T':
 			cf.db_template = optarg;
@@ -128,7 +128,7 @@ int main(int argc, char *argv[])
 	event_init();
 
 	if (optind == argc) {
-		printf("auto-detecting dbs");
+		printf("auto-detecting dbs ...\n");
 		detect_dbs();
 	} else {
 		for (i = optind; i < argc; i++) {

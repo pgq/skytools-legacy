@@ -43,8 +43,7 @@ static void retry_handler(struct PgSocket *s, void *arg, enum PgEvent ev, PGresu
 		launch_retry(db);
 		break;
 	default:
-		printf("failure\n");
-		exit(1);
+		db_reconnect(db->c_retry);
 	}
 }
 
@@ -52,7 +51,7 @@ void launch_retry(struct PgDatabase *db)
 {
 	const char *cstr;
 	if (db->c_retry) {
-		log_error("%s: retry already initialized", db->name);
+		log_debug("%s: retry already initialized", db->name);
 	} else {
 		log_debug("%s: launch_retry", db->name);
 		db->c_retry = db_create(retry_handler, db);

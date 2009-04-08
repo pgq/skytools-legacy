@@ -109,11 +109,13 @@ static void tick_handler(struct PgSocket *s, void *arg, enum PgEvent ev, PGresul
 		break;
 	case DB_TIMEOUT:
 		log_debug("%s: tick timeout", db->name);
-		run_ticker(db);
+		if (!db_connection_valid(db->c_ticker))
+			launch_ticker(db);
+		else
+			run_ticker(db);
 		break;
 	default:
-		printf("failure\n");
-		exit(1);
+		db_reconnect(db->c_ticker);
 	}
 }
 
@@ -121,7 +123,8 @@ void launch_ticker(struct PgDatabase *db)
 {
 	const char *cstr = make_connstr(db->name);
 	log_debug("%s: launch_ticker", db->name);
-	db->c_ticker = db_create(tick_handler, db);
+	if (!db->c_ticker)
+		db->c_ticker = db_create(tick_handler, db);
 	db_connect(db->c_ticker, cstr);
 	free(cstr);
 }

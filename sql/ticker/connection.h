@@ -21,11 +21,14 @@ void db_free(struct PgSocket *db);
 
 void db_connect(struct PgSocket *db, const char *cstr);
 void db_disconnect(struct PgSocket *db);
+void db_reconnect(struct PgSocket *db);
 
 void db_send_query_simple(struct PgSocket *db, const char *query);
 void db_send_query_params(struct PgSocket *db, const char *query, int args, ...);
 
 void db_sleep(struct PgSocket *db, double timeout);
+
+int db_connection_valid(struct PgSocket *db);
 
 #endif
 

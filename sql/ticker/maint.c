@@ -1,4 +1,3 @@
-
 #include "pgqd.h"
 
 struct MaintItem {
@@ -155,26 +154,34 @@ static void maint_handler(struct PgSocket *s, void *arg, enum PgEvent ev, PGresu
 		break;
 	case DB_TIMEOUT:
 		log_debug("%s: maint timeout", db->name);
-		run_queue_list(db);
+		if (!db_connection_valid(db->c_maint))
+			launch_maint(db);
+		else
+			run_queue_list(db);
 		break;
 	default:
-		printf("failure\n");
-		exit(1);
+		db_reconnect(db->c_maint);
 	}
 }
 
 void launch_maint(struct PgDatabase *db)
 {
-	const char *cstr = make_connstr(db->name);
-	if (db->c_maint) {
+	log_debug("%s: launch_maint", db->name);
+
+	if (!db->c_maint) {
+		free_maint_list(db);
+		db->c_maint = db_create(maint_handler, db);
+	}
+
+	if (!db_connection_valid(db->c_maint)) {
+		const char *cstr = make_connstr(db->name);
+
+		db_connect(db->c_maint, cstr);
+		free(cstr);
+	} else {
+		/* Already have a connection, what are we doing here */
 		log_error("%s: maint already initialized", db->name);
 		return;
 	}
-	free_maint_list(db);
-
-	log_debug("%s: launch_maint", db->name);
-	db->c_maint = db_create(maint_handler, db);
-	db_connect(db->c_maint, cstr);
-	free(cstr);
 }
 

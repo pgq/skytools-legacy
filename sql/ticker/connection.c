@@ -12,8 +12,6 @@
 #define W_SOCK 1
 #define W_TIME 2
 
-typedef void (*libev_cb)(int sock, short flags, void *arg);
-
 struct PgSocket {
 	struct event ev;
 
@@ -23,6 +21,8 @@ struct PgSocket {
 	db_handler_f handler_func;
 	void *handler_arg;
 };
+
+typedef void (*libev_cb)(int sock, short flags, void *arg);
 
 static void send_event(struct PgSocket *db, enum PgEvent ev)
 {
@@ -71,6 +71,7 @@ void db_sleep(struct PgSocket *db, double timeout)
 static void conn_error(struct PgSocket *db, enum PgEvent ev, const char *desc)
 {
 	log_error("connection error: %s", desc);
+	log_error("libpq: %s", PQerrorMessage(db->con));
 	send_event(db, ev);
 }
 
@@ -198,6 +199,12 @@ void db_disconnect(struct PgSocket *db)
 	}
 }
 
+void db_reconnect(struct PgSocket *db)
+{
+	db_disconnect(db);
+	db_sleep(db, 60);
+}
+
 void db_free(struct PgSocket *db)
 {
 	if (db) {
@@ -214,7 +221,7 @@ void db_send_query_simple(struct PgSocket *db, const char *q)
 	log_debug("%s", q);
 	res = PQsendQuery(db->con, q);
 	if (!res) {
-		conn_error(db, DB_RESULT_BAD, "PQsendQueryParams");
+		conn_error(db, DB_RESULT_BAD, "PQsendQuery");
 		return;
 	}
 
@@ -253,5 +260,10 @@ void db_send_query_params(struct PgSocket *db, const char *q, int cnt, ...)
 		wait_event(db, EV_READ, result_cb);
 	} else
 		conn_error(db, DB_RESULT_BAD, "PQflush");
+}
+
+int db_connection_valid(struct PgSocket *db)
+{
+	return (db->con != NULL);
 }
 
