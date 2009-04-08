@@ -8,9 +8,9 @@ Keep old design from Skytools 2
 * Worker process connects to only 2 databases, there is no
   everybody-to-everybody communication going on.
 * Worker process only pulls data from queue.
-  - No pushing with LISTEN/NOTIFY
-  - Administrative work happens in separate process
-  - Can go down anytime, without affecting anything else
+  - No pushing with LISTEN/NOTIFY is used for data transport.
+  - Administrative work happens in separate process.
+  - Can go down anytime, without affecting anything else.
 * Relaxed attitude about tables
   - Tables can be added/removed any time.
   - Inital data sync happens table-by-table, no attempt is made to keep
@@ -26,35 +26,43 @@ New features in Skytools 3
 
 * New Londiste features:
   - Parallel copy - during inital sync several tables can be
-    copied at the same time.   In 2.1.x the copy already happened in separate
+    copied at the same time.   In 2.x the copy already happened in separate
     process, making it parallel was just a matter of tuning launching/syncing logic.
 
   - EXECUTE command, to run random SQL script on all nodes.  The script is executed
-    in single TX on root, and insterted as event into queue, in the same TX.
-    Bascially it emulates DDL AFTER TRIGGER that way.
-
-    Londiste does no locking and no coordination between nodes.  The assumption
-    is that the DDL commands itself do enough locking.
+    in single TX on root, and insterted as event into queue in the same TX.
+    The goal is to emulate DDL AFTER TRIGGER that way.
+    Londiste itself does no locking and no coordination between nodes.  The assumption
+    is that the DDL commands itself do enough locking.  If more locking is needed
+    is can be added to script.
 
   - Automatic table or sequence creation by importing the structure
     from provider node.  Activeted with --create switch for add-table, add-seq.
-
     By default *everything* is copied, including Londiste own triggers.
     The basic idea is that the triggers may be customized and that way
     we avoid the need to keep track of trigger customizations.
 
   - Ability to merge replication queues coming from partitioned database.
+    The possibility was always there but now PgQ keeps also track
+    of batch positions, allowing loss of the merge point.
 
-  - Now it uses the intelligent log-triggers by default.  The triggers
-    were introduced in 
+  - Londiste now uses the intelligent log-triggers by default.  The triggers
+    were introduced in 2.1.x, but were not on by default.  Now they are
+    used by default.
 
-* New interactive admin console.
+* New interactive admin console.  Because long command lines are not very
+  user-friendly, this is an experiment on interactive console with
+  heavy emphasis on tab-completion.
 
 * New multi-database ticker.  It is possible to set up one process that
   maintains all PgQ databases in one PostgreSQL instance.  It will
   auto-detect both databases and whether they have PgQ installed.
+  This also makes core PgQ usable without need for Python.
 
-* New cascaded dispatcher script.
+* New cascaded dispatcher script.  Previous 3 dispatcher scripts
+  (bulk_loader, cube_dispatcher, table_dispatcher) shared quite
+  a lot of logic for partitionaing, differing on few details.
+  So instead of porting all 3 to cascaded consuming, I merged them.
 
 Minor improvements
 ------------------
@@ -74,9 +82,9 @@ Minor improvements
 * python/pgq: pgq.Consumer does not register consumer automatically,
   cmdline switches --register / --unregister need to be used for that.
 
-* londiste: sequences are now pushed (into queue), instead pulled,
-  from root node.  This reduces load on root and also allows
-  in-between nodes that do not have sequences.
+* londiste: sequences are now pushed into queue, instead pulled
+  directly from database.  This reduces load on root
+  and also allows in-between nodes that do not have sequences.
 
 * psycopg1 is not supported anymore.
 
@@ -110,3 +118,11 @@ Further reading
 * Newadm design and todo list: newadm.txt
 * Technical notes about cascading: set.notes.txt
 
+* Python API docs:
+  - http://skytools.projects.postgresql.org/skytools-3.0/api/[skytools, pgq, londiste modules]
+
+* Database API docs:
+  - http://skytools.projects.postgresql.org/skytools-3.0/pgq/[PgQ]
+  - http://skytools.projects.postgresql.org/skytools-3.0/pgq_node/[Cascaded PgQ]
+  - http://skytools.projects.postgresql.org/skytools-3.0/pgq_coop/[Cooperative PgQ]
+  - http://skytools.projects.postgresql.org/skytools-3.0/londiste/[Londiste]

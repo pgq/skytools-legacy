@@ -104,7 +104,7 @@ Information:
 
   - Node naming is not consistent, as it has grown, not designed.
     Suggestions: (Word -> Ident, WList->TokenList?/NodeList?,
-    DynList->DynIdent?, SWord->Param?)
+    DynList->DynIdent?, SWord->Param?) Also: get_next() -> parse()
   - Quoted idents/strings not supported.  Fix: nodes should unquote early.
     IIRC libpq connect string generation in "connect" code assumes already
     quoted values, quoting needs to be added there.

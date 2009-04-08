@@ -1,26 +1,44 @@
 
 = Skytools ToDo list =
 
+In angular brackets after item is assumed complexity [easy, moderate, complex],
+wheter it is good to have it in 3.0, and maybe also developer name
+who already is handling it.
+
 == Required for 3.0-alpha ==
 
-* copy_event check
-* pgq.CascadedConsumer event processing
-* londiste.ref.txt update with new commands?
-  or at least demo for new londiste functionality.
+* londiste demo
 
 == Required for 3.0-final ==
 
-* londiste check
-* londiste fkeys
-* londiste globbing
+* Simple Python consumer for pgq_coop, where each subconsumer
+  is separate process. [easy]
+
+* Relaxed event processing for Python pgq modules.
+  As now there are more event types and several layers
+  who want to process them, it seems best to remove the
+  strict .tag_done() tracking. [marko]
+
+* londiste.ref.txt update with new commands [moderate]
+
+* Re-introduce lost Londiste features:
+  - check
+  - fkeys
+  - globbing
+  They were lost when lot of interaction code was moved to database.
+  Now we need to get them working again.
+  [easy - need to port 2.1 code]
+
 * Refresh default .ini files, add comments.
   Alternative: have defailt .ini in script docstring,
   have DBScript switch to dump it.
+  [easy]
 
-* dead node handling / failover.
-* pk vs table exists check - missing tables gets pk error
+* Dead node handling / failover.  We have working switchover,
+  now need to able to do it with some nodes dead.
+  [complex]
 
-* new ticker:
+* New ticker [marko, martin]:
   - logging
   - daemonizing
   - error handling
@@ -30,77 +48,91 @@
 
 === sql/pgq ===
 
-* drop_queue(force) - to drop consumers
-* pgq_node.is_root_event() rettype
+* drop_queue(force) - to drop consumers [3.0, easy]
+
+* pgq_node.is_root_event() rettype [easy, but hard to decide]
+
+* pgq, pgqadm: show stats about event counts based on seq values in ticks. [3.0, easy]
 
 === python/skytools ===
 
-* DBScript: db error should show conn name
-* sleeps while waiting notices from db
-* exec_cmd better name
+* DBScript: when getting error from database, log connection name with it.
+  Needs wrapper functions in psycopgwrapper to either catch exceptions and
+  add more details for them or to set 'last active' connection name.
+  [3.0, moderate]
+
+* Sleeping while waiting notices from db.  It seems good to speed up
+  change-provider, switchover etc commands by using LISTEN/NOTIFY
+  to wake up daemons. Adding notify to db functions is easy,
+  sleeping part is bit harder.  [moderate]
+
+* New DB API command `DBScript.exec_cmd()` needs better name. [3.0, hard to decide]
 
 === python/pgq ===
 
-* public vs. local connect string
-* node connstr change
-* unregister_node / drop_node
-* make everything use next_batch_info()
-* pgq.fetch_batch_cursor(cursor_name, limit) returns setof event.
-  If returns less than limit, cursor is closed, all events done.
-  Otherwise the cursor is kept open and consumer can read from it.
+* Expose commands for node connstr change, pgq_node.drop_node(). [easy]
+
+* Move all consumers to pgq.next_batch_info(), pgq.get_batch_cursor() [3.0, easy]
+
+=== python/pgq/cascade ===
+
+* Advanced admin commands.
+  - node-status
+  - set-status
+  - on root switch/failover check if all tables are present
+  [moderate]
 
 === python/londiste ===
 
-* Make Londiste support table wildcards.
 * 'Q' event type for londiste, (queue_splitter event), for event
   that needs to be inserted into queue.  Also trigger flag to
   create such event.
   - better to be done as "redirect" - allow events for a table
     to be redirected to another table or queue.
+  [moderate]
+
 * --wait/--nowait switch for execute, to wait until script is applied
   to everywhere.
-* reorg vs. copy: Check what happens if some table is in copy but reorg is attempted.
-* execute vs. copy: needs wait?
+  [3.0, moderate]
+
+* Decide if/how topology change or EXECUTE needs to take account
+  tables in copy. [needs decision]
+  - Proceed, let the admin check out details later.
+  - Wait until COPY finishes.
+  - Do not allow?
 
 
 === sql/londiste ===
 
-* plpgsql trigger for TRUNCATE / support for installing such trigger
+* plpgsql trigger for TRUNCATE and Londiste support for installing such trigger [moderate]
 
-== Doc changes ==
+== Doc improvements ==
 
-* logging from db is mess, needs full cleanup
-* docstring review
-* dbscript: document self.args
-* dbscript: easier help string setting
-* Document DB-API and psycopg2 details a bit under psycopgwrapper.
+* pgq_node and londiste have moved some user interaction messages
+  into database, but their loglevels need review.
+  This means executing various commands and seeing if output is sensible.
+  [easy?]
+
+* Python modules need docstring review. [easy?]
+
+* dbscript: document self.args [east]
+
 * replace "raise Exception" with "raise UsageError" , where we just
-  want to inform user and so traceback is not needed
+  want to inform user and so traceback is not needed. [easy]
 
-
-== old todo (not up-to-date) ==
-
-* CascadeAdmin: job_name vs. consumer_name as worker_name
-* londiste syncer: get provider db?
-* dispatcher scripts: no need to check tables repeatedly
-
-* cascaded replication, switchover, failover
-  - node-status
-  - set-status
-  - rename-node
-  - on root switch/failover check if all tables are present
+* Document DB-API and psycopg2 details under psycopgwrapper. [hard?]
 
 == Low-priority ==
 
 === Larger things ===
 
-* skylog: publish sample logdb schema, with some tools
-* londiste: support creating slave from master by pg_dump / PITR.
-* pgq/cascade: rename node
+* skylog: publish sample logdb schema, with some tools. [moderate]
+* londiste: support creating slave from master by pg_dump / PITR. [hard]
+* pgq/cascade: rename node [hard]
 
 === Smaller things ===
 
-* londiste: londiste status cmd
+* londiste: londiste status cmd [moderate]
  - check what modules are installed
  - check if replay is running (lag?)
  - check if copy is running (lag?)
@@ -108,15 +140,16 @@
  - table in the middle of copy
 
 * We need own async conn-to-conn copy loop in Python/PythonC.
-  Currently we simply pipe simply one copy_to() to another copy_from(),
-  but that likely halves the potential throughput.
-* pgqadm/new-ticker: separate priod for retry queue processing
-* skytools: switch (-q) for silence for cron/init scripts
-* DBScript: failure to write pidfile should be logged (cronscripts)
-* ideas from SlonyI:
-  - when buffering queries, check their size
-* pgqadm: show count of events to be processed [--count switch].
-* automatic "repair" - after reaching sync point, the "replay" must be killed/paused, then fixes can be applied
+  Currently we simply pipe one copy_to() to another copy_from()
+  in blocked manner with large buffer,
+  but that likely halves the potential throughput. [hard]
+* skytools: switch (-q) for silence for cron/init scripts.
+  Dunno if we can override loggers loaded from skylog.ini.
+  Simply redirecting fds 0,1,2 to /dev/null should be enough then.
+  [easy]
+* Londiste: when buffering queries, check their size. [easy]
+* automatic "repair" - after reaching sync point, the "replay"
+  must be killed/paused, then fixes can be applied. [moderate]
 
 == Just ideas ==
 

@@ -111,7 +111,6 @@ endif
 %.html: %.txt $(COMMON)
 	LANG=C cat $< \
 	| sed -e '/^include/b;s,\([A-Za-z.0-9]*\)[.]txt,link:\1.html[],g' \
-	      -e 's,http:[!-~]*,&[],g' \
 	| $(ASCIIDOC) -a toc `$(GETATTRS) $<` -o $@ -
 	#$(ASCIIDOC) -a toc `$(GETATTRS) $<` $<
 
