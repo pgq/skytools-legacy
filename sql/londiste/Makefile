@@ -33,7 +33,7 @@ CATSQL = ../../scripts/catsql.py
 dox: cleandox
 	mkdir -p docs/html
 	mkdir -p docs/sql
-	$(CATSQL) --ndoc structure/tables.sql structure/types.sql > docs/sql/schema.sql
+	$(CATSQL) --ndoc structure/tables.sql > docs/sql/schema.sql
 	$(CATSQL) --ndoc structure/functions.sql > docs/sql/functions.sql
 	$(NDOC) $(NDOCARGS)
 
