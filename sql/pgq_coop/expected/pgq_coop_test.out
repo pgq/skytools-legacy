@@ -1,0 +1,138 @@
+\set ECHO none
+select pgq.create_queue('testqueue');
+ create_queue 
+--------------
+            1
+(1 row)
+
+update pgq.queue set queue_ticker_max_count = 1 where queue_name = 'testqueue';
+-- register
+select pgq.register_consumer('testqueue', 'maincons');
+ register_consumer 
+-------------------
+                 1
+(1 row)
+
+select pgq_coop.register_subconsumer('testqueue', 'maincons', 'subcons1');
+ register_subconsumer 
+----------------------
+                    1
+(1 row)
+
+select pgq_coop.register_subconsumer('testqueue', 'maincons', 'subcons1');
+ register_subconsumer 
+----------------------
+                    0
+(1 row)
+
+select pgq_coop.register_subconsumer('testqueue', 'maincons', 'subcons2');
+ register_subconsumer 
+----------------------
+                    1
+(1 row)
+
+-- process events
+select pgq_coop.next_batch('testqueue', 'maincons', 'subcons1');
+ next_batch 
+------------
+           
+(1 row)
+
+select pgq.insert_event('testqueue', 'ev0', 'data');
+ insert_event 
+--------------
+            1
+(1 row)
+
+select pgq.insert_event('testqueue', 'ev1', 'data');
+ insert_event 
+--------------
+            2
+(1 row)
+
+select pgq.insert_event('testqueue', 'ev2', 'data');
+ insert_event 
+--------------
+            3
+(1 row)
+
+select pgq.ticker();
+ ticker 
+--------
+      1
+(1 row)
+
+select pgq_coop.next_batch('testqueue', 'maincons', 'subcons1');
+ next_batch 
+------------
+          1
+(1 row)
+
+select pgq_coop.next_batch('testqueue', 'maincons', 'subcons1');
+ next_batch 
+------------
+          1
+(1 row)
+
+select pgq_coop.next_batch('testqueue', 'maincons', 'subcons2');
+ next_batch 
+------------
+           
+(1 row)
+
+select pgq.insert_event('testqueue', 'ev3', 'data');
+ insert_event 
+--------------
+            4
+(1 row)
+
+select pgq.insert_event('testqueue', 'ev4', 'data');
+ insert_event 
+--------------
+            5
+(1 row)
+
+select pgq.insert_event('testqueue', 'ev5', 'data');
+ insert_event 
+--------------
+            6
+(1 row)
+
+select pgq.ticker();
+ ticker 
+--------
+      1
+(1 row)
+
+select pgq_coop.next_batch('testqueue', 'maincons', 'subcons2');
+ next_batch 
+------------
+          2
+(1 row)
+
+select pgq_coop.finish_batch(2);
+ finish_batch 
+--------------
+            1
+(1 row)
+
+select pgq_coop.unregister_subconsumer('testqueue', 'maincons', 'subcons1', 0);
+ERROR:  subconsumer has active batch
+select pgq_coop.unregister_subconsumer('testqueue', 'maincons', 'subcons1', 1);
+ unregister_subconsumer 
+------------------------
+                      1
+(1 row)
+
+select pgq_coop.unregister_subconsumer('testqueue', 'maincons', 'subcons1', 0);
+ unregister_subconsumer 
+------------------------
+                      0
+(1 row)
+
+select pgq_coop.unregister_subconsumer('testqueue', 'maincons', 'subcons2', 0);
+ unregister_subconsumer 
+------------------------
+                      1
+(1 row)
+

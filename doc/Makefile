@@ -70,6 +70,8 @@ apiupload: apidoc
 	rsync -rtlz api/* $(web)/api
 	cd ../sql/pgq && rm -rf docs/html && $(MAKE) dox
 	rsync -rtlz ../sql/pgq/docs/html/* $(web)/pgq/
+	cd ../sql/pgq_coop && rm -rf docs/html && $(MAKE) dox
+	rsync -rtlz ../sql/pgq_coop/docs/html/* $(web)/pgq_coop/
 	cd ../sql/pgq_node && rm -rf docs/html && $(MAKE) dox
 	rsync -rtlz ../sql/pgq_node/docs/html/* $(web)/pgq_node/
 	cd ../sql/londiste && rm -rf docs/html && $(MAKE) dox
