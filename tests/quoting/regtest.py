@@ -61,6 +61,16 @@ sql_bytea_raw = [
 regtest("quote_bytea_raw/c", skytools._cquoting.quote_bytea_raw, sql_bytea_raw)
 regtest("quote_bytea_raw/py", skytools._pyquoting.quote_bytea_raw, sql_bytea_raw)
 
+sql_ident = [
+    ["", ""],
+    ["a'\t\\\"b", '"a\'\t\\""b"'],
+    ['abc_19', 'abc_19'],
+    ['from', '"from"'],
+    ['0foo', '"0foo"'],
+    ['mixCase', '"mixCase"'],
+]
+regtest("quote_ident", skytools.quote_ident, sql_ident)
+
 t_urlenc = [
     [{}, ""],
     [{'a': 1}, "a=1"],
