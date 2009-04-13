@@ -93,8 +93,9 @@ Open questions
 --------------
 
 * New ticker
-  - Should it use libevent-based async or multi-threaded architecture?
   - Name for final executable: pgqd, pgq-ticker, or something else?
+  - Should it serialize retry and maint operations on different dbs?
+  - Should it serialize ticking?
 
 * Python modules
   - Skytools 3 modules should be parallel installable with Skytools 2.
@@ -137,6 +138,7 @@ Further reading
 * Skytools 3 todo list: TODO.txt
 * Newadm design and todo list: newadm.txt
 * Technical notes about cascading: set.notes.txt
+* Notes for contributors: devnotes.txt
 
 * Python API docs:
   - http://skytools.projects.postgresql.org/skytools-3.0/api/[skytools, pgq, londiste modules]
