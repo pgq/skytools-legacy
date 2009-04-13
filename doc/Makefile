@@ -78,13 +78,13 @@ apiupload: apidoc
 	rsync -rtlz ../sql/londiste/docs/html/* $(web)/londiste/
 
 clean:
-	rm -rf api *.html *.xml
+	rm -rf api *.xml
 
 distclean: clean
 	rm -rf ../sql/pgq/docs/pgq
 
 realclean: distclean
-	rm -f *.[15] *.xml
+	rm -f *.[15] *.xml *.html
 
 ifneq ($(ASCIIDOC),no)
 ifneq ($(XMLTO),no)
