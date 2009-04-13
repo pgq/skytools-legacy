@@ -24,6 +24,7 @@
 #include "lib/stringinfo.h"
 #include "utils/builtins.h"
 #include "utils/hsearch.h"
+#include "access/xact.h"
 
 /*
  * Module tag
