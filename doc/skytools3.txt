@@ -23,6 +23,7 @@ New features in Skytools 3
   - Its goal is to keep identical copy of queue contents in several nodes.
   - Not replication-specific - can be used for any queue.
   - Advanced admin operations: switchover, failover, change-provider, pause/resume.
+  - For terminology and technical details see here: set.notes.txt.
 
 * New Londiste features:
   - Parallel copy - during inital sync several tables can be
@@ -97,19 +98,38 @@ Open questions
 
 * Python modules
   - Skytools 3 modules should be parallel installable with Skytools 2.
-    we decided to solve it via loader module (pygtk does).  The question
-    is 
+    we decided to solve it via loader module
+    (like http://faq.pygtk.org/index.py?req=all#2.4[pygtk]).
+    The question is should we have Skytools-specific loader or more generic.
+    And what should the name be?
+
+      import skytools_loader
+      skytools_loader.require('3.0')
+
+      vs
+
+      import pkgloader
+      pkgloader.require('skytools', '3.0')
 
 * PgQ Cascading
   - There are some periodic operations that should be done on root node.
     Should we let the ticker do them or do we require a Londiste daemon there?
+    Letting ticker do it means initial setup is slightly easier.
+    But requiring separate daemon means user has guarantee that
+    switchover (downgrading root to branch) works without need to
+    start the replication daemon.
 
 * Londiste EXECUTE command
-  - Should the scripts have some sort of 
+  - Should the scripts have ability to inform Londiste of the tables
+    they operate on, so that nodes that do not have such tables
+    can ignore the script.
 
 * Newadm:
   - Good name for it.
 
+* Is there good reason not to drop following modules:
+  - logtriga(), pgq.logtriga() - non-automatic triggers
+  - cube_dispatcher, table_dispatcher, bulk_loader - they are merged into queue_loader
 
 Further reading
 ---------------

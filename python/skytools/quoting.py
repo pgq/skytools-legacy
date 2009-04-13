@@ -66,7 +66,7 @@ _ident_kwmap = {
 "errors":1,
 }
 
-_ident_bad = re.compile(r"[^a-z0-9_]")
+_ident_bad = re.compile(r"[^a-z0-9_]|^[0-9]")
 def quote_ident(s):
     """Quote SQL identifier.
 

@@ -1,0 +1,137 @@
+= Notes for developers =
+
+== Coding Style ==
+
+=== Python ===
+
+Standard Python style with 4-space indent, no tabs.
+
+* http://python.org/dev/peps/pep-0008/[PEP-8: Style Guide to Python Code]
+* http://www.python.org/dev/peps/pep-0257/[PEP-257: Docstring conventions]
+
+=== C ===
+
+* http://lxr.linux.no/linux/Documentation/CodingStyle[Linux kernel style] - K&R with 8-space tabs.
+* Target is modern C (c99) - vararg macros, struct field initializers are OK.
+* `static inline` is perferred to macros.
+
+There may be couple places still using the historical Postgres
+style with half-tength tabs.  Please follow if doing small patches
+to those files.  For bigger work it may be preferable to reindent
+the file.
+
+=== SQL ===
+
+* Indent with 4 spaces.
+* All-lowercase (expecting syntax highlighing editor).
+* We use NaturalDocs for API documentation, see existing code
+  for examples.
+* Functions should use OUT parameters instead of return types.
+* Local variables should prefixed with '_'.
+* Database clients should not access tables directly but
+  do operations via functions.  (Except when script's task
+  is to replicate tables.)
+* Any sort of comma-first style is forbidden.  Code should
+  be optimized for reading not writing.
+
+
+== Patches ==
+
+Although the developemt happens in GIT repos, the contributors
+are not required to publish their changes via GIT, sending
+patches is fine.  The preferred patch format is unified diff,
+which is the default for git:
+
+  $ git diff > patch
+
+or with plain `diff`:
+
+  $ diff -ur skytools-2.1.9 skytools-my > patch
+
+
+== GIT usage ==
+
+=== Initial cloning ===
+
+libusual is used as git subproject, so after inital clone
+submodule update should be done:
+
+  $ git clone git://github.com/markokr/skytools-dev.git
+  $ cd skytools-dev
+  $ git submodule init
+  $ git submodule update
+
+=== Repos ===
+
+Master Skytools repository: `git://github.com/markokr/skytools-dev.git`
+Master libusual repository: `git://github.com/markokr/libusual.git`
+
+Currently known developer repos are on github.com:
+
+* http://github.com/markokr[]
+* http://github.com/mpihlak[]
+
+
+=== Commit style ===
+
+GIT expects first line of commit message to be short summary,
+rest of the message in-depth explanation about commit.
+The short summary is used by `git shortlog`, `gitk` and
+various web-interfaces.
+
+So the commit message should be written in email style -
+first a subject line, empty line then longer details.
+
+Short summary should also contain component name or subdir
+that the commit touches:
+
+    ---------------------------------
+    sql/pgq: reindent C code
+    
+    Several places had whitespace bugs, probably due to copy-paste.
+    
+    As there is no point keeping historical PG style around here,
+    reindent with proper -kr -i8.
+    ---------------------------------
+
+=== Developer workflow ===
+
+FIXME: no workflow suggestions yet, ATM just describe how
+to set up comfortable environment.
+
+==== Initial setup ====
+
+  $ git config --global user.name "Marko Kreen"
+  $ git config --global user.email "markokr@gmail.com"
+
+Optional: make git colorful:
+
+  ## make 'less' accept color codes
+  $ export PAGER=less
+  $ export LESS="-R"     # markokr: LESS="-RgQnh2"
+
+  ## make git use color
+  $ git config --global color.branch auto
+  $ git config --global color.diff auto
+  $ git config --global color.pager true
+  $ git config --global color.status true
+
+Optional: activate tab-completion for git, pick one of the lines below
+and put it into your `.bashrc`:
+
+  # use unpacked source tree
+  source $git_src_tree/contrib/completion/git-completion.bash
+  
+  # use packaged git
+  source /etc/bash_completion.d/git
+
+  # use packaged git, turn extended completion for everything
+  # [ markokr: buggy completion modules can be rather annoying
+  #   so it may be preferable to activate them one-by-one ]
+  source /etc/bash_completion
+
+Optional: show current checked out branch in bash prompt,
+requires the completion script from above:
+
+  PS1='\h:\w$(__git_ps1 " (%s)")\$ '
+
