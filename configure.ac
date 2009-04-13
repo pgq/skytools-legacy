@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT(skytools, 3.0-git)
+AC_INIT(skytools, 3.0a1)
 AC_CONFIG_SRCDIR(python/pgqadm.py)
 
 dnl Find Python interpreter
