@@ -146,7 +146,7 @@ static void maint_handler(struct PgSocket *s, void *arg, enum PgEvent ev, PGresu
 			if (!statlist_empty(&db->maint_item_list)) {
 				run_vacuum(db);
 			} else {
-				close_maint(db, 2*60);
+				close_maint(db, cf.maint_period);
 			}
 			break;
 		default:

@@ -22,9 +22,10 @@ static void parse_retry(struct PgDatabase *db, PGresult *res)
 		char *val = PQgetvalue(res, 0, 0);
 		if (strcmp(val, "0") != 0) {
 			run_retry(db);
+			return;
 		}
 	}
-	close_retry(db, 20);
+	close_retry(db, cf.retry_period);
 }
 
 static void retry_handler(struct PgSocket *s, void *arg, enum PgEvent ev, PGresult *res)

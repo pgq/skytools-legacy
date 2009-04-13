@@ -39,7 +39,7 @@ static void parse_pgq_check(struct PgDatabase *db, PGresult *res)
 
 	if (!db->has_pgq) {
 		log_info("%s: no pgq", db->name);
-		close_ticker(db, 60);
+		close_ticker(db, cf.check_period);
 	} else {
 		run_version_check(db);
 	}
@@ -71,7 +71,7 @@ badpgq:
 	PQclear(res);
 	db->has_pgq = false;
 	log_info("%s: bad pgq version, ignoring", db->name);
-	close_ticker(db, 60);
+	close_ticker(db, cf.check_period);
 }
 
 static void parse_ticker_result(struct PgDatabase *db, PGresult *res)
@@ -81,7 +81,7 @@ static void parse_ticker_result(struct PgDatabase *db, PGresult *res)
 	}
 	PQclear(res);
 
-	db_sleep(db->c_ticker, 2);
+	db_sleep(db->c_ticker, cf.ticker_period);
 }
 
 static void tick_handler(struct PgSocket *s, void *arg, enum PgEvent ev, PGresult *res)
