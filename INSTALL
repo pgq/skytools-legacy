@@ -14,11 +14,10 @@ skytool applications.
 
   postgresql libpq-dev postgresql-server-dev
   python python-dev
-  libevent-dev
 
-When building code from CVS:
+When building code from GIT:
 
-  autoconf asciidoc xmlto
+  git autoconf asciidoc xmlto
 
 === Runtime dependencies ===
 
@@ -26,11 +25,33 @@ When building code from CVS:
   psycopg2 or psycopg1
   rsync
 
+== Building from source tarball ==
+
+  $ ./configure --prefix=...
+  $ make
+  $ make install
+
+== Building from GIT ==
+
+  ## fetch git tree
+  $ git clone git://github.com/markokr/skytools-dev.git
+
+  ## fetch libusual submodule
+  $ git submodule init
+  $ git submodule update
+
+  ## generate ./configure script
+  $ make boot
+
+  ## now build as usual (--with-asciidoc is required when building from GIT)
+  $ ./configure --prefix=... --with-asciidoc
+  $ make
+
 == Building a debian package ==
 
 The main Makefile provides a target for building a +.deb+ package
-suitable for installation. You need to install some additional
-packages to be able to build the debian package:
+suitable for installation.  Following additional packages are needed
+to build the debian package:
 
   devscripts yada
 
@@ -46,27 +67,22 @@ The build should give you two debian package files to install, such as
 +skytools-modules-8.2_2.1.5_i386.deb+. See the Installation section
 for notes about where to install those packages.
 
-== Building for other systems ==
-
-The build and install from sources step are the following:
-
-  $ ./configure [--prefix] [--with-python] [--with-pgconfig] [--with-asciidoc]
-  $ make
-  $ sudo make install
+== Optional arguments to ./configure ==
 
 The following configure options are available:
 
 --prefix::
-  path prefix where to install skytools files (default: UNKNOWN)
+  Path prefix where to install skytools files (default: /usr/local)
   
 --with-python::
-  name of the Python executable (default: python)
+  Name or full path of the Python executable to use. (default: python)
   
 --with-pgconfig::
-  path to pg_config (default: pg_config)
+  Name or full path to pg_config (default: pg_config)
 
 --with-asciidoc
-  If asciidoc should be used to re-generate manpages.
+  If asciidoc should be used to re-generate manpages.  Required when
+  building from GIT as the generated pages are not in repo.
 
 
 == Documentation ==
@@ -105,7 +121,4 @@ the +londiste.py+ command line tool.
 == Usage ==
 
 Please refer to the documentation.
-
-
-
 
