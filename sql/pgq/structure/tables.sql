@@ -59,6 +59,7 @@ create table pgq.consumer (
 --      queue_switch_step2          - tx after rotation was committed
 --      queue_switch_time           - time when switch happened
 --      queue_external_ticker       - ticks come from some external sources
+--      queue_ticker_paused         - ticker is paused
 --      queue_disable_insert        - disallow pgq.insert_event()
 --      queue_ticker_max_count      - batch should not contain more events
 --      queue_ticker_max_lag        - events should not age more
@@ -81,6 +82,7 @@ create table pgq.queue (
 
         queue_external_ticker       boolean     not null default false,
         queue_disable_insert        boolean     not null default false,
+        queue_ticker_paused         boolean     not null default false,
 
         queue_ticker_max_count      integer     not null default 500,
         queue_ticker_max_lag        interval    not null default '3 seconds',

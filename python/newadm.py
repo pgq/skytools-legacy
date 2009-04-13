@@ -282,7 +282,7 @@ w_qargs = WList(
     SWord('idle_period', EQ(Value(w_qargs2, name = 'ticker_idle_period'))),
     SWord('max_count', EQ(Value(w_qargs2, name = 'ticker_max_count'))),
     SWord('max_lag', EQ(Value(w_qargs2, name = 'ticker_max_lag'))),
-    SWord('paused', EQ(Value(w_qargs2, name = 'external_ticker'))))
+    SWord('paused', EQ(Value(w_qargs2, name = 'ticker_paused'))))
 
 w_qargs2.set_real(WList(
     w_done,
@@ -716,7 +716,7 @@ class AdminConsole:
             "queue_ticker_max_count as max_cnt",
             "queue_ticker_max_lag as max_lag",
             "queue_ticker_idle_period as idle_period",
-            "queue_external_ticker as paused",
+            "queue_ticker_paused as paused",
             "ticker_lag",
         ]
         pfx = "select " + ",".join(fields)

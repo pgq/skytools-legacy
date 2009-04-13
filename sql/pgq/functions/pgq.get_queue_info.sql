@@ -5,6 +5,7 @@ create or replace function pgq.get_queue_info(
     out queue_rotation_period       interval,
     out queue_switch_time           timestamptz,
     out queue_external_ticker       boolean,
+    out queue_ticker_paused         boolean,
     out queue_ticker_max_count      integer,
     out queue_ticker_max_lag        interval,
     out queue_ticker_idle_period    interval,
@@ -20,12 +21,14 @@ returns setof record as $$
 -- ----------------------------------------------------------------------
 begin
     for queue_name, queue_ntables, queue_cur_table, queue_rotation_period,
-        queue_switch_time, queue_external_ticker, queue_ticker_max_count,
-        queue_ticker_max_lag, queue_ticker_idle_period, ticker_lag
+        queue_switch_time, queue_external_ticker, queue_ticker_paused,
+        queue_ticker_max_count, queue_ticker_max_lag, queue_ticker_idle_period,
+        ticker_lag
     in select
         f.queue_name, f.queue_ntables, f.queue_cur_table, f.queue_rotation_period,
-        f.queue_switch_time, f.queue_external_ticker, f.queue_ticker_max_count,
-        f.queue_ticker_max_lag, f.queue_ticker_idle_period, f.ticker_lag
+        f.queue_switch_time, f.queue_external_ticker, f.queue_ticker_paused,
+        f.queue_ticker_max_count, f.queue_ticker_max_lag, f.queue_ticker_idle_period,
+        f.ticker_lag
         from pgq.get_queue_info(null) f
     loop
         return next;
@@ -42,6 +45,7 @@ create or replace function pgq.get_queue_info(
     out queue_rotation_period       interval,
     out queue_switch_time           timestamptz,
     out queue_external_ticker       boolean,
+    out queue_ticker_paused         boolean,
     out queue_ticker_max_count      integer,
     out queue_ticker_max_lag        interval,
     out queue_ticker_idle_period    interval,
@@ -57,12 +61,13 @@ returns setof record as $$
 -- ----------------------------------------------------------------------
 begin
     for queue_name, queue_ntables, queue_cur_table, queue_rotation_period,
-        queue_switch_time, queue_external_ticker, queue_ticker_max_count,
-        queue_ticker_max_lag, queue_ticker_idle_period, ticker_lag
+        queue_switch_time, queue_external_ticker, queue_ticker_paused,
+        queue_ticker_max_count, queue_ticker_max_lag, queue_ticker_idle_period,
+        ticker_lag
     in select
         q.queue_name, q.queue_ntables, q.queue_cur_table,
         q.queue_rotation_period, q.queue_switch_time,
-        q.queue_external_ticker,
+        q.queue_external_ticker, q.queue_ticker_paused,
         q.queue_ticker_max_count, q.queue_ticker_max_lag,
         q.queue_ticker_idle_period,
         (select current_timestamp - tick_time

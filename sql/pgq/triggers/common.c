@@ -26,6 +26,8 @@
 #include <utils/memutils.h>
 #include <utils/inval.h>
 #include <utils/hsearch.h>
+#include <utils/syscache.h>
+#include <utils/builtins.h>
 
 #include "common.h"
 #include "stringutil.h"
