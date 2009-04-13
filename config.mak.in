@@ -1,13 +1,15 @@
 
 prefix = @prefix@
 datarootdir = @datarootdir@
+exec_prefix = @exec_prefix@
+datadir = @datadir@
 docdir = @docdir@
 mandir = @mandir@
+bindir = @bindir@
 
 PACKAGE_NAME = @PACKAGE_NAME@
 PACKAGE_TARNAME = @PACKAGE_TARNAME@
 PACKAGE_VERSION = @PACKAGE_VERSION@
-
 
 override PYTHON = @PYTHON@
 override PG_CONFIG = @PG_CONFIG@
@@ -23,4 +25,14 @@ DESTDIR =
 
 ASCIIDOC = @ASCIIDOC@
 XMLTO = @XMLTO@
+
+CC = @CC@
+CPPFLAGS = @CPPFLAGS@
+CFLAGS = @CFLAGS@
+LDFLAGS = @LDFLAGS@
+LIBS = @LIBS@
+
+INSTALL = @INSTALL@
+BININSTALL = @BININSTALL@
+
 

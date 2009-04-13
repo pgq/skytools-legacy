@@ -72,6 +72,41 @@ else
   XMLTO="no"
 fi
 
+AC_PROG_CC
+AC_PROG_CPP
+
+# autoconf does not want to find 'install', if not using automake...
+INSTALL=install
+
+dnl Check if linker supports -Wl,--as-needed
+dnl That helps to get rid of unnecessary -lrt
+if test "$GCC" = "yes"; then
+  old_LDFLAGS="$LDFLAGS"
+  LDFLAGS="$LDFLAGS -Wl,--as-needed"
+  AC_MSG_CHECKING([whether linker supports --as-needed])
+  AC_LINK_IFELSE([int main(void) { return 0; }],
+    [AC_MSG_RESULT([yes])],
+    [AC_MSG_RESULT([no])
+     LDFLAGS="$old_LDFLAGS"])
+fi
+
+dnl debault to debugging on
+AC_ARG_ENABLE(debug,
+  AC_HELP_STRING([--disable-debug],[strip binary]),
+  [], [enable_debug=yes])
+AC_MSG_CHECKING([whether to build debug binary])
+AC_MSG_RESULT([$enable_debug])
+if test "$enable_debug" = "yes"; then
+  LDFLAGS="-g $LDFLAGS"
+  BININSTALL="$INSTALL"
+else
+  BININSTALL="$INSTALL -s"
+fi
+AC_SUBST(enable_debug)
+AC_SUBST(INSTALL)
+AC_SUBST(BININSTALL)
+
+
 dnl Postres headers on Solaris define incompat unsetenv without that
 AC_CHECK_FUNCS(unsetenv)
 
