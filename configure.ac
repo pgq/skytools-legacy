@@ -75,6 +75,26 @@ fi
 AC_PROG_CC
 AC_PROG_CPP
 
+dnl Additional gcc tuning
+if test x"$GCC" = xyes; then
+  AC_MSG_CHECKING([for working warning switches])
+  good_CFLAGS="$CFLAGS"
+  warnings=""
+  flags="-Wall -Wextra"
+  # turn off noise from Wextra
+  flags="$flags -Wno-unused-parameter -Wno-missing-field-initializers"
+  # Wextra does not turn those on?
+  flags="$flags -Wmissing-prototypes -Wpointer-arith -Wendif-labels"
+  flags="$flags -Wdeclaration-after-statement -Wold-style-definition"
+  flags="$flags -Wstrict-prototypes -Wundef -Wformat -Wnonnull -Wstrict-overflow"
+  for f in $flags; do
+    CFLAGS="$good_CFLAGS $warnings $f"
+    AC_COMPILE_IFELSE([void foo(void){}], [warnings="$warnings $f"])
+  done
+  CFLAGS="$good_CFLAGS $warnings"
+  AC_MSG_RESULT([$warnings])
+fi
+
 # autoconf does not want to find 'install', if not using automake...
 INSTALL=install
 
