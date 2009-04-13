@@ -30,9 +30,9 @@ run() {
 }
 
 msg() {
-  echo "#"
-  echo "# $*"
-  echo "#"
+  echo "##"
+  echo "## $*"
+  echo "##"
 }
 
 db_list="db1 db2 db3 db4"
@@ -71,9 +71,15 @@ rm -f log/*.log
 
 set -e
 
+msg "Basic config"
+run cat conf/ticker_db1.ini
+run cat conf/londiste_db1.ini
+
 msg "Install PgQ and run ticker on each db"
 for db in $db_list; do
   run pgqadm $v conf/ticker_$db.ini install
+done
+for db in $db_list; do
   run pgqadm $v -d conf/ticker_$db.ini ticker
 done
 
@@ -104,6 +110,7 @@ msg "Register table on other node with creation"
 for db in db2 db3 db4; do
   run londiste $v conf/londiste_$db.ini add-table mytable --create
 done
+run sleep 20
 
 msg "Add column on root"
 run cat ddl.sql
@@ -119,5 +126,15 @@ run sleep 20
 run psql -d db3 -c '\d mytable'
 run psql -d db3 -c 'select * from mytable'
 
+run sleep 10
+./zcheck.sh
+msg "Change topology"
+run londiste $v conf/londiste_db1.ini status
+run londiste $v conf/londiste_db3.ini change-provider --provider=node1
+run londiste $v conf/londiste_db1.ini status
+run londiste $v conf/londiste_db1.ini switchover --target=node2
+run londiste $v conf/londiste_db1.ini status
+
+run sleep 10
 ./zcheck.sh
 
