@@ -38,7 +38,7 @@ static void parse_pgq_check(struct PgDatabase *db, PGresult *res)
 	PQclear(res);
 
 	if (!db->has_pgq) {
-		log_debug("%s: no pgq", db->name);
+		log_info("%s: no pgq", db->name);
 		close_ticker(db, 60);
 	} else {
 		run_version_check(db);
@@ -57,7 +57,7 @@ static void parse_version_check(struct PgDatabase *db, PGresult *res)
 		log_debug("%s: bad pgq version: %s", db->name, ver);
 		goto badpgq;
 	}
-	log_debug("%s: pgq version ok: %s", db->name, ver);
+	log_info("%s: pgq version ok: %s", db->name, ver);
 	PQclear(res);
 
 	run_ticker(db);
@@ -70,6 +70,7 @@ static void parse_version_check(struct PgDatabase *db, PGresult *res)
 badpgq:
 	PQclear(res);
 	db->has_pgq = false;
+	log_info("%s: bad pgq version, ignoring", db->name);
 	close_ticker(db, 60);
 }
 
@@ -103,8 +104,7 @@ static void tick_handler(struct PgSocket *s, void *arg, enum PgEvent ev, PGresul
 			parse_ticker_result(db, res);
 			break;
 		default:
-			printf("bad state\n");
-			exit(1);
+			fatal("bad state");
 		}
 		break;
 	case DB_TIMEOUT:

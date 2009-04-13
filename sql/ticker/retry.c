@@ -33,6 +33,7 @@ static void retry_handler(struct PgSocket *s, void *arg, enum PgEvent ev, PGresu
 
 	switch (ev) {
 	case DB_CONNECT_OK:
+		log_info("%s: starting retry event processing", db->name);
 		run_retry(db);
 		break;
 	case DB_RESULT_OK:

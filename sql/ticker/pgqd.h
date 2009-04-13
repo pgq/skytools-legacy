@@ -9,9 +9,12 @@
 
 #define Assert(x)
 
+#include <usual/list.h>
+#include <usual/alloc.h>
+#include <usual/statlist.h>
+#include <usual/logging.h>
+
 #include "connection.h"
-#include "util.h"
-#include "list.h"
 
 enum DbState {
 	DB_CLOSED,
@@ -26,7 +29,7 @@ enum DbState {
 };
 
 struct PgDatabase {
-	List head;
+	struct List head;
 	const char *name;
 	struct PgSocket *c_ticker;
 	struct PgSocket *c_maint;
@@ -34,17 +37,21 @@ struct PgDatabase {
 	bool has_pgq;
 	enum DbState state;
 	enum DbState maint_state;
-	StatList maint_item_list;
+	struct StatList maint_item_list;
 };
 
 struct Config {
-	const char *logfile;
+	const char *config_file;
 	const char *pidfile;
-	const char *db_host;
-	const char *db_port;
-	const char *db_username;
-	const char *db_template;
-	int verbose;
+	const char *logfile;
+	const char *base_connstr;
+	const char *initial_database;
+	const char *database_list;
+	int syslog;
+	int retry_period;
+	int check_period;
+	int maint_period;
+	int ticker_period;
 };
 
 extern struct Config cf;

@@ -4,9 +4,10 @@
 #include <unistd.h>
 #include <stdarg.h>
 #include <math.h>
-#include <event.h>
 
-#include "util.h"
+#include <usual/event.h>
+#include <usual/logging.h>
+#include <usual/time.h>
 
 #define W_NONE 0
 #define W_SOCK 1
@@ -106,7 +107,7 @@ static void result_cb(int sock, short flags, void *arg)
 			break;
 
 		if (res_saved) {
-			printf("multiple results?\n");
+			log_warning("multiple results?");
 			PQclear(res_saved);
 		}
 		res_saved = res;

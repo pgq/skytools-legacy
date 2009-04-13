@@ -1,7 +1,8 @@
 #include "pgqd.h"
 
+
 struct MaintItem {
-	List head;
+	struct List head;
 	const char *name;
 };
 
@@ -16,7 +17,7 @@ static void add_maint_item(struct PgDatabase *db, const char *name)
 		free(item);
 		return;
 	}
-	statlist_append(&item->head, &db->maint_item_list);
+	statlist_append(&db->maint_item_list, &item->head);
 }
 
 static const char *pop_maint_item(struct PgDatabase *db)
@@ -119,6 +120,7 @@ static void maint_handler(struct PgSocket *s, void *arg, enum PgEvent ev, PGresu
 
 	switch (ev) {
 	case DB_CONNECT_OK:
+		log_info("%s: starting maintenance", db->name);
 		run_queue_list(db);
 		break;
 	case DB_RESULT_OK:
@@ -148,8 +150,7 @@ static void maint_handler(struct PgSocket *s, void *arg, enum PgEvent ev, PGresu
 			}
 			break;
 		default:
-			printf("bad state\n");
-			exit(1);
+			fatal("bad state");
 		}
 		break;
 	case DB_TIMEOUT:
