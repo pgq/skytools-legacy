@@ -2,9 +2,9 @@
 #include "pgqd.h"
 
 
-static void close_retry(struct PgDatabase *db, int sleep_time)
+static void close_retry(struct PgDatabase *db, double sleep_time)
 {
-	log_debug("%s: close_retry, %d", db->name, sleep_time);
+	log_debug("%s: close_retry, %f", db->name, sleep_time);
 	db_disconnect(db->c_retry);
 	db_sleep(db->c_retry, sleep_time);
 }
@@ -22,9 +22,10 @@ static void parse_retry(struct PgDatabase *db, PGresult *res)
 		char *val = PQgetvalue(res, 0, 0);
 		if (strcmp(val, "0") != 0) {
 			run_retry(db);
+			return;
 		}
 	}
-	close_retry(db, 20);
+	close_retry(db, cf.retry_period);
 }
 
 static void retry_handler(struct PgSocket *s, void *arg, enum PgEvent ev, PGresult *res)
