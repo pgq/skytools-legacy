@@ -106,9 +106,9 @@ static void run_vacuum(struct PgDatabase *db)
 	db->maint_state = DB_MAINT_DO_VACUUM;
 }
 
-static void close_maint(struct PgDatabase *db, int sleep_time)
+static void close_maint(struct PgDatabase *db, double sleep_time)
 {
-	log_debug("%s: close_maint, %d", db->name, sleep_time);
+	log_debug("%s: close_maint, %f", db->name, sleep_time);
 	db->maint_state = DB_CLOSED;
 	db_disconnect(db->c_maint);
 	db_sleep(db->c_maint, sleep_time);

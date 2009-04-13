@@ -48,10 +48,10 @@ struct Config {
 	const char *initial_database;
 	const char *database_list;
 	int syslog;
-	int retry_period;
-	int check_period;
-	int maint_period;
-	int ticker_period;
+	double retry_period;
+	double check_period;
+	double maint_period;
+	double ticker_period;
 };
 
 extern struct Config cf;

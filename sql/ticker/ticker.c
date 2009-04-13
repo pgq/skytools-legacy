@@ -24,9 +24,9 @@ static void run_ticker(struct PgDatabase *db)
 	db->state = DB_TICKER_RUN;
 }
 
-static void close_ticker(struct PgDatabase *db, int sleep_time)
+static void close_ticker(struct PgDatabase *db, double sleep_time)
 {
-	log_debug("%s: close_ticker, %d", db->name, sleep_time);
+	log_debug("%s: close_ticker, %f", db->name, sleep_time);
 	db->state = DB_CLOSED;
 	db_disconnect(db->c_ticker);
 	db_sleep(db->c_ticker, sleep_time);

@@ -38,11 +38,9 @@ who already is handling it.
   now need to able to do it with some nodes dead.
   [complex]
 
-* New ticker [marko, martin]:
-  - logging
-  - daemonizing
-  - error handling
-  - config file?
+* New ticker:
+  - handle connection errors (maybe works already?)
+  - operate only on databases specified in config
 
 == Good to have changes ==
 

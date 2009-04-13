@@ -29,6 +29,7 @@ static STATLIST(database_list);
 
 #define DEFSTR(name, def) { #name, cf_set_str, offsetof(struct Config, name), def }
 #define DEFINT(name, def) { #name, cf_set_int, offsetof(struct Config, name), def }
+#define DEFTIME(name, def) { #name, cf_set_time_double, offsetof(struct Config, name), def }
 
 static const struct CfKey conf_params[] = {
 	DEFSTR(logfile, NULL),
@@ -37,10 +38,10 @@ static const struct CfKey conf_params[] = {
 	DEFSTR(base_connstr, ""),
 	DEFSTR(database_list, NULL),
 	DEFINT(syslog, "0"),
-	DEFINT(check_period, "60"),
-	DEFINT(maint_period, "120"),
-	DEFINT(retry_period, "30"),
-	DEFINT(ticker_period, "1"),
+	DEFTIME(check_period, "60"),
+	DEFTIME(maint_period, "120"),
+	DEFTIME(retry_period, "30"),
+	DEFTIME(ticker_period, "1"),
 	{ NULL },
 };
 

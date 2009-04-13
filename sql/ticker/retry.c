@@ -2,9 +2,9 @@
 #include "pgqd.h"
 
 
-static void close_retry(struct PgDatabase *db, int sleep_time)
+static void close_retry(struct PgDatabase *db, double sleep_time)
 {
-	log_debug("%s: close_retry, %d", db->name, sleep_time);
+	log_debug("%s: close_retry, %f", db->name, sleep_time);
 	db_disconnect(db->c_retry);
 	db_sleep(db->c_retry, sleep_time);
 }
