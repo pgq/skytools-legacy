@@ -7,18 +7,22 @@ pyver = $(shell $(PYTHON) -V 2>&1 | sed 's/^[^ ]* \([0-9]*\.[0-9]*\).*/\1/')
 
 SUBDIRS = sql doc
 
-all: python-all modules-all
+all: python-all sub-all config.mak
 
-modules-all: config.mak
-	$(MAKE) -C sql all
+install: sub-install python-install
+distclean: sub-distclean
+sub-all sub-install sub-clean sub-distclean:
+	for dir in $(SUBDIRS); do \
+		$(MAKE) -C $$dir $(subst sub-,,$@) DESTDIR=$(DESTDIR); \
+	done
+
+.PHONY: sub-all sub-clean sub-install sub-distclean
 
 python-all: config.mak
 	$(PYTHON) setup.py build
 
-clean:
+clean: sub-clean
 	$(PYTHON) setup.py clean
-	$(MAKE) -C sql clean
-	$(MAKE) -C doc clean
 	rm -rf build
 	find python -name '*.py[oc]' -print | xargs rm -f
 	rm -f python/skytools/installer_config.py
@@ -27,7 +31,6 @@ clean:
 	rm -rf tests/londiste/fix.*
 	rm -rf tests/scripts/sys
 
-install: python-install modules-install
 
 installcheck:
 	$(MAKE) -C sql installcheck
@@ -36,7 +39,7 @@ modules-install: config.mak
 	$(MAKE) -C sql install DESTDIR=$(DESTDIR)
 	test \! -d compat || $(MAKE) -C compat $@ DESTDIR=$(DESTDIR)
 
-python-install: config.mak modules-all
+python-install: config.mak sub-all
 	$(PYTHON) setup.py install --prefix=$(prefix) --root=$(DESTDIR)/ --record=tmp_files.lst
 	grep '/bin/[a-z_0-9]*.py' tmp_files.lst \
 	| $(PYTHON) misc/strip_ext.py $(if $(DESTDIR), $(DESTDIR), /)
@@ -47,13 +50,11 @@ python-install python-all: python/skytools/installer_config.py
 python/skytools/installer_config.py: python/skytools/installer_config.py.in config.mak
 	sed -e 's!@SQLDIR@!$(SQLDIR)!g' $< > $@
 
-realclean:
+realclean: distclean
 	$(MAKE) -C doc $@
 	$(MAKE) distclean
 
-distclean: clean
-	for dir in $(SUBDIRS); do $(MAKE) -C $$dir $@ || exit 1; done
-	$(MAKE) -C doc $@
+distclean: sub-distclean
 	rm -rf source.list dist skytools-*
 	find python -name '*.pyc' | xargs rm -f
 	rm -rf dist build
