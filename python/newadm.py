@@ -69,9 +69,9 @@ def unquote_any(self, s):
     if s:
         c = s[0]
         if c == "'":
-            s = skytools.unquote_literal(c, stdstr = True)
+            s = skytools.unquote_literal(s, stdstr = True)
         elif c == '"':
-            s = skytools.unquote_ident(c)
+            s = skytools.unquote_ident(s)
         # extquote?
         else:
             s = s.lower()
@@ -171,9 +171,21 @@ class DynList(Word):
     def __init__(self, next, **kwargs):
         Word.__init__(self, None, next, **kwargs)
 
-class Queue(DynList):
+class DynIdentList(DynList):
+    def get_next(self, typ, word, params):
+        """Allow quoted queue names"""
+        next = DynList.get_next(self, typ, word, params)
+        if next:
+            params[self.name] = unquote_any(self, word)
+        return next
+
+class Queue(DynIdentList):
     def get_wlist(self):
         return script.get_queue_list()
+
+class Consumer(DynIdentList):
+    def get_wlist(self):
+        return script.get_consumer_list()
 
 class DBNode(DynList):
     def get_wlist(self):
@@ -190,10 +202,6 @@ class Host(DynList):
 class User(DynList):
     def get_wlist(self):
         return script.get_user_list()
-
-class Consumer(DynList):
-    def get_wlist(self):
-        return script.get_consumer_list()
 
 class BatchId(DynList):
     tk_type = ("num",)
