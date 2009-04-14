@@ -24,9 +24,9 @@ static void run_ticker(struct PgDatabase *db)
 	db->state = DB_TICKER_RUN;
 }
 
-static void close_ticker(struct PgDatabase *db, int sleep_time)
+static void close_ticker(struct PgDatabase *db, double sleep_time)
 {
-	log_debug("%s: close_ticker, %d", db->name, sleep_time);
+	log_debug("%s: close_ticker, %f", db->name, sleep_time);
 	db->state = DB_CLOSED;
 	db_disconnect(db->c_ticker);
 	db_sleep(db->c_ticker, sleep_time);
@@ -38,8 +38,8 @@ static void parse_pgq_check(struct PgDatabase *db, PGresult *res)
 	PQclear(res);
 
 	if (!db->has_pgq) {
-		log_debug("%s: no pgq", db->name);
-		close_ticker(db, 60);
+		log_info("%s: no pgq", db->name);
+		close_ticker(db, cf.check_period);
 	} else {
 		run_version_check(db);
 	}
@@ -57,7 +57,7 @@ static void parse_version_check(struct PgDatabase *db, PGresult *res)
 		log_debug("%s: bad pgq version: %s", db->name, ver);
 		goto badpgq;
 	}
-	log_debug("%s: pgq version ok: %s", db->name, ver);
+	log_info("%s: pgq version ok: %s", db->name, ver);
 	PQclear(res);
 
 	run_ticker(db);
@@ -70,7 +70,8 @@ static void parse_version_check(struct PgDatabase *db, PGresult *res)
 badpgq:
 	PQclear(res);
 	db->has_pgq = false;
-	close_ticker(db, 60);
+	log_info("%s: bad pgq version, ignoring", db->name);
+	close_ticker(db, cf.check_period);
 }
 
 static void parse_ticker_result(struct PgDatabase *db, PGresult *res)
@@ -80,7 +81,7 @@ static void parse_ticker_result(struct PgDatabase *db, PGresult *res)
 	}
 	PQclear(res);
 
-	db_sleep(db->c_ticker, 2);
+	db_sleep(db->c_ticker, cf.ticker_period);
 }
 
 static void tick_handler(struct PgSocket *s, void *arg, enum PgEvent ev, PGresult *res)
@@ -103,8 +104,7 @@ static void tick_handler(struct PgSocket *s, void *arg, enum PgEvent ev, PGresul
 			parse_ticker_result(db, res);
 			break;
 		default:
-			printf("bad state\n");
-			exit(1);
+			fatal("bad state");
 		}
 		break;
 	case DB_TIMEOUT:

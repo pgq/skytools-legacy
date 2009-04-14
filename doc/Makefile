@@ -11,7 +11,7 @@ EPYARGS = --no-private --url="http://pgfoundry.org/projects/skytools/" \
 
 HTMLS = londiste.cmdline.html londiste.config.html README.html INSTALL.html \
 	londiste.ref.html TODO.html pgq-sql.html pgq-admin.html pgq-nodupes.html \
-	$(SCRIPT_HTMLS) faq.html set.notes.html newadm.html skytools3.html
+	$(SCRIPT_HTMLS) faq.html set.notes.html newadm.html skytools3.html devnotes.html
 
 SCRIPT_TXTS = walmgr.txt cube_dispatcher.txt table_dispatcher.txt \
 	      queue_mover.txt queue_splitter.txt bulk_loader.txt \
@@ -78,13 +78,13 @@ apiupload: apidoc
 	rsync -rtlz ../sql/londiste/docs/html/* $(web)/londiste/
 
 clean:
-	rm -rf api *.html *.xml
+	rm -rf api *.xml
 
 distclean: clean
 	rm -rf ../sql/pgq/docs/pgq
 
 realclean: distclean
-	rm -f *.[15] *.xml
+	rm -f *.[15] *.xml *.html
 
 ifneq ($(ASCIIDOC),no)
 ifneq ($(XMLTO),no)

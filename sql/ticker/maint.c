@@ -1,7 +1,8 @@
 #include "pgqd.h"
 
+
 struct MaintItem {
-	List head;
+	struct List head;
 	const char *name;
 };
 
@@ -16,7 +17,7 @@ static void add_maint_item(struct PgDatabase *db, const char *name)
 		free(item);
 		return;
 	}
-	statlist_append(&item->head, &db->maint_item_list);
+	statlist_append(&db->maint_item_list, &item->head);
 }
 
 static const char *pop_maint_item(struct PgDatabase *db)
@@ -105,9 +106,9 @@ static void run_vacuum(struct PgDatabase *db)
 	db->maint_state = DB_MAINT_DO_VACUUM;
 }
 
-static void close_maint(struct PgDatabase *db, int sleep_time)
+static void close_maint(struct PgDatabase *db, double sleep_time)
 {
-	log_debug("%s: close_maint, %d", db->name, sleep_time);
+	log_debug("%s: close_maint, %f", db->name, sleep_time);
 	db->maint_state = DB_CLOSED;
 	db_disconnect(db->c_maint);
 	db_sleep(db->c_maint, sleep_time);
@@ -119,6 +120,7 @@ static void maint_handler(struct PgSocket *s, void *arg, enum PgEvent ev, PGresu
 
 	switch (ev) {
 	case DB_CONNECT_OK:
+		log_info("%s: starting maintenance", db->name);
 		run_queue_list(db);
 		break;
 	case DB_RESULT_OK:
@@ -144,12 +146,11 @@ static void maint_handler(struct PgSocket *s, void *arg, enum PgEvent ev, PGresu
 			if (!statlist_empty(&db->maint_item_list)) {
 				run_vacuum(db);
 			} else {
-				close_maint(db, 2*60);
+				close_maint(db, cf.maint_period);
 			}
 			break;
 		default:
-			printf("bad state\n");
-			exit(1);
+			fatal("bad state");
 		}
 		break;
 	case DB_TIMEOUT:

@@ -20,7 +20,7 @@ Build-Depends: python-dev, postgresql-server-dev-PGVER, xmlto, asciidoc (>= 8.2)
 
 Package: skytools
 Architecture: any
-Depends: python-psycopg2 | pythonPYVER-psycopg2, skytools-modules-8.4 | skytools-modules-8.3 | skytools-modules-8.2, []
+Depends: python-psycopg2 | pythonPYVER-psycopg2, skytools-modules-8.4 | skytools-modules-8.3 | skytools-modules-8.2, rsync, []
 Description: Skype database tools - Python parts
  .
  londiste - replication
@@ -33,15 +33,14 @@ Install: sh
 Package: skytools-modules-PGVER
 Architecture: any
 Depends: postgresql-PGVER, []
-Conflicts: postgresql-extras-PGVER
 Description: Extra modules for PostgreSQL
  It includes various extra modules for PostgreSQL:
  .
  txid - 8-byte transaction id's
- logtriga - Trigger function to log change in SQL format.
- logutriga - Trigger function to log change in urlencoded format.
  londiste - Database parts of replication engine.
  pgq - Generic queue in database.
+ pgq_coop - Cooperative consumer for PgQ.
+ pgq_node - Cascading module for PgQ.
 Install: sh
  PATH=/usr/lib/postgresql/PGVER/bin:$PATH \
  make modules-install DESTDIR=$ROOT
