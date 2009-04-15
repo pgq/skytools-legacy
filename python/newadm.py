@@ -10,12 +10,10 @@
     show queue <qname | *>;
     show consumer <cname | *> [ on <qname> ];
     alter queue <qname | *> set param = , ...;
+    register consumer foo [on <qname>];
+    unregister consumer foo [from <qname>];
 
 Following commands expect default queue:
-
-    register consumer foo;
-    unregister consumer foo;
-
     show queue;
     show batch <batch_id>;
     show batch <consumer>;
@@ -310,8 +308,22 @@ w_create = Word('queue', Queue(w_done, name = 'queue'),
 w_drop = Word('queue', Queue(w_done, name = 'queue'),
         name = 'cmd2')
 
-w_cons_name = Word('consumer',
-        Consumer(w_done, name = 'consumer'),
+w_on_queue = Word('on',
+        Queue(w_done, name = 'queue'),
+        name = 'onqueue')
+
+w_cons_on_queue = Word('consumer',
+        Consumer(WList(w_done, w_on_queue),
+                name = 'consumer'),
+        name = 'cmd2')
+
+w_from_queue = Word('from',
+        Queue(w_done, name = 'queue'),
+        name = 'fromqueue')
+
+w_cons_from_queue = Word('consumer',
+        Consumer(WList(w_done, w_from_queue),
+                name = 'consumer'),
         name = 'cmd2')
 
 w_top = WList(
@@ -320,8 +332,8 @@ w_top = WList(
     Word('create', w_create),
     Word('drop', w_drop),
     Word('install', w_install),
-    Word('register', w_cons_name),
-    Word('unregister', w_cons_name),
+    Word('register', w_cons_on_queue),
+    Word('unregister', w_cons_from_queue),
     Word('show', w_show),
     name = "cmd")
 
@@ -786,9 +798,9 @@ class AdminConsole:
         display_result(curs, 'Batch events')
 
     def cmd_register_consumer(self, params):
-        queue = self.cur_queue
+        queue = params.get("queue", self.cur_queue)
         if not queue:
-            print 'No default queue'
+            print 'No queue specified'
             return
         consumer = params['consumer']
         curs = self.db.cursor()
@@ -802,9 +814,9 @@ class AdminConsole:
         print "REGISTER"
 
     def cmd_unregister_consumer(self, params):
-        queue = self.cur_queue
+        queue = params.get("queue", self.cur_queue)
         if not queue:
-            print 'No default queue'
+            print 'No queue specified'
             return
         consumer = params['consumer']
         curs = self.db.cursor()
