@@ -518,6 +518,10 @@ class AdminConsole:
             print "cannot handle -c and -f together"
             sys.exit(1)
 
+        # append ; to cmd_str if needed
+        if self.cmd_str and not self.cmd_str.rstrip().endswith(';'):
+            self.cmd_str += ';'
+
         cmd_str = self.cmd_str
         if self.cmd_file:
             cmd_str = open(self.cmd_file, "r").read()
