@@ -86,11 +86,13 @@ def display_result(curs, desc, fields = []):
     widths = [15] * len(fields)
     for i, f in enumerate(fields):
         rlen = len(f)
-        widths[i] = widths[i] > rlen and widths[i] or rlen
+        if rlen > widths[i]:
+            widths[i] = rlen
     for row in rows:
         for i, k in enumerate(fields):
-            rlen = row[k] and len(row) or 0
-            widths[i] = widths[i] > rlen and widths[i] or rlen
+            rlen = row[k] and len(str(row[k])) or 0
+            if rlen > widths[i]:
+                widths[i] = rlen
     widths = [w + 2 for w in widths]
 
     fmt = '%%-%ds' * (len(widths) - 1) + '%%s'
@@ -98,7 +100,7 @@ def display_result(curs, desc, fields = []):
     if desc:
         print(desc)
     print(fmt % tuple(fields))
-    print(fmt % tuple(['-'*15] * len(fields)))
+    print(fmt % tuple([ '-' * (w - 2) for w in widths ]))
 
     for row in rows:
         print(fmt % tuple([row[k] for k in fields]))
