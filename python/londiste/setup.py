@@ -194,9 +194,18 @@ class ProviderSetup(CommonSetup):
         if not seq_list and self.options.all:
             seq_list = self.provider_get_all_seqs()
 
+        cur_list = self.get_provider_seqs()
+        gotnew = False
         for seq in seq_list:
+            seq = skytools.fq_name(seq)
+            if seq in cur_list:
+                self.log.info('Seq %s already subscribed' % seq)
+                continue
+            gotnew = True
             self.provider_add_seq(seq)
-        self.provider_notify_change()
+
+        if gotnew:
+            self.provider_notify_change()
 
     def provider_remove_seq_list(self, seq_list):
         if not seq_list and self.options.all:
