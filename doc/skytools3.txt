@@ -148,3 +148,7 @@ Further reading
   - http://skytools.projects.postgresql.org/skytools-3.0/pgq_node/[Cascaded PgQ]
   - http://skytools.projects.postgresql.org/skytools-3.0/pgq_coop/[Cooperative PgQ]
   - http://skytools.projects.postgresql.org/skytools-3.0/londiste/[Londiste]
+
+* Londiste Demo:
+  - http://skytools.projects.postgresql.org/skytools-3.0/demo.html[]
+
