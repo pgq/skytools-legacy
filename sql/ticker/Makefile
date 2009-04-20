@@ -3,8 +3,8 @@ include ../../config.mak
 
 USUAL_DIR = ../../lib
 USUAL_OBJDIR = .
-USUAL_MODULES = logging daemon event string time \
-		cfparser fileutil socket compat
+USUAL_MODULES = logging daemon event string time cfparser fileutil \
+		socket compat heap-impl base
 include $(USUAL_DIR)/Setup.mk
 
 PROGRAM = pgqd

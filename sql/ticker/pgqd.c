@@ -33,12 +33,12 @@ static const struct CfKey conf_params[] = {
 	{ "pidfile", CF_REL_STR(pidfile) },
 	{ "initial_database", CF_REL_STR(initial_database), "template1" },
 	{ "base_connstr", CF_REL_STR(base_connstr), "" },
-	{ "database_list", CF_REL_STR(base_connstr) },
+	{ "database_list", CF_REL_STR(database_list) },
 	{ "syslog", CF_REL_INT(syslog) },
 	{ "check_period", CF_REL_TIME_DOUBLE(check_period), "60" },
-	{ "maint_period", CF_REL_TIME_DOUBLE(check_period), "120" },
-	{ "retry_period", CF_REL_TIME_DOUBLE(check_period), "30" },
-	{ "ticker_period", CF_REL_TIME_DOUBLE(check_period), "1" },
+	{ "maint_period", CF_REL_TIME_DOUBLE(maint_period), "120" },
+	{ "retry_period", CF_REL_TIME_DOUBLE(retry_period), "30" },
+	{ "ticker_period", CF_REL_TIME_DOUBLE(ticker_period), "1" },
 	{ NULL },
 };
 
