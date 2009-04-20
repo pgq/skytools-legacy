@@ -27,21 +27,18 @@ static struct PgSocket *db_template;
 
 static STATLIST(database_list);
 
-#define DEFSTR(name, def) { #name, cf_set_str, offsetof(struct Config, name), def }
-#define DEFINT(name, def) { #name, cf_set_int, offsetof(struct Config, name), def }
-#define DEFTIME(name, def) { #name, cf_set_time_double, offsetof(struct Config, name), def }
-
+#define CF_REL_BASE struct Config
 static const struct CfKey conf_params[] = {
-	DEFSTR(logfile, NULL),
-	DEFSTR(pidfile, NULL),
-	DEFSTR(initial_database, "template1"),
-	DEFSTR(base_connstr, ""),
-	DEFSTR(database_list, NULL),
-	DEFINT(syslog, "0"),
-	DEFTIME(check_period, "60"),
-	DEFTIME(maint_period, "120"),
-	DEFTIME(retry_period, "30"),
-	DEFTIME(ticker_period, "1"),
+	{ "logfile", CF_ABS_STR(cf_logfile) },
+	{ "pidfile", CF_REL_STR(pidfile) },
+	{ "initial_database", CF_REL_STR(initial_database), "template1" },
+	{ "base_connstr", CF_REL_STR(base_connstr), "" },
+	{ "database_list", CF_REL_STR(base_connstr) },
+	{ "syslog", CF_REL_INT(syslog) },
+	{ "check_period", CF_REL_TIME_DOUBLE(check_period), "60" },
+	{ "maint_period", CF_REL_TIME_DOUBLE(check_period), "120" },
+	{ "retry_period", CF_REL_TIME_DOUBLE(check_period), "30" },
+	{ "ticker_period", CF_REL_TIME_DOUBLE(check_period), "1" },
 	{ NULL },
 };
 
@@ -64,7 +61,6 @@ static void load_config(bool reload)
 	}
 
 	/* fixme */
-	cf_logfile = cf.logfile;
 	cf_syslog_ident = cf.syslog ? "pgqd" : NULL;
 	reset_logging();
 }
