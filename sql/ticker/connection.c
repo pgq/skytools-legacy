@@ -55,7 +55,6 @@ void db_sleep(struct PgSocket *db, double timeout)
 	struct timeval tv;
 
 	Assert(!db->wait_type);
-	Assert(!db->time_wait);
 
 	tv.tv_sec = floor(timeout);
 	tv.tv_usec = (timeout - tv.tv_sec) * USEC;
