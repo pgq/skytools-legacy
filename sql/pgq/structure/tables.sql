@@ -218,27 +218,3 @@ alter table pgq.retry_queue alter column ev_owner set not null;
 alter table pgq.retry_queue alter column ev_txid drop not null;
 create index rq_retry_idx on pgq.retry_queue (ev_retry_after);
 
--- ----------------------------------------------------------------------
--- Table: pgq.failed_queue
---
---      Events whose processing failed.
---
--- Columns:
---      ev_failed_reason               - consumer's excuse for not processing
---      ev_failed_time                 - when it was tagged failed
---      ev_queue                       - queue id
---      *                              - same as pgq.event_template
--- ----------------------------------------------------------------------
-create table pgq.failed_queue (
-    ev_failed_reason                   text,
-    ev_failed_time                     timestamptz not null,
-
-    -- all event fields
-    like pgq.event_template,
-
-    constraint fq_pkey primary key (ev_owner, ev_id)
-);
-alter table pgq.failed_queue alter column ev_owner set not null;
-alter table pgq.failed_queue alter column ev_txid drop not null;
-
-

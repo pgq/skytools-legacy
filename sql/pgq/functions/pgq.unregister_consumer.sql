@@ -41,9 +41,6 @@ begin
     delete from pgq.retry_queue
         where ev_owner = x_sub_id;
 
-    delete from pgq.failed_queue
-        where ev_owner = x_sub_id;
-
     delete from pgq.subscription
         where sub_id = x_sub_id;
 
