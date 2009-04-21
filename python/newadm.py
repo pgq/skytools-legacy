@@ -5,13 +5,17 @@
     connect dbname=.. host=.. service=.. queue=..;
     connect queue=.. [ node=.. ];
     install pgq | londiste;
+
     create queue <qname>;
+    alter queue <qname | *> set param = , ...;
     drop queue <qname>;
     show queue <qname | *>;
-    show consumer <cname | *> [ on <qname> ];
-    alter queue <qname | *> set param = , ...;
+
     register consumer foo [on <qname>];
     unregister consumer foo [from <qname>];
+    show consumer <cname | *> [on <qname>];
+
+    show node <node | *> [on <qname>];
 
 Following commands expect default queue:
     show queue;
@@ -21,11 +25,10 @@ Following commands expect default queue:
 
 # unimplemented:
 """
-show consumers;
+create <root | branch | leaf> node <node> location <loc> [on <qname>];
+drop node <node> [on <qname>];
+alter node <node> [location=<loc>]
 show_queue_stats <q>;
-create node <foo>; // 
-create node <qname>.<foo>; // 
-add location <node> <loc>; // db, queue
 """
 
 __version__ = '0.1'
@@ -272,11 +275,17 @@ w_show_consumer = WList(
     Consumer(w_on_queue, name = 'consumer'),
     )
 
+w_show_node = WList(
+    Symbol('*', w_on_queue, name = 'node'),
+    DBNode(w_on_queue, name = 'node'),
+    )
+
 w_show = WList(
     Word('batch', w_show_batch),
     Word('help', w_done),
     Word('queue', w_show_queue),
     Word('consumer', w_show_consumer),
+    Word('node', w_show_node),
     name = "cmd2")
 
 w_install = WList(
@@ -777,6 +786,35 @@ class AdminConsole:
         curs.execute(q, [q_queue, q_consumer])
 
         display_result(curs, 'Consumers')
+
+    def cmd_show_node(self, params):
+        """Show node information."""
+
+        # TODO: This should additionally show node roles, lags and hierarchy. 
+        # Similar to londiste "status".
+
+        node = params.get('node')
+        queue = params.get('queue')
+
+        if not queue:
+            # queue not provided, see if we have default.
+            queue = self.cur_queue
+
+        if not node:
+            print 'Node not specified'
+            return
+
+        q_queue = (queue != '*' and queue or None)
+        q_node = (node != '*' and node or None)
+
+        curs = self.db.cursor()
+        q = """select node_name, node_name, node_location, dead, queue_name
+               from pgq_node.node_location
+               where node_name = coalesce(%s, node_name)
+                     and queue_name = coalesce(%s, queue_name)"""
+        curs.execute(q, [q_node, q_queue])
+
+        display_result(curs, 'Database nodes')
 
     def cmd_show_batch(self, params):
         batch_id = params.get('batch_id')
