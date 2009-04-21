@@ -55,7 +55,7 @@ close acurs;
 end;
 
 select pgq.event_retry(3, 2, 0);
-select pgq.event_retry(3, 2, 0);
+select pgq.batch_retry(3, 0);
 select pgq.finish_batch(3);
 
 select pgq.event_retry_raw('myqueue', 'consumer', now(), 666, now(), 0,

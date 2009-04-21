@@ -218,10 +218,10 @@ select pgq.event_retry(3, 2, 0);
            1
 (1 row)
 
-select pgq.event_retry(3, 2, 0);
- event_retry 
+select pgq.batch_retry(3, 0);
+ batch_retry 
 -------------
-           0
+           2
 (1 row)
 
 select pgq.finish_batch(3);
