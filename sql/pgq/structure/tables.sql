@@ -8,7 +8,6 @@
 --      pgq.tick                    - Per-queue snapshots (ticks)
 --      pgq.event_*                 - Data tables
 --      pgq.retry_queue             - Events to be retried later
---      pgq.failed_queue            - Events whose processing failed
 --
 -- Its basically generalized and simplified Slony-I structure:
 --      sl_node                     - pgq.consumer
@@ -37,7 +36,7 @@ create schema pgq;
 -- ----------------------------------------------------------------------
 create table pgq.consumer (
         co_id       serial,
-        co_name     text        not null default 'fooz',
+        co_name     text        not null,
 
         constraint consumer_pkey primary key (co_id),
         constraint consumer_name_uq UNIQUE (co_name)

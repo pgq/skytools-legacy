@@ -6,8 +6,8 @@ returns integer as $$
 -- ----------------------------------------------------------------------
 -- Function: pgq.unregister_consumer(2)
 --
---      Unsubscriber consumer from the queue.  Also consumer's failed
---      and retry events are deleted.
+--      Unsubscriber consumer from the queue.  Also consumer's
+--      retry events are deleted.
 --
 -- Parameters:
 --      x_queue_name        - Name of the queue
