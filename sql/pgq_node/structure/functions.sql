@@ -9,7 +9,7 @@
 
 -- Group: Node operations
 \i   functions/pgq_node.create_node.sql
--- \i functions/pgq_node.drop_node.sql
+\i   functions/pgq_node.drop_node.sql
 -- \i functions/pgq_node.rename_node.sql
 \i   functions/pgq_node.get_node_info.sql
 \i   functions/pgq_node.is_root_node.sql

@@ -40,7 +40,7 @@ Internal Commands:
 cmd_handlers = (
     (('create-root', 'create-branch', 'create-leaf', 'members', 'tag-dead', 'tag-alive',
       'change-provider', 'rename-node', 'status', 'pause', 'resume',
-      'switchover', 'failover'), londiste.LondisteSetup),
+      'switchover', 'failover', 'drop-node'), londiste.LondisteSetup),
     (('add-table', 'remove-table', 'add-seq', 'remove-seq', 'tables', 'seqs',
       'missing', 'resync', 'check', 'fkeys', 'execute'), londiste.LondisteSetup),
     (('worker', 'replay'), londiste.Replicator),
