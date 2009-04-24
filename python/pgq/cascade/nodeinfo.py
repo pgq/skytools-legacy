@@ -125,6 +125,13 @@ class QueueInfo:
     def add_node(self, node):
         self.node_map[node.name] = node
 
+    def tag_dead(self, node_name):
+        if node_name in self.node_map:
+            self.member_map[node_name].dead = True
+        else:
+            row = {'node_name': node_name, 'node_location': None, 'dead': True}
+            m = MemberInfo(row)
+            self.member_map[node_name] = m
     #
     # Rest is about printing the tree
     #

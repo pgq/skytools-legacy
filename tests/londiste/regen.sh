@@ -35,7 +35,7 @@ msg() {
   echo "##"
 }
 
-db_list="db1 db2 db3 db4"
+db_list="db1 db2 db3 db4 db5"
 
 echo " * create configs * "
 
@@ -88,6 +88,7 @@ run londiste $v conf/londiste_db1.ini create-root node1 'dbname=db1'
 run londiste $v conf/londiste_db2.ini create-branch node2 'dbname=db2' --provider='dbname=db1'
 run londiste $v conf/londiste_db3.ini create-branch node3 'dbname=db3' --provider='dbname=db1'
 run londiste $v conf/londiste_db4.ini create-leaf node4 'dbname=db4' --provider='dbname=db2'
+run londiste $v conf/londiste_db5.ini create-branch node5 'dbname=db5' --provider='dbname=db3'
 
 msg "See topology"
 run londiste $v conf/londiste_db4.ini status
@@ -107,7 +108,7 @@ msg "Register table on root node"
 run londiste $v conf/londiste_db1.ini add-table mytable
 
 msg "Register table on other node with creation"
-for db in db2 db3 db4; do
+for db in db2 db3 db4 db5; do
   run londiste $v conf/londiste_$db.ini add-table mytable --create
 done
 run sleep 20
@@ -133,6 +134,15 @@ run londiste $v conf/londiste_db1.ini status
 run londiste $v conf/londiste_db3.ini change-provider --provider=node1
 run londiste $v conf/londiste_db1.ini status
 run londiste $v conf/londiste_db1.ini switchover --target=node2
+run londiste $v conf/londiste_db1.ini status
+
+run sleep 10
+./zcheck.sh
+
+msg "Change topology"
+ps aux | grep "postres[:].* db2 " | awk '{print $2}' | xargs kill
+run psql -d db1 -c 'alter database db2 rename to db2x'
+run londiste $v conf/londiste_db4.ini takeover db2 --dead
 run londiste $v conf/londiste_db1.ini status
 
 run sleep 10
