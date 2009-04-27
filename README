@@ -10,7 +10,7 @@ It contains following tools:
 
 === PgQ ===
 
-This is the queue mechanism we use.  Consists of PL/pgsql, and C code
+This is the queue mechanism we use. It consists of PL/pgsql, and C code
 in database, with Python framework on top of it.  It is based on
 snapshot based event handling ideas from Slony-I, written for general
 usage.
