@@ -321,7 +321,11 @@ class DBScript(object):
             self.send_signal(signal.SIGHUP)
 
     def load_config(self):
-        """Loads and returns skytools.Config instance."""
+        """Loads and returns skytools.Config instance.
+
+        By default it uses first command-line argument as config
+        file name.  Can be overrided.
+        """
 
         conf_file = self.args[0]
         return Config(self.service_name, conf_file)
@@ -398,8 +402,12 @@ class DBScript(object):
 
     def reload(self):
         "Reload config."
-        self.cf.reload()
-        self.job_name = self.cf.get("job_name", self.service_name)
+        # avoid double loading on startup
+        if not self.cf:
+            self.cf = self.load_config()
+        else:
+            self.cf.reload()
+        self.job_name = self.cf.get("job_name")
         self.pidfile = self.cf.getfile("pidfile", '')
         self.loop_delay = self.cf.getfloat("loop_delay", 1.0)
 
