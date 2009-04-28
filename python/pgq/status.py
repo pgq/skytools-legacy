@@ -4,13 +4,13 @@
 
 import sys, os, skytools
 
-def ival(data, as = None):
+def ival(data, _as = None):
     "Format interval for output"
-    if not as:
-        as = data.split('.')[-1]
+    if not _as:
+        _as = data.split('.')[-1]
     numfmt = 'FM9999999'
     expr = "coalesce(to_char(extract(epoch from %s), '%s') || 's', 'NULL') as %s"
-    return expr % (data, numfmt, as)
+    return expr % (data, numfmt, _as)
 
 class PGQStatus(skytools.DBScript):
     def __init__(self, args, check = 0):
