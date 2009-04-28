@@ -64,7 +64,7 @@ submodule update should be done:
 === Repos ===
 
 Master Skytools repository: `git://github.com/markokr/skytools-dev.git`
-Master libusual repository: `git://github.com/markokr/libusual.git`
+Master libusual repository: `git://github.com/markokr/libusual.git
 
 Currently known developer repos are on github.com:
 
@@ -134,4 +134,47 @@ Optional: show current checked out branch in bash prompt,
 requires the completion script from above:
 
   PS1='\h:\w$(__git_ps1 " (%s)")\$ '
+
+==== Cloning dev repo ====
+
+  ## clone master repo
+  $ git clone git://github.com/markokr/skytools-dev.git
+  $ cd skytools-dev
+
+  ## add your own writable repo, named 'self'
+  $ git remote add self git@github.com:${username}/skytools-dev.git
+
+  ## fetch changes in master repo
+  $ git fetch origin
+  ## see changes in master repo
+  $ git log [-p] origin/master
+  ## merge changes from master repo
+  $ git merge origin/master
+  ## do fetch+merge in one go
+  $ git pull origin .   ## ???
+
+  ## commit a change, push to your repo (on 'master' branch)
+  $ edit oldfile
+  $ edit newfile
+  $ git add newfile
+  $ git commit -a -m '..'
+  $ git push self master
+
+  ## create a branch for your changes, starting from checked out branch
+  $ git branch mybranch
+  $ git checkout mybranch
+  ## or, in one command
+  $ git checkout -b mybranch
+
+  ## commit files
+  $ edit oldfile
+  $ edit newfile
+  $ git add newfile
+  $ git commit -a -m 'commit summary'
+  ## optional: merge, or update commits relative to master branch
+  $ git rebase -i master
+  ## merge into master and push master
+  $ git checkout master
+  $ git merge mybranch
+  $ git push self master
 
