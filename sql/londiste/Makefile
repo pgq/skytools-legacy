@@ -2,7 +2,7 @@
 DATA_built = londiste.sql londiste.upgrade.sql
 
 SQLS = structure/tables.sql structure/grants.sql structure/functions.sql
-FUNCS = $(shell sed -n -e '/^\\/{s/\\i //;p}' $(SQLS))
+FUNCS = $(shell sed -e 's/^[^\\].*//' -e 's/\\i //' $(SQLS))
 SRCS = $(SQLS) $(FUNCS)
 
 REGRESS = londiste_install londiste_provider londiste_subscriber \
