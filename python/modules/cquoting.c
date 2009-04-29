@@ -5,13 +5,18 @@
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
 
+#include <stdbool.h>
+
 #if PY_VERSION_HEX < 0x02050000 && !defined(PY_SSIZE_T_MIN)
 typedef int Py_ssize_t;
 #define PY_SSIZE_T_MAX INT_MAX
 #define PY_SSIZE_T_MIN INT_MIN
 #endif
 
-typedef enum { false = 0, true = 1 } bool;
+#ifdef _MSC_VER
+#define inline __inline
+#define strcasecmp stricmp
+#endif
 
 /*
  * Common buffer management.
@@ -393,14 +398,14 @@ static PyObject *do_dolq(unsigned char *src, Py_ssize_t src_len)
 	/* src_len >= 2, '$' in start and end */
 	unsigned char *src_end = src + src_len;
 	unsigned char *p1 = src + 1, *p2 = src_end - 2;
-	
+
 	while (p1 < src_end && *p1 != '$')
 		p1++;
 	while (p2 > src && *p2 != '$')
 		p2--;
 	if (p2 <= p1)
 		goto failed;
-	
+
 	p1++; /* position after '$' */
 
 	if ((p1 - src) != (src_end - p2))
@@ -587,7 +592,7 @@ static PyObject *encode_dictlike(PyObject *data)
 	PyObject *key = NULL, *value = NULL, *tup, *iter;
 	struct Buf buf;
 	bool needAmp = false;
-	
+
 	if (!buf_init(&buf, 1024))
 		return NULL;
 

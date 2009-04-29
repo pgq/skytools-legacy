@@ -1,0 +1,9 @@
+
+/* extra.css: make code blocks more different */
+div.literalblock {
+  border: 1px solid silver;
+  background: #f4f4f4;
+  padding: 0.5em;
+}
+/* eof extra.css */
+

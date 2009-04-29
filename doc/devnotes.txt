@@ -64,7 +64,7 @@ submodule update should be done:
 === Repos ===
 
 Master Skytools repository: `git://github.com/markokr/skytools-dev.git`
-Master libusual repository: `git://github.com/markokr/libusual.git`
+Master libusual repository: `git://github.com/markokr/libusual.git
 
 Currently known developer repos are on github.com:
 
@@ -85,19 +85,16 @@ first a subject line, empty line then longer details.
 Short summary should also contain component name or subdir
 that the commit touches:
 
-    ---------------------------------
-    sql/pgq: reindent C code
+-------------------------------------------------------------
+sql/pgq: reindent C code
+   
+Several places had whitespace bugs, probably due to copy-paste.
     
-    Several places had whitespace bugs, probably due to copy-paste.
-    
-    As there is no point keeping historical PG style around here,
-    reindent with proper -kr -i8.
-    ---------------------------------
+As there is no point keeping historical PG style around here,
+reindent with proper -kr -i8.
+-------------------------------------------------------------
 
 === Developer workflow ===
-
-FIXME: no workflow suggestions yet, ATM just describe how
-to set up comfortable environment.
 
 ==== Initial setup ====
 
@@ -109,7 +106,6 @@ Optional: make git colorful:
   ## make 'less' accept color codes
   $ export PAGER=less
   $ export LESS="-R"     # markokr: LESS="-RgQnh2"
-
   ## make git use color
   $ git config --global color.branch auto
   $ git config --global color.diff auto
@@ -119,19 +115,77 @@ Optional: make git colorful:
 Optional: activate tab-completion for git, pick one of the lines below
 and put it into your `.bashrc`:
 
-  # use unpacked source tree
-  source $git_src_tree/contrib/completion/git-completion.bash
-  
-  # use packaged git
-  source /etc/bash_completion.d/git
+-------------------------------------------------------------
+# 1) use unpacked source tree
+source $git_src_tree/contrib/completion/git-completion.bash
 
-  # use packaged git, turn extended completion for everything
-  # [ markokr: buggy completion modules can be rather annoying
-  #   so it may be preferable to activate them one-by-one ]
-  source /etc/bash_completion
+# 2) use packaged git (preferred)
+source /etc/bash_completion.d/git
+
+# 3) use packaged git, turn extended completion for everything
+#    [ markokr: buggy completion modules can be rather annoying
+#      so it may be preferable to activate them one-by-one ]
+source /etc/bash_completion
+-------------------------------------------------------------
 
 Optional: show current checked out branch in bash prompt,
 requires the completion script from above:
 
   PS1='\h:\w$(__git_ps1 " (%s)")\$ '
+
+==== Developement tasks ====
+
+First, do the initial cloning as described above.
+
+Add your own writable repo, named 'self':
+
+  $ cd skytools-dev
+  $ git remote add self git@github.com:${username}/skytools-dev.git
+
+Fetch changes from upstream repo
+
+  $ git fetch origin
+
+See changes in upstream repo:
+
+  $ git log [-p] origin/master
+
+Merge changes from upstream repo:
+
+  $ git merge origin/master
+
+Alternative: do fetch+merge in one go:
+
+  $ git pull origin .
+
+Commit a change, push to your repo (on 'master' branch):
+
+  $ edit oldfile
+  $ edit newfile
+  $ git add newfile
+  $ git commit -a -m '..'
+  $ git push self master
+
+Create a branch for your changes, starting from checked out branch
+
+  $ git branch mybranch
+  $ git checkout mybranch
+  ## or, in one command
+  $ git checkout -b mybranch
+
+Commit files
+
+  $ edit oldfile
+  $ edit newfile
+  $ git add newfile
+  $ git commit -a -m 'commit summary'
+  ## optional: merge, or update commits relative to master branch
+  $ git rebase -i master
+  ## merge into master
+  $ git checkout master
+  $ git merge mybranch
+
+Push changes into your own public repo:
+
+  $ git push self master
 

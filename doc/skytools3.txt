@@ -89,6 +89,8 @@ Minor improvements
 
 * psycopg1 is not supported anymore.
 
+* PgQ does not handle "failed events" anymore.
+
 Open questions
 --------------
 

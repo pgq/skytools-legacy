@@ -683,7 +683,7 @@ class CascadeAdmin(skytools.AdminScript):
 
     def get_node_subscriber_list(self, node_name):
         """Fetch subscriber list from a node."""
-        q = "select node_name, local_watermark from pgq_node.get_subscriber_info(%s)"
+        q = "select node_name from pgq_node.get_subscriber_info(%s)"
         db = self.get_node_database(node_name)
         rows = self.exec_query(db, q, [self.queue_name])
         return [r['node_name'] for r in rows]

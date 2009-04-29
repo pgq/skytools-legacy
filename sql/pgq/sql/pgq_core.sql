@@ -54,22 +54,9 @@ select ev_id,ev_retry,ev_type,ev_data,ev_extra1,ev_extra2,ev_extra3,ev_extra4
 close acurs;
 end;
 
-select * from pgq.failed_event_list('myqueue', 'consumer');
-
-select pgq.event_failed(3, 1, 'failure test');
-select pgq.event_failed(3, 1, 'failure test');
 select pgq.event_retry(3, 2, 0);
-select pgq.event_retry(3, 2, 0);
+select pgq.batch_retry(3, 0);
 select pgq.finish_batch(3);
-
-select ev_failed_reason, ev_id, ev_txid, ev_retry, ev_type, ev_data
-  from pgq.failed_event_list('myqueue', 'consumer');
-
-select ev_failed_reason, ev_id, ev_txid, ev_retry, ev_type, ev_data
-  from pgq.failed_event_list('myqueue', 'consumer', 0, 1);
-
-select * from pgq.failed_event_count('myqueue', 'consumer');
-select * from pgq.failed_event_delete('myqueue', 'consumer', 0);
 
 select pgq.event_retry_raw('myqueue', 'consumer', now(), 666, now(), 0,
         'rawtest', 'data', null, null, null, null);

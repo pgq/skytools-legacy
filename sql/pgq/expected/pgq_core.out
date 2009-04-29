@@ -212,33 +212,16 @@ select ev_id,ev_retry,ev_type,ev_data,ev_extra1,ev_extra2,ev_extra3,ev_extra4
 
 close acurs;
 end;
-select * from pgq.failed_event_list('myqueue', 'consumer');
- ev_failed_reason | ev_failed_time | ev_id | ev_time | ev_txid | ev_owner | ev_retry | ev_type | ev_data | ev_extra1 | ev_extra2 | ev_extra3 | ev_extra4 
-------------------+----------------+-------+---------+---------+----------+----------+---------+---------+-----------+-----------+-----------+-----------
-(0 rows)
-
-select pgq.event_failed(3, 1, 'failure test');
- event_failed 
---------------
-            1
-(1 row)
-
-select pgq.event_failed(3, 1, 'failure test');
- event_failed 
---------------
-            0
-(1 row)
-
 select pgq.event_retry(3, 2, 0);
  event_retry 
 -------------
            1
 (1 row)
 
-select pgq.event_retry(3, 2, 0);
- event_retry 
+select pgq.batch_retry(3, 0);
+ batch_retry 
 -------------
-           0
+           2
 (1 row)
 
 select pgq.finish_batch(3);
@@ -247,27 +230,6 @@ select pgq.finish_batch(3);
             1
 (1 row)
 
-select ev_failed_reason, ev_id, ev_txid, ev_retry, ev_type, ev_data
-  from pgq.failed_event_list('myqueue', 'consumer');
- ev_failed_reason | ev_id | ev_txid | ev_retry | ev_type | ev_data 
-------------------+-------+---------+----------+---------+---------
- failure test     |     1 |         |        0 | r1      | data
-(1 row)
-
-select ev_failed_reason, ev_id, ev_txid, ev_retry, ev_type, ev_data
-  from pgq.failed_event_list('myqueue', 'consumer', 0, 1);
- ev_failed_reason | ev_id | ev_txid | ev_retry | ev_type | ev_data 
-------------------+-------+---------+----------+---------+---------
-(0 rows)
-
-select * from pgq.failed_event_count('myqueue', 'consumer');
- failed_event_count 
---------------------
-                  1
-(1 row)
-
-select * from pgq.failed_event_delete('myqueue', 'consumer', 0);
-ERROR:  event not found
 select pgq.event_retry_raw('myqueue', 'consumer', now(), 666, now(), 0,
         'rawtest', 'data', null, null, null, null);
  event_retry_raw 

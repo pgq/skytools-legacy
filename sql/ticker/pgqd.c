@@ -91,8 +91,10 @@ static void signal_setup(void)
 	static struct event ev_sigterm;
 	static struct event ev_sigint;
 
-	sigset_t set;
 	int err;
+
+#ifdef SIGPIPE
+	sigset_t set;
 
 	/* block SIGPIPE */
 	sigemptyset(&set);
@@ -100,12 +102,15 @@ static void signal_setup(void)
 	err = sigprocmask(SIG_BLOCK, &set, NULL);
 	if (err < 0)
 		fatal_perror("sigprocmask");
+#endif
 
+#ifdef SIGHUP
 	/* catch signals */
 	signal_set(&ev_sighup, SIGHUP, handle_sighup, NULL);
 	err = signal_add(&ev_sighup, NULL);
 	if (err < 0)
 		fatal_perror("signal_add");
+#endif
 
 	signal_set(&ev_sigterm, SIGTERM, handle_sigterm, NULL);
 	err = signal_add(&ev_sigterm, NULL);

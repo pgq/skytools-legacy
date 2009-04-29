@@ -21,8 +21,8 @@
 \i functions/pgq.next_batch.sql
 \i functions/pgq.get_batch_events.sql
 \i functions/pgq.get_batch_cursor.sql
-\i functions/pgq.event_failed.sql
 \i functions/pgq.event_retry.sql
+\i functions/pgq.batch_retry.sql
 \i functions/pgq.finish_batch.sql
 
 -- Group: General info functions
@@ -31,8 +31,4 @@
 \i functions/pgq.get_consumer_info.sql
 \i functions/pgq.version.sql
 \i functions/pgq.get_batch_info.sql
-
--- Group: Failed queue browsing
-
-\i functions/pgq.failed_queue.sql
 

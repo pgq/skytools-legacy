@@ -136,6 +136,10 @@ class LondisteSetup(CascadeAdmin):
                     # table not present on provider - nowhere to get the DDL from
                     self.log.warning('Table "%s" missing on provider, skipping' % tbl)
                     return
+                schema = skytools.fq_name_parts(tbl)[0]
+                if not skytools.exists_schema(dst_curs, schema):
+                    q = "create schema %s" % skytools.quote_ident(schema)
+                    dst_curs.execute(q)
                 s = skytools.TableStruct(src_curs, tbl)
                 src_db.commit()
                 s.create(dst_curs, create_flags, log = self.log)

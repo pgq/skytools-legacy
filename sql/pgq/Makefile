@@ -5,7 +5,7 @@ DATA = structure/uninstall_pgq.sql
 
 # scripts that load other sql files
 LDRS = structure/func_internal.sql structure/func_public.sql structure/triggers.sql
-FUNCS = $(shell sed -n -e '/^\\/{s/\\i //;p}' $(LDRS))
+FUNCS = $(shell sed -e 's/^[^\\].*//' -e 's/\\i //' $(LDRS))
 SRCS = structure/tables.sql structure/grants.sql structure/install.sql \
        structure/uninstall_pgq.sql $(FUNCS)
 

@@ -44,7 +44,7 @@ create or replace function pgq_node.get_node_info(
 declare
     sql text;
 begin
-    select 200, 'Ok', n.node_type, n.node_name, g.last_tick,
+    select 100, 'Ok', n.node_type, n.node_name, g.last_tick,
            c.node_type, c.queue_name, w.provider_node, l.node_location,
            n.worker_name, w.paused, w.uptodate, w.last_tick_id
       into ret_code, ret_note, node_type, node_name, global_watermark,

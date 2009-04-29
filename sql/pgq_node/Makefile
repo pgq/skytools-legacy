@@ -1,7 +1,8 @@
 
 DATA_built = pgq_node.sql pgq_node.upgrade.sql
 
-FUNCS = $(shell sed -n -e '/^\\/{s/\\i //;p}' structure/functions.sql)
+LDRS = structure/functions.sql
+FUNCS = $(shell sed -e 's/^[^\\].*//' -e 's/\\i //' $(LDRS))
 SRCS = structure/tables.sql structure/functions.sql $(FUNCS)
 
 REGRESS = pgq_node_test
