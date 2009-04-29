@@ -7,7 +7,7 @@ import logging, logging.handlers, logging.config
 from skytools.config import *
 from skytools.psycopgwrapper import connect_database
 from skytools.quoting import quote_statement
-import skytools.skylog
+import skytools.skylog, psycopg2
 
 __pychecker__ = 'no-badexcept'
 
@@ -321,7 +321,11 @@ class DBScript(object):
             self.send_signal(signal.SIGHUP)
 
     def load_config(self):
-        """Loads and returns skytools.Config instance."""
+        """Loads and returns skytools.Config instance.
+
+        By default it uses first command-line argument as config
+        file name.  Can be overrided.
+        """
 
         conf_file = self.args[0]
         return Config(self.service_name, conf_file)
@@ -381,30 +385,16 @@ class DBScript(object):
         """Changes whether the script will loop or not."""
         self.do_single_loop = do_single_loop
 
+    def _boot_daemon(self):
+        run_single_process(self, self.go_daemon, self.pidfile)
+
     def start(self):
         """This will launch main processing thread."""
         if self.go_daemon:
             if not self.pidfile:
                 self.log.error("Daemon needs pidfile")
                 sys.exit(1)
-
-        try:
-            run_single_process(self, self.go_daemon, self.pidfile)
-        except UsageError, ex:
-            self.log.error(str(ex))
-            sys.exit(1)
-        except KeyboardInterrupt:
-            raise
-        except SystemExit:
-            raise
-        except Exception:
-            # catch startup errors
-            exc, msg, tb = sys.exc_info()
-            self.log.exception("Job %s crashed on startup: %s: %s" % (
-                       self.job_name, str(exc), str(msg).rstrip()))
-            del tb
-            sys.exit(1)
-
+        self.run_func_safely(self._boot_daemon)
 
     def stop(self):
         """Safely stops processing loop."""
@@ -412,8 +402,12 @@ class DBScript(object):
 
     def reload(self):
         "Reload config."
-        self.cf.reload()
-        self.job_name = self.cf.get("job_name", self.service_name)
+        # avoid double loading on startup
+        if not self.cf:
+            self.cf = self.load_config()
+        else:
+            self.cf.reload()
+        self.job_name = self.cf.get("job_name")
         self.pidfile = self.cf.getfile("pidfile", '')
         self.loop_delay = self.cf.getfloat("loop_delay", 1.0)
 
@@ -504,22 +498,7 @@ class DBScript(object):
         "Thread main loop."
 
         # run startup, safely
-        try:
-            self.startup()
-        except UsageError, ex:
-            self.log.error(str(ex))
-            sys.exit(1)
-        except KeyboardInterrupt:
-            raise
-        except SystemExit:
-            raise
-        except Exception:
-            exc, msg, tb = sys.exc_info()
-            self.log.exception("Job %s crashed: %s: %s" % (
-                       self.job_name, str(exc), str(msg).rstrip()))
-            del tb
-            self.reset()
-            sys.exit(1)
+        self.run_func_safely(self.startup)
 
         while self.looping:
             # reload config, if needed
@@ -546,43 +525,55 @@ class DBScript(object):
             self.work_state = work
             # should sleep?
             if not work:
-                try:
-                    time.sleep(self.loop_delay)
-                except Exception, d:
-                    self.log.debug("sleep failed: "+str(d))
-                    sys.exit(0)
+                time.sleep(self.loop_delay)
 
     def run_once(self):
+        return self.run_func_safely(self.work, True)
+
+    def run_func_safely(self, func, prefer_looping = False):
         "Run users work function, safely."
         try:
-            return self.work()
+            return func()
         except UsageError, ex:
             self.log.error(str(ex))
-            # should we exit here?
+            sys.exit(1)
         except SystemExit, d:
             self.send_stats()
-            self.log.info("got SystemExit(%s), exiting" % str(d))
+            if prefer_looping and not self.do_single_loop:
+                self.log.info("got SystemExit(%s), exiting" % str(d))
             self.reset()
             raise d
         except KeyboardInterrupt, d:
             self.send_stats()
-            self.log.info("got KeyboardInterrupt, exiting")
+            if self.prefer_looping and not self.do_single_loop:
+                self.log.info("got KeyboardInterrupt, exiting")
             self.reset()
             sys.exit(1)
+        except psycopg2.Error, d:
+            self.send_stats()
+            if d.cursor and d.cursor.connection:
+                cname = d.cursor.connection.my_name
+                dsn = d.cursor.connection.dsn
+                sql = d.cursor.query
+                self.log.error("Job %s got error on connection '%s': %s" % (
+                    self.job_name,
+                    d.cursor.connection.my_name,
+                    str(d).strip()))
+            else:
+                n = "psycopg2.%s" % d.__class__.__name__
+                self.log.exception("Job %s crashed: %s: %s" % (
+                       self.job_name, n, str(d).rstrip()))
         except Exception, d:
             self.send_stats()
-            exc, msg, tb = sys.exc_info()
-            del tb
-            self.log.exception("Job %s crashed: %s: %s" % (
-                       self.job_name, str(exc), str(msg).rstrip()))
+            self.log.exception("Job %s crashed: %s" % (
+                       self.job_name, str(d).rstrip()))
 
         # reset and sleep
         self.reset()
-        if self.looping and not self.do_single_loop:
+        if prefer_looping and self.looping and not self.do_single_loop:
             time.sleep(20)
             return 1
-        else:
-            sys.exit(1)
+        sys.exit(1)
 
     def work(self):
         """Here should user's processing happen.

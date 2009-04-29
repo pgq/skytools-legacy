@@ -33,7 +33,7 @@ create or replace function pgq_node.get_consumer_state(
 --      uptodate - if consumer has loaded last changes
 -- ----------------------------------------------------------------------
 begin
-    select 200, 'Ok', n.node_type, n.node_name, s.last_tick_id,
+    select 100, 'Ok', n.node_type, n.node_name, s.last_tick_id,
            s.provider_node, p.node_location, s.paused, s.uptodate
       into ret_code, ret_note, node_type, node_name, completed_tick,
            provider_node, provider_location, paused, uptodate

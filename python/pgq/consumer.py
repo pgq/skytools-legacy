@@ -27,8 +27,6 @@ class _WalkerEvent(Event):
         self._walker.tag_event_done(self)
     def tag_retry(self, retry_time = 60):
         self._walker.tag_event_retry(self, retry_time)
-    def tag_failed(self, reason):
-        self._walker.tag_failed(self, reason)
     def get_status(self):
         self._walker.get_status(self)
 
@@ -87,9 +85,6 @@ class _BatchWalker(object):
 
     def tag_event_retry(self, event, retry_time):
         self.status_map[event.id] = (EV_RETRY, retry_time)
-
-    def tag_event_failed(self, event, reason):
-        self.status_map[event.id] = (EV_FAILED, reason)
 
     def get_status(self, event):
         return self.status_map[event.id][0]
@@ -153,9 +148,6 @@ class Consumer(skytools.DBScript):
         """Process one event.
 
         Should be overrided by user code.
-
-        Event should be tagged as done, retry or failed.
-        If not, it will be tagged as for retry.
         """
         raise Exception("needs to be implemented")
 
@@ -164,9 +156,6 @@ class Consumer(skytools.DBScript):
         
         By default calls process_event for each.
         Can be overrided by user code.
-
-        Events should be tagged as done, retry or failed.
-        If not, they will be tagged as for retry.
         """
         for ev in event_list:
             self.process_event(db, ev)
@@ -258,23 +247,17 @@ class Consumer(skytools.DBScript):
     def _finish_batch(self, curs, batch_id, list):
         """Tag events and notify that the batch is done."""
 
-        retry = failed = 0
+        retry = 0
         if self.pgq_lazy_fetch:
             for ev_id, stat in list.iter_status():
                 if stat[0] == EV_RETRY:
                     self._tag_retry(curs, batch_id, ev_id, stat[1])
                     retry += 1
-                elif stat[0] == EV_FAILED:
-                    self._tag_failed(curs, batch_id, ev_id, stat[1])
-                    failed += 1
                 elif stat[0] != EV_DONE:
                     raise Exception("Untagged event: id=%d" % ev_id)
         else:
             for ev in list:
-                if ev._status == EV_FAILED:
-                    self._tag_failed(curs, batch_id, ev.id, ev.fail_reason)
-                    failed += 1
-                elif ev._status == EV_RETRY:
+                if ev._status == EV_RETRY:
                     self._tag_retry(curs, batch_id, ev.id, ev.retry_time)
                     retry += 1
                 elif ev._status != EV_DONE:
@@ -284,15 +267,8 @@ class Consumer(skytools.DBScript):
         # report weird events
         if retry:
             self.stat_increase('retry-events', retry)
-        if failed:
-            self.stat_increase('failed-events', failed)
 
         curs.execute("select pgq.finish_batch(%s)", [batch_id])
-
-    def _tag_failed(self, curs, batch_id, ev_id, fail_reason):
-        """Tag event as failed. (internal)"""
-        curs.execute("select pgq.event_failed(%s, %s, %s)",
-                    [batch_id, ev_id, fail_reason])
 
     def _tag_retry(self, cx, batch_id, ev_id, retry_time):
         """Tag event for retry. (internal)"""

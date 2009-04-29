@@ -23,6 +23,9 @@ COMMON = common.switches.txt common.config.txt common.logutriga.txt
 
 GETATTRS = python ./getattrs.py
 
+#AFLAGS = -a linkcss
+#AFLAGS = -a stylesheet=extra.css
+
 all: man $(HTMLS)
 
 man: londiste.1 londiste.5 pgqadm.1 $(SCRIPT_MANS)
@@ -111,17 +114,22 @@ endif
 %.html: %.txt $(COMMON)
 	LANG=C cat $< \
 	| sed -e '/^include/b;s,\([A-Za-z.0-9]*\)[.]txt,link:\1.html[],g' \
-	| $(ASCIIDOC) -a toc `$(GETATTRS) $<` -o $@ -
-	#$(ASCIIDOC) -a toc `$(GETATTRS) $<` $<
+	| $(ASCIIDOC) $(AFLAGS) -a toc `$(GETATTRS) $<` -o - - \
+	| sed -e "/^[/][*] Workarounds/r extra.css" \
+	> $@
 
 README.html: ../README
 	cat $< \
 	| sed -e 's,doc/\([!-~]*\)[.]txt,link:\1.html[],g' \
 	      -e 's,http:[!-~]*,&[],g' \
-	| $(ASCIIDOC) -o $@ -
+	| $(ASCIIDOC) $(AFLAGS) -o - - \
+	| sed -e "/^[/][*] Workarounds/r extra.css" \
+	> $@
 
 INSTALL.html: ../INSTALL
-	$(ASCIIDOC) -o $@ $<
+	$(ASCIIDOC) $(AFLAGS) -o - $< \
+	| sed -e "/^[/][*] Workarounds/r extra.css" \
+	> $@
 endif
 
 web: $(HTMLS)

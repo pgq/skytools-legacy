@@ -2,13 +2,12 @@
 """PgQ event container.
 """
 
-__all__ = ['EV_UNTAGGED', 'EV_RETRY', 'EV_DONE', 'EV_FAILED', 'Event']
+__all__ = ['EV_UNTAGGED', 'EV_RETRY', 'EV_DONE', 'Event']
 
 # Event status codes
 EV_UNTAGGED = -1
 EV_RETRY = 0
 EV_DONE = 1
-EV_FAILED = 2
 
 _fldmap = {
         'ev_id': 'ev_id',
@@ -39,13 +38,12 @@ class Event(object):
     If not, events will stay in retry queue.
     """
     __slots__ = ('_event_row', '_status', 'retry_time',
-                 'fail_reason', 'queue_name')
+                 'queue_name')
 
     def __init__(self, queue_name, row):
         self._event_row = row
         self._status = EV_UNTAGGED
         self.retry_time = 60
-        self.fail_reason = "Buggy consumer"
         self.queue_name = queue_name
 
     def __getattr__(self, key):
@@ -57,10 +55,6 @@ class Event(object):
     def tag_retry(self, retry_time = 60):
         self._status = EV_RETRY
         self.retry_time = retry_time
-
-    def tag_failed(self, reason):
-        self._status = EV_FAILED
-        self.fail_reason = reason
 
     def get_status(self):
         return self._status

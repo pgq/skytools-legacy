@@ -1,7 +1,7 @@
 
 """Nicer config class."""
 
-import os, ConfigParser, socket
+import os, os.path, ConfigParser, socket
 
 __all__ = ['Config']
 
@@ -18,8 +18,12 @@ class Config(object):
 
         @param sane_config:  chooses between ConfigParser/SafeConfigParser.
         """
+        # use config file name as default job_name
+        job_name = os.path.splitext(os.path.basename(filename))[0]
+
+        # initialize defaults, make them usable in config file
         defs = {
-            'job_name': main_section,
+            'job_name': job_name,
             'service_name': main_section,
             'host_name': socket.gethostname(),
         }
