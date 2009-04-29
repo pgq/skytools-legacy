@@ -666,7 +666,11 @@ class Replicator(CascadedWorker):
         self.log.info("Launching copy process")
         script = sys.argv[0]
         conf = self.cf.filename
-        cmd = [script, conf, 'copy', tbl_stat.name, '-d', '-q']
+        cmd = [script, conf, 'copy', tbl_stat.name, '-d']
+
+        # pass same verbosity options as main script got
+        if self.options.quiet:
+            cmd.append('-q')
         if self.options.verbose:
             cmd.append('-v')
 
