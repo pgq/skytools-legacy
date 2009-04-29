@@ -313,7 +313,7 @@ class Replicator(CascadedWorker):
 
             if res == SYNC_EXIT:
                 self.log.debug('Sync tables: exit')
-                if not self.copy_thread:
+                if self.copy_thread:
                     self.unregister_consumer()
                 src_db.commit()
                 sys.exit(0)
