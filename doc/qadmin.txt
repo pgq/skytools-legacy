@@ -96,9 +96,6 @@ Information:
 
 * General:
   - Lots of useful commands.
-  - Unable to disconnect from queue?
-  - "show queue" without args should show all queues. Only current queue
-    if connected.
 
 * Parsing:
 

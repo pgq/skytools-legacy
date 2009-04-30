@@ -673,8 +673,7 @@ class AdminConsole:
 
     def cmd_connect(self, params):
         qname = params.get('queue')
-        if not qname:
-            qname = self.cur_queue
+
         if 'node' in params and not qname:
             print 'node= needs a queue also'
             return
@@ -694,18 +693,26 @@ class AdminConsole:
             cstr = " ".join(cdata)
             self.db = self.db_connect(cstr)
 
-        # connect to node
-        if 'node' in params:
+        # connect to queue
+        if qname:
             curs = self.db.cursor()
-            q = "select node_location from pgq_node.get_queue_locations(%s)"\
-                " where node_name = %s"
-            curs.execute(q, [qname, params['node']])
+            q = "select queue_name from pgq.get_queue_info(%s)"
+            curs.execute(q, [qname])
             res = curs.fetchall()
             if len(res) == 0:
-                print "node not found"
+                print 'queue not found'
                 return
-            cstr = res[0]['node_location']
-            self.db = self.db_connect(cstr)
+
+            if 'node' in params:
+                q = "select node_location from pgq_node.get_queue_locations(%s)"\
+                    " where node_name = %s"
+                curs.execute(q, [qname, params['node']])
+                res = curs.fetchall()
+                if len(res) == 0:
+                    print "node not found"
+                    return
+                cstr = res[0]['node_location']
+                self.db = self.db_connect(cstr)
 
         # set default queue
         if 'queue' in params:
@@ -740,10 +747,11 @@ class AdminConsole:
     def cmd_show_queue(self, params):
         queue = params.get('queue')
         if queue is None:
+            # "show queue" without args, show all if not connected to
+            # specific queue
             queue = self.cur_queue
             if not queue:
-                print 'No default queue'
-                return
+                queue = '*'
         curs = self.db.cursor()
         fields = [
             "queue_name",
