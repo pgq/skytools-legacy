@@ -528,7 +528,8 @@ class Replicator(CascadedWorker):
         q = "select * from londiste.execute_start(%s, %s, %s, false)"
         res = self.exec_cmd(dst_curs, q, [self.queue_name, fname, sql], commit = False)
         ret = res[0]['ret_code']
-        if ret != 200:
+        if ret >= 300:
+            self.log.warning("Skipping execution of '%s'", fname)
             return
         for stmt in skytools.parse_statements(sql):
             dst_curs.execute(stmt)
@@ -666,7 +667,11 @@ class Replicator(CascadedWorker):
         self.log.info("Launching copy process")
         script = sys.argv[0]
         conf = self.cf.filename
-        cmd = [script, conf, 'copy', tbl_stat.name, '-d', '-q']
+        cmd = [script, conf, 'copy', tbl_stat.name, '-d']
+
+        # pass same verbosity options as main script got
+        if self.options.quiet:
+            cmd.append('-q')
         if self.options.verbose:
             cmd.append('-v')
 
