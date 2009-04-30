@@ -308,7 +308,11 @@ class LondisteSetup(CascadeAdmin):
             fname = os.path.basename(fn)
             sql = open(fn, "r").read()
             q = "select * from londiste.execute_start(%s, %s, %s, true)"
-            self.exec_cmd(db, q, [self.queue_name, fname, sql], commit = False)
+            res = self.exec_cmd(db, q, [self.queue_name, fname, sql], commit = False)
+            ret = res[0]['ret_code']
+            if ret >= 300:
+                self.log.warning("Skipping execution of '%s'" % fname)
+                continue
             for stmt in skytools.parse_statements(sql):
                 curs.execute(stmt)
             q = "select * from londiste.execute_finish(%s, %s)"
