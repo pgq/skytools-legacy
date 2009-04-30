@@ -35,6 +35,7 @@ html: $(HTMLS)
 install: man $(HTMLS)
 	mkdir -p $(DESTDIR)/$(mandir)/man1
 	mkdir -p $(DESTDIR)/$(mandir)/man5
+	mkdir -p $(DESTDIR)/$(docdir)
 	install -m 644 londiste.1 $(DESTDIR)/$(mandir)/man1
 	install -m 644 londiste.5 $(DESTDIR)/$(mandir)/man5
 	install -m 644 pgqadm.1 $(DESTDIR)/$(mandir)/man1
