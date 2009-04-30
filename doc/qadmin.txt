@@ -1,4 +1,4 @@
-= newadm =
+= qadmin =
 
 == Goal ==
 
@@ -79,10 +79,10 @@ Information:
 
 == Smaller Open Questions ==
 
-* What arguments should newadm accept from command line?
+* What arguments should qadmin accept from command line?
 
-  psql-style: newadm [switches] [dbname [username]]
-  ssh-style:  newadm [switches] [command [args]]
+  psql-style: qadmin [switches] [dbname [username]]
+  ssh-style:  qadmin [switches] [command [args]]
 
 * Command style and syntax.
 
@@ -113,16 +113,16 @@ Information:
   - Tab-completion of quoted idents. (?)
   - Multi-line commands. (?)
 
-* Cascading: It would be useful to also have cascading commands available in newadm.
+* Cascading: It would be useful to also have cascading commands available in qadmin.
    ( SWITCHOVER / CREATE NODE / PAUSE NODE / CHANGE PROVIDER ).
    But currently they are implemented using DBScript framework.  And
    we don't want to have several implementations of the commands.
    There seems to be 2 ways forward:
-   - Convert newadm to DBScript.  It is possible to make config-less DBScript.
-   - Implement command under newadm in non-DBScript way and make
-     CascadeAdmin call newadm implementation.
+   - Convert qadmin to DBScript.  It is possible to make config-less DBScript.
+   - Implement command under qadmin in non-DBScript way and make
+     CascadeAdmin call qadmin implementation.
 
-* Londiste: It seems to be good idea to make Londiste management also available in newadm.
+* Londiste: It seems to be good idea to make Londiste management also available in qadmin.
   - LONDISTE ADD|REMOVE TABLE <tbl>
   - LONDISTE ADD|REMOVE SEQUENCE <seq>
   - LONDISTE SHOW TABLES / SHOW LONDISTE TABLES / SHOW TABLES ?

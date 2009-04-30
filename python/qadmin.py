@@ -34,7 +34,7 @@ show_queue_stats <q>;
 __version__ = '0.1'
 
 cmdline_usage = '''\
-Usage: newadm [switches]
+Usage: qadmin [switches]
 
 Initial connection options:
     -h host
@@ -471,7 +471,7 @@ class AdminConsole:
                 print cmdline_usage
                 sys.exit(0)
             elif o == "--version":
-                print "newadm version %s" % __version__
+                print "qadmin version %s" % __version__
                 sys.exit(0)
             elif o == "-h":
                 cstr_map['host'] = a
@@ -548,7 +548,7 @@ class AdminConsole:
         readline.parse_and_bind('tab: complete')
         readline.set_completer(self.rl_completer_safe)
         #print 'delims: ', repr(readline.get_completer_delims())
-        hist_file = os.path.expanduser("~/.newadm_history")
+        hist_file = os.path.expanduser("~/.qadmin_history")
         try:
             readline.read_history_file(hist_file)
         except IOError:
