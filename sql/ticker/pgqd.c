@@ -133,15 +133,27 @@ const char *make_connstr(const char *dbname)
 static void launch_db(const char *dbname)
 {
 	struct PgDatabase *db;
+	struct List *elem;
 
+	/* check of already exists */
+	statlist_for_each(elem, &database_list) {
+		db = container_of(elem, struct PgDatabase, head);
+		if (strcmp(db->name, dbname) == 0)
+			return;
+	}
+
+	/* create new db entry */
 	db = calloc(1, sizeof(*db));
 	db->name = strdup(dbname);
 	statlist_init(&db->maint_item_list, "maint_item_list");
 	list_init(&db->head);
 	statlist_append(&database_list, &db->head);
 
+	/* start working on it */
 	launch_ticker(db);
 }
+
+static void detect_dbs(void);
 
 static void detect_handler(struct PgSocket *db, void *arg, enum PgEvent ev, PGresult *res)
 {
@@ -159,18 +171,23 @@ static void detect_handler(struct PgSocket *db, void *arg, enum PgEvent ev, PGre
 			launch_db(s);
 		}
 		PQclear(res);
-		db_free(db_template);
-		db_template = NULL;
+		db_disconnect(db);
+		db_sleep(db, cf.check_period);
+		break;
+	case DB_TIMEOUT:
+		detect_dbs();
 		break;
 	default:
-		fatal("failure");
+		db_disconnect(db);
+		db_sleep(db, cf.check_period);
 	}
 }
 
 static void detect_dbs(void)
 {
 	const char *cstr = make_connstr(cf.initial_database);
-	db_template = db_create(detect_handler, NULL);
+	if (!db_template)
+		db_template = db_create(detect_handler, NULL);
 	db_connect(db_template, cstr);
 	free(cstr);
 }
