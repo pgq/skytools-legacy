@@ -73,6 +73,8 @@ begin
              order by 1 desc
              limit 1;
         end if;
+    else
+        local_watermark := worker_last_tick;
     end if;
     return;
 end;

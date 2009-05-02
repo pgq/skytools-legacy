@@ -36,7 +36,7 @@ begin
             select f.ret_code, f.ret_note, f.local_watermark
                 into ret_code, ret_note, _wm
                 from pgq_node.get_node_info(i_queue_name) f;
-            if ret_code <> 200 then
+            if ret_code >= 300 then
                 return;
             end if;
             if _wm is null then
