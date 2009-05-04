@@ -2,6 +2,32 @@
 
 """It accepts urlencoded rows for multiple tables from queue
 and insert them into actual tables, with partitioning on tick time.
+
+Config template::
+
+    [cube_dispatcher]
+    job_name          = cd_srcdb_queue_to_dstdb_dstcolo.ini
+
+    src_db            = dbname=sourcedb_test
+    dst_db            = dbname=dataminedb_test
+
+    pgq_queue_name    = udata.some_queue
+
+    logfile           = ~/log/%(job_name)s.log
+    pidfile           = ~/pid/%(job_name)s.pid
+
+    # how many rows are kept: keep_latest, keep_all
+    mode = keep_latest
+
+    # to_char() fmt for table suffix
+    #dateformat = YYYY_MM_DD
+    # following disables table suffixes:
+    #dateformat =
+
+    part_template = 
+        create table _DEST_TABLE (like _PARENT);
+        alter table only _DEST_TABLE add primary key (_PKEY);
+        grant select on _DEST_TABLE to postgres;
 """
 
 import sys, os, pgq, skytools
@@ -12,7 +38,8 @@ alter table only _DEST_TABLE add primary key (_PKEY);
 """
 
 class CubeDispatcher(pgq.SerialConsumer):
-    """Partition on tick time, multiple tables."""
+    __doc__ = __doc__
+
     def __init__(self, args):
         pgq.SerialConsumer.__init__(self, "cube_dispatcher", "src_db", "dst_db", args)
 

@@ -59,6 +59,8 @@ import sys, pgq, skytools
 skytools.sane_config = 1
 
 class SimpleSerialConsumer(pgq.SerialConsumer):
+    doc_string = __doc__
+
     def __init__(self, args):
         pgq.SerialConsumer.__init__(self,"simple_serial_consumer","src_db","dst_db", args)
         self.dst_query = self.cf.get("dst_query")

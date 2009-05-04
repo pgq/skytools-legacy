@@ -1,11 +1,30 @@
 #! /usr/bin/env python
 
-"""Puts events into queue specified by field from 'queue_field' config parameter"""
+"""Puts events into queue specified by field from 'queue_field' config parameter.
+
+Config template::
+
+    [queue_splitter]
+    job_name          = queue_splitter_test
+
+    src_db            = dbname=sourcedb_test
+    dst_db            = dbname=destdb_test
+
+    pgq_queue_name    = source_queue
+
+    # event fields from  where target queue name is read
+    #queue_field       = extra1
+
+    logfile           = ~/log/%(job_name)s.log
+    pidfile           = ~/pid/%(job_name)s.pid
+    use_skylog        = 0
+"""
 
 import sys, pgq
 
 class QueueSplitter(pgq.SerialConsumer):
-    """Split events from one queue into several."""
+    __doc__ = __doc__
+
     def __init__(self, args):
         pgq.SerialConsumer.__init__(self, "queue_splitter", "src_db", "dst_db", args)
 

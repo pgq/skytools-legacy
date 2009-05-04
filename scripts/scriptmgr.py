@@ -3,6 +3,44 @@
 """Bulk start/stop of scripts.
 
 Reads a bunch of config files and maps them to scripts, then handles those.
+
+Config template:
+
+    [scriptmgr]
+    job_name = scriptmgr_cphdb5
+    config_list = ~/random/conf/*.ini
+    logfile = ~/log/%(job_name)s.log
+    pidfile = ~/pid/%(job_name)s.pid
+    #use_skylog = 1
+
+    # defaults for services
+    [DEFAULT]
+    cwd = ~/
+    args = -v
+
+    # service descriptions
+
+    [cube_dispatcher]
+    script = cube_dispatcher.py
+
+    [table_dispatcher]
+    script = table_dispatcher.py
+
+    [bulk_loader]
+    script = bulk_loader.py
+
+    [londiste]
+    script = londiste.py
+    args = replay
+
+    [pgqadm]
+    script = pgqadm.py
+    args = ticker
+
+    # services to be ignored
+
+    [log_checker]
+    disabled = 1
 """
 
 import sys, os, skytools, signal, glob, ConfigParser, time
@@ -26,6 +64,7 @@ def job_sort_cmp(j1, j2):
     else: return 0
 
 class ScriptMgr(skytools.DBScript):
+    __doc__ = __doc__
     svc_list = []
     svc_map = {}
     config_list = []

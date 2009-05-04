@@ -1,6 +1,28 @@
 #! /usr/bin/env python
 
 """PgQ ticker and maintenance.
+
+
+Config template::
+
+    [pgqadm]
+
+    # should be globally unique
+    job_name = pgqadm_somedb
+
+    db = dbname=provider port=6000 host=127.0.0.1
+
+    # how often to run maintenance [minutes]
+    maint_delay_min = 5
+
+    # how often to check for activity [secs]
+    loop_delay = 0.5
+
+    logfile = ~/log/%(job_name)s.log
+    pidfile = ~/pid/%(job_name)s.pid
+
+    use_skylog = 0
+
 """
 
 import sys
@@ -46,11 +68,12 @@ config_allowed_list = {
 }
 
 class PGQAdmin(skytools.DBScript):
-    """PgQ admin + maint script."""
+    __doc__ = __doc__
     def __init__(self, args):
         """Initialize pgqadm."""
         skytools.DBScript.__init__(self, 'pgqadm', args)
         self.set_single_loop(1)
+
 
         if len(self.args) < 2:
             print("need command")

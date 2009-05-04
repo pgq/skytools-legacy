@@ -1,5 +1,23 @@
 
-"""Useful functions and classes for database scripts."""
+"""Useful functions and classes for database scripts.
+
+Config template::
+
+    [service_type]
+    # generic ini file example from Skytools framework
+    # if job name is omitted then ini file name without extension is used
+    job_name = %(config_name)s
+
+    # loop delay in seconds
+    loop_delay = 1.0
+
+    # location of log and pid files usually kept in ~/log and ~/pid
+    logfile = ~/log/%(job_name)s.log
+    pidfile = ~/pid/%(job_name)s.pid
+
+    # should centralized logging be used
+    use_skylog = 0
+"""
 
 import sys, os, signal, optparse, time, errno
 import logging, logging.handlers, logging.config
@@ -266,6 +284,7 @@ class DBScript(object):
     log = None
     pidfile = None
     loop_delay = 1
+    doc_string = None
 
     def __init__(self, service_name, args):
         """Script setup.
@@ -301,6 +320,9 @@ class DBScript(object):
             self.log_level = logging.WARNING
         if self.options.verbose:
             self.log_level = logging.DEBUG
+        if self.options.ini:
+            self.print_ini()
+            sys.exit(0)
         if len(self.args) < 1:
             print("need config file, use --help for help.")
             sys.exit(1)
@@ -319,6 +341,34 @@ class DBScript(object):
             self.send_signal(signal.SIGINT)
         elif self.options.cmd == "reload":
             self.send_signal(signal.SIGHUP)
+
+    def print_ini(self):
+        """Prints out ini file from doc string of the script of default for dbscript
+        
+        Used by --ini option on command line
+        """
+
+        # use last '::' block as config template
+        doc = self.__doc__
+        pos = doc and doc.rfind('::') or -1
+        if pos < 0:
+            print 'No ini template defined.'
+            return
+        doc = doc[pos+2 : ].rstrip()
+
+        # and remove same prefix from all the following lines
+        pfx = None
+        for ln in doc.splitlines():
+            if not pfx:
+                if not ln.strip():
+                    continue
+                wslen = len(ln) - len(ln.lstrip())
+                pfx = ln[ : wslen]
+            if pfx:
+                if ln.startswith(pfx):
+                    print ln[ len(pfx) : ]
+                else:
+                    print ln
 
     def load_config(self):
         """Loads and returns skytools.Config instance.
@@ -354,6 +404,8 @@ class DBScript(object):
                      help = "log verbosely")
         p.add_option("-d", "--daemon", action="store_true",
                      help = "go background")
+        p.add_option("", "--ini", action="store_true",
+                    help = "display sample ini file")
 
         # control options
         g = optparse.OptionGroup(p, 'control running process')
