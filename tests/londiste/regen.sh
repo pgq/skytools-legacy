@@ -7,8 +7,8 @@ mkdir -p log pid conf
 ./zstop.sh
 
 v=
-v=-v
 v=-q
+v=-v
 
 cleardb() {
   echo "Clearing database $1"
