@@ -17,7 +17,7 @@ skytool applications.
 
 When building code from GIT:
 
-  git autoconf asciidoc xmlto
+  git autoconf automake asciidoc xmlto
 
 === Runtime dependencies ===
 
