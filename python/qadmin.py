@@ -5,13 +5,17 @@
     connect dbname=.. host=.. service=.. queue=..;
     connect queue=.. [ node=.. ];
     install pgq | londiste;
+
     create queue <qname>;
+    alter queue <qname | *> set param = , ...;
     drop queue <qname>;
     show queue <qname | *>;
-    show consumer <cname | *> [ on <qname> ];
-    alter queue <qname | *> set param = , ...;
+
     register consumer foo [on <qname>];
     unregister consumer foo [from <qname>];
+    show consumer <cname | *> [on <qname>];
+
+    show node <node | *> [on <qname>];
 
 Following commands expect default queue:
     show queue;
@@ -21,17 +25,16 @@ Following commands expect default queue:
 
 # unimplemented:
 """
-show consumers;
+create <root | branch | leaf> node <node> location <loc> [on <qname>];
+drop node <node> [on <qname>];
+alter node <node> [location=<loc>]
 show_queue_stats <q>;
-create node <foo>; // 
-create node <qname>.<foo>; // 
-add location <node> <loc>; // db, queue
 """
 
 __version__ = '0.1'
 
 cmdline_usage = '''\
-Usage: newadm [switches]
+Usage: qadmin [switches]
 
 Initial connection options:
     -h host
@@ -272,11 +275,17 @@ w_show_consumer = WList(
     Consumer(w_on_queue, name = 'consumer'),
     )
 
+w_show_node = WList(
+    Symbol('*', w_on_queue, name = 'node'),
+    DBNode(w_on_queue, name = 'node'),
+    )
+
 w_show = WList(
     Word('batch', w_show_batch),
     Word('help', w_done),
     Word('queue', w_show_queue),
     Word('consumer', w_show_consumer),
+    Word('node', w_show_node),
     name = "cmd2")
 
 w_install = WList(
@@ -462,7 +471,7 @@ class AdminConsole:
                 print cmdline_usage
                 sys.exit(0)
             elif o == "--version":
-                print "newadm version %s" % __version__
+                print "qadmin version %s" % __version__
                 sys.exit(0)
             elif o == "-h":
                 cstr_map['host'] = a
@@ -539,7 +548,7 @@ class AdminConsole:
         readline.parse_and_bind('tab: complete')
         readline.set_completer(self.rl_completer_safe)
         #print 'delims: ', repr(readline.get_completer_delims())
-        hist_file = os.path.expanduser("~/.newadm_history")
+        hist_file = os.path.expanduser("~/.qadmin_history")
         try:
             readline.read_history_file(hist_file)
         except IOError:
@@ -664,8 +673,7 @@ class AdminConsole:
 
     def cmd_connect(self, params):
         qname = params.get('queue')
-        if not qname:
-            qname = self.cur_queue
+
         if 'node' in params and not qname:
             print 'node= needs a queue also'
             return
@@ -685,18 +693,26 @@ class AdminConsole:
             cstr = " ".join(cdata)
             self.db = self.db_connect(cstr)
 
-        # connect to node
-        if 'node' in params:
+        # connect to queue
+        if qname:
             curs = self.db.cursor()
-            q = "select node_location from pgq_node.get_queue_locations(%s)"\
-                " where node_name = %s"
-            curs.execute(q, [qname, params['node']])
+            q = "select queue_name from pgq.get_queue_info(%s)"
+            curs.execute(q, [qname])
             res = curs.fetchall()
             if len(res) == 0:
-                print "node not found"
+                print 'queue not found'
                 return
-            cstr = res[0]['node_location']
-            self.db = self.db_connect(cstr)
+
+            if 'node' in params:
+                q = "select node_location from pgq_node.get_queue_locations(%s)"\
+                    " where node_name = %s"
+                curs.execute(q, [qname, params['node']])
+                res = curs.fetchall()
+                if len(res) == 0:
+                    print "node not found"
+                    return
+                cstr = res[0]['node_location']
+                self.db = self.db_connect(cstr)
 
         # set default queue
         if 'queue' in params:
@@ -731,10 +747,11 @@ class AdminConsole:
     def cmd_show_queue(self, params):
         queue = params.get('queue')
         if queue is None:
+            # "show queue" without args, show all if not connected to
+            # specific queue
             queue = self.cur_queue
             if not queue:
-                print 'No default queue'
-                return
+                queue = '*'
         curs = self.db.cursor()
         fields = [
             "queue_name",
@@ -777,6 +794,35 @@ class AdminConsole:
         curs.execute(q, [q_queue, q_consumer])
 
         display_result(curs, 'Consumers')
+
+    def cmd_show_node(self, params):
+        """Show node information."""
+
+        # TODO: This should additionally show node roles, lags and hierarchy. 
+        # Similar to londiste "status".
+
+        node = params.get('node')
+        queue = params.get('queue')
+
+        if not queue:
+            # queue not provided, see if we have default.
+            queue = self.cur_queue
+
+        if not node:
+            print 'Node not specified'
+            return
+
+        q_queue = (queue != '*' and queue or None)
+        q_node = (node != '*' and node or None)
+
+        curs = self.db.cursor()
+        q = """select node_name, node_name, node_location, dead, queue_name
+               from pgq_node.node_location
+               where node_name = coalesce(%s, node_name)
+                     and queue_name = coalesce(%s, queue_name)"""
+        curs.execute(q, [q_node, q_queue])
+
+        display_result(curs, 'Database nodes')
 
     def cmd_show_batch(self, params):
         batch_id = params.get('batch_id')

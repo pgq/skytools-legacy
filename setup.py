@@ -35,7 +35,7 @@ setup(
     package_dir = {'': 'python'},
     packages = ['skytools', 'londiste', 'pgq', 'pgq.cascade'],
     scripts = ['python/londiste.py',
-               'python/newadm.py',
+               'python/qadmin.py',
                'python/pgqadm.py',
                'python/walmgr.py',
                'scripts/bulk_loader.py',

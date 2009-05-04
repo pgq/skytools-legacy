@@ -11,7 +11,7 @@ returns record as $$
 --      Unsubscribe remote node from local node.
 --
 -- Parameters:
---      i_node_name - set name
+--      i_queue_name - set name
 --      i_remote_node_name - node name
 --
 -- Returns:

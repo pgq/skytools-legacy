@@ -44,6 +44,7 @@ Works, naming problems:
 
 Broken:
 
+  drop-node NAME
   rename-node OLD NEW   Rename a node
   show-consumers [--node]
   failover NEWROOT
@@ -434,6 +435,23 @@ class CascadeAdmin(skytools.AdminScript):
         # resume node
         self.resume_node(old_name)
 
+    def cmd_drop_node(self, node_name):
+        """Drop a node."""
+
+        self.load_local_info()
+
+        node = self.load_node_info(node_name)
+
+        # see if we can safely drop
+        subscriber_list = self.get_node_subscriber_list(node_name)
+        if subscriber_list:
+            raise Exception('node still has subscribers')
+
+        # remove the node from all the databases
+        for n in self.queue_info.member_map.values():
+            q = "select * from pgq_node.drop_node(%s, %s)"
+            self.node_cmd(n.name, q, [self.queue_name, node_name])
+
     def node_depends(self, sub_node, top_node):
         cur_node = sub_node
         # walk upstream
@@ -683,7 +701,7 @@ class CascadeAdmin(skytools.AdminScript):
 
     def get_node_subscriber_list(self, node_name):
         """Fetch subscriber list from a node."""
-        q = "select node_name from pgq_node.get_subscriber_info(%s)"
+        q = "select node_name, node_watermark from pgq_node.get_subscriber_info(%s)"
         db = self.get_node_database(node_name)
         rows = self.exec_query(db, q, [self.queue_name])
         return [r['node_name'] for r in rows]

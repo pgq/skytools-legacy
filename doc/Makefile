@@ -11,7 +11,7 @@ EPYARGS = --no-private --url="http://pgfoundry.org/projects/skytools/" \
 
 HTMLS = londiste.cmdline.html londiste.config.html README.html INSTALL.html \
 	londiste.ref.html TODO.html pgq-sql.html pgq-admin.html pgq-nodupes.html \
-	$(SCRIPT_HTMLS) faq.html set.notes.html newadm.html skytools3.html devnotes.html
+	$(SCRIPT_HTMLS) faq.html set.notes.html qadmin.html skytools3.html devnotes.html
 
 SCRIPT_TXTS = walmgr.txt cube_dispatcher.txt table_dispatcher.txt \
 	      queue_mover.txt queue_splitter.txt bulk_loader.txt \
@@ -35,6 +35,7 @@ html: $(HTMLS)
 install: man $(HTMLS)
 	mkdir -p $(DESTDIR)/$(mandir)/man1
 	mkdir -p $(DESTDIR)/$(mandir)/man5
+	mkdir -p $(DESTDIR)/$(docdir)
 	install -m 644 londiste.1 $(DESTDIR)/$(mandir)/man1
 	install -m 644 londiste.5 $(DESTDIR)/$(mandir)/man5
 	install -m 644 pgqadm.1 $(DESTDIR)/$(mandir)/man1
