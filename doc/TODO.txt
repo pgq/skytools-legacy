@@ -5,9 +5,13 @@ In angular brackets after item is assumed complexity [easy, moderate, complex],
 wheter it is good to have it in 3.0, and maybe also developer name
 who already is handling it.
 
-== Required for 3.0-alpha ==
+== Required for 3.0a2 ==
 
-* londiste demo
+* resync
+* missing
+* takeover
+* status with dead nodes
+* execute --wait
 
 == Required for 3.0-final ==
 
@@ -21,25 +25,20 @@ who already is handling it.
 
 * londiste.ref.txt update with new commands [moderate]
 
-* Re-introduce lost Londiste features:
-  - check
+* Re-introduce lost Londiste features, that were lost when lot of interaction code was moved to database:
+  - compare/repair
   - fkeys
+  - missing
   - globbing
-  They were lost when lot of interaction code was moved to database.
-  Now we need to get them working again.
-  [easy - need to port 2.1 code]
+  - `--all`
+  - [easy - need to port 2.1 code]
 
 * Refresh default .ini files, add comments.
   Alternative: have defailt .ini in script docstring,
   have DBScript switch to dump it.
   [easy]
 
-* Dead node handling / failover.  We have working switchover,
-  now need to able to do it with some nodes dead.
-  [complex]
-
 * New ticker:
-  - handle connection errors (maybe works already?)
   - operate only on databases specified in config
 
 == Good to have changes ==
