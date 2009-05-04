@@ -61,7 +61,7 @@ begin
         end if;
     end loop;
 
-    select 200, 'Sequences updated' into ret_code, ret_note;
+    select 100, 'Sequences updated' into ret_code, ret_note;
     return;
 end;
 $$ language plpgsql;

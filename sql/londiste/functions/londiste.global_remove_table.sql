@@ -29,10 +29,12 @@ begin
         where queue_name = i_queue_name
           and table_name = fq_table_name;
     if not found then
-        select 400, 'Not found: '||fq_table_name into ret_code, ret_note;
+        select 400, 'Table not found: ' || fq_table_name
+            into ret_code, ret_note;
         return;
     end if;
-    select 200, 'OK' into ret_code, ret_note;
+    select 200, 'Table removed: ' || i_table_name
+        into ret_code, ret_note;
     return;
 end;
 $$ language plpgsql strict;

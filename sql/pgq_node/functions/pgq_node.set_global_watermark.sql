@@ -66,7 +66,8 @@ begin
                 and consumer_name = this.worker_name;
     end if;
 
-    select 200, 'Ok' into ret_code, ret_note;
+    select 200, 'Global watermark set to ' || _wm
+        into ret_code, ret_note;
     return;
 end;
 $$ language plpgsql security definer;

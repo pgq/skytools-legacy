@@ -34,13 +34,14 @@ begin
 
     perform 1 from londiste.table_info where queue_name = i_queue_name and table_name = fq_table_name;
     if found then
-        select 200, 'OK, already added: ' || fq_table_name into ret_code, ret_note;
+        select 200, 'Table already added: ' || fq_table_name into ret_code, ret_note;
         return;
     end if;
 
     insert into londiste.table_info (queue_name, table_name)
         values (i_queue_name, fq_table_name);
-    select 200, 'OK' into ret_code, ret_note;
+    select 200, 'Table added: ' || i_table_name
+        into ret_code, ret_note;
     return;
 end;
 $$ language plpgsql strict;

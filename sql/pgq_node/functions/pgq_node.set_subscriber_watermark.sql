@@ -33,10 +33,20 @@ begin
     end if;
 
     -- todo: check if wm sane?
+    if i_watermark < n.last_tick then
+        select 405, 'watermark must not be moved backwards'
+            into ret_code, ret_note;
+        return;
+    elsif i_watermark = n.last_tick then
+        select 100, 'watermark already set'
+            into ret_code, ret_note;
+        return;
+    end if;
 
     perform pgq.register_consumer_at(i_queue_name, wm_name, i_watermark);
 
-    select 200, 'Ok' into ret_code, ret_note;
+    select 200, wm_name || ' set to ' || i_watermark
+        into ret_code, ret_note;
     return;
 end;
 $$ language plpgsql security definer;
