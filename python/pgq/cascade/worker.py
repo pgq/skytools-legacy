@@ -261,6 +261,9 @@ class CascadedWorker(CascadedConsumer):
     def process_root_node(self, dst_db):
         """On root node send global watermark downstream.
         """
+
+        CascadedConsumer.process_root_node(self, dst_db)
+
         t = time.time()
         if t - self.global_wm_publish_time < self.global_wm_publish_period:
             return

@@ -126,7 +126,6 @@ class CascadedConsumer(Consumer):
         self._consumer_state = self.refresh_state(dst_db)
 
         if self._consumer_state['node_type'] == 'root':
-            self.log.info("target is root")
             self.process_root_node(dst_db)
             return
 
