@@ -17,21 +17,21 @@ create table ref_3 (
 );
 NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "ref_3_pkey" for table "ref_3"
 select * from londiste.global_add_table('branch_set', 'public.ref_1');
- ret_code | ret_note 
-----------+----------
-      200 | OK
+ ret_code |         ret_note          
+----------+---------------------------
+      200 | Table added: public.ref_1
 (1 row)
 
 select * from londiste.global_add_table('branch_set', 'public.ref_2');
- ret_code | ret_note 
-----------+----------
-      200 | OK
+ ret_code |         ret_note          
+----------+---------------------------
+      200 | Table added: public.ref_2
 (1 row)
 
 select * from londiste.global_add_table('branch_set', 'public.ref_3');
- ret_code | ret_note 
-----------+----------
-      200 | OK
+ ret_code |         ret_note          
+----------+---------------------------
+      200 | Table added: public.ref_3
 (1 row)
 
 select * from londiste.local_add_table('branch_set', 'public.ref_1');

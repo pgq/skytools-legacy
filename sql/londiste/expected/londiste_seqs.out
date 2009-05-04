@@ -32,7 +32,7 @@ select * from londiste.local_add_seq('seqroot', 'masterseq');
 select * from londiste.root_check_seqs('seqroot');
  ret_code |     ret_note      
 ----------+-------------------
-      200 | Sequences updated
+      100 | Sequences updated
 (1 row)
 
 select * from londiste.local_remove_seq('seqroot', 'masterseq');
