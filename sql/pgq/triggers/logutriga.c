@@ -98,7 +98,7 @@ Datum pgq_logutriga(PG_FUNCTION_ARGS)
 	 * Connect to the SPI manager
 	 */
 	if (SPI_connect() < 0)
-		elog(ERROR, "logtriga: SPI_connect() failed");
+		elog(ERROR, "logutriga: SPI_connect() failed");
 
 	pgq_prepare_event(&ev, tg, true);
 
