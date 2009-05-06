@@ -48,7 +48,7 @@ Datum pgq_logtriga(PG_FUNCTION_ARGS)
 	 * Get the trigger call context
 	 */
 	if (!CALLED_AS_TRIGGER(fcinfo))
-		elog(ERROR, "pgq.logutriga not called as trigger");
+		elog(ERROR, "pgq.logtriga not called as trigger");
 
 	tg = (TriggerData *)(fcinfo->context);
 
