@@ -103,6 +103,32 @@ class Config(object):
                 raise Exception("Config value not set: " + key)
             return default
 
+    def getdict(self, key, default=None):
+        """Reads key-value dict from parameter.
+        
+        Key and value are separated with ':'.  If missing,
+        key iself is taken as value.
+        """
+        try:
+            s = self.cf.get(self.main_section, key).strip()
+            res = {}
+            if not s:
+                return res
+            for kv in s.split(","):
+                tmp = kv.split(':', 1)
+                if len(tmp) > 1:
+                    k = tmp[0].strip()
+                    v = tmp[1].strip()
+                else:
+                    k = kv.strip()
+                    v = k
+                res[k] = v
+            return res
+        except ConfigParser.NoOptionError:
+            if default == None:
+                raise Exception("Config value not set: " + key)
+            return default
+
     def getfile(self, key, default=None):
         """Reads filename from config.
         
