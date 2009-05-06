@@ -13,6 +13,7 @@ setadm.py INI pause NODE [CONS]
 
 import sys, time, optparse, skytools
 
+from skytools import UsageError
 from pgq.cascade.nodeinfo import *
 
 __all__ = ['CascadeAdmin']
