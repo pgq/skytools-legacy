@@ -46,7 +46,7 @@ Datum pgq_sqltriga(PG_FUNCTION_ARGS)
 	 * Get the trigger call context
 	 */
 	if (!CALLED_AS_TRIGGER(fcinfo))
-		elog(ERROR, "pgq.logutriga not called as trigger");
+		elog(ERROR, "pgq.sqltriga not called as trigger");
 
 	tg = (TriggerData *)(fcinfo->context);
 
@@ -57,7 +57,7 @@ Datum pgq_sqltriga(PG_FUNCTION_ARGS)
 	 * Connect to the SPI manager
 	 */
 	if (SPI_connect() < 0)
-		elog(ERROR, "logtriga: SPI_connect() failed");
+		elog(ERROR, "sqltriga: SPI_connect() failed");
 
 	pgq_prepare_event(&ev, tg, true);
 
