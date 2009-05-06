@@ -545,7 +545,7 @@ class DBScript(object):
             raise d
         except KeyboardInterrupt, d:
             self.send_stats()
-            if self.prefer_looping and not self.do_single_loop:
+            if prefer_looping and not self.do_single_loop:
                 self.log.info("got KeyboardInterrupt, exiting")
             self.reset()
             sys.exit(1)
