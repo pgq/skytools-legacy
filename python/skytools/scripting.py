@@ -349,9 +349,9 @@ class DBScript(object):
             p.set_usage("%prog [options] INI")
         # generic options
         p.add_option("-q", "--quiet", action="store_true",
-                     help = "make program silent")
+                     help = "log only errors and warnings")
         p.add_option("-v", "--verbose", action="store_true",
-                     help = "make program verbose")
+                     help = "log verbosely")
         p.add_option("-d", "--daemon", action="store_true",
                      help = "go background")
 
