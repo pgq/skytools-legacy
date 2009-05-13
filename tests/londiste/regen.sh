@@ -1,39 +1,6 @@
 #! /bin/sh
 
-. ../env.sh
-
-mkdir -p log pid conf
-
-./zstop.sh
-
-v=
-v=-q
-v=-v
-
-cleardb() {
-  echo "Clearing database $1"
-  psql -q -d $1 -c '
-      set client_min_messages=warning;
-      drop schema if exists londiste cascade;
-      drop schema if exists pgq_ext cascade;
-      drop schema if exists pgq_node cascade;
-      drop schema if exists pgq cascade;
-      drop table if exists mytable;
-      drop table if exists footable;
-      drop sequence if exists footable_id_seq;
-  '
-}
-
-run() {
-  echo "$ $*"
-  "$@"
-}
-
-msg() {
-  echo "##"
-  echo "## $*"
-  echo "##"
-}
+. ../testlib.sh
 
 db_list="db1 db2 db3 db4 db5"
 
@@ -128,7 +95,7 @@ run psql -d db3 -c '\d mytable'
 run psql -d db3 -c 'select * from mytable'
 
 run sleep 10
-./zcheck.sh
+../zcheck.sh
 msg "Change topology"
 run londiste $v conf/londiste_db1.ini status
 run londiste $v conf/londiste_db3.ini change-provider --provider=node1
@@ -137,14 +104,14 @@ run londiste $v conf/londiste_db1.ini switchover --target=node2
 run londiste $v conf/londiste_db1.ini status
 
 run sleep 10
-./zcheck.sh
+../zcheck.sh
 
 msg "Change topology"
-ps aux | grep "postres[:].* db2 " | awk '{print $2}' | xargs kill
+ps aux | grep "postres[:].* db2 " | awk '{print $2}' | xargs -r kill
 run psql -d db1 -c 'alter database db2 rename to db2x'
 run londiste $v conf/londiste_db4.ini takeover db2 --dead
 run londiste $v conf/londiste_db1.ini status
 
 run sleep 10
-./zcheck.sh
+../zcheck.sh
 
