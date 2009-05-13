@@ -59,6 +59,9 @@ class NodeInfo:
             raise Exception("no target queue")
         return qname
 
+    def get_title(self):
+        return "%s (%s)" % (self.name, self.type)
+
     def get_infolines(self):
         lst = self._info_lines
 
@@ -141,11 +144,12 @@ class QueueInfo:
         """Print ascii-tree for set.
         Expects that data for all nodes is filled in."""
 
-        root = self._prepare_tree()
-        self._tree_calc(root)
-        datalines = self._print_node(root, '', [])
-        for ln in datalines:
-            print(self._DATAFMT % (' ', ln))
+        root_list = self._prepare_tree()
+        for root in root_list:
+            self._tree_calc(root)
+            datalines = self._print_node(root, '', [])
+            for ln in datalines:
+                print(self._DATAFMT % (' ', ln))
 
     def _print_node(self, node, pfx, datalines):
         # print a tree fragment for node and info
@@ -153,7 +157,7 @@ class QueueInfo:
         for ln in datalines:
             print(self._DATAFMT % (_setpfx(pfx, '|'), ln))
         datalines = node.get_infolines()
-        print("%s%s" % (_setpfx(pfx, '+--'), node.name))
+        print("%s%s" % (_setpfx(pfx, '+--'), node.get_title()))
 
         for i, n in enumerate(node.child_list):
             sfx = ((i < len(node.child_list) - 1) and '  |' or '   ')
@@ -163,25 +167,26 @@ class QueueInfo:
 
     def _prepare_tree(self):
         # reset vars, fill parent and child_list for each node
-        # returns root
-        root = None
+        # returns list of root nodes (mostly 1)
+
         for node in self.node_map.values():
             node.total_childs = 0
             node.levels = 0
             node.child_list = []
-            if node.type == ROOT:
-                root = node
+            node.parent = None
+
+        root_list = []
         for node in self.node_map.values():
-            if node.provider_node and node.provider_node != node.name:
+            if node.provider_node \
+                    and node.provider_node != node.name \
+                    and node.provider_node in self.node_map:
                 p = self.node_map[node.provider_node]
                 p.child_list.append(node)
                 node.parent = p
             else:
                 node.parent = None
-
-        if root is None:
-            raise Exception("root node not found")
-        return root
+                root_list.append(node)
+        return root_list
 
     def _tree_calc(self, node):
         # calculate levels and count total childs
