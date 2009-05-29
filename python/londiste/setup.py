@@ -101,10 +101,12 @@ class CommonSetup(skytools.DBScript):
         return res
 
     def get_all_seqs(self, curs):
-        q = """SELECT n.nspname || '.'|| c.relname
+        q = """SELECT n.nspname || '.' || c.relname
                  from pg_class c, pg_namespace n
                 where n.oid = c.relnamespace 
                   and c.relkind = 'S'
+                  and n.nspname not in ('pgq', 'londiste', 'pgq_node')
+                  and n.nspname !~ '^pg_temp_.*'
                 order by 1"""
         curs.execute(q)
         res = []
