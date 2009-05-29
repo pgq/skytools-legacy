@@ -40,7 +40,7 @@ Internal Commands:
 cmd_handlers = (
     (('create-root', 'create-branch', 'create-leaf', 'members', 'tag-dead', 'tag-alive',
       'change-provider', 'rename-node', 'status', 'pause', 'resume',
-      'switchover', 'failover', 'drop-node', 'takeover'), londiste.LondisteSetup),
+      'drop-node', 'takeover'), londiste.LondisteSetup),
     (('add-table', 'remove-table', 'add-seq', 'remove-seq', 'tables', 'seqs',
       'missing', 'resync', 'check', 'fkeys', 'execute'), londiste.LondisteSetup),
     (('worker', 'replay'), londiste.Replicator),
@@ -92,8 +92,12 @@ class Londiste(skytools.DBScript):
                 help = "switchover: target node")
         g.add_option("--merge",
                 help = "create-leaf: combined queue name")
-        g.add_option("--dead", action = 'store_true',
-                help = "takeover: old one is dead")
+        g.add_option("--dead", action = 'append',
+                help = "cascade: assume node is dead")
+        g.add_option("--dead-root", action = 'store_true',
+                help = "takeover: old node was root")
+        g.add_option("--dead-branch", action = 'store_true',
+                help = "takeover: old node was branch")
         p.add_option_group(g)
         return p
 

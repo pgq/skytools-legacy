@@ -88,10 +88,14 @@ class CascadeAdmin(skytools.AdminScript):
         g.add_option("--consumer",
                      help = "specify consumer name")
         g.add_option("--target",
-                    help = "switchover: specify replacement node")
+                    help = "takeover: specify node to take over")
         g.add_option("--merge",
                     help = "create-node: combined queue name")
-        g.add_option("--dead", action="store_true",
+        g.add_option("--dead", action="append",
+                    help = "tag some node as dead")
+        g.add_option("--dead-root", action="store_true",
+                    help = "tag some node as dead")
+        g.add_option("--dead-branch", action="store_true",
                     help = "tag some node as dead")
         p.add_option_group(g)
         return p
@@ -319,20 +323,27 @@ class CascadeAdmin(skytools.AdminScript):
 
     def cmd_status(self):
         """Show set status."""
-        root_db = self.find_root_db()
-        sinf = self.load_queue_info(root_db)
+        self.load_local_info()
 
-        for mname, minf in sinf.member_map.iteritems():
+        for mname, minf in self.queue_info.member_map.iteritems():
+            #inf = self.get_node_info(mname)
+            #self.queue_info.add_node(inf)
+            #continue
+
+            if not self.node_alive(mname):
+                node = NodeInfo(self.queue_name, None, node_name = mname)
+                self.queue_info.add_node(node)
+                continue
             db = self.get_database('look_db', connstr = minf.location, autocommit = 1)
             curs = db.cursor()
             curs.execute("select * from pgq_node.get_node_info(%s)", [self.queue_name])
             node = NodeInfo(self.queue_name, curs.fetchone())
             node.load_status(curs)
             self.load_extra_status(curs, node)
-            sinf.add_node(node)
+            self.queue_info.add_node(node)
             self.close_database('look_db')
 
-        sinf.print_tree()
+        self.queue_info.print_tree()
 
     def load_extra_status(self, curs, node):
         """Fetch extra info."""
@@ -510,33 +521,34 @@ class CascadeAdmin(skytools.AdminScript):
                 return info
 
 
-    def takeover_root(self, old_info, new_info, failover = False):
+    def takeover_root(self, old_node_name, new_node_name, failover = False):
         """Root switchover."""
-        old = old_info.name
-        new = new_info.name
 
-        if self.node_alive(old):
-            self.pause_node(old)
-            self.demote_node(old, 1, new)
-            last_tick = self.demote_node(old, 2, new)
-            self.wait_for_catchup(new, last_tick)
+        new_info = self.get_node_info(new_node_name)
+        old_info = None
 
-        self.pause_node(new)
-        self.promote_branch(new)
+        if self.node_alive(old_node_name):
+            old_info = self.get_node_info(old_node_name)
+            self.pause_node(old_node_name)
+            self.demote_node(old_node_name, 1, new_node_name)
+            last_tick = self.demote_node(old_node_name, 2, new_node_name)
+            self.wait_for_catchup(new_node_name, last_tick)
 
-        #self.subscribe_node(new, old, old_info.completed_tick)
-        q = 'select * from pgq_node.register_subscriber(%s, %s, %s, %s)'
-        self.node_cmd(new, q, [self.queue_name, old, old_info.worker_name, last_tick])
+        self.pause_node(new_node_name)
+        self.promote_branch(new_node_name)
 
-        #self.unsubscribe_node(new_node.parent_node, new_node.name)
+        if self.node_alive(old_node_name):
+            q = 'select * from pgq_node.register_subscriber(%s, %s, %s, %s)'
+            self.node_cmd(new_node_name, q, [self.queue_name, old_node_name, old_info.worker_name, last_tick])
+
         q = "select * from pgq_node.unregister_subscriber(%s, %s)"
-        self.node_cmd(new_info.provider_node, q, [self.queue_name, new])
+        self.node_cmd(new_info.provider_node, q, [self.queue_name, new_node_name])
 
-        self.resume_node(new)
+        self.resume_node(new_node_name)
 
-        if self.node_alive(old):
-            self.demote_node(old, 3, new)
-            self.resume_node(old)
+        if self.node_alive(old_node_name):
+            self.demote_node(old_node_name, 3, new_node_name)
+            self.resume_node(old_node_name)
 
     def takeover_nonroot(self, old_node_name, new_node_name, failover):
         """Non-root switchover."""
@@ -562,6 +574,9 @@ class CascadeAdmin(skytools.AdminScript):
             new_node_name = self.local_node
         if not old_node_name:
             raise UsageError('old node not given')
+
+        if old_node_name not in self.queue_info.member_map:
+            raise UsageError('Unknown node: %s' % old_node_name)
 
         if self.options.dead_root:
             otype = 'root'
@@ -669,7 +684,7 @@ class CascadeAdmin(skytools.AdminScript):
             if not m:
                 self.log.error("get_node_database: cannot resolve %s" % node_name)
                 sys.exit(1)
-            self.log.info("%s: dead=%s" % (m.name, m.dead))
+            #self.log.info("%s: dead=%s" % (m.name, m.dead))
             if m.dead:
                 return None
             loc = m.location
@@ -679,10 +694,13 @@ class CascadeAdmin(skytools.AdminScript):
     def node_alive(self, node_name):
         m = self.queue_info.get_member(node_name)
         if not m:
-            return False
-        if m.dead:
-            return False
-        return True
+            res = False
+        elif m.dead:
+            res = False
+        else:
+            res = True
+        #self.log.warning('node_alive(%s) = %s' % (node_name, res))
+        return res
 
     def close_node_database(self, node_name):
         """Disconnect node's connection."""
@@ -781,7 +799,12 @@ class CascadeAdmin(skytools.AdminScript):
         q = "select * from pgq_node.get_queue_locations(%s)"
         member_list = self.exec_query(db, q, [self.queue_name])
 
-        return QueueInfo(self.queue_name, info, member_list)
+        qinf = QueueInfo(self.queue_name, info, member_list)
+        if self.options.dead:
+            for node in self.options.dead:
+                self.log.info("Assuming node '%s' as dead" % node)
+                qinf.tag_dead(node)
+        return qinf
 
     def get_node_subscriber_list(self, node_name):
         """Fetch subscriber list from a node."""

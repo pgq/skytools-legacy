@@ -19,10 +19,37 @@ class MemberInfo:
 
 class NodeInfo:
     """Detailed info about set node."""
-    def __init__(self, queue_name, row, main_worker = True):
+
+    name = None
+    type = None
+    global_watermark = None
+    local_watermark = None
+    completed_tick = None
+    provider_node = None
+    provider_location = None
+    consumer_name = None #?
+    worker_name = None #?
+    paused = False
+    uptodate = True
+    combined_queue = None
+    combined_type = None
+
+    def __init__(self, queue_name, row, main_worker = True, node_name = None):
         self.queue_name = queue_name
         self.member_map = {}
         self.main_worker = main_worker
+
+        self.parent = None
+        self.consumer_map = {}
+        self.queue_info = {}
+        self._info_lines = []
+
+        self._row = row
+
+        if not row:
+            self.name = node_name
+            self.type = 'dead'
+            return
 
         self.name = row['node_name']
         self.type = row['node_type']
@@ -37,14 +64,6 @@ class NodeInfo:
         self.uptodate = row['worker_uptodate']
         self.combined_queue = row['combined_queue']
         self.combined_type = row['combined_type']
-
-        self.parent = None
-        self.consumer_map = {}
-        self.queue_info = {}
-
-        self._row = row
-
-        self._info_lines = []
 
     def __get_target_queue(self):
         qname = None
@@ -69,11 +88,17 @@ class NodeInfo:
             root = self.parent
             while root.parent:
                 root = root.parent
-            tick_time = self.parent.consumer_map[self.consumer_name]['tick_time']
-            root_time = root.queue_info['now']
-            lag = root_time - tick_time
-        else:
+            cinfo = self.parent.consumer_map.get(self.consumer_name)
+            if cinfo and root.queue_info:
+                tick_time = cinfo['tick_time']
+                root_time = root.queue_info['now']
+                lag = root_time - tick_time
+            else:
+                lag = "(n/a?)"
+        elif self.queue_info:
             lag = self.queue_info['ticker_lag']
+        else:
+            lag = "(n/a)"
         txt = "lag: %s" % lag
         if self.paused:
             txt += ", PAUSED"
