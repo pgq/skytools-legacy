@@ -15,23 +15,19 @@ who already is handling it.
 * --all
 * globbing
 * pgqd: database_list
+* relaxed event processing for python modules
 
-== Required for 3.0a2 ==
+== Good for 3.0a2 ==
 
 * compare/repair
-* execute --wait
 * fkeys
 * londiste.ref.txt update with new commands [moderate]
 
 == Required for 3.0-final ==
 
+* execute --wait
 * Simple Python consumer for pgq_coop, where each subconsumer
   is separate process. [easy]
-
-* Relaxed event processing for Python pgq modules.
-  As now there are more event types and several layers
-  who want to process them, it seems best to remove the
-  strict .tag_done() tracking. [marko]
 
 == Good to have changes ==
 
