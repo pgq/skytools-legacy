@@ -19,6 +19,7 @@ _fldmap = {
         'ev_extra2': 'ev_extra2',
         'ev_extra3': 'ev_extra3',
         'ev_extra4': 'ev_extra4',
+        'ev_retry': 'ev_retry',
 
         'id': 'ev_id',
         'txid': 'ev_txid',
@@ -29,6 +30,7 @@ _fldmap = {
         'extra2': 'ev_extra2',
         'extra3': 'ev_extra3',
         'extra4': 'ev_extra4',
+        'retry': 'ev_retry',
 }
 
 class Event(object):
@@ -42,7 +44,7 @@ class Event(object):
 
     def __init__(self, queue_name, row):
         self._event_row = row
-        self._status = EV_UNTAGGED
+        self._status = EV_DONE
         self.retry_time = 60
         self.queue_name = queue_name
 

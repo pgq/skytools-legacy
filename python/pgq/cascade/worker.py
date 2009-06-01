@@ -124,8 +124,6 @@ class CascadedWorker(CascadedConsumer):
             else:
                 if st.process_events:
                     self.process_remote_event(src_curs, dst_curs, ev)
-                else:
-                    ev.tag_done()
             if ev.ev_id > max_id:
                 max_id = ev.ev_id
         if st.local_wm_publish:
@@ -163,6 +161,10 @@ class CascadedWorker(CascadedConsumer):
     def process_remote_event(self, src_curs, dst_curs, ev):
         """Handle cascading events.
         """
+
+        if ev.retry:
+            raise Exception('CascadedWorker must not get retry events')
+
         # non cascade events send to CascadedConsumer to error out
         if ev.ev_type[:4] != 'pgq.':
             CascadedConsumer.process_remote_event(self, src_curs, dst_curs, ev)
@@ -170,7 +172,6 @@ class CascadedWorker(CascadedConsumer):
 
         # ignore cascade events if not main worker
         if not self.main_worker:
-            ev.tag_done()
             return
 
         # check if for right queue
@@ -199,7 +200,6 @@ class CascadedWorker(CascadedConsumer):
                 dst_curs.execute(q, [self.pgq_queue_name, ev.ev_extra1, tick_id])
         else:
             raise Exception("unknown cascade event: %s" % t)
-        ev.tag_done()
 
     def finish_remote_batch(self, src_db, dst_db, tick_id):
         """Worker-specific cleanup on target node.

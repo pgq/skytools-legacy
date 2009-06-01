@@ -87,7 +87,6 @@ class SimpleSerialConsumer(pgq.SerialConsumer):
                 self.log.debug(res)
             except:
                 pass
-            ev.tag_done()
 
 if __name__ == '__main__':
     script = SimpleSerialConsumer(sys.argv[1:])

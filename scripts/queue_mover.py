@@ -35,7 +35,6 @@ class QueueMover(pgq.SerialConsumer):
         for ev in ev_list:
             data = [ev.type, ev.data, ev.extra1, ev.extra2, ev.extra3, ev.extra4, ev.time]
             rows.append(data)
-            ev.tag_done()
         fields = ['type', 'data', 'extra1', 'extra2', 'extra3', 'extra4', 'time']
 
         # insert data

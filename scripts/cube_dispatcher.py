@@ -90,8 +90,6 @@ class CubeDispatcher(pgq.SerialConsumer):
             if not tbl in tables:
                 tables[tbl] = self.get_table_info(ev, tbl)
 
-            ev.tag_done()
-
         # create tables if needed
         self.check_tables(dst_db, tables)
 

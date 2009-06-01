@@ -37,7 +37,6 @@ class QueueSplitter(pgq.SerialConsumer):
             if queue not in cache:
                 cache[queue] = []
             cache[queue].append(row)
-            ev.tag_done()
 
         # should match the composed row
         fields = ['type', 'data', 'extra1', 'extra2', 'extra3', 'extra4', 'time']

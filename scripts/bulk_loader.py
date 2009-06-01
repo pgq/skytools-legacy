@@ -253,7 +253,6 @@ class BulkLoader(pgq.SerialConsumer):
                 tables[tbl] = TableCache(tbl)
             cache = tables[tbl]
             cache.add_event(ev)
-            ev.tag_done()
 
         # then process them
         for tbl, cache in tables.items():

@@ -68,7 +68,6 @@ class _BatchWalker(object):
             self.length += len(rows)
             for row in rows:
                 ev = _WalkerEvent(self, self.queue_name, row)
-                self.status_map[ev.id] = (EV_UNTAGGED, None)
                 yield ev
 
         self.curs.execute("close %s" % self.sql_cursor)
@@ -77,17 +76,19 @@ class _BatchWalker(object):
 
     def __len__(self):
         if self.fetch_status != 2:
-            raise Exception("BatchWalker: len() for incomplete result. (%d)" % self.fetch_status)
+            return -1
+            #raise Exception("BatchWalker: len() for incomplete result. (%d)" % self.fetch_status)
         return self.length
 
     def tag_event_done(self, event):
-        del self.status_map[event.id]
+        if event.id in self.status_map:
+            del self.status_map[event.id]
 
     def tag_event_retry(self, event, retry_time):
         self.status_map[event.id] = (EV_RETRY, retry_time)
 
     def get_status(self, event):
-        return self.status_map[event.id][0]
+        return self.status_map.get(event.id, (EV_DONE, 0))[0]
 
     def iter_status(self):
         for res in self.status_map.iteritems():

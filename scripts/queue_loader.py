@@ -593,7 +593,6 @@ class QueueLoader(CascadedWorker):
             self.init_state(tbl)
         st = self.table_state[tbl]
         st.add(dst_curs, ev, self._batch_info)
-        ev.tag_done()
 
     def finish_remote_batch(self, src_db, dst_db, tick_id):
         curs = dst_db.cursor()

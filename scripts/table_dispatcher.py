@@ -104,8 +104,6 @@ class TableDispatcher(pgq.SerialConsumer):
             else:
                 tables[tbl].append(dstrow)
 
-            ev.tag_done()
-
         # create tables if needed
         self.check_tables(dst_db, tables)
 
