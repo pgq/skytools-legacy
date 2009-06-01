@@ -23,9 +23,12 @@ select * from londiste.local_add_table('aset', 'public.testdata_nopk');
 select * from londiste.local_add_table('aset', 'public.testdata');
 insert into testdata (data) values ('test-data');
 select * from londiste.get_table_list('aset');
+select * from londiste.local_show_missing('aset');
 select * from londiste.local_remove_table('aset', 'public.testdata');
 select * from londiste.local_remove_table('aset', 'public.testdata');
 select * from londiste.get_table_list('aset');
 
 select ev_id, ev_type, ev_data, ev_extra1 from pgq.event_template;
+
+select * from londiste.local_show_missing('aset');
 

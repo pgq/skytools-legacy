@@ -104,15 +104,15 @@ select * from londiste.get_table_list('combined_set');
 (1 row)
 
 select * from londiste.local_set_table_state('part1_set', 'public.tblmerge', null, 'in-copy');
- local_set_table_state 
------------------------
-                     1
+ ret_code |                   ret_note                   
+----------+----------------------------------------------
+      200 | Table public.tblmerge state set to 'in-copy'
 (1 row)
 
 select * from londiste.local_set_table_state('part2_set', 'public.tblmerge', null, 'in-copy');
- local_set_table_state 
------------------------
-                     1
+ ret_code |                   ret_note                   
+----------+----------------------------------------------
+      200 | Table public.tblmerge state set to 'in-copy'
 (1 row)
 
 select * from londiste.get_table_list('part1_set');
@@ -146,15 +146,15 @@ select * from londiste.get_table_list('part2_set');
 (1 row)
 
 select * from londiste.local_set_table_state('part1_set', 'public.tblmerge', null, 'in-copy');
- local_set_table_state 
------------------------
-                     1
+ ret_code |                   ret_note                   
+----------+----------------------------------------------
+      200 | Table public.tblmerge state set to 'in-copy'
 (1 row)
 
 select * from londiste.local_set_table_state('part2_set', 'public.tblmerge', null, 'catching-up');
- local_set_table_state 
------------------------
-                     1
+ ret_code |                     ret_note                     
+----------+--------------------------------------------------
+      200 | Table public.tblmerge state set to 'catching-up'
 (1 row)
 
 select * from londiste.get_table_list('part1_set');
@@ -188,15 +188,15 @@ select * from londiste.get_table_list('part2_set');
 (1 row)
 
 select * from londiste.local_set_table_state('part1_set', 'public.tblmerge', null, 'catching-up');
- local_set_table_state 
------------------------
-                     1
+ ret_code |                     ret_note                     
+----------+--------------------------------------------------
+      200 | Table public.tblmerge state set to 'catching-up'
 (1 row)
 
 select * from londiste.local_set_table_state('part2_set', 'public.tblmerge', null, 'catching-up');
- local_set_table_state 
------------------------
-                     1
+ ret_code |                     ret_note                     
+----------+--------------------------------------------------
+      200 | Table public.tblmerge state set to 'catching-up'
 (1 row)
 
 select * from londiste.get_table_list('part1_set');

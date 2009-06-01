@@ -267,9 +267,8 @@ class LondisteSetup(CascadeAdmin):
 
     def cmd_resync(self, *args):
         """Reload data from provider node.."""
-        # fixme
-        q = "select * from londiste.node_resync_table(%s, %s)"
         db = self.get_database('db')
+        q = "select * from londiste.local_set_table_state(%s, %s, null, null)"
         self.exec_cmd_many(db, q, [self.set_name], args)
 
     def cmd_tables(self):
@@ -286,8 +285,7 @@ class LondisteSetup(CascadeAdmin):
 
     def cmd_missing(self):
         """Show missing tables on local node."""
-        # fixme
-        q = "select * from londiste.node_show_missing(%s)"
+        q = "select * from londiste.local_show_missing(%s)"
         db = self.get_database('db')
         self.display_table(db, "Missing objects on node", q, [self.set_name])
 
