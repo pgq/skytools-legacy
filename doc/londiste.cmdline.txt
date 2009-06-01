@@ -51,26 +51,26 @@ steps:
     $ pgqadm pgqadm-master.ini ticker -d
     $ pgqadm pgqadm-slave.ini ticker -d
 
- 2. create londiste config file for both databases.
+ 3. create londiste config file for both databases.
 
     $ edit londiste-master.ini
     $ edit londiste-slave.ini
 
- 3. create londiste nodes.  this also installs londiste code.
+ 4. create londiste nodes.  this also installs londiste code.
 
     $ londiste londiste-master.ini create-root master
-    $ londiste londiste-slave.ini  create-branch slave --provider="master's connstr"
+    $ londiste londiste-slave.ini  create-branch slave --provider="master connstr"
 
- 4. launch londiste daemons for both databases.
+ 5. launch londiste daemons for both databases.
 
     $ londiste londiste-master.ini replay -d
     $ londiste londiste-slave.ini replay -d
 
- 5. add tables to master
+ 6. add tables to master
 
     $ londiste londiste-master.ini add-table mytbl1 mytbl2
 
- 6. add tables to slave
+ 7. add tables to slave
 
     $ londiste londiste-slave.ini add-table mytbl1 mytbl2
 
@@ -112,8 +112,16 @@ queue. Equivalent to doing following by hand:
     \i .../contrib/londiste.sql
 
 === create-root ===
+
+q
+
 === create-branch ===
+
+q
+
 === create-leaf ===
+
+q
 
 === add-table <table name> ... ===
 

@@ -5,13 +5,23 @@ In angular brackets after item is assumed complexity [easy, moderate, complex],
 wheter it is good to have it in 3.0, and maybe also developer name
 who already is handling it.
 
-== Required for 3.0a2 ==
+== Done for 3.0a2 ==
 
-* resync
-* missing
+* config templates in docstr
 * takeover
 * status with dead nodes
+* resync
+* missing
+* --all
+* globbing
+* pgqd: database_list
+
+== Required for 3.0a2 ==
+
+* compare/repair
 * execute --wait
+* fkeys
+* londiste.ref.txt update with new commands [moderate]
 
 == Required for 3.0-final ==
 
@@ -22,24 +32,6 @@ who already is handling it.
   As now there are more event types and several layers
   who want to process them, it seems best to remove the
   strict .tag_done() tracking. [marko]
-
-* londiste.ref.txt update with new commands [moderate]
-
-* Re-introduce lost Londiste features, that were lost when lot of interaction code was moved to database:
-  - compare/repair
-  - fkeys
-  - missing
-  - globbing
-  - `--all`
-  - [easy - need to port 2.1 code]
-
-* Refresh default .ini files, add comments.
-  Alternative: have defailt .ini in script docstring,
-  have DBScript switch to dump it.
-  [easy]
-
-* New ticker:
-  - operate only on databases specified in config
 
 == Good to have changes ==
 
@@ -52,11 +44,6 @@ who already is handling it.
 * pgq, pgqadm: show stats about event counts based on seq values in ticks. [3.0, easy]
 
 === python/skytools ===
-
-* DBScript: when getting error from database, log connection name with it.
-  Needs wrapper functions in psycopgwrapper to either catch exceptions and
-  add more details for them or to set 'last active' connection name.
-  [3.0, moderate]
 
 * Sleeping while waiting notices from db.  It seems good to speed up
   change-provider, switchover etc commands by using LISTEN/NOTIFY
