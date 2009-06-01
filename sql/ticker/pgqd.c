@@ -151,7 +151,6 @@ static void launch_db(const char *dbname)
 	/* create new db entry */
 	db = calloc(1, sizeof(*db));
 	db->name = strdup(dbname);
-	statlist_init(&db->maint_item_list, "maint_item_list");
 	list_init(&db->head);
 	statlist_append(&database_list, &db->head);
 
