@@ -38,6 +38,7 @@ struct PgDatabase {
 	enum DbState state;
 	enum DbState maint_state;
 	struct StatList maint_item_list;
+	bool dropped;
 };
 
 struct Config {

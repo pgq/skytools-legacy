@@ -4,7 +4,7 @@ include ../../config.mak
 USUAL_DIR = ../../lib
 USUAL_OBJDIR = .
 USUAL_MODULES = logging daemon event string time cfparser fileutil \
-		socket compat heap-impl base
+		socket compat heap-impl base mbuf
 include $(USUAL_DIR)/Setup.mk
 
 PROGRAM = pgqd
