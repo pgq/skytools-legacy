@@ -7,27 +7,42 @@ who already is handling it.
 
 == Done for 3.0a2 ==
 
-* config templates in docstr
-* takeover
-* status with dead nodes
-* resync
-* missing
-* --all
-* globbing
-* pgqd: database_list
-* relaxed event processing for python modules
-
-== Good for 3.0a2 ==
-
-* compare/repair
-* fkeys
-* londiste.ref.txt update with new commands [moderate]
+* newadm: rename to qadmin
+* pgq
+  - drop failed event concept
+  - relaxed event processing for python modules
+* python/skytools:
+  - config templates in docstr
+  - show connection name with error message
+  - use config file name as default job name
+  - new querybuilder class
+  - .getdict() method for Config
+* pgqd:
+  - specifying fixed list of databases in config works
+  - periodic detection works
+* cascading
+  - fix watermark publishing
+  - several log message and level fixes
+  - Replace 'switchover'/'failover' with 'takeover'
+  - 'status' with dead nodes works
+* londiste
+  - resync
+  - missing
+  - --all
+  - globbing
+  - compare/repair
 
 == Required for 3.0-final ==
 
-* execute --wait
 * Simple Python consumer for pgq_coop, where each subconsumer
   is separate process. [easy]
+* qadmin, pgqadm: show stats about event counts based on seq values in ticks. [easy]
+* londiste, struct change needed:
+  - londiste doc update with new commands [easy]
+  - store last error [easy]
+  - support WHERE for COPY [easy]
+  - fkeys, from 2.x [easy]
+  - execute --wait [moderate]
 
 == Good to have changes ==
 
@@ -36,8 +51,6 @@ who already is handling it.
 * drop_queue(force) - to drop consumers [3.0, easy]
 
 * pgq_node.is_root_event() rettype [easy, but hard to decide]
-
-* pgq, pgqadm: show stats about event counts based on seq values in ticks. [3.0, easy]
 
 === python/skytools ===
 
@@ -81,7 +94,6 @@ who already is handling it.
   - Wait until COPY finishes.
   - Do not allow?
 
-
 === sql/londiste ===
 
 * plpgsql trigger for TRUNCATE and Londiste support for installing such trigger [moderate]
@@ -111,6 +123,8 @@ who already is handling it.
 * pgq/cascade: rename node [hard]
 
 === Smaller things ===
+
+* 'delay' param for consumer
 
 * londiste: londiste status cmd [moderate]
  - check what modules are installed

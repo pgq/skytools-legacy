@@ -53,3 +53,49 @@ This script will setup WAL archiving, does initial backup and
 runtime WAL archive and restore.
 
 
+== Source tree contents ==
+
+  doc/ 
+    Documentation in asciidoc format.  Source for both html
+    and man pages.
+
+  python/
+    Python modules and primary executables - walmgr, londiste, qadmin, pgqadm.
+
+  python/pgq/
+    Python framework for PgQ.
+
+  python/londiste/
+    Londiste replication.
+
+  python/skytools/
+    Low-level utilities for writing database scripts in Python.
+
+  sql/
+    Database modules.
+
+  sql/pgq/
+    Table definitions and functions for PgQ queueing.
+
+  sql/pgq_coop/
+    Functions for cooperative consuming.
+
+  sql/londiste/
+    Table definitions and functions for Londiste replication.
+
+  sql/ticker/
+    PgQ ticker written in C.
+ 
+  scripts/
+    Python scripts with lesser priority.
+
+  lib/
+    libusual C libary, for pgqd.
+
+  debian/
+    Debian packaging.  This is for creating private packages,
+    official Debian packages uses it's own packagin code.
+
+  misc/
+    Random scripts used for building.
+
