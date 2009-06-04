@@ -385,6 +385,42 @@ class WalMgr(skytools.DBScript):
             self.pg_stop_backup()
             sys.exit(1)
 
+    def exec_rsync_keep_links(self, source_dir, dst_loc, exclude_list):
+        """rsync a potentially symlinked directory under PGDATA"""
+        keep_symlinks = self.cf.getint("keep_symlinks", 1)
+
+        subdir = os.path.basename(source_dir)
+        if not os.path.exists(source_dir):
+            self.log.info("%s does not exist, skipping" % subdir)
+            return
+
+        cmdline  = [ "--delete" ]
+
+        exclude_list.append("lost+found")
+        for pattern in exclude_list:
+            cmdline += [ "--exclude", pattern ]
+
+        # if this is a symlink, copy the target directory first
+        if os.path.islink(source_dir) and keep_symlinks:
+            self.log.info('%s is a symlink, attempting to copy link target' % subdir)
+
+            link = os.readlink(source_dir)
+
+            # prepend the current directory name if needed
+            if not link.startswith("/"):
+                link = os.path.join(os.getcwd(), link)
+
+            # append a slash
+            link_target = os.path.join(link, "")
+
+            remote_target = "%s:%s" % (self.slave_host(), link_target)
+            if self.exec_rsync(cmdline + [ link_target, remote_target ]):
+                self.log.warning('Unable to create symlinked %s on target, copying' % subdir)
+                cmdline.append("--copy-unsafe-links")
+
+        # now the actual PGDATA entry
+        self.exec_big_rsync(cmdline + [ source_dir, dst_loc ])
+
     def exec_cmd(self, cmdline):
         cmd = "' '".join(cmdline)
         self.log.debug("Execute cmd: '%s'" % (cmd))
@@ -534,6 +570,15 @@ class WalMgr(skytools.DBScript):
             cmdline = ["ssh", "-nT", host, "mkdir", "-p", path]
             self.exec_cmd(cmdline)
 
+    def slave_host(self):
+        """Extract the slave hostname"""
+        try:
+            slave = self.cf.get("slave")
+            host, path = slave.split(":", 1)
+        except:
+            raise Exception("invalid value for 'slave' in %s" % self.cfgfile)
+        return host
+
     def remote_walmgr(self, command, stdin_disabled = True):
         """Pass a command to slave WalManager"""
 
@@ -665,7 +710,7 @@ class WalMgr(skytools.DBScript):
                     "--exclude", "*.conf",
                     "--exclude", "pg_xlog",
                     "--exclude", "pg_tblspc",
-                    "--exclude", "pg_log/*",
+                    "--exclude", "pg_log",
                     "--copy-unsafe-links",
                     ".", dst_loc]
             self.exec_big_rsync(cmdline)
@@ -695,14 +740,10 @@ class WalMgr(skytools.DBScript):
                     cmdline = [ "--delete", "--exclude", ".*", "--copy-unsafe-links", ".", dstfn]
                     self.exec_big_rsync(cmdline)
 
-            # copy pg_xlog
-            self.chdir(data_dir)
-            cmdline = [
-                "--exclude", "*.done",
-                "--exclude", "*.backup",
-                "--copy-unsafe-links",
-                "--delete", "pg_xlog", dst_loc]
-            self.exec_big_rsync(cmdline)
+            # copy the pg_log and pg_xlog directories, these may be 
+            # symlinked to nonstandard location, so pay attention
+            self.exec_rsync_keep_links(os.path.join(data_dir, "pg_log"),  dst_loc, [ "*.log" ])
+            self.exec_rsync_keep_links(os.path.join(data_dir, "pg_xlog"), dst_loc, [ "*.done", "*.backup" ])
 
             # copy config files
             conf_dst_loc = self.cf.get("config_backup", "")
