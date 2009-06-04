@@ -119,7 +119,7 @@ class Repairer(Syncer):
 
         fqlist = [skytools.quote_ident(col) for col in field_list]
 
-        tbl_expr = "%s (%s)" % (skytools.quote_ident(tbl), ",".join(fqlist))
+        tbl_expr = "%s (%s)" % (skytools.quote_fqident(tbl), ",".join(fqlist))
 
         self.log.debug("using copy expr: %s" % tbl_expr)
 

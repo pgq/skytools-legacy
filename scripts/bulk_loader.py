@@ -17,6 +17,34 @@ Idea is following:
 The speedup from the COPY will happen only if the batches are
 large enough.  So the ticks should happen only after couple
 of minutes.
+
+bl_sourcedb_queue_to_destdb.ini
+
+Config template::
+    [bulk_loader]
+    # job name is optional when not given ini file name is used
+    job_name = bl_sourcedb_queue_to_destdb
+
+    src_db = dbname=sourcedb
+    dst_db = dbname=destdb
+
+    pgq_queue_name = source_queue
+
+    use_skylog = 0
+
+    logfile = ~/log/%(job_name)s.log
+    pidfile = ~/pid/%(job_name)s.pid
+
+    # 0 - apply UPDATE as UPDATE
+    # 1 - apply UPDATE as DELETE+INSERT
+    # 2 - merge INSERT/UPDATE, do DELETE+INSERT
+    load_method = 0
+
+    # no hurry
+    loop_delay = 10
+
+    # table renaming
+    # remap_tables = skypein_cdr_closed:skypein_cdr, tbl1:tbl2
 """
 
 import sys, os, pgq, skytools
@@ -194,7 +222,7 @@ class TableCache:
         self.final_del_list = del_list
 
 class BulkLoader(pgq.SerialConsumer):
-    """Bulk loader script."""
+    __doc__ = __doc__
     load_method = METH_CORRECT
     remap_tables = {}
     def __init__(self, args):
@@ -225,7 +253,6 @@ class BulkLoader(pgq.SerialConsumer):
                 tables[tbl] = TableCache(tbl)
             cache = tables[tbl]
             cache.add_event(ev)
-            ev.tag_done()
 
         # then process them
         for tbl, cache in tables.items():

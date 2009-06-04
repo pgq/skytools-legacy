@@ -11,6 +11,9 @@
 #include <usual/cfparser.h>
 #include <usual/time.h>
 
+static void detect_dbs(void);
+static void recheck_dbs(void);
+
 static const char *usage_str =
 "usage: pgq-ticker [switches] config.file\n"
 "Switches:\n"
@@ -83,6 +86,7 @@ static void handle_sighup(int sock, short flags, void *arg)
 {
 	log_info("Got SIGHUP re-reading config");
 	load_config(true);
+	recheck_dbs();
 }
 
 static void signal_setup(void)
@@ -138,14 +142,15 @@ static void launch_db(const char *dbname)
 	/* check of already exists */
 	statlist_for_each(elem, &database_list) {
 		db = container_of(elem, struct PgDatabase, head);
-		if (strcmp(db->name, dbname) == 0)
+		if (strcmp(db->name, dbname) == 0) {
+			db->dropped = false;
 			return;
+		}
 	}
 
 	/* create new db entry */
 	db = calloc(1, sizeof(*db));
 	db->name = strdup(dbname);
-	statlist_init(&db->maint_item_list, "maint_item_list");
 	list_init(&db->head);
 	statlist_append(&database_list, &db->head);
 
@@ -153,7 +158,15 @@ static void launch_db(const char *dbname)
 	launch_ticker(db);
 }
 
-static void detect_dbs(void);
+static void drop_db(struct PgDatabase *db)
+{
+	statlist_remove(&database_list, &db->head);
+	db_free(db->c_ticker);
+	db_free(db->c_maint);
+	db_free(db->c_retry);
+	free(db->name);
+	free(db);
+}
 
 static void detect_handler(struct PgSocket *db, void *arg, enum PgEvent ev, PGresult *res)
 {
@@ -190,6 +203,40 @@ static void detect_dbs(void)
 		db_template = db_create(detect_handler, NULL);
 	db_connect(db_template, cstr);
 	free(cstr);
+}
+
+static bool launch_db_cb(void *arg, const char *db)
+{
+	launch_db(db);
+	return true;
+}
+
+static void recheck_dbs(void)
+{
+	struct PgDatabase *db;
+	struct List *el, *tmp;
+	if (cf.database_list && cf.database_list[0]) {
+		statlist_for_each(el, &database_list) {
+			db = container_of(el, struct PgDatabase, head);
+			db->dropped = true;
+		}
+		if (!parse_word_list(cf.database_list, launch_db_cb, NULL)) {
+			log_warning("database_list parsing failed: %s", strerror(errno));
+			return;
+		}
+		statlist_for_each_safe(el, &database_list, tmp) {
+			db = container_of(el, struct PgDatabase, head);
+			if (db->dropped)
+				drop_db(db);
+		}
+		if (db_template) {
+			db_free(db_template);
+			db_template = NULL;
+		}
+	} else if (!db_template) {
+		log_info("auto-detecting dbs ...");
+		detect_dbs();
+	}
 }
 
 static void main_loop_once(void)
@@ -241,12 +288,7 @@ int main(int argc, char *argv[])
 
 	signal_setup();
 
-	if (!cf.database_list || !cf.database_list[0]) {
-		log_info("auto-detecting dbs ...");
-		detect_dbs();
-	} else {
-		fatal("fixed list not implemented yet: '%s'", cf.database_list);
-	}
+	recheck_dbs();
 
 	while (1)
 		main_loop_once();

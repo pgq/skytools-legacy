@@ -1,61 +1,22 @@
 #include "pgqd.h"
 
+#include <usual/string.h>
 
-struct MaintItem {
-	struct List head;
-	const char *name;
-};
-
-static void add_maint_item(struct PgDatabase *db, const char *name)
-{
-	struct MaintItem *item = calloc(1, sizeof(*item));
-	if (!item)
-		return;
-	list_init(&item->head);
-	item->name = strdup(name);
-	if (!item->name) {
-		free(item);
-		return;
-	}
-	statlist_append(&db->maint_item_list, &item->head);
-}
-
-static const char *pop_maint_item(struct PgDatabase *db)
-{
-	struct MaintItem *item;
-	struct List *el;
-	const char *name;
-
-	el = statlist_pop(&db->maint_item_list);
-	if (!el)
-		return NULL;
-
-	item = container_of(el, struct MaintItem, head);
-	name = item->name;
-	free(item);
-	return name;
-}
-
-static void free_maint_list(struct PgDatabase *db)
-{
-	const char *name;
-	while (1) {
-		name = pop_maint_item(db);
-		if (!name)
-			break;
-		free(name);
-	}
-}
-
-
-static void fill_items(struct PgDatabase *db, PGresult *res)
+static bool fill_items(struct PgDatabase *db, PGresult *res)
 {
 	int i;
+	if (db->maint_item_list)
+		strlist_free(db->maint_item_list);
+	db->maint_item_list = strlist_new();
+	if (!db->maint_item_list)
+		return false;
 	for (i = 0; i < PQntuples(res); i++) {
 		const char *item = PQgetvalue(res, i, 0);
 		if (item)
-			add_maint_item(db, item);
+			if (!strlist_append(db->maint_item_list, item))
+				return false;
 	}
+	return true;
 }
 
 static void run_queue_list(struct PgDatabase *db)
@@ -78,7 +39,7 @@ static void run_rotate_part1(struct PgDatabase *db)
 {
 	const char *q;
 	const char *qname;
-	qname = pop_maint_item(db);
+	qname = strlist_pop(db->maint_item_list);
 	q = "select pgq.maint_rotate_part1($1)";
 	log_debug("%s: %s [%s]", db->name, q, qname);
 	db_send_query_params(db->c_maint, q, 1, qname);
@@ -98,7 +59,7 @@ static void run_vacuum(struct PgDatabase *db)
 {
 	char qbuf[256];
 	const char *table;
-	table = pop_maint_item(db);
+	table = strlist_pop(db->maint_item_list);
 	snprintf(qbuf, sizeof(qbuf), "vacuum %s", table);
 	log_debug("%s: %s", db->name, qbuf);
 	db_send_query_simple(db->c_maint, qbuf);
@@ -126,10 +87,11 @@ static void maint_handler(struct PgSocket *s, void *arg, enum PgEvent ev, PGresu
 	case DB_RESULT_OK:
 		switch (db->maint_state) {
 		case DB_MAINT_LOAD_QUEUES:
-			fill_items(db, res);
+			if (!fill_items(db, res))
+				goto mem_err;
 		case DB_MAINT_ROT1:
 			PQclear(res);
-			if (!statlist_empty(&db->maint_item_list)) {
+			if (!strlist_empty(db->maint_item_list)) {
 				run_rotate_part1(db);
 			} else {
 				run_rotate_part2(db);
@@ -140,10 +102,11 @@ static void maint_handler(struct PgSocket *s, void *arg, enum PgEvent ev, PGresu
 			run_vacuum_list(db);
 			break;
 		case DB_MAINT_VACUUM_LIST:
-			fill_items(db, res);
+			if (!fill_items(db, res))
+				goto mem_err;
 		case DB_MAINT_DO_VACUUM:
 			PQclear(res);
-			if (!statlist_empty(&db->maint_item_list)) {
+			if (!strlist_empty(db->maint_item_list)) {
 				run_vacuum(db);
 			} else {
 				close_maint(db, cf.maint_period);
@@ -163,6 +126,14 @@ static void maint_handler(struct PgSocket *s, void *arg, enum PgEvent ev, PGresu
 	default:
 		db_reconnect(db->c_maint);
 	}
+	return;
+mem_err:
+	if (db->maint_item_list) {
+		strlist_free(db->maint_item_list);
+		db->maint_item_list = NULL;
+	}
+	db_disconnect(db->c_maint);
+	db_sleep(db->c_maint, 20);
 }
 
 void launch_maint(struct PgDatabase *db)
@@ -170,7 +141,10 @@ void launch_maint(struct PgDatabase *db)
 	log_debug("%s: launch_maint", db->name);
 
 	if (!db->c_maint) {
-		free_maint_list(db);
+		if (db->maint_item_list) {
+			strlist_free(db->maint_item_list);
+			db->maint_item_list = NULL;
+		}
 		db->c_maint = db_create(maint_handler, db);
 	}
 

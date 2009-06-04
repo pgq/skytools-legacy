@@ -3,6 +3,7 @@
 -- Group: Information
 \i functions/londiste.get_seq_list.sql
 \i functions/londiste.get_table_list.sql
+\i functions/londiste.local_show_missing.sql
 
 -- Group: Local object registration (setup tool)
 \i functions/londiste.local_add_seq.sql

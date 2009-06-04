@@ -1,6 +1,25 @@
 #! /usr/bin/env python
 
 """Londiste launcher.
+
+Config template::
+
+    [londiste]
+    job_name = somedb_worker
+
+    db = dbname=somedb host=127.0.0.1
+
+    queue_name = some_queue
+
+    logfile = ~/log/%(job_name)s.log
+    pidfile = ~/pid/%(job_name)s.pid
+
+    # how many tables can be copied in parallel
+    #parallel_copies = 1
+
+    # sleep time between work loops
+    #loop_delay = 1.0
+
 """
 
 import sys, os, os.path, optparse, skytools
@@ -40,7 +59,7 @@ Internal Commands:
 cmd_handlers = (
     (('create-root', 'create-branch', 'create-leaf', 'members', 'tag-dead', 'tag-alive',
       'change-provider', 'rename-node', 'status', 'pause', 'resume',
-      'switchover', 'failover', 'drop-node'), londiste.LondisteSetup),
+      'drop-node', 'takeover'), londiste.LondisteSetup),
     (('add-table', 'remove-table', 'add-seq', 'remove-seq', 'tables', 'seqs',
       'missing', 'resync', 'check', 'fkeys', 'execute'), londiste.LondisteSetup),
     (('worker', 'replay'), londiste.Replicator),
@@ -50,6 +69,7 @@ cmd_handlers = (
 )
 
 class Londiste(skytools.DBScript):
+    __doc__ = __doc__
     def __init__(self, args):
         skytools.DBScript.__init__(self, 'londiste', args)
 
@@ -92,6 +112,12 @@ class Londiste(skytools.DBScript):
                 help = "switchover: target node")
         g.add_option("--merge",
                 help = "create-leaf: combined queue name")
+        g.add_option("--dead", action = 'append',
+                help = "cascade: assume node is dead")
+        g.add_option("--dead-root", action = 'store_true',
+                help = "takeover: old node was root")
+        g.add_option("--dead-branch", action = 'store_true',
+                help = "takeover: old node was branch")
         p.add_option_group(g)
         return p
 

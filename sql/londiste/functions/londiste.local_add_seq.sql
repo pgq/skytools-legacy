@@ -70,7 +70,7 @@ begin
         perform pgq.seq_setval(fq_seq_name, seq.last_value);
     end if;
 
-    select 200, 'Sequence added' into ret_code, ret_note;
+    select 200, 'Sequence added: ' || fq_seq_name into ret_code, ret_note;
     return;
 end;
 $$ language plpgsql;

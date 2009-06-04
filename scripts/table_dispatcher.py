@@ -2,6 +2,37 @@
 
 """It loads urlencoded rows for one trable from queue and inserts
 them into actual tables, with optional partitioning.
+
+--ini
+[table_dispatcher]
+job_name          = test_move
+
+src_db            = dbname=sourcedb_test
+dst_db            = dbname=dataminedb_test
+
+pgq_queue_name    = OrderLog
+
+logfile           = ~/log/%(job_name)s.log
+pidfile           = ~/pid/%(job_name)s.pid
+
+# where to put data.  when partitioning, will be used as base name
+dest_table = orders
+
+# date field with will be used for partitioning
+# special value: _EVTIME - event creation time
+part_column = start_date
+
+#fields = *
+#fields = id, name
+#fields = id:newid, name, bar:baz
+
+
+# template used for creating partition tables
+# _DEST_TABLE
+part_template     = 
+    create table _DEST_TABLE () inherits (orders);
+    alter table only _DEST_TABLE add constraint _DEST_TABLE_pkey primary key (id);
+    grant select on _DEST_TABLE to group reporting;
 """
 
 import sys, os, pgq, skytools
@@ -72,8 +103,6 @@ class TableDispatcher(pgq.SerialConsumer):
                 tables[tbl] = [dstrow]
             else:
                 tables[tbl].append(dstrow)
-
-            ev.tag_done()
 
         # create tables if needed
         self.check_tables(dst_db, tables)

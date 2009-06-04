@@ -29,8 +29,6 @@ class RemoteConsumer(Consumer):
         curs = dst_db.cursor()
 
         if self.is_last_batch(curs, batch_id):
-            for ev in event_list:
-                ev.tag_done()
             return
 
         self.process_remote_batch(db, batch_id, event_list, dst_db)
@@ -103,8 +101,6 @@ class SerialConsumer(Consumer):
 
         # check if done
         if self.is_batch_done(curs):
-            for ev in event_list:
-                ev.tag_done()
             return
 
         # actual work

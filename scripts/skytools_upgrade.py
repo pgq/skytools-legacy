@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 
-"""Simple upgrade script for versioned schemas."""
+"""Upgrade script for versioned schemas."""
 
 import sys, os, re, skytools
 

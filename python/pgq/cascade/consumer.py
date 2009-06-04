@@ -102,8 +102,6 @@ class CascadedConsumer(Consumer):
         state = self._consumer_state
 
         if self.is_batch_done(state, self._batch_info):
-            for ev in event_list:
-                ev.tag_done()
             return
 
         dst_db = self.get_database(self.target_db)
@@ -201,7 +199,7 @@ class CascadedConsumer(Consumer):
         """
         if ev.ev_type[:4] == "pgq.":
             # ignore cascading events
-            ev.tag_done()
+            pass
         else:
             raise Exception('Unhandled event type in queue: %s' % ev.ev_type)
 

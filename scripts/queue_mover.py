@@ -1,14 +1,31 @@
 #! /usr/bin/env python
 
-"""This script simply mover events from one queue to another."""
+"""This script simply mover events from one queue to another.
+
+Config template::
+
+    [queue_mover]
+    job_name          = qm_sourcedb_to_targetdb
+
+    src_db            = dbname=sourcedb
+    dst_db            = dbname=targetdb
+
+    pgq_queue_name    = source_queue
+    dst_queue_name    = dest_queue
+
+    logfile           = ~/log/%(job_name)s.log
+    pidfile           = ~/pid/%(job_name)s.pid
+
+    use_skylog        = 0
+"""
 
 import sys, os, pgq
 
 class QueueMover(pgq.SerialConsumer):
-    """Plain queue copy."""
+    __doc__ = __doc__
+    
     def __init__(self, args):
         pgq.SerialConsumer.__init__(self, "queue_mover", "src_db", "dst_db", args)
-
         self.dst_queue_name = self.cf.get("dst_queue_name")
 
     def process_remote_batch(self, db, batch_id, ev_list, dst_db):
@@ -18,7 +35,6 @@ class QueueMover(pgq.SerialConsumer):
         for ev in ev_list:
             data = [ev.type, ev.data, ev.extra1, ev.extra2, ev.extra3, ev.extra4, ev.time]
             rows.append(data)
-            ev.tag_done()
         fields = ['type', 'data', 'extra1', 'extra2', 'extra3', 'extra4', 'time']
 
         # insert data

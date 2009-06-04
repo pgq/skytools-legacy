@@ -1,6 +1,83 @@
 #! /usr/bin/env python
 
-"""Load data from queue into tables, with optional partitioning."""
+"""Load data from queue into tables, with optional partitioning.
+
+Config template::
+
+    [queue_loader]
+    job_name =
+    logfile =
+    pidfile =
+
+    db = 
+
+    #rename_tables = 
+
+    [DEFAULT]
+
+    # fields - which fields to send through
+    #fields = col1, col2, col3:renamed3
+    #fields = *
+
+    # table_mode - how to handle a table
+    #
+    # ignore - ignore this table
+    # direct - update table directly
+    # split - split data into partitions
+    #table_mode = ignore
+
+    # split_mode - how to split, if requested
+    #
+    # by-batch-time: use batch time for splitting
+    # by-event-time: use event time for splitting
+    # by-date-field:fld - use fld for splitting
+    #split_mode = by-batch-time
+
+    # split_part - partition name format
+    #
+    # %(table_name)s %(year)s %(month)s %(day)s %(hour)s
+    #split_part = %(table_name)s_%(year)s_%(month)s_%(day)s
+
+    # split_part_template - How to create new partition tables
+    #
+    # Available fields:
+    # %(part)s
+    # %(parent)s
+    # %(pkey)s
+    #
+    ### Non-inherited partitions
+    #split_part_template =
+    #    create table %%(part)s (like %%(parent)s);
+    #    alter table only %%(part)s add primary key (%%(pkey)s);
+    #
+    ### Inherited partitions
+    #split_part_template = 
+    #    create table %%(part)s () inherits (%%(parent)s);
+    #    alter table only %%(part)s add primary key (%%(pkey)s);
+
+
+    # row_mode - How to apply the events
+    #
+    # plain - each event creates SQL statement to run
+    # keep_latest - change updates to DELETE + INSERT
+    # keep_all - change updates to inserts, ignore deletes
+    # bulk - instead of statement-per-row, do bulk updates
+    #row_mode = plain
+
+
+    # bulk_mode - How to do the bulk update
+    #
+    # correct - inserts as COPY into table,
+    #           update as COPY into temp table and single UPDATE from there
+    #           delete as COPY into temp table and single DELETE from there
+    # delete - as 'correct', but do update as DELETE + COPY
+    # merged - as 'delete', but merge insert rows with update rows
+    #bulk_mode=correct
+
+    [table public.foo]
+    mode = 
+    create_sql =
+"""
 
 import sys, time, skytools
 
@@ -253,9 +330,8 @@ class BulkLoader(BasicLoader):
             self.log.debug(del_sql)
             curs.execute(del_sql)
             self.log.debug("%s - %d" % (curs.statusmessage, curs.rowcount))
-            self.log.debug(curs.statusmessage)
             if len(del_list) != curs.rowcount:
-                self.log.warning("Delete mismatch: expected=%s updated=%d"
+                self.log.warning("Delete mismatch: expected=%s deleted=%d"
                         % (len(del_list), curs.rowcount))
             temp_used = True
 
@@ -274,7 +350,7 @@ class BulkLoader(BasicLoader):
                 # update main table
                 self.log.debug(upd_sql)
                 curs.execute(upd_sql)
-                self.log.debug(curs.statusmessage)
+                self.log.debug("%s - %d" % (curs.statusmessage, curs.rowcount))
                 # check count
                 if len(upd_list) != curs.rowcount:
                     self.log.warning("Update mismatch: expected=%s updated=%d"
@@ -517,7 +593,6 @@ class QueueLoader(CascadedWorker):
             self.init_state(tbl)
         st = self.table_state[tbl]
         st.add(dst_curs, ev, self._batch_info)
-        ev.tag_done()
 
     def finish_remote_batch(self, src_db, dst_db, tick_id):
         curs = dst_db.cursor()

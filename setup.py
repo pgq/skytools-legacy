@@ -49,17 +49,8 @@ setup(
                ],
     data_files = [
       ('share/doc/skytools/conf', [
-        'python/conf/londiste.ini',
-        'python/conf/pgqadm.ini',
         'python/conf/wal-master.ini',
         'python/conf/wal-slave.ini',
-        'scripts/bulk_loader.ini.templ',
-        'scripts/cube_dispatcher.ini.templ',
-        'scripts/queue_loader.ini',
-        'scripts/queue_mover.ini.templ',
-        'scripts/queue_splitter.ini.templ',
-        'scripts/scriptmgr.ini.templ',
-        'scripts/table_dispatcher.ini.templ',
         ]),
       ('share/skytools', share_dup_files)],
     ext_modules=[Extension("skytools._cquoting", ['python/modules/cquoting.c'])],

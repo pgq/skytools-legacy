@@ -42,31 +42,37 @@ steps:
 
  1. create the subscriber database, with tables to replicate
 
- 2. edit a londiste configuration file, say conf.ini, and a PgQ ticker
-    configuration file, say ticker.ini
+ 2. install pgq on both databases and launch pgq daemon.
 
- 3. install londiste on the provider and subscriber nodes. This step
-    requires admin privileges on both provider and subscriber sides,
-    and both install commands can be run remotely:
+    $ edit pgqadm-master.ini
+    $ edit pgqadm-slave.ini
+    $ pgqadm pgqadm-master.ini install
+    $ pgqadm pgqadm-slave.ini install
+    $ pgqadm pgqadm-master.ini ticker -d
+    $ pgqadm pgqadm-slave.ini ticker -d
 
-      $ londiste.py conf.ini provider install
-      $ londiste.py conf.ini subscriber install
+ 3. create londiste config file for both databases.
 
- 4. launch the PgQ ticker on the provider machine:
+    $ edit londiste-master.ini
+    $ edit londiste-slave.ini
 
-      $ pgqadm.py -d ticker.ini ticker
+ 4. create londiste nodes.  this also installs londiste code.
 
- 5. launch the londiste replay process:
+    $ londiste londiste-master.ini create-root master
+    $ londiste londiste-slave.ini  create-branch slave --provider="master connstr"
 
-      $ londiste.py -d conf.ini replay
+ 5. launch londiste daemons for both databases.
 
- 6. add tables to replicate from the provider database:
+    $ londiste londiste-master.ini replay -d
+    $ londiste londiste-slave.ini replay -d
 
-      $ londiste.py conf.ini provider add table1 table2 ...
+ 6. add tables to master
 
- 7. add tables to replicate to the subscriber database:
+    $ londiste londiste-master.ini add-table mytbl1 mytbl2
 
-      $ londiste.py conf.ini subscriber add table1 table2 ...
+ 7. add tables to slave
+
+    $ londiste londiste-slave.ini add-table mytbl1 mytbl2
 
 To replicate to more than one subscriber database just repeat each of the
 described subscriber steps for each subscriber.
@@ -92,25 +98,32 @@ command.
 	make program more verbose
 
 
-== PROVIDER COMMANDS ==
+== CASCADING COMMANDS ==
 
-  $ londiste.py config.ini provider <command>
-
-Where command is one of:
-
-=== provider install ===
+=== install ===
 
 Installs code into provider and subscriber database and creates
 queue. Equivalent to doing following by hand:
 
     CREATE LANGUAGE plpgsql;
-    CREATE LANGUAGE plpython;
     \i .../contrib/txid.sql
     \i .../contrib/pgq.sql
+    \i .../contrib/pgq_node.sql
     \i .../contrib/londiste.sql
-    select pgq.create_queue(queue name);
 
-=== provider add <table name> ... ===
+=== create-root ===
+
+q
+
+=== create-branch ===
+
+q
+
+=== create-leaf ===
+
+q
+
+=== add-table <table name> ... ===
 
 Registers table(s) on the provider database and adds the londiste trigger to 
 the table(s) which will send events to the queue.  Table names can be schema 
@@ -120,7 +133,7 @@ qualified with the schema name defaulting to public if not supplied.
 	Register all tables in provider database, except those that are
 	under schemas 'pgq', 'londiste', 'information_schema' or 'pg_*'.
 
-=== provider remove <table name> ... ===
+=== remove-table <table name> ... ===
 
 Unregisters table(s) on the provider side and removes the londiste triggers 
 from the table(s). The table removal event is also sent to the queue, so all 

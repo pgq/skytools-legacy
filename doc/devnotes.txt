@@ -142,7 +142,11 @@ Add your own writable repo, named 'self':
   $ cd skytools-dev
   $ git remote add self git@github.com:${username}/skytools-dev.git
 
-Fetch changes from upstream repo
+Push initial contents into it:
+
+  $ git push self master
+
+Fetch changes from upstream repo into branch 'origin/master', but do not merge into local 'master':
 
   $ git fetch origin
 
@@ -150,13 +154,13 @@ See changes in upstream repo:
 
   $ git log [-p] origin/master
 
-Merge changes from upstream repo:
+Merge changes from upstream repo into currently checked out branch:
 
   $ git merge origin/master
 
-Alternative: do fetch+merge in one go:
+Alternative: do fetch+merge in one go (assuming you are in 'master' branch):
 
-  $ git pull origin .
+  $ git pull
 
 Commit a change, push to your repo (on 'master' branch):
 

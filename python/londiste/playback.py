@@ -434,34 +434,26 @@ class Replicator(CascadedWorker):
         self.log.debug("New event: id=%s / type=%s / data=%s / extra1=%s" % (ev.id, ev.type, ev.data, ev.extra1))
         if ev.type in ('I', 'U', 'D'):
             self.handle_data_event(ev, dst_curs)
-            ev.tag_done()
         elif ev.type[:2] in ('I:', 'U:', 'D:'):
             self.handle_urlenc_event(ev, dst_curs)
-            ev.tag_done()
         elif ev.type == "TRUNCATE":
             self.flush_sql(dst_curs)
             self.handle_truncate_event(ev, dst_curs)
-            ev.tag_done()
         elif ev.type == 'EXECUTE':
             self.flush_sql(dst_curs)
             self.handle_execute_event(ev, dst_curs)
-            ev.tag_done()
         elif ev.type == 'londiste.add-table':
             self.flush_sql(dst_curs)
             self.add_set_table(dst_curs, ev.data)
-            ev.tag_done()
         elif ev.type == 'londiste.remove-table':
             self.flush_sql(dst_curs)
             self.remove_set_table(dst_curs, ev.data)
-            ev.tag_done()
         elif ev.type == 'londiste.remove-seq':
             self.flush_sql(dst_curs)
             self.remove_set_seq(dst_curs, ev.data)
-            ev.tag_done()
         elif ev.type == 'londiste.update-seq':
             self.flush_sql(dst_curs)
             self.update_seq(dst_curs, ev)
-            ev.tag_done()
         else:
             CascadedWorker.process_remote_event(self, src_curs, dst_curs, ev)
 

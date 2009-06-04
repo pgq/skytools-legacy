@@ -63,7 +63,7 @@ class Syncer(skytools.DBScript):
     def get_subscriber_table_state(self, dst_db):
         """Load table states from subscriber."""
         dst_curs = dst_db.cursor()
-        q = "select * from londiste.subscriber_get_table_list(%s)"
+        q = "select * from londiste.get_table_list(%s) where local"
         dst_curs.execute(q, [self.queue_name])
         res = dst_curs.dictfetchall()
         dst_db.commit()
@@ -71,12 +71,13 @@ class Syncer(skytools.DBScript):
 
     def work(self):
         """Syncer main function."""
-        lock_db = self.get_database('provider_db', cache='lock_db')
-        setup_db = self.get_database('provider_db', cache='setup_db', autocommit = 1)
+        dst_db = self.get_database('db', isolation_level = skytools.I_SERIALIZABLE)
+        provider_loc = self.get_provider_location(dst_db)
 
-        src_db = self.get_database('provider_db',
-                                   isolation_level = skytools.I_SERIALIZABLE)
-        dst_db = self.get_database('subscriber_db',
+        lock_db = self.get_database('lock_db', connstr = provider_loc)
+        setup_db = self.get_database('setup_db', autocommit = 1, connstr = provider_loc)
+
+        src_db = self.get_database('provider_db', connstr = provider_loc,
                                    isolation_level = skytools.I_SERIALIZABLE)
 
         setup_curs = setup_db.cursor()
@@ -209,3 +210,8 @@ class Syncer(skytools.DBScript):
         """
         raise Exception('process_sync not implemented')
 
+    def get_provider_location(self, dst_db):
+        curs = dst_db.cursor()
+        q = "select * from pgq_node.get_node_info(%s)"
+        rows = self.exec_cmd(dst_db, q, [self.queue_name])
+        return rows[0]['provider_location']

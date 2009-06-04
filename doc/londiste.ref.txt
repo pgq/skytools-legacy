@@ -53,7 +53,7 @@ This event will be inserted by 'londiste add-table' on root.
  * ev_type = 'londiste.add-table'
  * ev_data = table name
 
-All subscribers downstream will also registister this table 
+All subscribers downstream will also register this table 
 as being available on the queue.
 
 ==== Table removal event ====
@@ -74,9 +74,10 @@ The insert happens in same TX as the actual command are executed.
 
  * ev_type = 'EXECUTE'
  * ev_data = script body
- * ev_extra1 = script name
+ * ev_extra1 = unique id for script (file name?)
 
-Script name is used as unique ID - the event is registered as applied.
+Script is identified by name - it is used to check if it is already applied.
+This allows to override scripts in downstream nodes.
 
 == log file ==
 
