@@ -66,7 +66,7 @@ class TableState(object):
         self.sync_tick_id = None
         self.ok_batch_count = 0
         self.last_tick = 0
-        self.skip_truncate = False
+        self.table_attrs = {}
         self.copy_role = None
         self.dropped_ddl = None
         # except this
@@ -81,7 +81,7 @@ class TableState(object):
         self.sync_tick_id = None
         self.ok_batch_count = 0
         self.last_tick = 0
-        self.skip_truncate = False
+        self.table_attrs = {}
         self.changed = 1
 
     def change_snapshot(self, str_snapshot, tag_changed = 1):
@@ -162,7 +162,10 @@ class TableState(object):
         self.change_snapshot(row['custom_snapshot'], 0)
         self.state = self.parse_state(row['merge_state'])
         self.changed = 0
-        self.skip_truncate = row['skip_truncate']
+        if row['table_attrs']:
+            self.table_attrs = skytools.db_urldecode(row['table_attrs'])
+        else:
+            self.table_attrs = {}
         self.copy_role = row['copy_role']
         self.dropped_ddl = row['dropped_ddl']
         if row['merge_state'] == "?":

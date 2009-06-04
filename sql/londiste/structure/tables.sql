@@ -74,8 +74,8 @@ set default_with_oids = 'off';
 --      local           - Is used locally
 --      merge_state     - State for tables
 --      custom_snapshot - remote snapshot for COPY command
---      skip_truncate   - if 'in-copy' should not do TRUNCATE
 --      dropped_ddl     - temp place to store ddl
+--      table_attrs     - urlencoded dict of extra attributes
 --
 -- Tables merge states:
 --      NULL            - copy has not yet happened
@@ -92,8 +92,8 @@ create table londiste.table_info (
     local               boolean not null default false,
     merge_state         text,
     custom_snapshot     text,
-    skip_truncate       bool,
     dropped_ddl         text,
+    table_attrs         text,
 
     primary key (queue_name, table_name),
     foreign key (queue_name) references pgq_node.node_info (queue_name),

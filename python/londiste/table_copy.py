@@ -121,7 +121,7 @@ class CopyTable(Replicator):
             dst_struct.drop(dst_curs, objs, log = self.log)
 
             # drop data
-            if tbl_stat.skip_truncate:
+            if tbl_stat.table_attrs.get('skip_truncate'):
                 self.log.info("%s: skipping truncate" % tbl_stat.name)
             else:
                 self.log.info("%s: truncating" % tbl_stat.name)

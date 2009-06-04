@@ -5,7 +5,7 @@ create or replace function londiste.get_table_list(
     out local boolean,
     out merge_state text,
     out custom_snapshot text,
-    out skip_truncate bool,
+    out table_attrs text,
     out dropped_ddl text,
     out copy_role text)
 returns setof record as $$ 
@@ -22,7 +22,7 @@ returns setof record as $$
 --      local           - does events needs to be applied to local table
 --      merge_state     - show phase of initial copy
 --      custom_snapshot - remote snapshot of COPY transaction
---      skip_truncate   - don't truncate table on copy
+--      table_attrs     - urlencoded dict of table attributes
 --      dropped_ddl     - partition combining: temp place to put DDL
 --      copy_role       - partition combining: how to handle copy
 --
@@ -58,8 +58,8 @@ begin
             where n.combined_queue = q_target;
     end if;
 
-    for table_name, local, merge_state, custom_snapshot, skip_truncate, dropped_ddl in 
-        select t.table_name, t.local, t.merge_state, t.custom_snapshot, t.skip_truncate, t.dropped_ddl
+    for table_name, local, merge_state, custom_snapshot, table_attrs, dropped_ddl in 
+        select t.table_name, t.local, t.merge_state, t.custom_snapshot, t.table_attrs, t.dropped_ddl
             from londiste.table_info t
             where t.queue_name = i_queue_name
             order by t.nr, t.table_name

@@ -44,6 +44,7 @@ begin
 
                 ---- should we keep those?
                 -- skip_truncate = null,
+                -- table_attrs = null,
                 -- dropped_ddl = null,
                 merge_state = null
             where queue_name = i_queue_name

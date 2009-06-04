@@ -28,7 +28,7 @@
 \i functions/londiste.root_check_seqs.sql
 \i functions/londiste.root_notify_change.sql
 \i functions/londiste.local_set_table_state.sql
-\i functions/londiste.local_set_skip_truncate.sql
+\i functions/londiste.local_set_table_attrs.sql
 \i functions/londiste.local_set_table_struct.sql
 
 -- Group: Utility functions
