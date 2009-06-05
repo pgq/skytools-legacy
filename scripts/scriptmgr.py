@@ -43,7 +43,12 @@ Config template:
     disabled = 1
 """
 
-import sys, os, skytools, signal, glob, ConfigParser, time
+import sys, os, signal, glob, ConfigParser, time
+
+import pkgloader
+pkgloader.require('skytools', '3.0')
+
+import skytools
 
 command_usage = """
 %prog [options] INI CMD [subcmd args]
