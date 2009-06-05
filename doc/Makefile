@@ -9,39 +9,47 @@ EPYDOC = epydoc
 EPYARGS = --no-private --url="http://pgfoundry.org/projects/skytools/" \
 	--name="Skytools" --html --no-private -v
 
-HTMLS = londiste.cmdline.html londiste.config.html README.html INSTALL.html \
-	londiste.ref.html TODO.html pgq-sql.html pgq-admin.html pgq-nodupes.html \
-	$(SCRIPT_HTMLS) faq.html set.notes.html qadmin.html skytools3.html devnotes.html
+HTMLS = README.html INSTALL.html \
+	londiste.ref.html TODO.html pgq-sql.html pgqadm.html pgq-nodupes.html \
+	$(SCRIPT_HTMLS) faq.html set.notes.html skytools3.html devnotes.html
 
-SCRIPT_TXTS = walmgr.txt queue_mover.txt queue_splitter.txt \
-	      scriptmgr.txt skytools_upgrade.txt
-SCRIPT_MANS = $(SCRIPT_TXTS:.txt=.1)
+SCRIPT_TXTS = walmgr.txt queue_mover.txt queue_splitter.txt qadmin.txt \
+	      scriptmgr.txt skytools_upgrade.txt londiste.txt pgqadm.txt
 SCRIPT_HTMLS = $(SCRIPT_TXTS:.txt=.html)
+
+MAN1 = $(SCRIPT_TXTS:.txt=.1)
+MAN5 = 
+
+FQHTML = $(addprefix html/, $(HTMLS))
+FQMAN1 = $(addprefix man/, $(MAN1))
+FQMAN5 = $(addprefix man/, $(MAN5))
+FQMAN = $(FQMAN1) $(FQMAN5)
 
 COMMON = common.switches.txt common.config.txt common.logutriga.txt
 
-GETATTRS = python ./getattrs.py
+GETATTRS = python ../misc/getattrs.py
+FIXMAN = python ../misc/fixman.py
 
 #AFLAGS = -a linkcss
 #AFLAGS = -a stylesheet=extra.css
 
-all: man $(HTMLS)
+all: $(FQMAN) $(FQHTML)
 
-man: londiste.1 londiste.5 pgqadm.1 $(SCRIPT_MANS)
+man: $(FQMAN)
 
-html: $(HTMLS)
+html: $(FQHTML)
 
-install: man $(HTMLS)
+install: $(FQMAN) $(FQHTML)
 	mkdir -p $(DESTDIR)/$(mandir)/man1
 	mkdir -p $(DESTDIR)/$(mandir)/man5
 	mkdir -p $(DESTDIR)/$(docdir)
-	install -m 644 londiste.1 $(DESTDIR)/$(mandir)/man1
-	install -m 644 londiste.5 $(DESTDIR)/$(mandir)/man5
-	install -m 644 pgqadm.1 $(DESTDIR)/$(mandir)/man1
-	for m in $(SCRIPT_MANS); do \
+	for m in $(FQMAN1); do \
 	  install -m 644 $$m $(DESTDIR)/$(mandir)/man1 ; \
 	done
-	for h in $(HTMLS); do \
+	for m in $(FQMAN5); do \
+	  install -m 644 $$m $(DESTDIR)/$(mandir)/man5 ; \
+	done
+	for h in $(FQHTML); do \
 	  install -m 644 $$h $(DESTDIR)/$(docdir) ; \
 	done
 
@@ -91,49 +99,42 @@ realclean: distclean
 
 ifneq ($(ASCIIDOC),no)
 ifneq ($(XMLTO),no)
-londiste.1: londiste.cmdline.xml
-	$(XMLTO) man $<
-
-londiste.5: londiste.config.xml
-	$(XMLTO) man $<
-
-pgqadm.1: pgq-admin.xml
-	$(XMLTO) man $<
-
-walmgr.1: walmgr.xml
-	$(XMLTO) man $<
-
-%.xml: %.txt $(COMMON)
+man/%.xml: %.txt $(COMMON)
+	@mkdir -p man
 	$(ASCIIDOC) -b docbook -d manpage `$(GETATTRS) $<` -o - $< \
-	| python fixman.py > $@
+	| $(FIXMAN) > $@
 
-%.1: %.xml
-	$(XMLTO) man $<
+man/%.1: man/%.xml
+	@mkdir -p man
+	$(XMLTO) -o man man $<
 endif
 
-%.html: %.txt $(COMMON)
+html/%.html: %.txt $(COMMON)
+	@mkdir -p html
 	LANG=C cat $< \
 	| sed -e '/^include/b;s,\([A-Za-z.0-9]*\)[.]txt,link:\1.html[],g' \
 	| $(ASCIIDOC) $(AFLAGS) -a toc `$(GETATTRS) $<` -o - - \
-	| sed -e "/^[/][*] Workarounds/r extra.css" \
+	| sed -e "/^[/][*] Workarounds/r ../misc/extra.css" \
 	> $@
 
-README.html: ../README
+html/README.html: ../README
+	@mkdir -p html
 	cat $< \
 	| sed -e 's,doc/\([!-~]*\)[.]txt,link:\1.html[],g' \
 	      -e 's,http:[!-~]*,&[],g' \
 	| $(ASCIIDOC) $(AFLAGS) -o - - \
-	| sed -e "/^[/][*] Workarounds/r extra.css" \
+	| sed -e "/^[/][*] Workarounds/r ../misc/extra.css" \
 	> $@
 
-INSTALL.html: ../INSTALL
+html/INSTALL.html: ../INSTALL
+	@mkdir -p html
 	$(ASCIIDOC) $(AFLAGS) -o - $< \
-	| sed -e "/^[/][*] Workarounds/r extra.css" \
+	| sed -e "/^[/][*] Workarounds/r ../misc/extra.css" \
 	> $@
 endif
 
 web: $(HTMLS)
-	rsync -avz $(HTMLS) $(web)/doc/
+	rsync -avz $(FQHTML) $(web)/doc/
 
 
 
