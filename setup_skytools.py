@@ -1,5 +1,8 @@
 #! /usr/bin/env python
 
+# this script does not perform full installation,
+# it is meant for use from Makefile
+
 import sys, os.path, re
 from distutils.core import setup
 from distutils.extension import Extension
@@ -34,19 +37,6 @@ setup(
     url = "http://pgfoundry.org/projects/skytools/",
     package_dir = {'': 'python'},
     packages = ['skytools', 'londiste', 'pgq', 'pgq.cascade'],
-    scripts = ['python/londiste.py',
-               'python/qadmin.py',
-               'python/pgqadm.py',
-               'python/walmgr.py',
-               'scripts/bulk_loader.py',
-               'scripts/cube_dispatcher.py',
-               'scripts/queue_loader.py',
-               'scripts/queue_mover.py',
-               'scripts/queue_splitter.py',
-               'scripts/scriptmgr.py',
-               'scripts/skytools_upgrade.py',
-               'scripts/table_dispatcher.py',
-               ],
     data_files = [
       ('share/doc/skytools/conf', [
         'python/conf/wal-master.ini',

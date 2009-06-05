@@ -7,6 +7,10 @@ pyver = $(shell $(PYTHON) -V 2>&1 | sed 's/^[^ ]* \([0-9]*\.[0-9]*\).*/\1/')
 
 SUBDIRS = sql doc
 
+SCRIPTS = python/londiste.py python/qadmin.py python/pgqadm.py python/walmgr.py \
+	  scripts/queue_loader.py scripts/queue_mover.py scripts/queue_splitter.py \
+	  scripts/scriptmgr.py scripts/skytools_upgrade.py
+
 all: python-all sub-all config.mak
 
 install: sub-install python-install
@@ -19,10 +23,10 @@ sub-all sub-install sub-clean sub-distclean:
 .PHONY: sub-all sub-clean sub-install sub-distclean
 
 python-all: config.mak
-	$(PYTHON) setup.py build
+	$(PYTHON) setup_skytools.py build
 
 clean: sub-clean
-	$(PYTHON) setup.py clean
+	$(PYTHON) setup_skytools.py clean
 	rm -rf build
 	find python -name '*.py[oc]' -print | xargs rm -f
 	rm -f python/skytools/installer_config.py source.list
@@ -40,10 +44,17 @@ modules-install: config.mak
 	test \! -d compat || $(MAKE) -C compat $@ DESTDIR=$(DESTDIR)
 
 python-install: config.mak sub-all
-	$(PYTHON) setup.py install --prefix=$(prefix) --root=$(DESTDIR)/ --record=tmp_files.lst
-	grep '/bin/[a-z_0-9]*.py' tmp_files.lst \
-	| $(PYTHON) misc/strip_ext.py $(if $(DESTDIR), $(DESTDIR), /)
-	rm -f tmp_files.lst
+	mkdir -p $(DESTDIR)/$(bindir)
+	$(PYTHON) setup_pkgloader.py install --prefix=$(prefix) --root=$(DESTDIR)/
+	$(PYTHON) setup_skytools.py install --prefix=$(prefix) --root=$(DESTDIR)/ --record=tmp_files.lst \
+		--install-lib=$(prefix)/lib/python$(pyver)/site-packages/skytools-3.0
+	for s in $(SCRIPTS); do \
+		exe=`echo $$s|sed -e 's!.*/!!' -e 's/[.]py//'`; \
+		install $$s $(DESTDIR)/$(bindir)/$$exe || exit 1; \
+	done
+	#grep '/bin/[a-z_0-9]*.py' tmp_files.lst \
+	#| $(PYTHON) misc/strip_ext.py $(if $(DESTDIR), $(DESTDIR), /)
+	#rm -f tmp_files.lst
 	$(MAKE) -C doc DESTDIR=$(DESTDIR) install
 
 python-install python-all: python/skytools/installer_config.py
@@ -93,7 +104,7 @@ deb84:
 tgz: config.mak clean
 	$(MAKE) -C doc man html
 	rm -f source.list
-	$(PYTHON) setup.py sdist -t source.cfg -m source.list
+	$(PYTHON) setup_skytools.py sdist -t source.cfg -m source.list
 
 debclean: distclean
 	rm -rf debian/tmp-* debian/build* debian/control debian/packages-tmp*
