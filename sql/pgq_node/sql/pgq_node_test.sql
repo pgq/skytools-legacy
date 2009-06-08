@@ -57,7 +57,12 @@ select * from pgq_node.is_root_node('cqueue');
 select * from pgq_node.get_consumer_state('bqueue', 'random_consumer');
 select * from pgq_node.get_consumer_state('bqueue', 'random_consumer2');
 
+select * from pgq_node.set_consumer_error('bqueue', 'random_consumer2', 'failure');
+select * from pgq_node.get_consumer_state('bqueue', 'random_consumer2');
+
 select * from pgq_node.set_consumer_completed('bqueue', 'random_consumer2', 2);
+select * from pgq_node.get_consumer_state('bqueue', 'random_consumer2');
+
 select * from pgq_node.set_consumer_paused('bqueue', 'random_consumer2', true);
 select * from pgq_node.set_consumer_uptodate('bqueue', 'random_consumer2', true);
 

@@ -1,30 +1,23 @@
 
-create or replace function pgq_node.set_consumer_completed(
+create or replace function pgq_node.set_consumer_error(
     in i_queue_name text,
     in i_consumer_name text,
-    in i_tick_id int8,
+    in i_error_msg text,
     out ret_code int4,
     out ret_note text)
 as $$
 -- ----------------------------------------------------------------------
--- Function: pgq_node.set_consumer_completed(3)
+-- Function: pgq_node.set_consumer_error(3)
 --
---      Set last completed tick id for the cascaded consumer
---      that it has committed to local node.
---
--- Parameters:
---      i_queue_name - cascaded queue name
---      i_consumer_name - cascaded consumer name
---      i_tick_id   - tick id
+--      If batch processing fails, consumer can store it's last error in db.
 -- ----------------------------------------------------------------------
 begin
     update pgq_node.local_state
-       set last_tick_id = i_tick_id,
-           cur_error = NULL
+       set cur_error = i_error_msg
      where queue_name = i_queue_name
        and consumer_name = i_consumer_name;
     if found then
-        select 100, 'Consumer ' || i_consumer_name || ' compleded tick = ' || i_tick_id
+        select 100, 'Consumer ' || i_consumer_name || ' error = ' || i_error_msg
             into ret_code, ret_note;
     else
         select 404, 'Consumer not known: '

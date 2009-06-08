@@ -82,6 +82,7 @@ create table pgq_node.node_info (
 --      consumer_name   - cascaded consumer name
 --      provider_node   - node name the consumer reads from
 --      last_tick_id    - last committed tick id on this node
+--      cur_error       - reason why current batch failed
 --      paused          - whether consumer should wait
 --      uptodate        - if consumer has seen new state
 -- ----------------------------------------------------------------------
@@ -90,6 +91,7 @@ create table pgq_node.local_state (
     consumer_name   text not null,
     provider_node   text not null,
     last_tick_id    bigint not null,
+    cur_error       text,
 
     paused          boolean not null default false,
     uptodate        boolean not null default false,

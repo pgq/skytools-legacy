@@ -12,7 +12,8 @@ create or replace function pgq_node.get_consumer_state(
     out provider_node text,
     out provider_location text,
     out paused boolean,
-    out uptodate boolean
+    out uptodate boolean,
+    out cur_error text
 ) returns record as $$
 -- ----------------------------------------------------------------------
 -- Function: pgq_node.get_consumer_state(2)
@@ -31,12 +32,13 @@ create or replace function pgq_node.get_consumer_state(
 --      provider_location - connect string to provider node
 --      paused - this node should not do any work
 --      uptodate - if consumer has loaded last changes
+--      cur_error - failure reason
 -- ----------------------------------------------------------------------
 begin
     select 100, 'Ok', n.node_type, n.node_name, s.last_tick_id,
-           s.provider_node, p.node_location, s.paused, s.uptodate
+           s.provider_node, p.node_location, s.paused, s.uptodate, s.cur_error
       into ret_code, ret_note, node_type, node_name, completed_tick,
-           provider_node, provider_location, paused, uptodate
+           provider_node, provider_location, paused, uptodate, cur_error
       from pgq_node.node_info n, pgq_node.local_state s, pgq_node.node_location p
      where n.queue_name = i_queue_name
        and s.queue_name = n.queue_name

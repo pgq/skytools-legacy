@@ -36,4 +36,5 @@
 \i   functions/pgq_node.set_consumer_uptodate.sql
 \i   functions/pgq_node.set_consumer_paused.sql
 \i   functions/pgq_node.set_consumer_completed.sql
+\i   functions/pgq_node.set_consumer_error.sql
 
