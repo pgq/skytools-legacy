@@ -2,7 +2,10 @@
 
 """Upgrade script for versioned schemas."""
 
-import sys, os, re, skytools
+import sys, os, re
+
+import pkgloader
+pkgloader.require('skytools', '3.0')
 
 ver_rx = r"(\d+)([.](\d+)([.](\d+))?)?"
 ver_rc = re.compile(ver_rx)

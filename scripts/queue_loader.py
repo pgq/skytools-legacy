@@ -79,10 +79,13 @@ Config template::
     create_sql =
 """
 
-import sys, time, skytools
+import sys, time
 
+import pkgloader
+pkgloader.require('skytools', '3.0')
+
+import skytools
 from pgq.cascade.worker import CascadedWorker
-
 from skytools import quote_ident, quote_fqident, UsageError
 
 # todo: auto table detect

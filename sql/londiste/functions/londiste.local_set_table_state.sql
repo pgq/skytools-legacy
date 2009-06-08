@@ -25,12 +25,7 @@ begin
 
     update londiste.table_info
         set custom_snapshot = i_snapshot,
-            merge_state = i_merge_state,
-            -- reset skip_snapshot when table is copied over
-            skip_truncate = case when i_merge_state = 'ok'
-                                 then null
-                                 else skip_truncate
-                            end
+            merge_state = i_merge_state
       where queue_name = i_queue_name
         and table_name = _tbl
         and local;

@@ -26,6 +26,10 @@ Config template::
 """
 
 import sys
+
+import pkgloader
+pkgloader.require('skytools', '3.0')
+
 import skytools, pgq
 from pgq.cascade.admin import CascadeAdmin
 

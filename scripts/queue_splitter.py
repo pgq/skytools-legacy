@@ -20,7 +20,12 @@ Config template::
     use_skylog        = 0
 """
 
-import sys, pgq
+import sys
+
+import pkgloader
+pkgloader.require('skytools', '3.0')
+
+import pgq
 
 class QueueSplitter(pgq.SerialConsumer):
     __doc__ = __doc__

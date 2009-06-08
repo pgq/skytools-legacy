@@ -79,6 +79,11 @@ The insert happens in same TX as the actual command are executed.
 Script is identified by name - it is used to check if it is already applied.
 This allows to override scripts in downstream nodes.
 
+== table attributes ==
+
+* skip_truncate
+* copy_where
+
 == log file ==
 
 Londiste normal log consist just of statistics log-lines, key-value

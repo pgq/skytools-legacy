@@ -1,133 +1,39 @@
-= qadmin =
 
-== Goal ==
+= qadmin(1) =
 
-Easy to use admin console to examine and administer PgQ queues.
-Main feature is psql like tab-completion for everything (queue/consumer names).
+== NAME ==
 
-== Current direction ==
+qadmin - Easy to use admin console to examine and administer PgQ queues.
 
-* Cmdline switches similar to psql.
-* No config file. (?)
-* SQL-like syntax (potential to accept full SQL).
-* Target is console usage, not scripts.
-* Info about both plain and cascaded queues.
-* Administer only plain queues.
+== SYNOPSIS ==
 
-== Potential future directions ==
+  qadmin.py [ options ... ]
 
- * SQL Scripts.
-  - Full SQL
-  - Variables?
-  - Logic?
- * Admin scripts for cascaded queues.  Eg. implement current "switchover", "change-provider"
-   commands with it.
-  - Needs variables and multi-node support (execute on this node).
-    Maybe look at the paralled exec features of psql.
- * Admin scripts for something else.
-  - data maintainer?
-  - release_script?
+== DESCRIPTION ==
 
-== Command line ==
+The goal is to be psql-like console for queue administration.
 
+== GENERAL OPTIONS ==
 
-  -Q:: queue name
-  -U:: username
-  -h:: host
-  -p:: port
-  -d:: database
- 
-  --help:: help
-  --version:: version
+Initial connection options (for libpq):
 
-== Internal language ==
+ -h host:: specify host to connect to (default: localhost via unix socket)
 
-All the commands assume they are connected to a database.
+ -p port:: specify port
 
-Raw connect, maybe set default queue:
+ -U user:: specify user name
 
-  CONNECT dbname=.. host=.. port=.. user=.. password=.. queue=..;
+ -d dbname:: database name
 
-Set default queue:
+Options for qadmin:
 
-  CONNECT queue=..;
+ -Q queuename:: queue name
 
-Connect to node on default queue:
+ -c cmd_string:: execute command
 
-  CONNECT node=..;
+ -f execfile:: execute file containing commands
 
-Plain queue modification:
+ --help:: help screen
 
-  CREATE QUEUE <qname> [params?];
-  REGISTER CONSUMER <cons>;
-  UNREGISTER CONSUMER <cons>;
-  DROP QUEUE <qname>;
-
-  ALTER QUEUE <qname> SET ..;
-
-Install code:
-
-  INSTALL pgq;      -- txid, pgq, pgq_ext, pgq_node
-  INSTALL londiste; -- all of above + londiste
-
-Information:
-
-  SHOW QUEUE (<qname> | *);
-  SHOW CONSUMER (<cons> | *) [ ON <qname | * ];
-  SHOW BATCH INFO (<id> | <consumer>) [ON <queue>?];
-  SHOW BATCH EVENTS (<id> | <consumer>) [ON <queue>?];
-
-== Smaller Open Questions ==
-
-* What arguments should qadmin accept from command line?
-
-  psql-style: qadmin [switches] [dbname [username]]
-  ssh-style:  qadmin [switches] [command [args]]
-
-* Command style and syntax.
-
-* Multi-word vs. long words:
- - SHOW BATCH EVENTS <id>;
- - SHOW_BATCH_EVENTS <id>;
-
-* Default queue vs. queue name in commands.
-
-== ToDo ==
-
-* General:
-  - Lots of useful commands.
-
-* Parsing:
-
-  - Node naming is not consistent, as it has grown, not designed.
-    Suggestions: (Word -> Ident, WList->TokenList?/NodeList?,
-    DynList->DynIdent?, SWord->Param?) Also: get_next() -> parse()
-  - Quoted idents/strings not supported.  Fix: nodes should unquote early.
-    IIRC libpq connect string generation in "connect" code assumes already
-    quoted values, quoting needs to be added there.
-  - Tab-completion of uppercase keywords.
-  - Disable lowercasing of quoted indents. (?)
-  - Tab-completion of quoted idents. (?)
-  - Multi-line commands. (?)
-
-* Cascading: It would be useful to also have cascading commands available in qadmin.
-   ( SWITCHOVER / CREATE NODE / PAUSE NODE / CHANGE PROVIDER ).
-   But currently they are implemented using DBScript framework.  And
-   we don't want to have several implementations of the commands.
-   There seems to be 2 ways forward:
-   - Convert qadmin to DBScript.  It is possible to make config-less DBScript.
-   - Implement command under qadmin in non-DBScript way and make
-     CascadeAdmin call qadmin implementation.
-
-* Londiste: It seems to be good idea to make Londiste management also available in qadmin.
-  - LONDISTE ADD|REMOVE TABLE <tbl>
-  - LONDISTE ADD|REMOVE SEQUENCE <seq>
-  - LONDISTE SHOW TABLES / SHOW LONDISTE TABLES / SHOW TABLES ?
-  - SHOW MISSING TABLES?
-
-* random other ideas:
-  - queue rename.  (on remote side too?)
-  - copy consumer pos
-  - rename consumer
-  - event del?
+ --version:: print version
 

@@ -52,7 +52,12 @@ General options:
     --version
 '''
 
-import sys, os, readline, skytools, getopt, re
+import sys, os, readline, getopt, re
+
+import pkgloader
+pkgloader.require('skytools', '3.0')
+
+import skytools
 
 script = None
 

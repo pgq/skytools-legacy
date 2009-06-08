@@ -22,7 +22,12 @@ Config template::
 
 """
 
-import sys, os, os.path, optparse, skytools
+import sys, os, os.path, optparse
+
+import pkgloader
+pkgloader.require('skytools', '3.0')
+
+import skytools
 
 # python 2.3 will try londiste.py first...
 if os.path.exists(os.path.join(sys.path[0], 'londiste.py')) \
