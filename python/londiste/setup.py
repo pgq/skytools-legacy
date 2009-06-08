@@ -149,8 +149,12 @@ class LondisteSetup(CascadeAdmin):
             self.log.warning('Table "%s" missing on subscriber, use --create if necessary' % tbl)
             return
 
+        # actual table registration
         q = "select * from londiste.local_add_table(%s, %s)"
         self.exec_cmd(dst_curs, q, [self.set_name, tbl])
+        if self.options.expect_sync:
+            q = "select * from londiste.set_table_state(%s, %s, NULL, 'ok')"
+            self.exec_cmd(dst_curs, q, [self.set_name, tbl])
         dst_db.commit()
 
     def sync_table_list(self, dst_curs, src_tbls, dst_tbls):
