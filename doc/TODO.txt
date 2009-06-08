@@ -43,6 +43,8 @@ who already is handling it.
   - support WHERE for COPY [easy]
   - fkeys, from 2.x [easy]
   - execute --wait [moderate]
+* automatic serial handling, --noserial switch?
+* error column
 
 == Good to have changes ==
 
