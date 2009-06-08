@@ -69,7 +69,7 @@ def require(pkg, reqver):
         mod = __import__(pkg)
         ver_str = mod.__version__
         # check if it is actually useful
-        full_ver = tuple([int(x) for x in full_str.split('.')])
+        full_ver = tuple([int(x) for x in ver_str.split('.')])
         if full_ver[0] != reqval[0] or reqval > full_ver:
             raise ImportError("Request for Skytools ver '%s', got '%s'" % (
                             reqver, full_str))
