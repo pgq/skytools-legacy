@@ -81,7 +81,7 @@ static void maint_handler(struct PgSocket *s, void *arg, enum PgEvent ev, PGresu
 
 	switch (ev) {
 	case DB_CONNECT_OK:
-		log_info("%s: starting maintenance", db->name);
+		log_debug("%s: starting maintenance", db->name);
 		run_queue_list(db);
 		break;
 	case DB_RESULT_OK:
