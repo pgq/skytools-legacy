@@ -153,7 +153,7 @@ class LondisteSetup(CascadeAdmin):
         q = "select * from londiste.local_add_table(%s, %s)"
         self.exec_cmd(dst_curs, q, [self.set_name, tbl])
         if self.options.expect_sync:
-            q = "select * from londiste.set_table_state(%s, %s, NULL, 'ok')"
+            q = "select * from londiste.local_set_table_state(%s, %s, NULL, 'ok')"
             self.exec_cmd(dst_curs, q, [self.set_name, tbl])
         dst_db.commit()
 
