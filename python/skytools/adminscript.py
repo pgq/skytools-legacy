@@ -85,7 +85,7 @@ class AdminScript(DBScript):
         widths = [15] * len(fields)
         for row in rows:
             for i, k in enumerate(fields):
-                rlen = row[k] and len(row) or 0
+                rlen = row[k] and len(str(row[k])) or 0
                 widths[i] = widths[i] > rlen and widths[i] or rlen
         widths = [w + 2 for w in widths]
 
@@ -94,7 +94,8 @@ class AdminScript(DBScript):
         if desc:
             print(desc)
         print(fmt % tuple(fields))
-        print(fmt % tuple(['-'*15] * len(fields)))
+        print(fmt % tuple([ '-' * (w - 2) for w in widths ]))
+        #print(fmt % tuple(['-'*15] * len(fields)))
 
         for row in rows:
             print(fmt % tuple([row[k] for k in fields]))
