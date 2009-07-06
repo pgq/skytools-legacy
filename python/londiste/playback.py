@@ -255,11 +255,12 @@ class SeqCache(object):
         row = src_curs.fetchone()
         for i in range(len(self.seq_list)):
             seq = self.seq_list[i]
+            fqseq = self.fq_seq_list[i]
             cur = row[i]
             old = self.val_cache.get(seq)
             if old != cur:
                 q = "select setval(%s, %s)"
-                dst_curs.execute(q, [seq, cur])
+                dst_curs.execute(q, [fqseq, cur])
                 self.val_cache[seq] = cur
 
 class Replicator(pgq.SerialConsumer):
