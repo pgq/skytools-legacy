@@ -232,10 +232,12 @@ class TableState(object):
 class SeqCache(object):
     def __init__(self):
         self.seq_list = []
+        self.fq_seq_list = []
         self.val_cache = {}
 
     def set_seq_list(self, seq_list):
         self.seq_list = seq_list
+        self.fq_seq_list = [skytools.quote_fqident(s) for s in seq_list]
         new_cache = {}
         for seq in seq_list:
             val = self.val_cache.get(seq)
@@ -246,9 +248,9 @@ class SeqCache(object):
     def resync(self, src_curs, dst_curs):
         if len(self.seq_list) == 0:
             return
-        dat = ".last_value, ".join(self.seq_list)
+        dat = ".last_value, ".join(self.fq_seq_list)
         dat += ".last_value"
-        q = "select %s from %s" % (dat, ",".join(self.seq_list))
+        q = "select %s from %s" % (dat, ",".join(self.fq_seq_list))
         src_curs.execute(q)
         row = src_curs.fetchone()
         for i in range(len(self.seq_list)):
