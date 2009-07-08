@@ -120,7 +120,7 @@ begin
 	    and substring(tgname from 1 for 10) != '_londiste_'
             and tgname < logtrg_name;
 
-    if found then
+    if logtrg_previous then
        select 301,
               'Table added: ' || fq_table_name
                               || ', but londiste trigger is not first: '
