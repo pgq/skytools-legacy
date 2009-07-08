@@ -116,17 +116,18 @@ begin
          into logtrg_previous
          from pg_catalog.pg_trigger
         where tgrelid = londiste.find_table_oid(fq_table_name)
-            and not tgisconstraint 
+            and not tgisconstraint
 	    and substring(tgname from 1 for 10) != '_londiste_'
             and tgname < logtrg_name;
 
     if found then
-       select 301, 
+       select 301,
               'Table added: ' || fq_table_name
                               || ', but londiste trigger is not first: '
                               || logtrg_previous
          into ret_code, ret_note;
-    return;    
+        return;
+    end if;
 
     select 200, 'Table added: ' || fq_table_name into ret_code, ret_note;
     return;
