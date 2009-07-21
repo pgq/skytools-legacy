@@ -253,8 +253,6 @@ class WalMgr(skytools.DBScript):
         p.set_usage(__doc__.strip())
         p.add_option("-n", "--not-really", action="store_true", dest="not_really",
                      help = "Don't actually do anything.", default=False)
-        p.add_option("-O", "--overwrite", action="store_true", dest="overwrite",
-                     help = "Overwrite target data directory during backup.", default=False)
         return p
 
     def __init__(self, args):
