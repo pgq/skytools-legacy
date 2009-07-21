@@ -253,6 +253,8 @@ class WalMgr(skytools.DBScript):
         p.set_usage(__doc__.strip())
         p.add_option("-n", "--not-really", action="store_true", dest="not_really",
                      help = "Don't actually do anything.", default=False)
+        p.add_option("-O", "--overwrite", action="store_true", dest="overwrite",
+                     help = "Overwrite target data directory during backup.", default=False)
         return p
 
     def __init__(self, args):
@@ -1315,6 +1317,10 @@ STOP TIME: %(stop_time)s
                     # restore original xlog files to data_dir/pg_xlog   
                     # symlinked directories are dereferences
                     self.exec_cmd(["cp", "-rL", "%s/pg_xlog" % bak, data_dir])
+                else:
+                    # create an archive_status directory
+                    xlog_dir = os.path.join(data_dir, "pg_xlog")
+                    os.mkdir(os.path.join(xlog_dir, "archive_status"), 0700)
         else:
             data_dir = full_dir
 
