@@ -1315,6 +1315,10 @@ STOP TIME: %(stop_time)s
                     # restore original xlog files to data_dir/pg_xlog   
                     # symlinked directories are dereferences
                     self.exec_cmd(["cp", "-rL", "%s/pg_xlog" % bak, data_dir])
+                else:
+                    # create an archive_status directory
+                    xlog_dir = os.path.join(data_dir, "pg_xlog")
+                    os.mkdir(os.path.join(xlog_dir, "archive_status"), 0700)
         else:
             data_dir = full_dir
 
