@@ -281,6 +281,31 @@ class ProviderSetup(CommonSetup):
         q = "select londiste.provider_add_table(%s, %s)"
         self.exec_provider(q, [self.pgq_queue_name, tbl])
 
+        # detect dangerous triggers
+        q = """
+            select tg.trigger_name
+                from londiste.provider_table tbl,
+                     information_schema.triggers tg
+                where tbl.queue_name = %s
+                  and tbl.table_name = %s
+                  and tg.event_object_schema = %s
+                  and tg.event_object_table = %s
+                  and tg.condition_timing = 'AFTER'
+                  and tg.trigger_name != tbl.trigger_name
+                  and tg.trigger_name < tbl.trigger_name
+                  and substring(tg.trigger_name from 1 for 10) != '_londiste_'
+                  and substring(tg.trigger_name from char_length(tg.trigger_name) - 6) != '_logger'
+            """
+        sname, tname = skytools.fq_name_parts(tbl)
+        src_db = self.get_database('provider_db')
+        src_curs = src_db.cursor()
+        src_curs.execute(q, [self.pgq_queue_name, tbl, sname, tname])
+        for r in src_curs.fetchall():
+            self.log.warning("Table %s has AFTER trigger '%s' which runs before Londiste trigger.  "\
+                             "If it modifies data, then events will appear in queue in wrong order." % (
+                                 tbl, r[0]))
+        src_db.commit()
+
     def provider_remove_table(self, tbl):
         q = "select londiste.provider_remove_table(%s, %s)"
         self.exec_provider(q, [self.pgq_queue_name, tbl])
