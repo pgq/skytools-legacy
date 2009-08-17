@@ -1,3 +1,29 @@
+2009-08-xx  -  SkyTools 2.1.10  -  ""
+
+  = Fixes =
+
+    * pgqadm: rename 'as' argument as it's keyword in Python 2.6
+
+    * londiste provider add-seq:
+      - Detect existing sequences.
+      - Make --all ignore pgq, londiste and temp schemas.
+      - Proper quoting was missing in few places.
+    
+    * walmgr: Create pg_xlog/archive_status directory for slave restore.
+      (Mark Kirkwood)
+
+    * londiste provider add: detect and warn about user AFTER triggers
+      that run before Londiste one.
+    
+    * docs:
+      - Documentation for log_size, log_count and use_skylog options.
+      - Refresh dependency list, add rsync
+      - Mention --with-asciidoc in INSTALL.
+
+    * --with-asciidoc: make it tolerate missing asciidoc and/or xmlto.
+    
+    * deb84 Makefile target.
+
 2009-03-13  -  SkyTools 2.1.9  -  "Six Pack of Luck"
 
   = WalMgr improvements =
