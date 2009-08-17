@@ -58,6 +58,20 @@ pgq_lazy_fetch::
    is used so as to still process a single batch in a single transaction.
    Default: 0, always fetch all events of the batch, not using a cursor.
 
+log_count::
+   Number of log files to keep.  Default: 3
+
+log_size::
+   Max size for one log file.  File is rotated if max size is reached.
+   Default: 10485760 (10M)
+
+use_skylog::
+   If set, search for `[./skylog.ini, ~/.skylog.ini, /etc/skylog.ini]`.
+   If found then the file is used as config file for Pythons `logging` module.
+   It allows setting up fully customizable logging setup.
+   Default: 0
+
+
 == EXAMPLE ==
 
   [londiste]
