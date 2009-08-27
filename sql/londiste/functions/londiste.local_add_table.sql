@@ -112,13 +112,16 @@ begin
     -- Don't report all the trigger names, 8.3 does not have array_accum
     -- available
 
-    select max(tgname)
+    select max(trigger_name)
          into logtrg_previous
-         from pg_catalog.pg_trigger
-        where tgrelid = londiste.find_table_oid(fq_table_name)
-            and not tgisconstraint
-	    and substring(tgname from 1 for 10) != '_londiste_'
-            and tgname < logtrg_name;
+         from information_schema.triggers,
+              londiste.split_fqname(fq_table_name)
+        where event_object_schema = schema_part
+            and event_object_table = name_part
+            and condition_timing = 'AFTER'
+	    and substring(trigger_name from 1 for 10) != '_londiste_'
+            and substring(trigger_name from char_length(trigger_name) - 6) != '_logger'
+            and trigger_name < logtrg_name;
 
     if logtrg_previous then
        select 301,
