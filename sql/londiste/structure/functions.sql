@@ -37,4 +37,5 @@
 \i functions/londiste.find_table_oid.sql
 \i functions/londiste.quote_fqname.sql
 \i functions/londiste.make_fqname.sql
+\i functions/londiste.split_fqname.sql
 
