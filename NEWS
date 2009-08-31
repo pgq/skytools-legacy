@@ -1,8 +1,8 @@
-2009-08-xx  -  SkyTools 2.1.10  -  ""
+2009-08-31  -  SkyTools 2.1.10  -  "As Stable As A Falling Anvil"
 
   = Fixes =
 
-    * pgqadm: rename 'as' argument as it's keyword in Python 2.6
+    * pgqadm: rename 'as' function argument as it's keyword in Python 2.6
 
     * londiste provider add-seq:
       - Detect existing sequences.
