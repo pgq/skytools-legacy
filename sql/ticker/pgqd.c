@@ -1,12 +1,10 @@
 #include "pgqd.h"
 
 #include <getopt.h>
-#include <errno.h>
-#include <signal.h>
 
 #include <usual/event.h>
 #include <usual/string.h>
-#include <usual/alloc.h>
+#include <usual/signal.h>
 #include <usual/daemon.h>
 #include <usual/cfparser.h>
 #include <usual/time.h>
@@ -45,7 +43,7 @@ static const struct CfKey conf_params[] = {
 	{ NULL },
 };
 
-static void *get_cf_target(void *arg) { return &cf; }
+static void *get_cf_target(void *arg, const char *name) { return &cf; }
 
 static const struct CfSect conf_sects[] = {
 	{ "pgqd", get_cf_target, conf_params },

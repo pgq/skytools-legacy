@@ -1,16 +1,17 @@
 
 include ../../config.mak
 
+SRCS = connection.c pgqd.c maint.c ticker.c retry.c
+LOCAL_HDRS = connection.h pgqd.h
+
 USUAL_DIR = ../../lib
 USUAL_OBJDIR = .
-USUAL_MODULES = logging daemon event string time cfparser fileutil \
-		socket compat heap-impl base mbuf
+USUAL_LOCAL_SRCS = $(SRCS) connection.h pgqd.h
 include $(USUAL_DIR)/Setup.mk
 
 PROGRAM = pgqd
 
-SRCS = connection.c pgqd.c maint.c ticker.c retry.c
-HDRS = connection.h pgqd.h $(USUAL_HDRS)
+HDRS = $(LOCAL_HDRS) $(USUAL_HDRS)
 
 PG_INCDIR = $(shell $(PG_CONFIG) --includedir)
 PG_LIBDIR = $(shell $(PG_CONFIG) --libdir)
