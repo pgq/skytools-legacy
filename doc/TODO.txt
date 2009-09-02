@@ -46,6 +46,10 @@ who already is handling it.
 * automatic serial handling, --noserial switch?
 * error column
 
+* merge queue_loader to londiste
+  - londiste: apply mechanism is stored in table_attrs
+  - pgq: ability to request big batches (10000 rows, 5 min)
+
 == Good to have changes ==
 
 === sql/pgq ===
