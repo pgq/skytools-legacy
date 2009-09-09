@@ -245,7 +245,7 @@ class Consumer(skytools.DBScript):
         curs.execute(q, [self.queue_name, self.consumer_name])
         return curs.fetchone()[0]
 
-    def _flush_retry(self, curs, list):
+    def _flush_retry(self, curs, batch_id, list):
         """Tag retry events."""
 
         retry = 0
