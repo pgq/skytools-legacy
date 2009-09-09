@@ -286,6 +286,12 @@ class DBScript(object):
     loop_delay = 1
     doc_string = None
 
+    # result from last work() call:
+    #  1 - there is probably more work, don't sleep
+    #  0 - no work, sleep before calling again
+    # -1 - exception was thrown
+    work_state = 1
+
     def __init__(self, service_name, args):
         """Script setup.
 
@@ -307,7 +313,6 @@ class DBScript(object):
         self.need_reload = 1
         self.stat_dict = {}
         self.log_level = logging.INFO
-        self.work_state = 1
 
         # parse command line
         parser = self.init_optparse()
@@ -624,7 +629,7 @@ class DBScript(object):
         self.reset()
         if prefer_looping and self.looping and not self.do_single_loop:
             time.sleep(20)
-            return 1
+            return -1
         sys.exit(1)
 
     def work(self):
