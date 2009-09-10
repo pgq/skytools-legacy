@@ -119,7 +119,7 @@ class LondisteSetup(CascadeAdmin):
             for f in create.split(','):
                 if f not in fmap:
                     raise Exception("bad --create-only flag: " + f)
-            create_flags += fmap[f]
+                create_flags += fmap[f]
 
         # seems ok
         for tbl in args:
@@ -214,7 +214,7 @@ class LondisteSetup(CascadeAdmin):
             for f in create.split(','):
                 if f not in fmap:
                     raise Exception("bad --create-only flag: " + f)
-            create_flags += fmap[f]
+                create_flags += fmap[f]
 
         # seems ok
         for seq in args:
