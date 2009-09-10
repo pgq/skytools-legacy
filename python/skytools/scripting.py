@@ -589,10 +589,12 @@ class DBScript(object):
 
     def run_func_safely(self, func, prefer_looping = False):
         "Run users work function, safely."
+        cname = None
+        emsg = None
         try:
             return func()
-        except UsageError, ex:
-            self.log.error(str(ex))
+        except UsageError, d:
+            self.log.error(str(d))
             sys.exit(1)
         except SystemExit, d:
             self.send_stats()
@@ -612,25 +614,38 @@ class DBScript(object):
                 cname = d.cursor.connection.my_name
                 dsn = d.cursor.connection.dsn
                 sql = d.cursor.query
+                emsg = str(d).strip()
                 self.log.error("Job %s got error on connection '%s': %s" % (
-                    self.job_name,
-                    d.cursor.connection.my_name,
-                    str(d).strip()))
+                    self.job_name, cname, emsg))
             else:
                 n = "psycopg2.%s" % d.__class__.__name__
+                emsg = str(d).rstrip()
                 self.log.exception("Job %s crashed: %s: %s" % (
-                       self.job_name, n, str(d).rstrip()))
+                       self.job_name, n, emsg))
         except Exception, d:
             self.send_stats()
+            emsg = str(d).rstrip()
             self.log.exception("Job %s crashed: %s" % (
-                       self.job_name, str(d).rstrip()))
+                       self.job_name, emsg))
 
         # reset and sleep
         self.reset()
+        self.exception_hook(d, emsg, cname)
         if prefer_looping and self.looping and not self.do_single_loop:
             time.sleep(20)
             return -1
         sys.exit(1)
+
+    def exception_hook(self, det, emsg, cname):
+        """Called on after exception processing.
+
+        Can do additional logging.
+
+        @param det: exception details
+        @param emsg: exception msg
+        @param cname: connection name or None
+        """
+        pass
 
     def work(self):
         """Here should user's processing happen.
