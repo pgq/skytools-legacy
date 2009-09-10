@@ -610,7 +610,7 @@ class CascadeAdmin(skytools.AdminScript):
     def find_provider(self, node_name):
         if self.node_alive(node_name):
             info = self.get_node_info(node_name)
-            return info.provider_name
+            return info.provider_node
         nodelist = self.queue_info.member_map.keys()
         for n in nodelist:
             if n == node_name:
