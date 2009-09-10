@@ -5,9 +5,9 @@ Walks tables by primary key and searcher
 missing inserts/updates/deletes.
 """
 
-import sys, os, time, skytools
+import sys, os, skytools
 
-from syncer import Syncer
+from londiste.syncer import Syncer
 
 __all__ = ['Repairer']
 

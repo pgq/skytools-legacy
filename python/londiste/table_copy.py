@@ -5,7 +5,7 @@
 For internal usage.
 """
 
-import sys, os, time, skytools
+import sys, time, skytools
 
 from skytools.dbstruct import *
 from londiste.playback import *

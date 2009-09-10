@@ -2,7 +2,7 @@
 """Status display.
 """
 
-import sys, os, skytools
+import sys, skytools
 
 __all__ = ['PGQStatus']
 

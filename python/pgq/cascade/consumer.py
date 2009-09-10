@@ -4,7 +4,7 @@
 Does not maintain node, but is able to pause, resume and switch provider.
 """
 
-import sys, time, skytools
+import sys, time
 
 from pgq.consumer import Consumer
 
