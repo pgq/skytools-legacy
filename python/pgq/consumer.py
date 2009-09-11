@@ -103,6 +103,16 @@ class Consumer(skytools.DBScript):
     """Consumer base class.
     """
 
+    default_lazy_fetch = 300
+
+    # proper variables
+    consumer_name = None
+    queue_name = None
+
+    # compat variables
+    pgq_queue_name = None
+    pgq_consumer_id = None
+
     def __init__(self, service_name, db_name, args):
         """Initialize new consumer.
         
@@ -125,7 +135,7 @@ class Consumer(skytools.DBScript):
         if not self.queue_name:
             self.queue_name = self.cf.get("queue_name")
 
-        self.pgq_lazy_fetch = self.cf.getint("pgq_lazy_fetch", 0)
+        self.pgq_lazy_fetch = self.cf.getint("pgq_lazy_fetch", self.default_lazy_fetch)
         self.stat_batch_start = 0
 
         # compat vars
