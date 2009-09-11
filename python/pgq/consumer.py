@@ -135,12 +135,20 @@ class Consumer(skytools.DBScript):
         if not self.queue_name:
             self.queue_name = self.cf.get("queue_name")
 
-        self.pgq_lazy_fetch = self.cf.getint("pgq_lazy_fetch", self.default_lazy_fetch)
         self.stat_batch_start = 0
 
         # compat vars
         self.pgq_queue_name = self.queue_name
         self.consumer_id = self.consumer_name
+
+    def reload(self):
+        DBScript.reload(self)
+
+        self.pgq_lazy_fetch = self.cf.getint("pgq_lazy_fetch", self.default_lazy_fetch)
+        # set following ones to None if not set
+        self.pgq_min_count = self.cf.getint("pgq_min_count", 0) or None
+        self.pgq_min_interval = self.cf.get("pgq_min_interval", '') or None
+        self.pgq_min_lag = self.cf.get("pgq_min_lag", '') or None
 
     def startup(self):
         """Handle commands here.  __init__ does not have error logging."""
@@ -256,9 +264,11 @@ class Consumer(skytools.DBScript):
     def _load_next_batch(self, curs):
         """Allocate next batch. (internal)"""
 
-        q = "select pgq.next_batch(%s, %s)"
-        curs.execute(q, [self.queue_name, self.consumer_name])
-        return curs.fetchone()[0]
+        q = "select * from pgq.next_batch_custom(%s, %s, %s, %s, %s)"
+        curs.execute(q, [self.queue_name, self.consumer_name,
+                         self.pgq_min_lag, self.pgq_min_count, self.pgq_min_interval])
+        inf = curs.fetchone()
+        return inf['batch_id']
 
     def _flush_retry(self, curs, batch_id, list):
         """Tag retry events."""
