@@ -7,7 +7,9 @@ create or replace function pgq.get_batch_info(
     out batch_end       timestamptz,
     out prev_tick_id    bigint,
     out tick_id         bigint,
-    out lag             interval)
+    out lag             interval,
+    out seq_start       bigint,
+    out seq_end         bigint)
 as $$
 -- ----------------------------------------------------------------------
 -- Function: pgq.get_batch_info(1)
@@ -24,9 +26,10 @@ begin
     select q.queue_name, c.co_name,
            prev.tick_time, cur.tick_time,
            s.sub_last_tick, s.sub_next_tick,
-           current_timestamp - cur.tick_time
+           current_timestamp - cur.tick_time,
+           prev.tick_event_seq, cur.tick_event_seq
         into queue_name, consumer_name, batch_start, batch_end,
-             prev_tick_id, tick_id, lag
+             prev_tick_id, tick_id, lag, seq_start, seq_end
         from pgq.subscription s, pgq.tick cur, pgq.tick prev,
              pgq.queue q, pgq.consumer c
         where s.sub_batch = x_batch_id
