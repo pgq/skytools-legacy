@@ -37,16 +37,6 @@ Switches:
   -n                 no action, just print commands
 """
 
-"""
-Additional features:
- * Simplified install. Master "setup" command should setup slave directories.
- * Add support for multiple targets on master.
- * WAL purge does not correctly purge old WAL-s if timelines are involved. The first
- useful WAL name is obtained from backup_label, WAL-s in the same timeline that are older 
- than first useful WAL are removed. 
- * Always copy the directory on "restore" add a special "--move" option.
-"""
-
 import os, sys, skytools, re, signal, time, traceback
 import errno, glob, ConfigParser, shutil
 
@@ -550,15 +540,15 @@ class WalMgr(skytools.DBScript):
         cf.write()
 
     def slave_deconfigure_archiving(self, cf_file):
-        """Turn the archiving off for the slave"""
+        """Disable archiving for the slave. This is done by setting
+        archive_command to a trivial command, so that archiving can be
+        re-enabled without restarting postgres. Needed when slave is
+        booted with postgresql.conf from master."""
 
         self.log.debug("Disable archiving in %s" % cf_file)
 
         cf = PostgresConfiguration(self, cf_file)
-
-        cf_params = { "archive_command": "" }
-        if cf.archive_mode():
-            cf_params["archive_mode"] = "off"
+        cf_params = { "archive_command": "/bin/true" }
 
         self.log.debug("modifying configuration: %s" % cf_params)
         cf.modify(cf_params)
