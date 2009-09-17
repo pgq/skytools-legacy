@@ -171,7 +171,7 @@ Switches (optional):
         Add all tables that are registered on provider to subscriber database
   --force::
         Ignore table structure differences.
-  --excect-sync::
+  --expect-sync::
         Table is already synced by external means so initial COPY is unnecessary.
   --skip-truncate::
         When doing initial COPY, don't remove old data. 
