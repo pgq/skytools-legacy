@@ -108,7 +108,7 @@ pgq_logutriga(PG_FUNCTION_ARGS)
 
 	appendStringInfoChar(ev.ev_type, ev.op_type);
 	appendStringInfoChar(ev.ev_type, ':');
-	appendStringInfoString(ev.ev_type, ev.info->pkey_list);
+	appendStringInfoString(ev.ev_type, ev.pkey_list);
 	appendStringInfoString(ev.ev_extra1, ev.info->table_name);
 
 	/*

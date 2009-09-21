@@ -20,3 +20,26 @@ CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, $5, null, null)
 insert into udata (bin) values (E'bi\tn\\000bin');
 NOTICE:  insert_event(udata_que, I:id, id=2&txt&bin=bi%5c011n%5c000bin, public.udata)
 CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, $5, null, null)"
+-- test missing pkey
+create table nopkey2 (dat text);
+create trigger nopkey_triga2 after insert or update or delete on nopkey2
+for each row execute procedure pgq.logutriga('que3');
+insert into nopkey2 values ('foo');
+NOTICE:  insert_event(que3, I:, dat=foo, public.nopkey2)
+CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, $5, null, null)"
+update nopkey2 set dat = 'bat';
+ERROR:  Update/Delete on table without pkey
+delete from nopkey2;
+ERROR:  Update/Delete on table without pkey
+-- test custom pkey
+create table ucustom_pkey (dat1 text not null, dat2 int2 not null, dat3 text);
+create trigger ucustom_triga after insert or update or delete on ucustom_pkey
+--for each row execute procedure pgq.logutriga('que3', 'pkey=dat1,dat2');
+for each row execute procedure pgq.logutriga('que3');
+insert into ucustom_pkey values ('foo', '2');
+NOTICE:  insert_event(que3, I:, dat1=foo&dat2=2&dat3, public.ucustom_pkey)
+CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, $5, null, null)"
+update ucustom_pkey set dat3 = 'bat';
+ERROR:  Update/Delete on table without pkey
+delete from ucustom_pkey;
+ERROR:  Update/Delete on table without pkey
