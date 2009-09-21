@@ -76,3 +76,27 @@ CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, $5, null, null)
 delete from rtest where id=2;
 NOTICE:  insert_event(que3, D, id='2', public.rtest)
 CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, $5, null, null)"
+-- test missing pkey
+create table nopkey (dat text);
+create trigger nopkey_triga after insert or update or delete on nopkey
+for each row execute procedure pgq.sqltriga('que3');
+insert into nopkey values ('foo');
+NOTICE:  insert_event(que3, I, (dat) values ('foo'), public.nopkey)
+CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, $5, null, null)"
+update nopkey set dat = 'bat';
+ERROR:  Update/Delete on table without pkey
+delete from nopkey;
+ERROR:  Update/Delete on table without pkey
+-- test custom pkey
+create table custom_pkey (dat1 text not null, dat2 int2 not null, dat3 text);
+create trigger custom_triga after insert or update or delete on custom_pkey
+for each row execute procedure pgq.sqltriga('que3', 'pkey=dat1,dat2');
+insert into custom_pkey values ('foo', '2');
+NOTICE:  insert_event(que3, I, (dat1,dat2,dat3) values ('foo','2',null), public.custom_pkey)
+CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, $5, null, null)"
+update custom_pkey set dat3 = 'bat';
+NOTICE:  insert_event(que3, U, dat3='bat' where dat1='foo' and dat2='2', public.custom_pkey)
+CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, $5, null, null)"
+delete from custom_pkey;
+NOTICE:  insert_event(que3, D, dat1='foo' and dat2='2', public.custom_pkey)
+CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, $5, null, null)"

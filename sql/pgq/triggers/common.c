@@ -302,6 +302,14 @@ static void parse_newstyle_args(PgqTriggerEvent *ev, TriggerData *tg)
 		else
 			elog(ERROR, "bad param to pgq trigger");
 	}
+
+	/*
+	 * Check if we have pkey
+	 */
+	if (ev->op_type == 'U' || ev->op_type == 'D') {
+		if (ev->pkey_list[0] == 0)
+			elog(ERROR, "Update/Delete on table without pkey");
+	}
 }
 
 static void parse_oldstyle_args(PgqTriggerEvent *ev, TriggerData *tg)

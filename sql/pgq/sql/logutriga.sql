@@ -19,4 +19,22 @@ for each row execute procedure pgq.logutriga('udata_que');
 insert into udata (txt) values ('text1');
 insert into udata (bin) values (E'bi\tn\\000bin');
 
+-- test missing pkey
+create table nopkey2 (dat text);
+create trigger nopkey_triga2 after insert or update or delete on nopkey2
+for each row execute procedure pgq.logutriga('que3');
+
+insert into nopkey2 values ('foo');
+update nopkey2 set dat = 'bat';
+delete from nopkey2;
+
+-- test custom pkey
+create table ucustom_pkey (dat1 text not null, dat2 int2 not null, dat3 text);
+create trigger ucustom_triga after insert or update or delete on ucustom_pkey
+--for each row execute procedure pgq.logutriga('que3', 'pkey=dat1,dat2');
+for each row execute procedure pgq.logutriga('que3');
+
+insert into ucustom_pkey values ('foo', '2');
+update ucustom_pkey set dat3 = 'bat';
+delete from ucustom_pkey;
 
