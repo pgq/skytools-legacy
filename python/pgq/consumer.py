@@ -101,8 +101,33 @@ class _BatchWalker(object):
 
 class Consumer(skytools.DBScript):
     """Consumer base class.
+
+    Config template::
+
+        ## Parameters for pgq.Consumer ##
+
+        # queue name to read from
+        queue_name =
+
+        # override consumer name
+        #consumer_name = %(job_name)s
+
+        # whether to use cursor to fetch events (0 disables)
+        #pgq_lazy_fetch = 300
+
+        # whether to wait for specified number of events, before
+        # assigning a batch (0 disables)
+        #pgq_batch_collect_events = 0
+
+        # whether to wait specified amount of time,
+        # before assigning a batch (postgres interval)
+        #pgq_batch_collect_interval =
+
+        # whether to stay behind queue top (postgres interval)
+        #pgq_keep_lag = 
     """
 
+    # by default, use cursor-based fetch
     default_lazy_fetch = 300
 
     # proper variables
@@ -146,9 +171,9 @@ class Consumer(skytools.DBScript):
 
         self.pgq_lazy_fetch = self.cf.getint("pgq_lazy_fetch", self.default_lazy_fetch)
         # set following ones to None if not set
-        self.pgq_min_count = self.cf.getint("pgq_min_count", 0) or None
-        self.pgq_min_interval = self.cf.get("pgq_min_interval", '') or None
-        self.pgq_min_lag = self.cf.get("pgq_min_lag", '') or None
+        self.pgq_min_count = self.cf.getint("pgq_batch_collect_events", 0) or None
+        self.pgq_min_interval = self.cf.get("pgq_batch_collect_interval", '') or None
+        self.pgq_min_lag = self.cf.get("pgq_keep_lag", '') or None
 
     def startup(self):
         """Handle commands here.  __init__ does not have error logging."""

@@ -1,25 +1,6 @@
 #! /usr/bin/env python
 
 """Londiste launcher.
-
-Config template::
-
-    [londiste]
-    job_name = somedb_worker
-
-    db = dbname=somedb host=127.0.0.1
-
-    queue_name = some_queue
-
-    logfile = ~/log/%(job_name)s.log
-    pidfile = ~/pid/%(job_name)s.pid
-
-    # how many tables can be copied in parallel
-    #parallel_copies = 1
-
-    # sleep time between work loops
-    #loop_delay = 1.0
-
 """
 
 import sys, os, os.path, optparse
@@ -74,7 +55,6 @@ cmd_handlers = (
 )
 
 class Londiste(skytools.DBScript):
-    __doc__ = __doc__
     def __init__(self, args):
         skytools.DBScript.__init__(self, 'londiste', args)
 
@@ -93,6 +73,10 @@ class Londiste(skytools.DBScript):
 
     def start(self):
         self.script.start()
+
+    def print_ini(self):
+        """Let the Replicator print the default config."""
+        londiste.Replicator(['--ini'])
 
     def init_optparse(self, parser=None):
         p = skytools.DBScript.init_optparse(self, parser)

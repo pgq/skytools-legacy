@@ -1,22 +1,6 @@
 
 """Useful functions and classes for database scripts.
 
-Config template::
-
-    [service_type]
-    # generic ini file example from Skytools framework
-    # if job name is omitted then ini file name without extension is used
-    job_name = %(config_name)s
-
-    # loop delay in seconds
-    loop_delay = 1.0
-
-    # location of log and pid files usually kept in ~/log and ~/pid
-    logfile = ~/log/%(job_name)s.log
-    pidfile = ~/pid/%(job_name)s.pid
-
-    # should centralized logging be used
-    use_skylog = 0
 """
 
 import sys, os, signal, optparse, time, errno
@@ -277,14 +261,36 @@ class DBScript(object):
     """Base class for database scripts.
 
     Handles logging, daemonizing, config, errors.
+
+    Config template::
+
+        ## Parameters for skytools.DBScript ##
+
+        # how many seconds to sleep between work loops
+        # if missing or 0, then instead sleeping, the script will exit
+        loop_delay = 1.0
+
+        # where to log
+        logfile = ~/log/%(job_name)s.log
+
+        # where to write pidfile
+        pidfile = ~/pid/%(job_name)s.pid
+
+        # per-process name to use in logging
+        #job_name = %(config_name)s
+
+        # whether centralized logging should be used (loaded from skylog.ini)
+        #use_skylog = 0
+
+        # default lifetime for database connections (in seconds)
+        #connection_lifetime = 1200
     """
     service_name = None
     job_name = None
     cf = None
     log = None
     pidfile = None
-    loop_delay = 1
-    doc_string = None
+    loop_delay = 0
 
     # result from last work() call:
     #  1 - there is probably more work, don't sleep
@@ -308,8 +314,6 @@ class DBScript(object):
         self.service_name = service_name
         self.db_cache = {}
         self.go_daemon = 0
-        self.do_single_loop = 0
-        self.looping = 1
         self.need_reload = 1
         self.stat_dict = {}
         self.log_level = logging.INFO
@@ -350,14 +354,29 @@ class DBScript(object):
     def print_ini(self):
         """Prints out ini file from doc string of the script of default for dbscript
         
-        Used by --ini option on command line
+        Used by --ini option on command line.
         """
 
+        # current service name
+        print("[%s]\n" % self.service_name)
+
+        # walk class hierarchy
+        bases = [self.__class__]
+        while len(bases) > 0:
+            parents = []
+            for c in bases:
+                for p in c.__bases__:
+                    if p not in parents:
+                        parents.append(p)
+                doc = c.__doc__
+                if doc:
+                    self._print_ini_frag(doc)
+            bases = parents
+
+    def _print_ini_frag(self, doc):
         # use last '::' block as config template
-        doc = self.__doc__
         pos = doc and doc.rfind('::') or -1
         if pos < 0:
-            print 'No ini template defined.'
             return
         doc = doc[pos+2 : ].rstrip()
 
@@ -371,9 +390,10 @@ class DBScript(object):
                 pfx = ln[ : wslen]
             if pfx:
                 if ln.startswith(pfx):
-                    print ln[ len(pfx) : ]
+                    print(ln[ len(pfx) : ])
                 else:
-                    print ln
+                    print(ln)
+        print('')
 
     def load_config(self):
         """Loads and returns skytools.Config instance.
@@ -440,7 +460,8 @@ class DBScript(object):
 
     def set_single_loop(self, do_single_loop):
         """Changes whether the script will loop or not."""
-        self.do_single_loop = do_single_loop
+        if do_single_loop:
+            self.loop_delay = 0
 
     def _boot_daemon(self):
         run_single_process(self, self.go_daemon, self.pidfile)
@@ -455,7 +476,7 @@ class DBScript(object):
 
     def stop(self):
         """Safely stops processing loop."""
-        self.looping = 0
+        self.loop_delay = 0
 
     def reload(self):
         "Reload config."
@@ -557,7 +578,7 @@ class DBScript(object):
         # run startup, safely
         self.run_func_safely(self.startup)
 
-        while self.looping:
+        while 1:
             # reload config, if needed
             if self.need_reload:
                 self.reload()
@@ -573,16 +594,14 @@ class DBScript(object):
             for dbc in self.db_cache.values():
                 dbc.refresh()
 
-            # exit if needed
-            if self.do_single_loop:
-                self.log.debug("Only single loop requested, exiting")
-                break
-
             # remember work state
             self.work_state = work
             # should sleep?
             if not work:
-                time.sleep(self.loop_delay)
+                if self.loop_delay:
+                    time.sleep(self.loop_delay)
+                else:
+                    break
 
     def run_once(self):
         return self.run_func_safely(self.work, True)
@@ -598,13 +617,13 @@ class DBScript(object):
             sys.exit(1)
         except SystemExit, d:
             self.send_stats()
-            if prefer_looping and not self.do_single_loop:
+            if prefer_looping and self.loop_delay:
                 self.log.info("got SystemExit(%s), exiting" % str(d))
             self.reset()
             raise d
         except KeyboardInterrupt, d:
             self.send_stats()
-            if prefer_looping and not self.do_single_loop:
+            if prefer_looping and self.loop_delay:
                 self.log.info("got KeyboardInterrupt, exiting")
             self.reset()
             sys.exit(1)
@@ -631,7 +650,7 @@ class DBScript(object):
         # reset and sleep
         self.reset()
         self.exception_hook(d, emsg, cname)
-        if prefer_looping and self.looping and not self.do_single_loop:
+        if prefer_looping and self.loop_delay:
             time.sleep(20)
             return -1
         sys.exit(1)

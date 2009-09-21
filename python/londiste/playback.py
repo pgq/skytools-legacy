@@ -234,7 +234,18 @@ class TableState(object):
             self.change_snapshot(None)
 
 class Replicator(CascadedWorker):
-    """Replication core."""
+    """Replication core.
+
+    Config options::
+
+        ## Parameters for Londiste ##
+
+        # target database
+        db = dbname=somedb host=127.0.0.1
+
+        # how many tables can be copied in parallel
+        #parallel_copies = 1
+    """
 
     sql_command = {
         'I': "insert into %s %s;",
