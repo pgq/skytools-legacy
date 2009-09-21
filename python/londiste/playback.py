@@ -273,7 +273,7 @@ class Replicator(CascadedWorker):
         if self.parallel_copies < 1:
             raise Exception('Bad value for parallel_copies: %d' % self.parallel_copies)
 
-    def connection_setup(self, dbname, db):
+    def connection_hook(self, dbname, db):
         if dbname == 'db':
             curs = db.cursor()
             curs.execute("set session_replication_role = 'replica'")

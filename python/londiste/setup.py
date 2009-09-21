@@ -27,7 +27,7 @@ class LondisteSetup(CascadeAdmin):
 
         self.set_name = self.queue_name
 
-    def connection_setup(self, dbname, db):
+    def connection_hook(self, dbname, db):
         if dbname == 'db':
             curs = db.cursor()
             curs.execute("set session_replication_role = 'replica'")

@@ -532,7 +532,7 @@ class DBScript(object):
         self.log.info(logmsg)
         self.stat_dict = {}
 
-    def connection_setup(self, dbname, conn):
+    def connection_hook(self, dbname, conn):
         pass
 
     def get_database(self, dbname, autocommit = 0, isolation_level = -1,
@@ -551,7 +551,7 @@ class DBScript(object):
         else:
             if not connstr:
                 connstr = self.cf.get(dbname)
-            dbc = DBCachedConn(cache, connstr, max_age, setup_func = self.connection_setup)
+            dbc = DBCachedConn(cache, connstr, max_age, setup_func = self.connection_hook)
             self.db_cache[cache] = dbc
 
         return dbc.get_connection(autocommit, isolation_level)
