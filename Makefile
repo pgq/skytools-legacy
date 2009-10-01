@@ -42,7 +42,7 @@ python-install: config.mak modules-all
 
 python-install python-all: python/skytools/installer_config.py
 python/skytools/installer_config.py: python/skytools/installer_config.py.in config.mak
-	sed -e 's!@SQLDIR@!$(SQLDIR)!g' $< > $@
+	sed -e 's!@SQLDIR@!$(SQLDIR)!g' -e 's!@PACKAGE_VERSION@!$(PACKAGE_VERSION)!g' $< > $@
 
 realclean:
 	$(MAKE) -C doc $@

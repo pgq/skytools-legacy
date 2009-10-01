@@ -279,6 +279,9 @@ class DBScript(object):
         self.options, self.args = parser.parse_args(args)
 
         # check args
+        if self.options.version:
+            print 'Skytools version', skytools.__version__
+            sys.exit(0)
         if self.options.daemon:
             self.go_daemon = 1
         if self.options.quiet:
@@ -332,6 +335,8 @@ class DBScript(object):
                      help = "make program verbose")
         p.add_option("-d", "--daemon", action="store_true",
                      help = "go background")
+        p.add_option("-V", "--version", action="store_true",
+                     help = "print version info and exit")
 
         # control options
         g = optparse.OptionGroup(p, 'control running process')

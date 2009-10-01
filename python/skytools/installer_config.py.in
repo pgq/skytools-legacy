@@ -2,3 +2,6 @@
 sql_locations = [
     "@SQLDIR@",
 ]
+
+package_version = "@PACKAGE_VERSION@"
+
