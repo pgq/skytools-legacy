@@ -33,21 +33,11 @@ $script -v -d conf/replic.ini replay
 
 sleep 2
 
-$script  conf/replic.ini provider add data1
+$script  conf/replic.ini provider add data1 data2 inh_mid Table
 $script  conf/replic.ini subscriber add data1
-
-sleep 2
-
-$script  conf/replic.ini provider add data2
 $script  conf/replic.ini subscriber add data2
-
-sleep 2
-
-$script  conf/replic.ini provider tables
+$script  conf/replic.ini subscriber add inh_mid
 $script  conf/replic.ini provider remove data2
-
-sleep 2
-
 $script  conf/replic.ini provider add Table
 $script  conf/replic.ini provider remove Table
 $script  conf/replic.ini provider add Table

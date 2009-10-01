@@ -54,5 +54,34 @@ create table "Table" (
 create index "idx Table" on "Table" ("table", "I D");
 
 
+create table inh_parent1 (
+    id serial primary key,
+    data text,
+    ref1 integer,
+    constraint p1_uq_data unique (data)
+);
+
+create table inh_parent2 (
+    id serial primary key,
+    data text,
+    ref1 integer,
+    constraint p2_uq_data unique (data)
+);
+
+create table inh_mid (
+    id serial primary key,
+    data text,
+    ref1 integer,
+    constraint m_uq_data unique (data)
+) inherits (inh_parent1, inh_parent2);
+
+create table inh_child (
+    id serial primary key,
+    data text,
+    ref1 integer,
+    constraint c_uq_data unique (data)
+) inherits (inh_mid);
+
+
 
 
