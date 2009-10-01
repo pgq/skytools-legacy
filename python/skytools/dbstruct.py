@@ -8,7 +8,7 @@ from skytools.quoting import quote_ident, quote_fqident
 
 __all__ = ['TableStruct',
     'T_TABLE', 'T_CONSTRAINT', 'T_INDEX', 'T_TRIGGER',
-    'T_RULE', 'T_GRANT', 'T_OWNER', 'T_PKEY', 'T_ALL']
+    'T_RULE', 'T_GRANT', 'T_OWNER', 'T_PARENT', 'T_PKEY', 'T_ALL']
 
 T_TABLE       = 1 << 0
 T_CONSTRAINT  = 1 << 1
@@ -17,6 +17,7 @@ T_TRIGGER     = 1 << 3
 T_RULE        = 1 << 4
 T_GRANT       = 1 << 5
 T_OWNER       = 1 << 6
+T_PARENT      = 1 << 7
 T_PKEY        = 1 << 20 # special, one of constraints
 T_ALL = (  T_TABLE | T_CONSTRAINT | T_INDEX
          | T_TRIGGER | T_RULE | T_GRANT | T_OWNER )
@@ -185,6 +186,27 @@ class TTrigger(TElem):
     def get_drop_sql(self, curs):
         return 'DROP TRIGGER %s ON %s' % (quote_ident(self.name), quote_fqident(self.table_name))
 
+class TParent(TElem):
+    """Info about trigger."""
+    type = T_PARENT
+    SQL = """
+        SELECT n.nspname||'.'||c.relname AS name
+          FROM pg_inherits i
+          JOIN pg_class c ON i.inhparent = c.oid
+          JOIN pg_namespace n ON c.relnamespace = n.oid
+         WHERE i.inhrelid = %(oid)s
+    """
+    def __init__(self, table_name, row):
+        self.name = table_name
+        self.parent_name = row['name']
+
+    def get_create_sql(self, curs, new_table_name = None):
+        return 'ALTER TABLE ONLY %s INHERIT %s' % (quote_fqident(self.name), quote_fqident(self.parent_name))
+
+    def get_drop_sql(self, curs):
+        return 'ALTER TABLE ONLY %s NO INHERIT %s' % (quote_fqident(self.name), quote_fqident(self.parent_name))
+
+
 class TOwner(TElem):
     """Info about table owner."""
     type = T_OWNER
@@ -320,7 +342,7 @@ class TableStruct(object):
         self.object_list = [ TTable(table_name, self.col_list) ]
 
         # load additional objects
-        to_load = [TConstraint, TIndex, TTrigger, TRule, TGrant, TOwner]
+        to_load = [TConstraint, TIndex, TTrigger, TRule, TGrant, TOwner, TParent]
         for eclass in to_load:
             self.object_list += self._load_elem(curs, args, eclass)
 
@@ -351,7 +373,10 @@ class TableStruct(object):
 
     def drop(self, curs, objs, log = None):
         """Issues DROP statements for requested set of objects."""
-        for o in self.object_list:
+        # make sure the creating & dropping happen in reverse order
+        olist = self.object_list[:]
+        olist.reverse()
+        for o in olist:
             if o.type & objs:
                 sql = o.get_drop_sql(curs)
                 if not sql:

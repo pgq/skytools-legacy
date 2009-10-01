@@ -60,7 +60,7 @@ class CopyTable(Replicator):
                 raise Exception('Column %s does not exist on dest side' % c)
 
         # drop unnecessary stuff
-        objs = T_CONSTRAINT | T_INDEX | T_RULE
+        objs = T_CONSTRAINT | T_INDEX | T_RULE | T_PARENT
         dst_struct.drop(dst_curs, objs, log = self.log)
 
         # do truncate & copy
