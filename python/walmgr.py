@@ -380,8 +380,10 @@ class WalMgr(skytools.DBScript):
             self.pg_stop_backup()
             sys.exit(1)
 
-    def exec_rsync_keep_links(self, source_dir, dst_loc, exclude_list):
-        """rsync a potentially symlinked directory under PGDATA"""
+    def rsync_log_directory(self, source_dir, dst_loc):
+        """rsync a pg_log or pg_xlog directory - ignore most of the 
+        directory contents, and pay attention to symlinks
+        """
         keep_symlinks = self.cf.getint("keep_symlinks", 1)
 
         subdir = os.path.basename(source_dir)
@@ -389,32 +391,33 @@ class WalMgr(skytools.DBScript):
             self.log.info("%s does not exist, skipping" % subdir)
             return
 
-        cmdline  = [ "--delete" ]
+        cmdline = []
 
-        exclude_list.append("lost+found")
-        for pattern in exclude_list:
-            cmdline += [ "--exclude", pattern ]
-
-        # if this is a symlink, copy the target directory first
+        # if this is a symlink, copy it's target first
         if os.path.islink(source_dir) and keep_symlinks:
-            self.log.info('%s is a symlink, attempting to copy link target' % subdir)
+            self.log.info('%s is a symlink, attempting to create link target' % subdir)
 
+            # expand the link
             link = os.readlink(source_dir)
-
-            # prepend the current directory name if needed
             if not link.startswith("/"):
                 link = os.path.join(os.getcwd(), link)
-
-            # append a slash
             link_target = os.path.join(link, "")
 
             remote_target = "%s:%s" % (self.slave_host(), link_target)
-            if self.exec_rsync(cmdline + [ link_target, remote_target ]):
+            options = [ "--include=archive_status", "--exclude=/**" ]
+            if self.exec_rsync( options + [ link_target, remote_target ]):
+                # unable to create the link target, just convert the links
+                # to directories in PGDATA
                 self.log.warning('Unable to create symlinked %s on target, copying' % subdir)
-                cmdline.append("--copy-unsafe-links")
+                cmdline += [ "--copy-unsafe-links" ]
 
-        # now the actual PGDATA entry
+        cmdline += [ "--exclude=pg_log/*" ]
+        cmdline += [ "--exclude=pg_xlog/archive_status/*" ]
+        cmdline += [ "--include=pg_xlog/archive_status" ]
+        cmdline += [ "--exclude=pg_xlog/*" ]
+
         self.exec_big_rsync(cmdline + [ source_dir, dst_loc ])
+
 
     def exec_cmd(self, cmdline):
         cmd = "' '".join(cmdline)
@@ -737,8 +740,8 @@ class WalMgr(skytools.DBScript):
 
             # copy the pg_log and pg_xlog directories, these may be 
             # symlinked to nonstandard location, so pay attention
-            self.exec_rsync_keep_links(os.path.join(data_dir, "pg_log"),  dst_loc, [ "*.log" ])
-            self.exec_rsync_keep_links(os.path.join(data_dir, "pg_xlog"), dst_loc, [ "*.done", "*.backup" ])
+            self.rsync_log_directory(os.path.join(data_dir, "pg_log"),  dst_loc)
+            self.rsync_log_directory(os.path.join(data_dir, "pg_xlog"), dst_loc)
 
             # copy config files
             conf_dst_loc = self.cf.get("config_backup", "")
