@@ -2,15 +2,11 @@
 #ifndef __PGQD_H__
 #define __PGQD_H__
 
-#include <sys/types.h>
-#include <unistd.h>
-#include <stdlib.h>
 #include <string.h>
 
 #define Assert(x)
 
 #include <usual/list.h>
-#include <usual/alloc.h>
 #include <usual/statlist.h>
 #include <usual/logging.h>
 

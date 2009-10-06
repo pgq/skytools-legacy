@@ -46,8 +46,6 @@ class _BatchWalker(object):
         self.curs = curs
         self.length = 0
         self.status_map = {}
-        curs.execute("select pgq.batch_event_sql(%s)", [batch_id])
-        self.batch_sql = curs.fetchone()[0]
         self.fetch_status = 0 # 0-not started, 1-in-progress, 2-done
 
     def __iter__(self):
@@ -55,12 +53,12 @@ class _BatchWalker(object):
             raise Exception("BatchWalker: double fetch? (%d)" % self.fetch_status)
         self.fetch_status = 1
 
-        q = "declare %s no scroll cursor for %s" % (self.sql_cursor, self.batch_sql)
-        self.curs.execute(q)
+        q = "select * from pgq.get_batch_cursor(%s, %s, %s)"
+        self.curs.execute(q, [self.queue_name, self.sql_cursor, self.fetch_size])
+        # this will return first batch of rows
 
         q = "fetch %d from batch_walker" % self.fetch_size
         while 1:
-            self.curs.execute(q)
             rows = self.curs.dictfetchall()
             if not len(rows):
                 break
@@ -69,6 +67,13 @@ class _BatchWalker(object):
             for row in rows:
                 ev = _WalkerEvent(self, self.queue_name, row)
                 yield ev
+
+            # if less rows than requested, it was final block
+            if len(rows) < self.fetch_size:
+                break
+
+            # request next block of rows
+            self.curs.execute(q)
 
         self.curs.execute("close %s" % self.sql_cursor)
 
@@ -96,7 +101,42 @@ class _BatchWalker(object):
 
 class Consumer(skytools.DBScript):
     """Consumer base class.
+
+    Config template::
+
+        ## Parameters for pgq.Consumer ##
+
+        # queue name to read from
+        queue_name =
+
+        # override consumer name
+        #consumer_name = %(job_name)s
+
+        # whether to use cursor to fetch events (0 disables)
+        #pgq_lazy_fetch = 300
+
+        # whether to wait for specified number of events, before
+        # assigning a batch (0 disables)
+        #pgq_batch_collect_events = 0
+
+        # whether to wait specified amount of time,
+        # before assigning a batch (postgres interval)
+        #pgq_batch_collect_interval =
+
+        # whether to stay behind queue top (postgres interval)
+        #pgq_keep_lag = 
     """
+
+    # by default, use cursor-based fetch
+    default_lazy_fetch = 300
+
+    # proper variables
+    consumer_name = None
+    queue_name = None
+
+    # compat variables
+    pgq_queue_name = None
+    pgq_consumer_id = None
 
     def __init__(self, service_name, db_name, args):
         """Initialize new consumer.
@@ -120,12 +160,20 @@ class Consumer(skytools.DBScript):
         if not self.queue_name:
             self.queue_name = self.cf.get("queue_name")
 
-        self.pgq_lazy_fetch = self.cf.getint("pgq_lazy_fetch", 0)
         self.stat_batch_start = 0
 
         # compat vars
         self.pgq_queue_name = self.queue_name
         self.consumer_id = self.consumer_name
+
+    def reload(self):
+        DBScript.reload(self)
+
+        self.pgq_lazy_fetch = self.cf.getint("pgq_lazy_fetch", self.default_lazy_fetch)
+        # set following ones to None if not set
+        self.pgq_min_count = self.cf.getint("pgq_batch_collect_events", 0) or None
+        self.pgq_min_interval = self.cf.get("pgq_batch_collect_interval", '') or None
+        self.pgq_min_lag = self.cf.get("pgq_keep_lag", '') or None
 
     def startup(self):
         """Handle commands here.  __init__ does not have error logging."""
@@ -241,12 +289,14 @@ class Consumer(skytools.DBScript):
     def _load_next_batch(self, curs):
         """Allocate next batch. (internal)"""
 
-        q = "select pgq.next_batch(%s, %s)"
-        curs.execute(q, [self.queue_name, self.consumer_name])
-        return curs.fetchone()[0]
+        q = "select * from pgq.next_batch_custom(%s, %s, %s, %s, %s)"
+        curs.execute(q, [self.queue_name, self.consumer_name,
+                         self.pgq_min_lag, self.pgq_min_count, self.pgq_min_interval])
+        inf = curs.fetchone()
+        return inf['batch_id']
 
-    def _finish_batch(self, curs, batch_id, list):
-        """Tag events and notify that the batch is done."""
+    def _flush_retry(self, curs, batch_id, list):
+        """Tag retry events."""
 
         retry = 0
         if self.pgq_lazy_fetch:
@@ -268,6 +318,11 @@ class Consumer(skytools.DBScript):
         # report weird events
         if retry:
             self.stat_increase('retry-events', retry)
+
+    def _finish_batch(self, curs, batch_id, list):
+        """Tag events and notify that the batch is done."""
+
+        self._flush_retry(curs, batch_id, list)
 
         curs.execute("select pgq.finish_batch(%s)", [batch_id])
 

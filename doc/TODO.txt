@@ -32,21 +32,36 @@ who already is handling it.
   - globbing
   - compare/repair
 
-== Required for 3.0-final ==
-
 * Simple Python consumer for pgq_coop, where each subconsumer
   is separate process. [easy]
-* qadmin, pgqadm: show stats about event counts based on seq values in ticks. [easy]
+
+* Apply SQL one-by-one if error.
+
+== Required for 3.0a2 ==
+
 * londiste, struct change needed:
-  - londiste doc update with new commands [easy]
   - store last error [easy]
   - support WHERE for COPY [easy]
-  - fkeys, from 2.x [easy]
-  - execute --wait [moderate]
-* automatic serial handling, --noserial switch?
 * error column
+* automatic serial handling, --noserial switch?
+* pgq: stat queries
+
+* merge queue_loader to londiste
+  - londiste: apply mechanism is stored in table_attrs
+  - pgq: ability to request big batches (10000 rows, 5 min)
+
+== Required for 3.0-final ==
+
+* test coopconsumer
+* qadmin, pgqadm: show stats about event counts based on seq values in ticks. [easy]
+* londiste:
+  - londiste doc update with new commands [easy]
+  - fkeys, from 2.x [easy]
 
 == Good to have changes ==
+
+* londiste:
+  - execute --wait [moderate]
 
 === sql/pgq ===
 

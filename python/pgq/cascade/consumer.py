@@ -4,7 +4,7 @@
 Does not maintain node, but is able to pause, resume and switch provider.
 """
 
-import sys, time, skytools
+import sys, time
 
 from pgq.consumer import Consumer
 
@@ -150,6 +150,10 @@ class CascadedConsumer(Consumer):
                 q = "select * from pgq_node.set_consumer_uptodate(%s, %s, true)"
                 self.exec_cmd(dst_db, q, [ self.queue_name, self.consumer_name ])
 
+            if state['cur_error'] and self.work_state != -1:
+                q = "select * from pgq_node.set_consumer_error(%s, %s, NULL)"
+                self.exec_cmd(dst_db, q, [ self.queue_name, self.consumer_name ])
+
             if not state['paused'] or not full_logic:
                 break
             time.sleep(self.loop_delay)
@@ -210,4 +214,13 @@ class CascadedConsumer(Consumer):
         # this also commits
         q = "select * from pgq_node.set_consumer_completed(%s, %s, %s)"
         self.exec_cmd(dst_db, q, [ self.queue_name, self.consumer_name, tick_id ])
+
+    def exception_hook(self, det, emsg, cname):
+        try:
+            dst_db = self.get_database(self.target_db)
+            q = "select * from pgq_node.set_consumer_error(%s, %s, %s)"
+            self.exec_cmd(dst_db, q, [ self.queue_name, self.consumer_name, emsg ])
+        except:
+            self.log.warning("Failure to call pgq_node.set_consumer_error()")
+        self.reset()
 

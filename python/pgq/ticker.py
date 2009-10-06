@@ -3,10 +3,10 @@
 It will also launch maintenance job.
 """
 
-import sys, os, time, threading
+import time, threading
 import skytools
 
-from maint import MaintenanceJob
+from pgq.maint import MaintenanceJob
 
 __all__ = ['SmallTicker']
 

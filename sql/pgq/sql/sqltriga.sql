@@ -55,4 +55,22 @@ delete from rtest where id=1;
 delete from rtest where id=2;
 
 
+-- test missing pkey
+create table nopkey (dat text);
+create trigger nopkey_triga after insert or update or delete on nopkey
+for each row execute procedure pgq.sqltriga('que3');
+
+insert into nopkey values ('foo');
+update nopkey set dat = 'bat';
+delete from nopkey;
+
+
+-- test custom pkey
+create table custom_pkey (dat1 text not null, dat2 int2 not null, dat3 text);
+create trigger custom_triga after insert or update or delete on custom_pkey
+for each row execute procedure pgq.sqltriga('que3', 'pkey=dat1,dat2');
+
+insert into custom_pkey values ('foo', '2');
+update custom_pkey set dat3 = 'bat';
+delete from custom_pkey;
 

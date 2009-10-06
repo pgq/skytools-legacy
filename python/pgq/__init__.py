@@ -19,6 +19,7 @@ import pgq.cascade.worker
 
 from pgq.event import *
 from pgq.consumer import *
+from pgq.coopconsumer import *
 from pgq.remoteconsumer import *
 from pgq.producer import *
 
@@ -34,6 +35,7 @@ from pgq.cascade.worker import *
 __all__ = (
     pgq.event.__all__ +
     pgq.consumer.__all__ +
+    pgq.coopconsumer.__all__ +
     pgq.remoteconsumer.__all__ +
     pgq.cascade.nodeinfo.__all__ +
     pgq.cascade.admin.__all__ +

@@ -70,7 +70,7 @@ upload: dox
 #
 
 test: pgq.sql
-	$(MAKE) installcheck || { less regression.diffs; exit 1; }
+	$(MAKE) install installcheck || { less regression.diffs; exit 1; }
 
 ack:
 	cp results/*.out expected/

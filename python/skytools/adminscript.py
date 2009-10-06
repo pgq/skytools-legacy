@@ -3,7 +3,7 @@
 """Admin scripting.
 """
 
-import sys, os, inspect
+import sys, inspect
 
 from skytools.scripting import DBScript
 from skytools.quoting import quote_statement

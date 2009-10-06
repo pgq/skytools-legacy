@@ -1,7 +1,6 @@
 #include "connection.h"
 
 #include <sys/types.h>
-#include <unistd.h>
 #include <stdarg.h>
 #include <math.h>
 

@@ -4,7 +4,7 @@ CascadedConsumer that also maintains node.
 
 """
 
-import sys, time, skytools
+import time
 
 from pgq.cascade.consumer import CascadedConsumer
 from pgq.producer import bulk_insert_events
@@ -70,6 +70,16 @@ class WorkerState:
 
 class CascadedWorker(CascadedConsumer):
     """CascadedWorker base class.
+
+    Config fragment::
+
+        ## Parameters for pgq.CascadedWorker ##
+
+        # how often the root node should push wm downstream (seconds)
+        #global_wm_publish_period = 300
+
+        # how often the nodes should report their wm upstream (seconds)
+        #local_wm_publish_period = 300
     """
 
     global_wm_publish_time = 0

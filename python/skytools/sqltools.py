@@ -530,7 +530,7 @@ def mk_update_sql(row, tbl, pkey_list, field_map = None):
                 col = quote_ident(col)
                 val = quote_literal(val)
                 set_list.append("%s = %s" % (col, val))
-    return "update %s set %s where %s;" % (quote_fqident(tbl),
+    return "update only %s set %s where %s;" % (quote_fqident(tbl),
             ", ".join(set_list), " and ".join(whe_list))
 
 def mk_delete_sql(row, tbl, pkey_list, field_map = None):
@@ -545,7 +545,7 @@ def mk_delete_sql(row, tbl, pkey_list, field_map = None):
         val = quote_literal(row[k])
         whe_list.append("%s = %s" % (col, val))
     whe_str = " and ".join(whe_list) 
-    return "delete from %s where %s;" % (quote_fqident(tbl), whe_str)
+    return "delete from only %s where %s;" % (quote_fqident(tbl), whe_str)
 
 class QArgConf:
     """Per-query arg-type config object."""

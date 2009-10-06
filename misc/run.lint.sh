@@ -7,5 +7,5 @@ bdir=`echo build/lib.*`
 
 cd $bdir
 export PYTHONPATH=.:$PYTHONPATH
-pylint -i yes --rcfile=../../misc/lint.rc skytools
+pylint -i yes --rcfile=../../misc/lint.rc skytools pgq londiste
 

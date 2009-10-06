@@ -31,6 +31,11 @@ select * from pgq_node.create_node('branch_set', 'branch', 'snode', 'londiste_br
       200 | Node "snode" initialized for queue "branch_set" with type "branch"
 (1 row)
 
+select * from londiste.local_show_missing('branch_set');
+ obj_kind | obj_name 
+----------+----------
+(0 rows)
+
 select * from londiste.local_add_table('branch_set', 'public.slavedata');
  ret_code |                    ret_note                    
 ----------+------------------------------------------------
@@ -56,10 +61,10 @@ select * from londiste.global_add_table('branch_set', 'public.tmp');
 (1 row)
 
 select * from londiste.get_table_list('branch_set');
-    table_name    | local | merge_state | custom_snapshot | skip_truncate | dropped_ddl | copy_role 
-------------------+-------+-------------+-----------------+---------------+-------------+-----------
- public.slavedata | t     |             |                 |               |             | 
- public.tmp       | f     |             |                 |               |             | 
+    table_name    | local | merge_state | custom_snapshot | table_attrs | dropped_ddl | copy_role 
+------------------+-------+-------------+-----------------+-------------+-------------+-----------
+ public.slavedata | t     |             |                 |             |             | 
+ public.tmp       | f     |             |                 |             |             | 
 (2 rows)
 
 select * from londiste.global_remove_table('branch_set', 'public.tmp');
@@ -81,8 +86,14 @@ select * from londiste.local_remove_table('branch_set', 'public.slavedata');
 (1 row)
 
 select * from londiste.get_table_list('branch_set');
-    table_name    | local | merge_state | custom_snapshot | skip_truncate | dropped_ddl | copy_role 
-------------------+-------+-------------+-----------------+---------------+-------------+-----------
- public.slavedata | f     |             |                 |               |             | 
+    table_name    | local | merge_state | custom_snapshot | table_attrs | dropped_ddl | copy_role 
+------------------+-------+-------------+-----------------+-------------+-------------+-----------
+ public.slavedata | f     |             |                 |             |             | 
+(1 row)
+
+select * from londiste.local_show_missing('branch_set');
+ obj_kind |     obj_name     
+----------+------------------
+ r        | public.slavedata
 (1 row)
 

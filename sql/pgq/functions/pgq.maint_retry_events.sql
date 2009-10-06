@@ -16,6 +16,10 @@ declare
     rec    record;
 begin
     cnt := 0;
+
+    -- allow only single event mover at a time, without affecting inserts
+    lock table pgq.retry_queue in share update exclusive mode;
+
     for rec in
         select queue_name,
                ev_id, ev_time, ev_owner, ev_retry, ev_type, ev_data,

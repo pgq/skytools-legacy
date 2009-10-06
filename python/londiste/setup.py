@@ -27,7 +27,7 @@ class LondisteSetup(CascadeAdmin):
 
         self.set_name = self.queue_name
 
-    def connection_setup(self, dbname, db):
+    def connection_hook(self, dbname, db):
         if dbname == 'db':
             curs = db.cursor()
             curs.execute("set session_replication_role = 'replica'")
@@ -119,7 +119,7 @@ class LondisteSetup(CascadeAdmin):
             for f in create.split(','):
                 if f not in fmap:
                     raise Exception("bad --create-only flag: " + f)
-            create_flags += fmap[f]
+                create_flags += fmap[f]
 
         # seems ok
         for tbl in args:
@@ -214,7 +214,7 @@ class LondisteSetup(CascadeAdmin):
             for f in create.split(','):
                 if f not in fmap:
                     raise Exception("bad --create-only flag: " + f)
-            create_flags += fmap[f]
+                create_flags += fmap[f]
 
         # seems ok
         for seq in args:

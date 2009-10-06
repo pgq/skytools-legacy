@@ -11,6 +11,7 @@ as $$
 --
 -- Returns:
 --      200 - Ok
+--      301 - Warning, trigger exists that will fire before londiste one
 --      400 - No such set
 -- ----------------------------------------------------------------------
 declare
@@ -19,6 +20,7 @@ declare
     new_state text;
 
     logtrg_name text;
+    logtrg_previous text;
     logtrg text;
     tbl record;
 begin
@@ -92,7 +94,7 @@ begin
     end if;
 
     -- create trigger if it does not exists already
-    logtrg_name := i_queue_name || '_logtrigger';
+    logtrg_name := '_londiste_' || i_queue_name;
     perform 1 from pg_catalog.pg_trigger
         where tgrelid = londiste.find_table_oid(fq_table_name)
             and tgname = logtrg_name;
@@ -101,6 +103,33 @@ begin
             || ' after insert or update or delete on ' || londiste.quote_fqname(fq_table_name)
             || ' for each row execute procedure pgq.sqltriga(' || quote_literal(i_queue_name) || ')';
         execute logtrg;
+    end if;
+
+    -- Check that no trigger exists on the target table that will get fired
+    -- before londiste one (this could have londiste replicate data
+    -- out-of-order
+    --
+    -- Don't report all the trigger names, 8.3 does not have array_accum
+    -- available
+
+    select max(trigger_name)
+         into logtrg_previous
+         from information_schema.triggers,
+              londiste.split_fqname(fq_table_name)
+        where event_object_schema = schema_part
+            and event_object_table = name_part
+            and condition_timing = 'AFTER'
+	    and substring(trigger_name from 1 for 10) != '_londiste_'
+            and substring(trigger_name from char_length(trigger_name) - 6) != '_logger'
+            and trigger_name < logtrg_name;
+
+    if logtrg_previous then
+       select 301,
+              'Table added: ' || fq_table_name
+                              || ', but londiste trigger is not first: '
+                              || logtrg_previous
+         into ret_code, ret_note;
+        return;
     end if;
 
     select 200, 'Table added: ' || fq_table_name into ret_code, ret_note;

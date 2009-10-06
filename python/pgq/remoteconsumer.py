@@ -4,7 +4,7 @@ old RemoteConsumer / SerialConsumer classes.
 
 """
 
-import sys, time, skytools
+import sys
 
 from pgq.consumer import Consumer
 

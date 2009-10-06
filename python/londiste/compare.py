@@ -5,7 +5,7 @@
 Currently just does count(1) on both sides.
 """
 
-import sys, os, time, skytools
+import sys, skytools
 
 __all__ = ['Comparator']
 

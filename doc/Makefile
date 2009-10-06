@@ -133,7 +133,7 @@ html/INSTALL.html: ../INSTALL
 	> $@
 endif
 
-web: $(HTMLS)
+web: $(FQHTMLS)
 	rsync -avz $(FQHTML) $(web)/doc/
 
 

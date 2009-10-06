@@ -1,7 +1,7 @@
 """Our log handlers for Python's logging package.
 """
 
-import sys, os, time, socket
+import os, time, socket
 import logging, logging.handlers
 
 from skytools.psycopgwrapper import connect_database

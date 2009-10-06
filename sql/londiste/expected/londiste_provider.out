@@ -43,10 +43,18 @@ select * from londiste.local_add_table('aset', 'public.testdata');
 
 insert into testdata (data) values ('test-data');
 select * from londiste.get_table_list('aset');
-   table_name    | local | merge_state | custom_snapshot | skip_truncate | dropped_ddl | copy_role 
------------------+-------+-------------+-----------------+---------------+-------------+-----------
- public.testdata | t     | ok          |                 |               |             | 
+   table_name    | local | merge_state | custom_snapshot | table_attrs | dropped_ddl | copy_role 
+-----------------+-------+-------------+-----------------+-------------+-------------+-----------
+ public.testdata | t     | ok          |                 |             |             | 
 (1 row)
+
+select * from londiste.local_show_missing('aset');
+ obj_kind |          obj_name           
+----------+-----------------------------
+ S        | public.testdata_id_seq
+ S        | public.testdata_nopk_id_seq
+ r        | public.testdata_nopk
+(3 rows)
 
 select * from londiste.local_remove_table('aset', 'public.testdata');
  ret_code |            ret_note            
@@ -61,8 +69,8 @@ select * from londiste.local_remove_table('aset', 'public.testdata');
 (1 row)
 
 select * from londiste.get_table_list('aset');
- table_name | local | merge_state | custom_snapshot | skip_truncate | dropped_ddl | copy_role 
-------------+-------+-------------+-----------------+---------------+-------------+-----------
+ table_name | local | merge_state | custom_snapshot | table_attrs | dropped_ddl | copy_role 
+------------+-------+-------------+-----------------+-------------+-------------+-----------
 (0 rows)
 
 select ev_id, ev_type, ev_data, ev_extra1 from pgq.event_template;
@@ -72,4 +80,13 @@ select ev_id, ev_type, ev_data, ev_extra1 from pgq.event_template;
      2 | I                     | (id,data) values ('1','test-data') | public.testdata
      3 | londiste.remove-table | public.testdata                    | 
 (3 rows)
+
+select * from londiste.local_show_missing('aset');
+ obj_kind |          obj_name           
+----------+-----------------------------
+ S        | public.testdata_id_seq
+ S        | public.testdata_nopk_id_seq
+ r        | public.testdata
+ r        | public.testdata_nopk
+(4 rows)
 

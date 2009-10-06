@@ -18,9 +18,9 @@ select * from pgq_node.create_node('seqroot', 'root', 'rnode', 'londiste_root', 
 (1 row)
 
 select * from londiste.local_add_seq('seqroot', 'masterseq');
- ret_code |    ret_note    
-----------+----------------
-      200 | Sequence added
+ ret_code |             ret_note             
+----------+----------------------------------
+      200 | Sequence added: public.masterseq
 (1 row)
 
 select * from londiste.local_add_seq('seqroot', 'masterseq');
@@ -96,9 +96,9 @@ select * from londiste.global_update_seq('seqbranch', 'masterseq', 5);
 (1 row)
 
 select * from londiste.local_add_seq('seqbranch', 'masterseq');
- ret_code |    ret_note    
-----------+----------------
-      200 | Sequence added
+ ret_code |             ret_note             
+----------+----------------------------------
+      200 | Sequence added: public.masterseq
 (1 row)
 
 select * from londiste.root_check_seqs('seqbranch');
