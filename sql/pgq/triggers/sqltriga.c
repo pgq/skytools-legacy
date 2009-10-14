@@ -68,7 +68,7 @@ Datum pgq_sqltriga(PG_FUNCTION_ARGS)
 	 * create sql and insert if interesting
 	 */
 	if (pgqtriga_make_sql(&ev, tg, ev.ev_data))
-		pgq_insert_tg_event(&ev);
+		pgq_insert_tg_event(&ev, tg);
 
 	if (SPI_finish() < 0)
 		elog(ERROR, "SPI_finish failed");

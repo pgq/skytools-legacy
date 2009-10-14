@@ -115,7 +115,7 @@ Datum pgq_logutriga(PG_FUNCTION_ARGS)
 	/*
 	 * Construct the parameter array and insert the log row.
 	 */
-	pgq_insert_tg_event(&ev);
+	pgq_insert_tg_event(&ev, tg);
 
 	if (SPI_finish() < 0)
 		elog(ERROR, "SPI_finish failed");

@@ -39,6 +39,9 @@
 PG_MODULE_MAGIC;
 #endif
 
+/* memcmp is ok on NameData fields */
+#define is_magic_field(s) (memcmp(s, "_pgq_ev_", 8) == 0)
+
 /*
  * primary key info
  */
@@ -49,7 +52,8 @@ static HTAB *tbl_cache_map;
 static const char pkey_sql[] =
     "SELECT k.attnum, k.attname FROM pg_index i, pg_attribute k"
     " WHERE i.indrelid = $1 AND k.attrelid = i.indexrelid"
-    "   AND i.indisprimary AND k.attnum > 0 AND NOT k.attisdropped" " ORDER BY k.attnum";
+    "   AND i.indisprimary AND k.attnum > 0 AND NOT k.attisdropped"
+    " ORDER BY k.attnum";
 static void *pkey_plan;
 
 static void relcache_reset_cb(Datum arg, Oid relid);
@@ -59,19 +63,20 @@ static void relcache_reset_cb(Datum arg, Oid relid);
  *
  * does not support NULL arguments.
  */
-void pgq_simple_insert(const char *queue_name, Datum ev_type, Datum ev_data, Datum ev_extra1, Datum ev_extra2)
+void pgq_simple_insert(const char *queue_name, Datum ev_type, Datum ev_data,
+		       Datum ev_extra1, Datum ev_extra2, Datum ev_extra3, Datum ev_extra4)
 {
-	Datum values[5];
-	char nulls[5];
+	Datum values[7];
+	char nulls[7];
 	static void *plan = NULL;
 	int res;
 
 	if (!plan) {
 		const char *sql;
-		Oid types[5] = { TEXTOID, TEXTOID, TEXTOID, TEXTOID, TEXTOID };
+		Oid   types[7] = { TEXTOID, TEXTOID, TEXTOID, TEXTOID, TEXTOID, TEXTOID, TEXTOID };
 
-		sql = "select pgq.insert_event($1, $2, $3, $4, $5, null, null)";
-		plan = SPI_saveplan(SPI_prepare(sql, 5, types));
+		sql = "select pgq.insert_event($1, $2, $3, $4, $5, $6, $7)";
+		plan = SPI_saveplan(SPI_prepare(sql, 7, types));
 		if (plan == NULL)
 			elog(ERROR, "logtriga: SPI_prepare() failed");
 	}
@@ -80,23 +85,77 @@ void pgq_simple_insert(const char *queue_name, Datum ev_type, Datum ev_data, Dat
 	values[2] = ev_data;
 	values[3] = ev_extra1;
 	values[4] = ev_extra2;
+	values[5] = ev_extra3;
+	values[6] = ev_extra4;
 	nulls[0] = ' ';
-	nulls[1] = ' ';
-	nulls[2] = ' ';
-	nulls[3] = ' ';
+	nulls[1] = ev_type ? ' ' : 'n';
+	nulls[2] = ev_data ? ' ' : 'n';
+	nulls[3] = ev_extra1 ? ' ' : 'n';
 	nulls[4] = ev_extra2 ? ' ' : 'n';
+	nulls[5] = ev_extra3 ? ' ' : 'n';
+	nulls[6] = ev_extra4 ? ' ' : 'n';
 	res = SPI_execute_plan(plan, values, nulls, false, 0);
 	if (res != SPI_OK_SELECT)
 		elog(ERROR, "call of pgq.insert_event failed");
 }
 
-void pgq_insert_tg_event(PgqTriggerEvent *ev)
+static void fill_magic_columns(PgqTriggerEvent *ev, TriggerData *tg)
 {
+	int i;
+	char *col_name, *col_value;
+	StringInfo *dst = NULL;
+	TupleDesc tupdesc = tg->tg_relation->rd_att;
+	HeapTuple row;
+
+	if (TRIGGER_FIRED_BY_UPDATE(tg->tg_event))
+		row = tg->tg_newtuple;
+	else
+		row = tg->tg_trigtuple;
+
+	for (i = 0; i < tupdesc->natts; i++) {
+		/* Skip dropped columns */
+		if (tupdesc->attrs[i]->attisdropped)
+			continue;
+		col_name = NameStr(tupdesc->attrs[i]->attname);
+		if (!is_magic_field(col_name))
+			continue;
+		if (strcmp(col_name, "_pgq_ev_type") == 0)
+			dst = &ev->ev_type;
+		else if (strcmp(col_name, "_pgq_ev_data") == 0)
+			dst = &ev->ev_data;
+		else if (strcmp(col_name, "_pgq_ev_extra1") == 0)
+			dst = &ev->ev_extra1;
+		else if (strcmp(col_name, "_pgq_ev_extra2") == 0)
+			dst = &ev->ev_extra2;
+		else if (strcmp(col_name, "_pgq_ev_extra3") == 0)
+			dst = &ev->ev_extra3;
+		else if (strcmp(col_name, "_pgq_ev_extra4") == 0)
+			dst = &ev->ev_extra4;
+		else
+			elog(ERROR, "Unknown magic column: %s", col_name);
+
+		col_value = SPI_getvalue(row, tupdesc, i + 1);
+		if (col_value != NULL) {
+			*dst = pgq_init_varbuf();
+			appendStringInfoString(*dst, col_value);
+		} else {
+			*dst = NULL;
+		}
+	}
+}
+
+void pgq_insert_tg_event(PgqTriggerEvent *ev, TriggerData *tg)
+{
+	if (ev->custom_fields)
+		fill_magic_columns(ev, tg);
+
 	pgq_simple_insert(ev->queue_name,
 			  pgq_finish_varbuf(ev->ev_type),
 			  pgq_finish_varbuf(ev->ev_data),
 			  pgq_finish_varbuf(ev->ev_extra1),
-			  ev->ev_extra2 ? pgq_finish_varbuf(ev->ev_extra2) : (Datum)0);
+			  pgq_finish_varbuf(ev->ev_extra2),
+			  pgq_finish_varbuf(ev->ev_extra3),
+			  pgq_finish_varbuf(ev->ev_extra4));
 }
 
 char *pgq_find_table_name(Relation rel)
@@ -415,15 +474,21 @@ bool pgqtriga_skip_col(PgqTriggerEvent *ev, TriggerData *tg, int i, int attkind_
 	TupleDesc tupdesc;
 	const char *name;
 
+	tupdesc = tg->tg_relation->rd_att;
+	if (tupdesc->attrs[i]->attisdropped)
+		return true;
+	name = NameStr(tupdesc->attrs[i]->attname);
+
+	if (is_magic_field(name)) {
+		ev->custom_fields = 1;
+		return true;
+	}
+
 	if (ev->attkind) {
 		if (attkind_idx >= ev->attkind_len)
 			return true;
 		return ev->attkind[attkind_idx] == 'i';
 	} else if (ev->ignore_list) {
-		tupdesc = tg->tg_relation->rd_att;
-		if (tupdesc->attrs[i]->attisdropped)
-			return true;
-		name = NameStr(tupdesc->attrs[i]->attname);
 		return pgq_strlist_contains(ev->ignore_list, name);
 	}
 	return false;
@@ -446,6 +511,10 @@ bool pgqtriga_is_pkey(PgqTriggerEvent *ev, TriggerData *tg, int i, int attkind_i
 		if (tupdesc->attrs[i]->attisdropped)
 			return false;
 		name = NameStr(tupdesc->attrs[i]->attname);
+		if (is_magic_field(name)) {
+			ev->custom_fields = 1;
+			return false;
+		}
 		return pgq_strlist_contains(ev->pkey_list, name);
 	}
 	return false;
