@@ -325,6 +325,9 @@ class DBScript(object):
         self.options, self.args = parser.parse_args(args)
 
         # check args
+        if self.options.version:
+            self.print_version()
+            sys.exit(0)
         if self.options.daemon:
             self.go_daemon = 1
         if self.options.quiet:
@@ -352,6 +355,9 @@ class DBScript(object):
             self.send_signal(signal.SIGINT)
         elif self.options.cmd == "reload":
             self.send_signal(signal.SIGHUP)
+
+    def print_version(self):
+        print '%s, Skytools version %s' % (self.service_name, skytools.__version__)
 
     def print_ini(self):
         """Prints out ini file from doc string of the script of default for dbscript
@@ -431,6 +437,8 @@ class DBScript(object):
                      help = "log verbosely")
         p.add_option("-d", "--daemon", action="store_true",
                      help = "go background")
+        p.add_option("-V", "--version", action="store_true",
+                     help = "print version info and exit")
         p.add_option("", "--ini", action="store_true",
                     help = "display sample ini file")
 
