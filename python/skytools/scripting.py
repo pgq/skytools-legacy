@@ -42,7 +42,7 @@ def signal_pidfile(pidfile, sig):
     """Send a signal to process whose ID is located in pidfile.
 
     Read only first line of pidfile to support multiline
-    pifiles like postmaster.pid.
+    pidfiles like postmaster.pid.
 
     Returns True is successful, False if pidfile does not exist
     or process itself is dead.  Any other errors will passed
@@ -58,6 +58,8 @@ def signal_pidfile(pidfile, sig):
     except OSError, ex:
         if ex.errno != errno.ESRCH:
             raise
+    except ValueError, ex:
+        raise ValueError('Corrupt pidfile: %s' % pidfile)
     return False
 
 #
@@ -90,12 +92,6 @@ def daemonize():
 # Pidfile locking+cleanup & daemonization combined
 #
 
-def _write_pidfile(pidfile):
-    pid = os.getpid()
-    f = open(pidfile, 'w')
-    f.write(str(pid))
-    f.close()
-
 def run_single_process(runnable, daemon, pidfile):
     """Run runnable class, possibly daemonized, locked on pidfile."""
 
@@ -107,17 +103,23 @@ def run_single_process(runnable, daemon, pidfile):
         else:
             print("Ignoring stale pidfile")
 
-    # daemonize if needed and write pidfile
+    # daemonize if needed
     if daemon:
         daemonize()
-    if pidfile:
-        _write_pidfile(pidfile)
-    
-    # run and clean pidfile later
+
+    # clean only own pidfile
+    own_pidfile = False
+
     try:
+        if pidfile:
+            f = open(pidfile, 'w')
+            own_pidfile = True
+            f.write(str(os.getpid()))
+            f.close()
+
         runnable.run()
     finally:
-        if pidfile:
+        if own_pidfile:
             try:
                 os.remove(pidfile)
             except: pass
