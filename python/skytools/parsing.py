@@ -14,11 +14,18 @@ _rc_listelem = re.compile(r'( [^,"}]+ | ["] ( [^"\\]+ | [\\]. )* ["] )', re.X)
 
 # _parse_pgarray
 def parse_pgarray(array):
-    """ Parse Postgres array and return list of items inside it
-        Used to deserialize data recived from service layer parameters
+    r"""Parse Postgres array and return list of items inside it.
+
+    Examples:
+    >>> parse_pgarray('{}')
+    []
+    >>> parse_pgarray('{a,b,null,"null"}')
+    ['a', 'b', None, 'null']
+    >>> parse_pgarray(r'{"a,a","b\"b","c\\c"}')
+    ['a,a', 'b"b', 'c\\c']
     """
-    if not array or array[0] != "{":
-        raise Exception("bad array format: must start with {")
+    if not array or array[0] != "{" or array[-1] != '}':
+        raise Exception("bad array format: must be surrounded with {}")
     res = []
     pos = 1
     while 1:
@@ -27,16 +34,19 @@ def parse_pgarray(array):
             break
         pos2 = m.end()
         item = array[pos:pos2]
-        if len(item) > 0 and item[0] == '"':
-            item = item[1:-1]
-        item = unescape(item)
-        res.append(item)
+        if len(item) == 4 and item.upper() == "NULL":
+            val = None
+        else:
+            if len(item) > 0 and item[0] == '"':
+                item = item[1:-1]
+            val = unescape(item)
+        res.append(val)
 
         pos = pos2 + 1
         if array[pos2] == "}":
             break
         elif array[pos2] != ",":
-            raise Exception("bad array format: expected ,} got " + array[pos2])
+            raise Exception("bad array format: expected ,} got " + repr(array[pos2]))
     return res
 
 #
@@ -136,26 +146,45 @@ class _logtriga_parser:
         return dbdict(zip(fields, values))
 
 def parse_logtriga_sql(op, sql):
-    """Parse partial SQL used by logtriga() back to data values.
+    return parse_sqltriga_sql(op, sql)
+
+def parse_sqltriga_sql(op, sql):
+    """Parse partial SQL used by pgq.sqltriga() back to data values.
 
     Parser has following limitations:
      - Expects standard_quoted_strings = off
      - Does not support dollar quoting.
      - Does not support complex expressions anywhere. (hashtext(col1) = hashtext(val1))
      - WHERE expression must not contain IS (NOT) NULL
-     - Does not support updateing pk value.
+     - Does not support updating pk value.
 
     Returns dict of col->data pairs.
+
+    Insert event:
+    >>> parse_logtriga_sql('I', '(id, data) values (1, null)')
+    {'data': None, 'id': '1'}
+
+    Update event:
+    >>> parse_logtriga_sql('U', "data='foo' where id = 1")
+    {'data': 'foo', 'id': '1'}
+
+    Delete event:
+    >>> parse_logtriga_sql('D', "id = 1 and id2 = 'str''val'")
+    {'id2': "str'val", 'id': '1'}
     """
     return _logtriga_parser().parse_sql(op, sql)
 
 
 def parse_tabbed_table(txt):
-    """Parse a tab-separated table into list of dicts.
+    r"""Parse a tab-separated table into list of dicts.
     
     Expect first row to be column names.
 
     Very primitive.
+
+    Example:
+    >>> parse_tabbed_table('col1\tcol2\nval1\tval2\n')
+    [{'col2': 'val2', 'col1': 'val1'}]
     """
 
     txt = txt.replace("\r\n", "\n")
@@ -194,9 +223,15 @@ _ext_sql = r"""(?: (?P<str> [E]? %s ) | %s )""" % (_extstr, _base_sql)
 _std_sql_rc = _ext_sql_rc = None
 
 def sql_tokenizer(sql, standard_quoting = False, ignore_whitespace = False):
-    """Parser SQL to tokens.
+    r"""Parser SQL to tokens.
 
     Iterator, returns (toktype, tokstr) tuples.
+
+    Example
+    >>> [x for x in sql_tokenizer("select * from a.b", ignore_whitespace=True)]
+    [('ident', 'select'), ('sym', '*'), ('ident', 'from'), ('ident', 'a'), ('sym', '.'), ('ident', 'b')]
+    >>> [x for x in sql_tokenizer("\"c olumn\",'str''val'")]
+    [('ident', '"c olumn"'), ('sym', ','), ('str', "'str''val'")]
     """
     global _std_sql_rc, _ext_sql_rc
     if not _std_sql_rc:
@@ -224,6 +259,9 @@ def parse_statements(sql, standard_quoting = False):
     """Parse multi-statement string into separate statements.
 
     Returns list of statements.
+
+    >>> [sql for sql in parse_statements("begin; select 1; select 'foo'; end;")]
+    ['begin;', 'select 1;', "select 'foo';", 'end;']
     """
 
     global _copy_from_stdin_rc
@@ -251,4 +289,8 @@ def parse_statements(sql, standard_quoting = False):
         yield ("".join(tokens))
     if pcount != 0:
         raise Exception("syntax error - unbalanced parenthesis")
+
+if __name__ == '__main__':
+    import doctest
+    doctest.testmod()
 
