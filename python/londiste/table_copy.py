@@ -116,8 +116,7 @@ class CopyTable(Replicator):
 
         # drop unnecessary stuff
         if cmode > 0:
-            # drop indexes
-            objs = T_CONSTRAINT | T_INDEX | T_RULE # | T_TRIGGER
+            objs = T_CONSTRAINT | T_INDEX | T_RULE | T_PARENT # | T_TRIGGER
             dst_struct.drop(dst_curs, objs, log = self.log)
 
             # drop data
