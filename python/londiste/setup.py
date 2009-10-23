@@ -7,7 +7,7 @@ import sys, os, skytools
 from installer import *
 
 # support set() on 2.3
-if 'set' not in dir(__builtins__):
+if 'set' not in __builtins__:
     from sets import Set as set
 
 __all__ = ['ProviderSetup', 'SubscriberSetup']
