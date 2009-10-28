@@ -124,7 +124,11 @@ class CopyTable(Replicator):
                 self.log.info("%s: skipping truncate" % tbl_stat.name)
             else:
                 self.log.info("%s: truncating" % tbl_stat.name)
-                dst_curs.execute("truncate " + skytools.quote_fqident(tbl_stat.name))
+                q = "truncate "
+                if dst_db.server_version >= 80400:
+                    q += "only "
+                q += skytools.quote_fqident(tbl_stat.name)
+                dst_curs.execute(q)
 
             if cmode == 2 and tbl_stat.dropped_ddl is None:
                 ddl = dst_struct.get_create_sql(objs)
