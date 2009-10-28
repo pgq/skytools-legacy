@@ -93,7 +93,9 @@ class TConstraint(TElem):
 
     def get_create_sql(self, curs, new_table_name=None):
         """Generate creation SQL."""
-        fmt = "ALTER TABLE ONLY %s ADD CONSTRAINT %s %s;"
+        # no ONLY here as table with childs (only case that matters)
+        # cannot have contraints that childs do not have
+        fmt = "ALTER TABLE %s ADD CONSTRAINT %s %s;"
         if new_table_name:
             name = self.name
             if self.contype in ('p', 'u'):
