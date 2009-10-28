@@ -113,5 +113,15 @@ def connect_database(connstr):
         connstr += " connect_timeout=15"
 
     # create connection
-    return _CompatConnection(connstr)
+    db = _CompatConnection(connstr)
+
+    # fill .server_version on older psycopg
+    if not hasattr(db, 'server_version'):
+        iso = db.isolation_level
+        db.set_isolation_level(0)
+        curs = db.cursor()
+        curs.execute('show server_version_num')
+        db.server_version = curs.fetchone()[0]
+        db.set_isolation_level(iso)
+    return db
 
