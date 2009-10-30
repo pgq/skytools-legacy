@@ -633,10 +633,9 @@ class Replicator(pgq.SerialConsumer):
             cmd = "%s -d %s copy"
         cmd = cmd % (script, conf)
 
-        # let existing copy finish and clean its pidfile,
-        # otherwise new copy will exit immidiately
+        # wait until existing copy finishes
         copy_pidfile = self.pidfile + ".copy"
-        while os.path.isfile(copy_pidfile):
+        while skytools.signal_pidfile(copy_pidfile, 0):
             self.log.info("Waiting for existing copy to exit")
             time.sleep(2)
             
