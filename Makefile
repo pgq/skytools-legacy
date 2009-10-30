@@ -37,7 +37,7 @@ modules-install: config.mak
 	test \! -d compat || $(MAKE) -C compat $@ DESTDIR=$(DESTDIR)
 
 python-install: config.mak modules-all
-	$(PYTHON) setup.py install --prefix=$(prefix) --root=$(DESTDIR)/
+	$(PYTHON) setup.py install --prefix=$(prefix) --root=$(DESTDIR)/ $(BROKEN_PYTHON)
 	$(MAKE) -C doc DESTDIR=$(DESTDIR) install
 
 python-install python-all: python/skytools/installer_config.py
@@ -57,31 +57,31 @@ distclean: clean
 	rm -rf autom4te.cache config.log config.status config.mak
 
 deb80:
-	./configure --with-pgconfig=/usr/lib/postgresql/8.0/bin/pg_config
+	./configure --with-pgconfig=/usr/lib/postgresql/8.0/bin/pg_config --with-python=$(PYTHON)
 	sed -e s/PGVER/8.0/g -e s/PYVER/$(pyver)/g < debian/packages.in > debian/packages
 	yada rebuild
 	debuild -uc -us -b
 
 deb81:
-	./configure --with-pgconfig=/usr/lib/postgresql/8.1/bin/pg_config
+	./configure --with-pgconfig=/usr/lib/postgresql/8.1/bin/pg_config --with-python=$(PYTHON)
 	sed -e s/PGVER/8.1/g -e s/PYVER/$(pyver)/g < debian/packages.in > debian/packages
 	yada rebuild
 	debuild -uc -us -b
 
 deb82:
-	./configure --with-pgconfig=/usr/lib/postgresql/8.2/bin/pg_config
+	./configure --with-pgconfig=/usr/lib/postgresql/8.2/bin/pg_config --with-python=$(PYTHON)
 	sed -e s/PGVER/8.2/g -e s/PYVER/$(pyver)/g < debian/packages.in > debian/packages
 	yada rebuild
 	debuild -uc -us -b
 
 deb83:
-	./configure --with-pgconfig=/usr/lib/postgresql/8.3/bin/pg_config
+	./configure --with-pgconfig=/usr/lib/postgresql/8.3/bin/pg_config --with-python=$(PYTHON)
 	sed -e s/PGVER/8.3/g -e s/PYVER/$(pyver)/g < debian/packages.in > debian/packages
 	yada rebuild
 	debuild -uc -us -b
 
 deb84:
-	./configure --with-pgconfig=/usr/lib/postgresql/8.4/bin/pg_config
+	./configure --with-pgconfig=/usr/lib/postgresql/8.4/bin/pg_config --with-python=$(PYTHON)
 	sed -e s/PGVER/8.4/g -e s/PYVER/$(pyver)/g < debian/packages.in > debian/packages
 	yada rebuild
 	debuild -uc -us -b
@@ -99,6 +99,10 @@ boot: configure
 configure: configure.ac
 	autoconf
 
+# workaround for Debian's broken python
+debfix:
+	$(PYTHON) setup.py install --help | grep -q install-layout \
+	&& echo BROKEN_PYTHON=--install-layout=deb || echo 'WORKING_PYTHON=found'
 
 .PHONY: all clean distclean install deb debclean tgz
 .PHONY: python-all python-clean python-install

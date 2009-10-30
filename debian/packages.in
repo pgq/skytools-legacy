@@ -10,7 +10,7 @@ Copyright: BSD
  Copyright 2006 Marko Kreen
 Build: sh
  PATH=/usr/lib/postgresql/PGVER/bin:$PATH \
- ./configure --prefix=/usr --with-pgconfig=/usr/lib/postgresql/PGVER/bin/pg_config
+ ./configure --prefix=/usr --with-pgconfig=/usr/lib/postgresql/PGVER/bin/pg_config --with-python=pythonPYVER
  PATH=/usr/lib/postgresql/PGVER/bin:$PATH \
  make DESTDIR=$ROOT
 Clean: sh
@@ -28,7 +28,7 @@ Description: Skype database tools - Python parts
  walmgr - failover server scripts
 Install: sh
  PATH=/usr/lib/postgresql/PGVER/bin:$PATH \
- make python-install DESTDIR=$ROOT prefix=/usr
+ make python-install DESTDIR=$ROOT prefix=/usr `make -s debfix`
 
 Package: skytools-modules-PGVER
 Architecture: any
