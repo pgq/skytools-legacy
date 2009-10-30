@@ -1,3 +1,42 @@
+2009-xx-xx  -  SkyTools 2.1.11  -  ""
+
+  * walmgr:
+    - symlink handling for pg_log and pg_xlog
+    - archive_command set to "/bin/true" for restored postgresql.conf
+    (Martin Pihlak, Mark Kirkwood)
+
+  * londiste copy:
+    - make constraint dropping work for inherited tables
+      (Hannu Krosing)
+    - Do not restore fkeys to tables with unknown replication status
+      or coming from different queue.
+      (Hannu Krosing)
+    - use TRUNCATE ONLY on 8.4+
+      (Sergey Konoplev)
+    - Replace last copy pidfile check with signal_pidfile,
+      thus avoiding potential infinite stall with dead copy.
+
+  * skytools.DBScript:
+    - Add --version switch to show skytools version.
+      (Hannu Krosing)
+    - Safer pidfile handling - avoid creating zero-length files
+      on disk full situation by deleting them on write error.
+
+  * pgq.Event: ev.retry, ev.ev_retry fields for retry count.
+    (Nico Mandery)
+
+  * pgq.maint_retry_events(): lock table to allow only single mover.
+
+  * pgq.logutriga() did not put custom pkey= value into events.
+
+  * pgq.logutriga() and pgq.sqltriga() did allow UPDATE and DELETE
+    on tables without pkey, running into SQL errors downstream.
+    They should throw error in such case.
+
+  * Fix deprecationwarning on python 2.6 vs. 'import sets'.
+
+  * make deb: Work around Debian's --install-leyout related braindamage.
+
 2009-08-31  -  SkyTools 2.1.10  -  "As Stable As A Falling Anvil"
 
   = Fixes =
