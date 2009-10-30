@@ -25,15 +25,14 @@ declare
     fkeys   record;
 begin
     for fkeys in
-        select pf.*
-        from londiste.subscriber_pending_fkeys pf
-             left join londiste.subscriber_table st_from on (st_from.table_name = pf.from_table)
-             left join londiste.subscriber_table st_to on (st_to.table_name = pf.to_table)
-        where (st_from.table_name is null or (st_from.merge_state = 'ok' and st_from.snapshot is null))
-          and (st_to.table_name is null or (st_to.merge_state = 'ok' and st_to.snapshot is null))
-          and (coalesce(st_from.queue_name = i_queue_name, false)
-               or coalesce(st_to.queue_name = i_queue_name, false))
-        order by 1, 2, 3
+        select pf.* from londiste.subscriber_pending_fkeys pf
+            join londiste.subscriber_table st_from 
+                on (st_from.table_name = pf.from_table and st_from.merge_state = 'ok' and st_from.snapshot is null)
+            join londiste.subscriber_table st_to   
+                on (st_to.table_name = pf.to_table and st_to.merge_state = 'ok' and st_to.snapshot is null)
+            -- change the AND to OR to allow fkeys between tables coming from different queues
+            where (st_from.queue_name = i_queue_name and st_to.queue_name = i_queue_name)
+            order by 1, 2, 3
     loop
         return next fkeys;
     end loop;
