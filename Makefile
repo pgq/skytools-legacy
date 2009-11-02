@@ -17,7 +17,7 @@ install: sub-install python-install
 distclean: sub-distclean
 sub-all sub-install sub-clean sub-distclean:
 	for dir in $(SUBDIRS); do \
-		$(MAKE) -C $$dir $(subst sub-,,$@) DESTDIR=$(DESTDIR); \
+		$(MAKE) -C $$dir $(subst sub-,,$@) DESTDIR=$(DESTDIR) || exit $?; \
 	done
 
 .PHONY: sub-all sub-clean sub-install sub-distclean
