@@ -121,7 +121,7 @@ def connect_database(connstr):
         db.set_isolation_level(0)
         curs = db.cursor()
         curs.execute('show server_version_num')
-        db.server_version = curs.fetchone()[0]
+        db.server_version = int(curs.fetchone()[0])
         db.set_isolation_level(iso)
     return db
 
