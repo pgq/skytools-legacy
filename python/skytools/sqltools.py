@@ -373,23 +373,31 @@ class CopyPipe(object):
         self.buf.seek(0)
         self.buf.truncate()
 
-def full_copy(tablename, src_curs, dst_curs, column_list = []):
+def full_copy(tablename, src_curs, dst_curs, column_list = [], condition = None):
     """COPY table from one db to another."""
 
     qtable = quote_fqident(tablename)
     if column_list:
-        qfields = [quote_ident(f) for f in column_list]
-        hdr = "%s (%s)" % (qtable, ",".join(qfields))
+        qfields = ",".join([quote_ident(f) for f in column_list])
+        src = dst = "%s (%s)" % (qtable, qfields)
     else:
-        hdr = qtable
+        qfields = '*'
+        src = dst = qtable
+
+    if condition:
+        src = "(SELECT %s FROM %s WHERE %s)" % (qfields, qtable, condition)
+
     if hasattr(src_curs, 'copy_expert'):
-        sql_to = "COPY %s TO stdout" % hdr
-        sql_from = "COPY %s FROM stdout" % hdr
+        sql_to = "COPY %s TO stdout" % src
+        sql_from = "COPY %s FROM stdin" % dst
         buf = CopyPipe(dst_curs, sql_from = sql_from)
         src_curs.copy_expert(sql_to, buf)
     else:
-        buf = CopyPipe(dst_curs, hdr)
-        src_curs.copy_to(buf, hdr)
+        if condition:
+            # regular psycopg copy_to generates invalid sql for subselect copy
+            raise Exception('copy_expert() is needed for conditional copy')
+        buf = CopyPipe(dst_curs, dst)
+        src_curs.copy_to(buf, src)
     buf.flush()
 
     return (buf.total_bytes, buf.total_rows)

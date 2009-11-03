@@ -200,7 +200,8 @@ class CopyTable(Replicator):
         tablename = tbl_stat.name
         # do copy
         self.log.info("%s: start copy" % tablename)
-        stats = skytools.full_copy(tablename, srccurs, dstcurs, col_list)
+        w_cond = tbl_stat.table_attrs.get('copy_condition')
+        stats = skytools.full_copy(tablename, srccurs, dstcurs, col_list, w_cond)
         if stats:
             self.log.info("%s: copy finished: %d bytes, %d rows" % (
                           tablename, stats[0], stats[1]))
