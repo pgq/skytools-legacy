@@ -54,11 +54,6 @@ begin
         return next;
     end loop;
 
-    -- close cursor if all events have been returned
-    if _rcnt < i_quick_limit then
-        execute 'close ' || _cname;
-    end if;
-
     return;
 end;
 $$ language plpgsql strict; -- no perms needed

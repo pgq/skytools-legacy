@@ -46,6 +46,7 @@ class _BatchWalker(object):
         self.curs = curs
         self.length = 0
         self.status_map = {}
+        self.batch_id = batch_id
         self.fetch_status = 0 # 0-not started, 1-in-progress, 2-done
 
     def __iter__(self):
@@ -54,7 +55,7 @@ class _BatchWalker(object):
         self.fetch_status = 1
 
         q = "select * from pgq.get_batch_cursor(%s, %s, %s)"
-        self.curs.execute(q, [self.queue_name, self.sql_cursor, self.fetch_size])
+        self.curs.execute(q, [self.batch_id, self.sql_cursor, self.fetch_size])
         # this will return first batch of rows
 
         q = "fetch %d from batch_walker" % self.fetch_size
@@ -167,7 +168,7 @@ class Consumer(skytools.DBScript):
         self.consumer_id = self.consumer_name
 
     def reload(self):
-        DBScript.reload(self)
+        skytools.DBScript.reload(self)
 
         self.pgq_lazy_fetch = self.cf.getint("pgq_lazy_fetch", self.default_lazy_fetch)
         # set following ones to None if not set

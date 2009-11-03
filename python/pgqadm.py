@@ -118,6 +118,10 @@ class PGQAdmin(skytools.DBScript):
         else:
             skytools.DBScript.start(self)
 
+    def reload(self):
+        skytools.DBScript.reload(self)
+        self.set_single_loop(1)
+
     def init_optparse(self, parser=None):
         p = skytools.DBScript.init_optparse(self, parser)
         p.set_usage(command_usage.strip())
