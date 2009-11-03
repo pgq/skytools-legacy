@@ -37,21 +37,22 @@ who already is handling it.
 
 * Apply SQL one-by-one if error.
 
-== Required for 3.0a2 ==
-
 * londiste, struct change needed:
   - store last error [easy]
   - support WHERE for COPY [easy]
 * error column
-* automatic serial handling, --noserial switch?
 * pgq: stat queries
 
-* merge queue_loader to londiste
-  - londiste: apply mechanism is stored in table_attrs
-  - pgq: ability to request big batches (10000 rows, 5 min)
+* pgq: ability to request big batches (10000 rows, 5 min)
+
+== Required for 3.0a2 ==
+
+* automatic serial handling, --noserial switch?
 
 == Required for 3.0-final ==
 
+* merge queue_loader to londiste
+  - londiste: apply mechanism is stored in table_attrs
 * test coopconsumer
 * qadmin, pgqadm: show stats about event counts based on seq values in ticks. [easy]
 * londiste:
