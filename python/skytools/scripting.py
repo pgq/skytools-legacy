@@ -643,9 +643,11 @@ class DBScript(object):
                 cname = d.cursor.connection.my_name
                 dsn = d.cursor.connection.dsn
                 sql = d.cursor.query
+                if len(sql) > 200: # avoid logging londiste huge batched queries 
+                    sql = sql[:60] + " ..."
                 emsg = str(d).strip()
-                self.log.error("Job %s got error on connection '%s': %s" % (
-                    self.job_name, cname, emsg))
+                self.log.exception("Job %s got error on connection '%s': %s.   Query: %s" % (
+                    self.job_name, cname, emsg, sql))
             else:
                 n = "psycopg2.%s" % d.__class__.__name__
                 emsg = str(d).rstrip()
