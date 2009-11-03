@@ -110,7 +110,7 @@ class CopyTable(Replicator):
             self.log.info("%s: truncating" % tablename)
             # truncate behaviour changed in 8.4
             dstcurs.execute("show server_version_num")
-            pgver = dstcurs.fetchone()[0]
+            pgver = int(dstcurs.fetchone()[0])
             if pgver >= 80400:
                 dstcurs.execute("truncate only " + skytools.quote_fqident(tablename))
             else:
