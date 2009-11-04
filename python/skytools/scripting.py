@@ -316,7 +316,7 @@ class DBScript(object):
         self.service_name = service_name
         self.db_cache = {}
         self.go_daemon = 0
-        self.need_reload = 1
+        self.need_reload = 0
         self.stat_dict = {}
         self.log_level = logging.INFO
 
