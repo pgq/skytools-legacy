@@ -206,7 +206,7 @@ maxReferences = 5
 noDocModule = True
 
 # no class doc strings
-noDocClass = True
+noDocClass = False
 
 # no function/method doc strings
 noDocFunc = False
