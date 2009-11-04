@@ -292,7 +292,15 @@ class DBScript(object):
     cf = None
     log = None
     pidfile = None
+
+    # >0 - sleep time if work() requests sleep
+    # 0  - exit if work requests sleep
+    # <0 - run work() once [same as looping=0]
     loop_delay = 0
+
+    # 0 - run work() once
+    # 1 - run work() repeatedly
+    looping = 1
 
     # result from last work() call:
     #  1 - there is probably more work, don't sleep
@@ -342,7 +350,6 @@ class DBScript(object):
             sys.exit(1)
 
         # read config file
-        self.cf = self.load_config()
         self.reload()
 
         # init logging
@@ -471,7 +478,9 @@ class DBScript(object):
     def set_single_loop(self, do_single_loop):
         """Changes whether the script will loop or not."""
         if do_single_loop:
-            self.loop_delay = 0
+            self.looping = 0
+        else:
+            self.looping = 1
 
     def _boot_daemon(self):
         run_single_process(self, self.go_daemon, self.pidfile)
@@ -486,7 +495,7 @@ class DBScript(object):
 
     def stop(self):
         """Safely stops processing loop."""
-        self.loop_delay = 0
+        self.looping = 0
 
     def reload(self):
         "Reload config."
@@ -604,11 +613,14 @@ class DBScript(object):
             for dbc in self.db_cache.values():
                 dbc.refresh()
 
+            if not self.looping or self.loop_delay < 0:
+                break
+
             # remember work state
             self.work_state = work
             # should sleep?
             if not work:
-                if self.loop_delay:
+                if self.loop_delay > 0:
                     time.sleep(self.loop_delay)
                 else:
                     break
@@ -620,6 +632,9 @@ class DBScript(object):
         "Run users work function, safely."
         cname = None
         emsg = None
+        if prefer_looping:
+            if not self.looping or self.loop_delay <= 0:
+                prefer_looping = False
         try:
             return func()
         except UsageError, d:
@@ -627,13 +642,13 @@ class DBScript(object):
             sys.exit(1)
         except SystemExit, d:
             self.send_stats()
-            if prefer_looping and self.loop_delay:
+            if prefer_looping:
                 self.log.info("got SystemExit(%s), exiting" % str(d))
             self.reset()
             raise d
         except KeyboardInterrupt, d:
             self.send_stats()
-            if prefer_looping and self.loop_delay:
+            if prefer_looping:
                 self.log.info("got KeyboardInterrupt, exiting")
             self.reset()
             sys.exit(1)
@@ -662,7 +677,7 @@ class DBScript(object):
         # reset and sleep
         self.reset()
         self.exception_hook(d, emsg, cname)
-        if prefer_looping and self.loop_delay:
+        if prefer_looping:
             time.sleep(20)
             return -1
         sys.exit(1)
