@@ -139,6 +139,11 @@ class Consumer(skytools.DBScript):
     pgq_queue_name = None
     pgq_consumer_id = None
 
+    pgq_lazy_fetch = None
+    pgq_min_count = None
+    pgq_min_interval = None
+    pgq_min_lag = None
+
     def __init__(self, service_name, db_name, args):
         """Initialize new consumer.
         
