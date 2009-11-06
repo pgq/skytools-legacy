@@ -37,7 +37,7 @@ Switches:
   -n                 no action, just print commands
 """
 
-import os, sys, skytools, re, signal, time, traceback
+import os, sys, re, signal, time, traceback
 import errno, glob, ConfigParser, shutil
 
 import pkgloader

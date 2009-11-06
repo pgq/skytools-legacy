@@ -39,6 +39,7 @@ StringInfo pgq_init_varbuf(void)
 
 Datum pgq_finish_varbuf(StringInfo buf)
 {
+	if (!buf) return (Datum)0;
 	SET_VARSIZE(buf->data, buf->len);
 	return PointerGetDatum(buf->data);
 }

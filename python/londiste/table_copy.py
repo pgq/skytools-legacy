@@ -116,8 +116,7 @@ class CopyTable(Replicator):
 
         # drop unnecessary stuff
         if cmode > 0:
-            # drop indexes
-            objs = T_CONSTRAINT | T_INDEX | T_RULE # | T_TRIGGER
+            objs = T_CONSTRAINT | T_INDEX | T_RULE | T_PARENT # | T_TRIGGER
             dst_struct.drop(dst_curs, objs, log = self.log)
 
             # drop data
@@ -125,7 +124,11 @@ class CopyTable(Replicator):
                 self.log.info("%s: skipping truncate" % tbl_stat.name)
             else:
                 self.log.info("%s: truncating" % tbl_stat.name)
-                dst_curs.execute("truncate " + skytools.quote_fqident(tbl_stat.name))
+                q = "truncate "
+                if dst_db.server_version >= 80400:
+                    q += "only "
+                q += skytools.quote_fqident(tbl_stat.name)
+                dst_curs.execute(q)
 
             if cmode == 2 and tbl_stat.dropped_ddl is None:
                 ddl = dst_struct.get_create_sql(objs)
@@ -197,7 +200,8 @@ class CopyTable(Replicator):
         tablename = tbl_stat.name
         # do copy
         self.log.info("%s: start copy" % tablename)
-        stats = skytools.full_copy(tablename, srccurs, dstcurs, col_list)
+        w_cond = tbl_stat.table_attrs.get('copy_condition')
+        stats = skytools.full_copy(tablename, srccurs, dstcurs, col_list, w_cond)
         if stats:
             self.log.info("%s: copy finished: %d bytes, %d rows" % (
                           tablename, stats[0], stats[1]))

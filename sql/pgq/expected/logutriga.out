@@ -16,17 +16,17 @@ create trigger utest AFTER insert or update or delete ON udata
 for each row execute procedure pgq.logutriga('udata_que');
 insert into udata (txt) values ('text1');
 NOTICE:  insert_event(udata_que, I:id, id=1&txt=text1&bin, public.udata)
-CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, $5, null, null)"
+CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, $5, $6, $7)"
 insert into udata (bin) values (E'bi\tn\\000bin');
 NOTICE:  insert_event(udata_que, I:id, id=2&txt&bin=bi%5c011n%5c000bin, public.udata)
-CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, $5, null, null)"
+CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, $5, $6, $7)"
 -- test missing pkey
 create table nopkey2 (dat text);
 create trigger nopkey_triga2 after insert or update or delete on nopkey2
 for each row execute procedure pgq.logutriga('que3');
 insert into nopkey2 values ('foo');
 NOTICE:  insert_event(que3, I:, dat=foo, public.nopkey2)
-CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, $5, null, null)"
+CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, $5, $6, $7)"
 update nopkey2 set dat = 'bat';
 ERROR:  Update/Delete on table without pkey
 delete from nopkey2;
@@ -38,8 +38,31 @@ create trigger ucustom_triga after insert or update or delete on ucustom_pkey
 for each row execute procedure pgq.logutriga('que3');
 insert into ucustom_pkey values ('foo', '2');
 NOTICE:  insert_event(que3, I:, dat1=foo&dat2=2&dat3, public.ucustom_pkey)
-CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, $5, null, null)"
+CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, $5, $6, $7)"
 update ucustom_pkey set dat3 = 'bat';
 ERROR:  Update/Delete on table without pkey
 delete from ucustom_pkey;
 ERROR:  Update/Delete on table without pkey
+-- test custom fields
+create table custom_fields2 (
+    dat1 text not null primary key,
+    dat2 int2 not null,
+    dat3 text,
+    _pgq_ev_type text default 'my_type',
+    _pgq_ev_extra1 text default 'e1',
+    _pgq_ev_extra2 text default 'e2',
+    _pgq_ev_extra3 text default 'e3',
+    _pgq_ev_extra4 text default 'e4'
+);
+NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "custom_fields2_pkey" for table "custom_fields2"
+create trigger customf2_triga after insert or update or delete on custom_fields2
+for each row execute procedure pgq.logutriga('que3');
+insert into custom_fields2 values ('foo', '2');
+NOTICE:  insert_event(que3, my_type, dat1=foo&dat2=2&dat3, e1)
+CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, $5, $6, $7)"
+update custom_fields2 set dat3 = 'bat';
+NOTICE:  insert_event(que3, my_type, dat1=foo&dat2=2&dat3=bat, e1)
+CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, $5, $6, $7)"
+delete from custom_fields2;
+NOTICE:  insert_event(que3, my_type, dat1=foo&dat2=2&dat3=bat, e1)
+CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, $5, $6, $7)"

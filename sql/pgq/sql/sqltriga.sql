@@ -74,3 +74,22 @@ insert into custom_pkey values ('foo', '2');
 update custom_pkey set dat3 = 'bat';
 delete from custom_pkey;
 
+-- test custom fields
+create table custom_fields (
+    dat1 text not null primary key,
+    dat2 int2 not null,
+    dat3 text,
+    _pgq_ev_type text default 'my_type',
+    _pgq_ev_extra1 text default 'e1',
+    _pgq_ev_extra2 text default 'e2',
+    _pgq_ev_extra3 text default 'e3',
+    _pgq_ev_extra4 text default 'e4'
+);
+create trigger customf_triga after insert or update or delete on custom_fields
+for each row execute procedure pgq.sqltriga('que3');
+
+insert into custom_fields values ('foo', '2');
+update custom_fields set dat3 = 'bat';
+delete from custom_fields;
+
+

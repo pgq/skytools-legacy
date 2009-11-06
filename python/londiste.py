@@ -91,6 +91,8 @@ class Londiste(skytools.DBScript):
                 help = "add: no copy needed", default=False)
         g.add_option("--skip-truncate", action="store_true", dest="skip_truncate",
                 help = "add: keep old data", default=False)
+        p.add_option("--copy-condition", dest="copy_condition",
+                help = "copy: where expression")
         g.add_option("--provider",
                 help = "init: upstream node temp connect string")
         g.add_option("--create", action="store_true",

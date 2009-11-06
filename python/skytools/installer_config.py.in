@@ -6,3 +6,6 @@ __all__ = ['sql_locations']
 sql_locations = [
     "@SQLDIR@",
 ]
+
+package_version = "@PACKAGE_VERSION@"
+

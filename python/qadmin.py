@@ -71,7 +71,7 @@ IGNORE_HOSTS = {
     'ip6-mcastprefix': 1,
 }
 
-def unquote_any(self, s):
+def unquote_any(s):
     if s:
         c = s[0]
         if c == "'":
@@ -184,7 +184,7 @@ class DynIdentList(DynList):
         """Allow quoted queue names"""
         next = DynList.get_next(self, typ, word, params)
         if next:
-            params[self.name] = unquote_any(self, word)
+            params[self.name] = unquote_any(word)
         return next
 
 class Queue(DynIdentList):
@@ -376,6 +376,7 @@ class AdminConsole:
         'user_list': None,
     }
     db = None
+    initial_connstr = None
 
     rc_hosts = re.compile('\s+')
     def get_queue_list(self):

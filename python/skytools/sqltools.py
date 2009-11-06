@@ -44,18 +44,34 @@ class dbdict(dict):
 #
 
 def fq_name_parts(tbl):
-    "Return fully qualified name parts."
+    """Return fully qualified name parts.
+
+    >>> fq_name_parts('tbl')
+    ['public', 'tbl']
+    >>> fq_name_parts('foo.tbl')
+    ['foo', 'tbl']
+    >>> fq_name_parts('foo.tbl.baz')
+    ['foo', 'tbl.baz']
+    """
 
     tmp = tbl.split('.', 1)
     if len(tmp) == 1:
-        return ('public', tbl)
+        return ['public', tbl]
     elif len(tmp) == 2:
         return tmp
     else:
         raise Exception('Syntax error in table name:'+tbl)
 
 def fq_name(tbl):
-    "Return fully qualified name."
+    """Return fully qualified name.
+
+    >>> fq_name('tbl')
+    'public.tbl'
+    >>> fq_name('foo.tbl')
+    'foo.tbl'
+    >>> fq_name('foo.tbl.baz')
+    'foo.tbl.baz'
+    """
     return '.'.join(fq_name_parts(tbl))
 
 #
@@ -171,7 +187,19 @@ def exists_temp_table(curs, tbl):
 #
 
 class Snapshot(object):
-    "Represents a PostgreSQL snapshot."
+    """Represents a PostgreSQL snapshot.
+
+    Example:
+    >>> sn = Snapshot('11:20:11,12,15')
+    >>> sn.contains(9)
+    True
+    >>> sn.contains(11)
+    False
+    >>> sn.contains(17)
+    True
+    >>> sn.contains(20)
+    False
+    """
 
     def __init__(self, str):
         "Create snapshot from string."
@@ -235,11 +263,15 @@ def _gen_list_insert(tbl, row, fields, qfields):
     return fmt % (tbl, ",".join(qfields), ",".join(tmp))
 
 def magic_insert(curs, tablename, data, fields = None, use_insert = 0):
-    """Copy/insert a list of dict/list data to database.
-    
+    r"""Copy/insert a list of dict/list data to database.
+
     If curs == None, then the copy or insert statements are returned
     as string.  For list of dict the field list is optional, as its
     possible to guess them from dict keys.
+
+    Example:
+    >>> magic_insert(None, 'tbl', [[1, '1'], [2, '2']], ['col1', 'col2'])
+    'COPY public.tbl (col1,col2) FROM STDIN;\n1\t1\n2\t2\n\\.\n'
     """
     if len(data) == 0:
         return
@@ -341,23 +373,31 @@ class CopyPipe(object):
         self.buf.seek(0)
         self.buf.truncate()
 
-def full_copy(tablename, src_curs, dst_curs, column_list = []):
+def full_copy(tablename, src_curs, dst_curs, column_list = [], condition = None):
     """COPY table from one db to another."""
 
     qtable = quote_fqident(tablename)
     if column_list:
-        qfields = [quote_ident(f) for f in column_list]
-        hdr = "%s (%s)" % (qtable, ",".join(qfields))
+        qfields = ",".join([quote_ident(f) for f in column_list])
+        src = dst = "%s (%s)" % (qtable, qfields)
     else:
-        hdr = qtable
+        qfields = '*'
+        src = dst = qtable
+
+    if condition:
+        src = "(SELECT %s FROM %s WHERE %s)" % (qfields, qtable, condition)
+
     if hasattr(src_curs, 'copy_expert'):
-        sql_to = "COPY %s TO stdout" % hdr
-        sql_from = "COPY %s FROM stdout" % hdr
+        sql_to = "COPY %s TO stdout" % src
+        sql_from = "COPY %s FROM stdin" % dst
         buf = CopyPipe(dst_curs, sql_from = sql_from)
         src_curs.copy_expert(sql_to, buf)
     else:
-        buf = CopyPipe(dst_curs, hdr)
-        src_curs.copy_to(buf, hdr)
+        if condition:
+            # regular psycopg copy_to generates invalid sql for subselect copy
+            raise Exception('copy_expert() is needed for conditional copy')
+        buf = CopyPipe(dst_curs, dst)
+        src_curs.copy_to(buf, src)
     buf.flush()
 
     return (buf.total_bytes, buf.total_rows)
@@ -486,7 +526,11 @@ def installer_apply_file(db, filename, log):
 #
 
 def mk_insert_sql(row, tbl, pkey_list = None, field_map = None):
-    """Generate INSERT statement from dict data."""
+    """Generate INSERT statement from dict data.
+
+    >>> mk_insert_sql({'id': '1', 'data': None}, 'tbl')
+    "insert into public.tbl (data, id) values (null, '1');"
+    """
 
     col_list = []
     val_list = []
@@ -504,7 +548,11 @@ def mk_insert_sql(row, tbl, pkey_list = None, field_map = None):
                     quote_fqident(tbl), col_str, val_str)
 
 def mk_update_sql(row, tbl, pkey_list, field_map = None):
-    """Generate UPDATE statement from dict data."""
+    r"""Generate UPDATE statement from dict data.
+
+    >>> mk_update_sql({'id': 0, 'id2': '2', 'data': 'str\\'}, 'Table', ['id', 'id2'])
+    'update only public."Table" set data = E\'str\\\\\' where id = \'0\' and id2 = \'2\';'
+    """
 
     if len(pkey_list) < 1:
         raise Exception("update needs pkeys")
@@ -786,4 +834,8 @@ class PLPyQueryBuilder(QueryBuilder):
         if res:
             res = [dbdict(r) for r in res]
         return res
+
+if __name__ == '__main__':
+    import doctest
+    doctest.testmod()
 

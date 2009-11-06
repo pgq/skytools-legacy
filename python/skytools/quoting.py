@@ -82,8 +82,17 @@ def quote_fqident(s):
 
     The '.' is taken as namespace separator and
     all parts are quoted separately
+
+    Example:
+    >>> quote_fqident('tbl')
+    'public.tbl'
+    >>> quote_fqident('Baz.Foo.Bar')
+    '"Baz"."Foo.Bar"'
     """
-    return '.'.join(map(quote_ident, s.split('.', 1)))
+    tmp = s.split('.', 1)
+    if len(tmp) == 1:
+        return 'public.' + quote_ident(s)
+    return '.'.join(map(quote_ident, tmp))
 
 #
 # quoting for JSON strings
@@ -110,7 +119,14 @@ def quote_json(s):
     return '"%s"' % _jsre.sub(_json_quote_char, s)
 
 def unescape_copy(val):
-    """Removes C-style escapes, also converts "\N" to None."""
+    r"""Removes C-style escapes, also converts "\N" to None.
+
+    Example:
+    >>> unescape_copy(r'baz\tfo\'o')
+    "baz\tfo'o"
+    >>> unescape_copy(r'\N') is None
+    True
+    """
     if val == r"\N":
         return None
     return unescape(val)
@@ -129,3 +145,6 @@ def unquote_fqident(val):
     tmp = val.split('.', 1)
     return "%s.%s" % (unquote_ident(tmp[0]), unquote_ident(tmp[1]))
 
+if __name__ == '__main__':
+    import doctest
+    doctest.testmod()

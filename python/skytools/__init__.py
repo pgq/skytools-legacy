@@ -35,3 +35,6 @@ __all__ = (skytools.psycopgwrapper.__all__
         + skytools.adminscript.__all__
         + skytools.parsing.__all__)
 
+import skytools.installer_config
+__version__ = skytools.installer_config.package_version
+

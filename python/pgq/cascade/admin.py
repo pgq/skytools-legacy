@@ -237,7 +237,7 @@ class CascadeAdmin(skytools.AdminScript):
         else:
             loc = self.cf.get(self.initial_db_name)
 
-        while self.looping:
+        while 1:
             db = self.get_database('root_db', connstr = loc)
 
 
@@ -389,6 +389,7 @@ class CascadeAdmin(skytools.AdminScript):
         node_db = self.get_node_database(node)
         qinfo = self.load_queue_info(node_db)
         ninfo = qinfo.local_node
+        node_location = qinfo.get_member(node).location
 
         # reload consumer info
         cmap = self.get_node_consumer_map(node)
@@ -398,8 +399,8 @@ class CascadeAdmin(skytools.AdminScript):
         is_worker = (ninfo.worker_name == consumer)
 
         # fixme: expect the node to be described already
-        #q = "select * from pgq_node.add_member(%s, %s, %s, false)"
-        #self.node_cmd(new_provider, q, [self.queue_name, node_name, node_location])
+        q = "select * from pgq_node.register_location(%s, %s, %s, false)"
+        self.node_cmd(new_provider, q, [self.queue_name, node, node_location])
 
         # subscribe on new provider
         if is_worker:
@@ -729,7 +730,7 @@ class CascadeAdmin(skytools.AdminScript):
         self.node_cmd(node, q, [self.queue_name, consumer, pause_flag])
 
         self.log.info('Waiting for worker to accept')
-        while self.looping:
+        while 1:
             q = "select * from pgq_node.get_consumer_state(%s, %s)"
             stat = self.node_cmd(node, q, [self.queue_name, consumer], quiet = 1)[0]
             if stat['paused'] != pause_flag:

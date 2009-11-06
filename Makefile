@@ -17,7 +17,7 @@ install: sub-install python-install
 distclean: sub-distclean
 sub-all sub-install sub-clean sub-distclean:
 	for dir in $(SUBDIRS); do \
-		$(MAKE) -C $$dir $(subst sub-,,$@) DESTDIR=$(DESTDIR); \
+		$(MAKE) -C $$dir $(subst sub-,,$@) DESTDIR=$(DESTDIR) || exit $?; \
 	done
 
 .PHONY: sub-all sub-clean sub-install sub-distclean
@@ -59,7 +59,7 @@ python-install: config.mak sub-all
 
 python-install python-all: python/skytools/installer_config.py
 python/skytools/installer_config.py: python/skytools/installer_config.py.in config.mak
-	sed -e 's!@SQLDIR@!$(SQLDIR)!g' $< > $@
+	sed -e 's!@SQLDIR@!$(SQLDIR)!g' -e 's!@PACKAGE_VERSION@!$(PACKAGE_VERSION)!g' $< > $@
 
 realclean: distclean
 	$(MAKE) -C doc $@

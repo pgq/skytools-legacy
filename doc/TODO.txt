@@ -7,14 +7,30 @@ who already is handling it.
 
 == Done for 3.0a2 ==
 
+* make python modules parallel installable with skytools 2.x:
+  - new pkgloader module, (ala pygtk but universal)
+  - installed under `skytools-3.0` top dir
+  - python modules import skytools via pkgloader:
+
+      import pkgloader
+      pkgloader.require('skytools', '3.0')
+      import skytools
+
 * newadm: rename to qadmin
 * pgq
   - drop failed event concept
-  - relaxed event processing for python modules
+  - lazy fetch is now default
+  - relaxed event processing for python modules - .tag_done() is not needed
+  - get_{queue|consumer}_info() now report quick stats
+  - ability to request big batches (10000 rows, 5 min), which combine several actual batches.
+  - ability to stay behind on queue.
+  - pgq.Consumer new config vars: pgq_batch_collect_events, pgq_batch_collect_interval, pgq_keep_lag
+  - pgq triggers: magic fields to set event fields directly:
+    `_pgq_ev_type, _pgq_ev_data, _pgq_ev_extra[1-4]`
 * python/skytools:
-  - config templates in docstr
+  - config templates in docstr: `./script.py --ini` shows default conf
   - show connection name with error message
-  - use config file name as default job name
+  - use config file name as default job name, `job_name` is thus optional now
   - new querybuilder class
   - .getdict() method for Config
 * pgqd:
@@ -25,41 +41,35 @@ who already is handling it.
   - several log message and level fixes
   - Replace 'switchover'/'failover' with 'takeover'
   - 'status' with dead nodes works
+  - consumers last error is stored in db, showed by `londiste status`
 * londiste
   - resync
   - missing
   - --all
   - globbing
   - compare/repair
+  - apply sql one-by-one if last batch got error
+  - support WHERE for COPY: londiste add --copy-condition=XX
 
 * Simple Python consumer for pgq_coop, where each subconsumer
-  is separate process. [easy]
+  is separate process.
 
-* Apply SQL one-by-one if error.
-
-== Required for 3.0a2 ==
-
-* londiste, struct change needed:
-  - store last error [easy]
-  - support WHERE for COPY [easy]
-* error column
-* automatic serial handling, --noserial switch?
-* pgq: stat queries
-
-* merge queue_loader to londiste
-  - londiste: apply mechanism is stored in table_attrs
-  - pgq: ability to request big batches (10000 rows, 5 min)
+* psycopgwrapper: make .server_version always available
 
 == Required for 3.0-final ==
 
-* test coopconsumer
-* qadmin, pgqadm: show stats about event counts based on seq values in ticks. [easy]
+* make queue_loader extend londiste
+* tests for coopconsumer
+* qadmin: show stats about event counts based on seq values in ticks. [easy]
 * londiste:
   - londiste doc update with new commands [easy]
   - fkeys, from 2.x [easy]
+* londiste: check transactional UI
 
 == Good to have changes ==
 
+* dbscript: configurable error timeout (20s)
+* automatic serial handling, --noserial switch?
 * londiste:
   - execute --wait [moderate]
 
@@ -82,7 +92,7 @@ who already is handling it.
 
 * Expose commands for node connstr change, pgq_node.drop_node(). [easy]
 
-* Move all consumers to pgq.next_batch_info(), pgq.get_batch_cursor() [3.0, easy]
+* Move all consumers to pgq.next_batch_info() [3.0, easy]
 
 === python/pgq/cascade ===
 
@@ -140,8 +150,6 @@ who already is handling it.
 * pgq/cascade: rename node [hard]
 
 === Smaller things ===
-
-* 'delay' param for consumer
 
 * londiste: londiste status cmd [moderate]
  - check what modules are installed

@@ -10,6 +10,8 @@ v=
 v=-v
 v=-q
 
+set -o pipefail
+
 cleardb() {
   echo "Clearing database $1"
   psql -q -d $1 -c "

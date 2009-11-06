@@ -42,7 +42,7 @@ def signal_pidfile(pidfile, sig):
     """Send a signal to process whose ID is located in pidfile.
 
     Read only first line of pidfile to support multiline
-    pifiles like postmaster.pid.
+    pidfiles like postmaster.pid.
 
     Returns True is successful, False if pidfile does not exist
     or process itself is dead.  Any other errors will passed
@@ -58,6 +58,8 @@ def signal_pidfile(pidfile, sig):
     except OSError, ex:
         if ex.errno != errno.ESRCH:
             raise
+    except ValueError, ex:
+        raise ValueError('Corrupt pidfile: %s' % pidfile)
     return False
 
 #
@@ -90,12 +92,6 @@ def daemonize():
 # Pidfile locking+cleanup & daemonization combined
 #
 
-def _write_pidfile(pidfile):
-    pid = os.getpid()
-    f = open(pidfile, 'w')
-    f.write(str(pid))
-    f.close()
-
 def run_single_process(runnable, daemon, pidfile):
     """Run runnable class, possibly daemonized, locked on pidfile."""
 
@@ -107,17 +103,23 @@ def run_single_process(runnable, daemon, pidfile):
         else:
             print("Ignoring stale pidfile")
 
-    # daemonize if needed and write pidfile
+    # daemonize if needed
     if daemon:
         daemonize()
-    if pidfile:
-        _write_pidfile(pidfile)
-    
-    # run and clean pidfile later
+
+    # clean only own pidfile
+    own_pidfile = False
+
     try:
+        if pidfile:
+            f = open(pidfile, 'w')
+            own_pidfile = True
+            f.write(str(os.getpid()))
+            f.close()
+
         runnable.run()
     finally:
-        if pidfile:
+        if own_pidfile:
             try:
                 os.remove(pidfile)
             except: pass
@@ -290,7 +292,15 @@ class DBScript(object):
     cf = None
     log = None
     pidfile = None
+
+    # >0 - sleep time if work() requests sleep
+    # 0  - exit if work requests sleep
+    # <0 - run work() once [same as looping=0]
     loop_delay = 0
+
+    # 0 - run work() once
+    # 1 - run work() repeatedly
+    looping = 1
 
     # result from last work() call:
     #  1 - there is probably more work, don't sleep
@@ -314,7 +324,7 @@ class DBScript(object):
         self.service_name = service_name
         self.db_cache = {}
         self.go_daemon = 0
-        self.need_reload = 1
+        self.need_reload = 0
         self.stat_dict = {}
         self.log_level = logging.INFO
 
@@ -323,6 +333,9 @@ class DBScript(object):
         self.options, self.args = parser.parse_args(args)
 
         # check args
+        if self.options.version:
+            self.print_version()
+            sys.exit(0)
         if self.options.daemon:
             self.go_daemon = 1
         if self.options.quiet:
@@ -337,7 +350,6 @@ class DBScript(object):
             sys.exit(1)
 
         # read config file
-        self.cf = self.load_config()
         self.reload()
 
         # init logging
@@ -350,6 +362,9 @@ class DBScript(object):
             self.send_signal(signal.SIGINT)
         elif self.options.cmd == "reload":
             self.send_signal(signal.SIGHUP)
+
+    def print_version(self):
+        print '%s, Skytools version %s' % (self.service_name, skytools.__version__)
 
     def print_ini(self):
         """Prints out ini file from doc string of the script of default for dbscript
@@ -429,6 +444,8 @@ class DBScript(object):
                      help = "log verbosely")
         p.add_option("-d", "--daemon", action="store_true",
                      help = "go background")
+        p.add_option("-V", "--version", action="store_true",
+                     help = "print version info and exit")
         p.add_option("", "--ini", action="store_true",
                     help = "display sample ini file")
 
@@ -461,7 +478,9 @@ class DBScript(object):
     def set_single_loop(self, do_single_loop):
         """Changes whether the script will loop or not."""
         if do_single_loop:
-            self.loop_delay = 0
+            self.looping = 0
+        else:
+            self.looping = 1
 
     def _boot_daemon(self):
         run_single_process(self, self.go_daemon, self.pidfile)
@@ -476,7 +495,7 @@ class DBScript(object):
 
     def stop(self):
         """Safely stops processing loop."""
-        self.loop_delay = 0
+        self.looping = 0
 
     def reload(self):
         "Reload config."
@@ -594,11 +613,14 @@ class DBScript(object):
             for dbc in self.db_cache.values():
                 dbc.refresh()
 
+            if not self.looping or self.loop_delay < 0:
+                break
+
             # remember work state
             self.work_state = work
             # should sleep?
             if not work:
-                if self.loop_delay:
+                if self.loop_delay > 0:
                     time.sleep(self.loop_delay)
                 else:
                     break
@@ -610,6 +632,9 @@ class DBScript(object):
         "Run users work function, safely."
         cname = None
         emsg = None
+        if prefer_looping:
+            if not self.looping or self.loop_delay <= 0:
+                prefer_looping = False
         try:
             return func()
         except UsageError, d:
@@ -617,13 +642,13 @@ class DBScript(object):
             sys.exit(1)
         except SystemExit, d:
             self.send_stats()
-            if prefer_looping and self.loop_delay:
+            if prefer_looping:
                 self.log.info("got SystemExit(%s), exiting" % str(d))
             self.reset()
             raise d
         except KeyboardInterrupt, d:
             self.send_stats()
-            if prefer_looping and self.loop_delay:
+            if prefer_looping:
                 self.log.info("got KeyboardInterrupt, exiting")
             self.reset()
             sys.exit(1)
@@ -633,9 +658,11 @@ class DBScript(object):
                 cname = d.cursor.connection.my_name
                 dsn = d.cursor.connection.dsn
                 sql = d.cursor.query
+                if len(sql) > 200: # avoid logging londiste huge batched queries 
+                    sql = sql[:60] + " ..."
                 emsg = str(d).strip()
-                self.log.error("Job %s got error on connection '%s': %s" % (
-                    self.job_name, cname, emsg))
+                self.log.exception("Job %s got error on connection '%s': %s.   Query: %s" % (
+                    self.job_name, cname, emsg, sql))
             else:
                 n = "psycopg2.%s" % d.__class__.__name__
                 emsg = str(d).rstrip()
@@ -650,7 +677,7 @@ class DBScript(object):
         # reset and sleep
         self.reset()
         self.exception_hook(d, emsg, cname)
-        if prefer_looping and self.loop_delay:
+        if prefer_looping:
             time.sleep(20)
             return -1
         sys.exit(1)
