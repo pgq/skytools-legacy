@@ -302,7 +302,7 @@ def full_copy(tablename, src_curs, dst_curs, column_list = []):
         hdr = qtable
     if hasattr(src_curs, 'copy_expert'):
         sql_to = "COPY %s TO stdout" % hdr
-        sql_from = "COPY %s FROM stdout" % hdr
+        sql_from = "COPY %s FROM stdin" % hdr
         buf = CopyPipe(dst_curs, sql_from = sql_from)
         src_curs.copy_expert(sql_to, buf)
     else:
