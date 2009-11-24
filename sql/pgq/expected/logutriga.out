@@ -20,6 +20,24 @@ CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, $5, $6, $7)"
 insert into udata (bin) values (E'bi\tn\\000bin');
 NOTICE:  insert_event(udata_que, I:id, id=2&txt&bin=bi%5c011n%5c000bin, public.udata)
 CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, $5, $6, $7)"
+-- test ignore
+drop trigger utest on udata;
+truncate udata;
+create trigger utest after insert or update or delete on udata
+for each row execute procedure pgq.logutriga('udata_que', 'ignore=bin');
+insert into udata values (1, 'txt', 'bin');
+NOTICE:  insert_event(udata_que, I:id, id=1&txt=txt, public.udata)
+CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, $5, $6, $7)"
+update udata set txt = 'txt';
+NOTICE:  insert_event(udata_que, U:id, id=1&txt=txt, public.udata)
+CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, $5, $6, $7)"
+update udata set txt = 'txt2', bin = 'bin2';
+NOTICE:  insert_event(udata_que, U:id, id=1&txt=txt2, public.udata)
+CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, $5, $6, $7)"
+update udata set bin = 'bin3';
+delete from udata;
+NOTICE:  insert_event(udata_que, D:id, id=1&txt=txt2, public.udata)
+CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, $5, $6, $7)"
 -- test missing pkey
 create table nopkey2 (dat text);
 create trigger nopkey_triga2 after insert or update or delete on nopkey2

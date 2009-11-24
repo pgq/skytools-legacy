@@ -19,6 +19,18 @@ for each row execute procedure pgq.logutriga('udata_que');
 insert into udata (txt) values ('text1');
 insert into udata (bin) values (E'bi\tn\\000bin');
 
+-- test ignore
+drop trigger utest on udata;
+truncate udata;
+create trigger utest after insert or update or delete on udata
+for each row execute procedure pgq.logutriga('udata_que', 'ignore=bin');
+
+insert into udata values (1, 'txt', 'bin');
+update udata set txt = 'txt';
+update udata set txt = 'txt2', bin = 'bin2';
+update udata set bin = 'bin3';
+delete from udata;
+
 -- test missing pkey
 create table nopkey2 (dat text);
 create trigger nopkey_triga2 after insert or update or delete on nopkey2
