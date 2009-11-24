@@ -49,6 +49,7 @@ select ev_id,ev_retry,ev_type,ev_data,ev_extra1,ev_extra2,ev_extra3,ev_extra4 fr
 begin;
 select ev_id,ev_retry,ev_type,ev_data,ev_extra1,ev_extra2,ev_extra3,ev_extra4
     from pgq.get_batch_cursor(3, 'acurs', 10);
+close acurs;
 select ev_id,ev_retry,ev_type,ev_data,ev_extra1,ev_extra2,ev_extra3,ev_extra4
     from pgq.get_batch_cursor(3, 'acurs', 2);
 close acurs;
