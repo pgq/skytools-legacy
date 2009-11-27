@@ -528,7 +528,11 @@ bool pgqtriga_is_pkey(PgqTriggerEvent *ev, TriggerData *tg, int i, int attkind_i
 bool pgq_is_logging_disabled(void)
 {
 #if defined(PG_VERSION_NUM) && PG_VERSION_NUM >= 80300
-	if (SessionReplicationRole != SESSION_REPLICATION_ROLE_ORIGIN)
+	/*
+	 * Force-disable the trigger in local replication role. In other
+	 * roles rely on the enabled/disabled status of the trigger.
+	 */
+	if (SessionReplicationRole == SESSION_REPLICATION_ROLE_LOCAL)
 		return true;
 #endif
 	return false;
