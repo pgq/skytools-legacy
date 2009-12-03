@@ -640,6 +640,12 @@ class DBScript(object):
         except UsageError, d:
             self.log.error(str(d))
             sys.exit(1)
+        except MemoryError, d:
+            try: # complex logging may not succeed
+                self.log.exception("Job %s out of memory, exiting" % self.job_name)
+            except MemoryError:
+                self.log.fatal("Out of memory")
+            sys.exit(1)
         except SystemExit, d:
             self.send_stats()
             if prefer_looping:
