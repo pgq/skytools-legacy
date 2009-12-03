@@ -621,7 +621,7 @@ class DBScript(object):
             # should sleep?
             if not work:
                 if self.loop_delay > 0:
-                    time.sleep(self.loop_delay)
+                    self.sleep(self.loop_delay)
                 else:
                     break
 
@@ -684,9 +684,13 @@ class DBScript(object):
         self.reset()
         self.exception_hook(d, emsg, cname)
         if prefer_looping:
-            time.sleep(20)
+            self.sleep(20)
             return -1
         sys.exit(1)
+
+    def sleep(self, secs):
+        """Make script sleep for some amount of time."""
+        time.sleep(secs)
 
     def exception_hook(self, det, emsg, cname):
         """Called on after exception processing.
