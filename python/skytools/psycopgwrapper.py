@@ -125,11 +125,13 @@ def connect_database(connstr, keepalive = True,
     if keepalive and hasattr(socket, 'SO_KEEPALIVE'):
         fd = db.cursor().fileno()
         s = socket.fromfd(fd, socket.AF_INET, socket.SOCK_STREAM)
-        s.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
-        if hasattr(socket, 'TCP_KEEPCNT'):
-            s.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPIDLE, tcp_keepidle)
-            s.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPCNT, tcp_keepcnt)
-            s.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPINTVL, tcp_keepintvl)
+        # avoid unix sockets
+        if type(s.getsockname()) == type(()):
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+            if hasattr(socket, 'TCP_KEEPCNT'):
+                s.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPIDLE, tcp_keepidle)
+                s.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPCNT, tcp_keepcnt)
+                s.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPINTVL, tcp_keepintvl)
 
     # fill .server_version on older psycopg
     if not hasattr(db, 'server_version'):
