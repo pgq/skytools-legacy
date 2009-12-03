@@ -345,9 +345,6 @@ class DBScript(object):
         if self.options.ini:
             self.print_ini()
             sys.exit(0)
-        if len(self.args) < 1:
-            print("need config file, use --help for help.")
-            sys.exit(1)
 
         # read config file
         self.reload()
@@ -417,6 +414,9 @@ class DBScript(object):
         file name.  Can be overrided.
         """
 
+        if len(self.args) < 1:
+            print("need config file, use --help for help.")
+            sys.exit(1)
         conf_file = self.args[0]
         return Config(self.service_name, conf_file)
 
