@@ -19,7 +19,10 @@ class Config(object):
         @param sane_config:  chooses between ConfigParser/SafeConfigParser.
         """
         # use config file name as default job_name
-        job_name = os.path.splitext(os.path.basename(filename))[0]
+        if filename:
+            job_name = os.path.splitext(os.path.basename(filename))[0]
+        else:
+            job_name = main_section
 
         # initialize defaults, make them usable in config file
         defs = {
