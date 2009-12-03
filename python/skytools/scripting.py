@@ -632,9 +632,6 @@ class DBScript(object):
         "Run users work function, safely."
         cname = None
         emsg = None
-        if prefer_looping:
-            if not self.looping or self.loop_delay <= 0:
-                prefer_looping = False
         try:
             return func()
         except UsageError, d:
@@ -648,13 +645,13 @@ class DBScript(object):
             sys.exit(1)
         except SystemExit, d:
             self.send_stats()
-            if prefer_looping:
+            if prefer_looping and self.looping and self.loop_delay > 0:
                 self.log.info("got SystemExit(%s), exiting" % str(d))
             self.reset()
             raise d
         except KeyboardInterrupt, d:
             self.send_stats()
-            if prefer_looping:
+            if prefer_looping and self.looping and self.loop_delay > 0:
                 self.log.info("got KeyboardInterrupt, exiting")
             self.reset()
             sys.exit(1)
@@ -683,7 +680,7 @@ class DBScript(object):
         # reset and sleep
         self.reset()
         self.exception_hook(d, emsg, cname)
-        if prefer_looping:
+        if prefer_looping and self.looping and self.loop_delay > 0:
             self.sleep(20)
             return -1
         sys.exit(1)
