@@ -7,9 +7,11 @@ pyver = $(shell $(PYTHON) -V 2>&1 | sed 's/^[^ ]* \([0-9]*\.[0-9]*\).*/\1/')
 
 SUBDIRS = sql doc
 
-SCRIPTS = python/londiste.py python/qadmin.py python/pgqadm.py python/walmgr.py \
-	  scripts/queue_loader.py scripts/queue_mover.py scripts/queue_splitter.py \
-	  scripts/scriptmgr.py scripts/skytools_upgrade.py
+#SCRIPTS = python/londiste.py python/qadmin.py python/pgqadm.py python/walmgr.py \
+#	  scripts/queue_loader.py scripts/queue_mover.py scripts/queue_splitter.py \
+#	  scripts/scriptmgr.py scripts/skytools_upgrade.py
+
+SCRIPTS = python/londiste.py python/qadmin.py python/walmgr.py scripts/scriptmgr.py
 
 all: python-all sub-all config.mak
 
