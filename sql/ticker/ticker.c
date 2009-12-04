@@ -35,7 +35,6 @@ static void close_ticker(struct PgDatabase *db, double sleep_time)
 static void parse_pgq_check(struct PgDatabase *db, PGresult *res)
 {
 	db->has_pgq = PQntuples(res) == 1;
-	PQclear(res);
 
 	if (!db->has_pgq) {
 		log_info("%s: no pgq", db->name);
@@ -58,7 +57,6 @@ static void parse_version_check(struct PgDatabase *db, PGresult *res)
 		goto badpgq;
 	}
 	log_info("%s: pgq version ok: %s", db->name, ver);
-	PQclear(res);
 
 	run_ticker(db);
 	if (!db->c_maint)
@@ -68,7 +66,6 @@ static void parse_version_check(struct PgDatabase *db, PGresult *res)
 	return;
 
 badpgq:
-	PQclear(res);
 	db->has_pgq = false;
 	log_info("%s: bad pgq version, ignoring", db->name);
 	close_ticker(db, cf.check_period);
@@ -79,7 +76,6 @@ static void parse_ticker_result(struct PgDatabase *db, PGresult *res)
 	if (PQntuples(res) != 1) {
 		log_debug("%s: calling pgq.ticker() failed", db->name);
 	}
-	PQclear(res);
 
 	db_sleep(db->c_ticker, cf.ticker_period);
 }

@@ -22,6 +22,8 @@ struct PgSocket {
 	PGconn *con;
 	db_handler_f handler_func;
 	void *handler_arg;
+
+	PGresult *last_result;
 };
 
 static void send_event(struct PgSocket *db, enum PgEvent ev)
@@ -82,7 +84,7 @@ static void conn_error(struct PgSocket *db, enum PgEvent ev, const char *desc)
 static void result_cb(int sock, short flags, void *arg)
 {
 	struct PgSocket *db = arg;
-	PGresult *res, *res_saved = NULL;
+	PGresult *res;
 
 	db->wait_type = 0;
 
@@ -104,14 +106,18 @@ static void result_cb(int sock, short flags, void *arg)
 		if (!res)
 			break;
 
-		if (res_saved) {
+		if (db->last_result) {
 			log_warning("multiple results?");
-			PQclear(res_saved);
+			PQclear(db->last_result);
 		}
-		res_saved = res;
+		db->last_result = res;
 	}
 
-	db->handler_func(db, db->handler_arg, DB_RESULT_OK, res_saved);
+	res = db->last_result;
+	db->last_result = NULL;
+
+	db->handler_func(db, db->handler_arg, DB_RESULT_OK, res);
+	PQclear(res);
 }
 
 static void send_cb(int sock, short flags, void *arg)
@@ -195,6 +201,9 @@ void db_disconnect(struct PgSocket *db)
 	if (db->con) {
 		PQfinish(db->con);
 		db->con = NULL;
+		if (db->last_result)
+			PQclear(db->last_result);
+		db->last_result = NULL;
 	}
 }
 
@@ -209,6 +218,8 @@ void db_free(struct PgSocket *db)
 	if (db) {
 		if (db->con)
 			db_disconnect(db);
+		if (db->last_result)
+			PQclear(db->last_result);
 		free(db);
 	}
 }

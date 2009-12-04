@@ -28,6 +28,8 @@ static struct PgSocket *db_template;
 
 static STATLIST(database_list);
 
+static int got_sigint;
+
 #define CF_REL_BASE struct Config
 static const struct CfKey conf_params[] = {
 	{ "logfile", CF_ABS_STR(cf_logfile) },
@@ -77,7 +79,7 @@ static void handle_sigint(int sock, short flags, void *arg)
 {
 	log_info("Got SIGINT, shutting down");
 	/* pidfile cleanup happens via atexit() */
-	exit(1);
+	got_sigint = 1;
 }
 
 static void handle_sighup(int sock, short flags, void *arg)
@@ -162,6 +164,7 @@ static void drop_db(struct PgDatabase *db)
 	db_free(db->c_ticker);
 	db_free(db->c_maint);
 	db_free(db->c_retry);
+	strlist_free(db->maint_item_list);
 	free(db->name);
 	free(db);
 }
@@ -181,7 +184,6 @@ static void detect_handler(struct PgSocket *db, void *arg, enum PgEvent ev, PGre
 			s = PQgetvalue(res, i, 0);
 			launch_db(s);
 		}
-		PQclear(res);
 		db_disconnect(db);
 		db_sleep(db, cf.check_period);
 		break;
@@ -237,6 +239,20 @@ static void recheck_dbs(void)
 	}
 }
 
+static void cleanup(void)
+{
+	struct PgDatabase *db;
+	struct List *elem, *tmp;
+
+	statlist_for_each_safe(elem, &database_list, tmp) {
+		db = container_of(elem, struct PgDatabase, head);
+		drop_db(db);
+	}
+	db_free(db_template);
+
+	event_base_free(NULL);
+}
+
 static void main_loop_once(void)
 {
 	reset_time_cache();
@@ -288,8 +304,10 @@ int main(int argc, char *argv[])
 
 	recheck_dbs();
 
-	while (1)
+	while (!got_sigint)
 		main_loop_once();
+
+	cleanup();
 
 	return 0;
 }

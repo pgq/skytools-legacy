@@ -90,7 +90,6 @@ static void maint_handler(struct PgSocket *s, void *arg, enum PgEvent ev, PGresu
 			if (!fill_items(db, res))
 				goto mem_err;
 		case DB_MAINT_ROT1:
-			PQclear(res);
 			if (!strlist_empty(db->maint_item_list)) {
 				run_rotate_part1(db);
 			} else {
@@ -98,14 +97,12 @@ static void maint_handler(struct PgSocket *s, void *arg, enum PgEvent ev, PGresu
 			}
 			break;
 		case DB_MAINT_ROT2:
-			PQclear(res);
 			run_vacuum_list(db);
 			break;
 		case DB_MAINT_VACUUM_LIST:
 			if (!fill_items(db, res))
 				goto mem_err;
 		case DB_MAINT_DO_VACUUM:
-			PQclear(res);
 			if (!strlist_empty(db->maint_item_list)) {
 				run_vacuum(db);
 			} else {
