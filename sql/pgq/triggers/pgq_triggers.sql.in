@@ -1,53 +1,20 @@
-
--- ----------------------------------------------------------------------
--- Function: pgq.logtriga()
---
---      Non-automatic SQL trigger.  It puts row data in partial SQL form into
---      queue.  It does not auto-detect table structure, it needs to be passed
---      as trigger arg.
---
--- Purpose:
---      Used by Londiste to generate replication events.  The "partial SQL"
---      format is more compact than the urlencoded format but cannot be
---      parsed, only applied.  Which is fine for Londiste.
---
--- Parameters:
---      arg1 - queue name
---      arg2 - column type spec string where each column corresponds to one char (k/v/i).
---              if spec string is shorter than column list, rest of columns default to 'i'.
---
--- Column types:
---      k   - pkey column
---      v   - normal data column
---      i   - ignore column
---
--- Queue event fields:
---    ev_type     - I/U/D
---    ev_data     - partial SQL statement
---    ev_extra1   - table name
---
--- ----------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION pgq.logtriga() RETURNS trigger
-AS 'MODULE_PATHNAME', 'pgq_logtriga' LANGUAGE C;
-
 -- ----------------------------------------------------------------------
 -- Function: pgq.sqltriga()
 --
---      Automatic SQL trigger.  It puts row data in partial SQL form into
---      queue.  It autodetects table structure.
+--      Trigger that generates queue events containing partial SQL.
+--      It autodetects table structure.
 --
 -- Purpose:
---      Written as more flexible version of logtriga to handle exceptional cases
---      where there is no primary key index on table etc.
+--      Replication events, that only need changed column values.
 --
 -- Parameters:
 --      arg1 - queue name
 --      argX - any number of optional arg, in any order
 --
 -- Optinal arguments:
---      SKIP                - The actual operation should be skipped
+--      SKIP                - The actual operation should be skipped (BEFORE trigger)
 --      ignore=col1[,col2]  - don't look at the specified arguments
---      pkey=col1[,col2]    - Set pkey fields for the table, autodetection will be skipped
+--      pkey=col1[,col2]    - Set pkey fields for the table, PK autodetection will be skipped
 --      backup              - Put urlencoded contents of old row to ev_extra2
 --
 -- Queue event fields:
@@ -75,7 +42,7 @@ AS 'MODULE_PATHNAME', 'pgq_sqltriga' LANGUAGE C;
 --      argX - any number of optional arg, in any order
 --
 -- Optinal arguments:
---      SKIP                - The actual operation should be skipped
+--      SKIP                - The actual operation should be skipped (BEFORE trigger)
 --      ignore=col1[,col2]  - don't look at the specified arguments
 --      pkey=col1[,col2]    - Set pkey fields for the table, autodetection will be skipped
 --      backup              - Put urlencoded contents of old row to ev_extra2
@@ -96,4 +63,36 @@ AS 'MODULE_PATHNAME', 'pgq_sqltriga' LANGUAGE C;
 -- ----------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION pgq.logutriga() RETURNS TRIGGER
 AS 'MODULE_PATHNAME', 'pgq_logutriga' LANGUAGE C;
+
+
+-- ----------------------------------------------------------------------
+-- Function: pgq.logtriga()
+--
+--      (Obsolete) Non-automatic SQL trigger.  It puts row data in partial SQL form into
+--      queue.  It does not auto-detect table structure, it needs to be passed
+--      as trigger arg.
+--
+-- Purpose:
+--      Used by Londiste to generate replication events.  The "partial SQL"
+--      format is more compact than the urlencoded format but cannot be
+--      parsed, only applied.  Which is fine for Londiste.
+--
+-- Parameters:
+--      arg1 - queue name
+--      arg2 - column type spec string where each column corresponds to one char (k/v/i).
+--              if spec string is shorter than column list, rest of columns default to 'i'.
+--
+-- Column types:
+--      k   - pkey column
+--      v   - normal data column
+--      i   - ignore column
+--
+-- Queue event fields:
+--    ev_type     - I/U/D
+--    ev_data     - partial SQL statement
+--    ev_extra1   - table name
+--
+-- ----------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION pgq.logtriga() RETURNS trigger
+AS 'MODULE_PATHNAME', 'pgq_logtriga' LANGUAGE C;
 
