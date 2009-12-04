@@ -2,23 +2,24 @@
 
   * walmgr:
     - symlink handling for pg_log and pg_xlog
-    - archive_command set to "/bin/true" for restored postgresql.conf
+    - Set archive_command to "/bin/true" for restored postgresql.conf
     (Martin Pihlak, Mark Kirkwood)
 
   * londiste copy:
-    - make constraint dropping work for inherited tables
+    - Make constraint dropping work for inherited tables
       (Hannu Krosing)
+
     - Do not restore fkeys to tables with unknown replication status
-      or coming from different queue.
-      (Hannu Krosing)
-    - use TRUNCATE ONLY on 8.4+
-      (Sergey Konoplev)
+      or coming from different queue.  (Hannu Krosing)
+
+    - Use TRUNCATE ONLY on 8.4+.  (Sergey Konoplev)
+
     - Replace last copy pidfile check with signal_pidfile,
       thus avoiding potential infinite stall with dead copy.
 
   * skytools.DBScript:
-    - Add --version switch to show skytools version.
-      (Hannu Krosing)
+    - Add --version switch to show skytools version.  (Hannu Krosing)
+
     - Safer pidfile handling - avoid creating zero-length files
       on disk full situation by deleting them on write error.
 
@@ -33,9 +34,9 @@
     on tables without pkey, running into SQL errors downstream.
     They should throw error in such case.
 
-  * Fix deprecationwarning on python 2.6 vs. 'import sets'.
+  * Fix DeprecationWarning on Python 2.6 vs. 'import sets'.
 
-  * make deb: Work around Debian's --install-leyout related braindamage.
+  * make deb: Work around Debian's --install-layout related braindamage.
 
 2009-08-31  -  SkyTools 2.1.10  -  "As Stable As A Falling Anvil"
 
