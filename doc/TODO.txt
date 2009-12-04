@@ -177,14 +177,14 @@ who already is handling it.
 * londiste: somehow automatic sync of table structure/functions/...?
 
 
-== qadmin todo list ==
+== QAdmin todo list ==
 
-== Goal ==
+=== Goal ===
 
 Easy to use admin console to examine and administer PgQ queues.
 Main feature is psql like tab-completion for everything (queue/consumer names).
 
-== Current direction ==
+=== Current direction ===
 
 * Cmdline switches similar to psql.
 * No config file. (?)
@@ -193,7 +193,7 @@ Main feature is psql like tab-completion for everything (queue/consumer names).
 * Info about both plain and cascaded queues.
 * Administer only plain queues.
 
-== Potential future directions ==
+=== Potential future directions ===
 
  * SQL Scripts.
   - Full SQL
@@ -207,7 +207,7 @@ Main feature is psql like tab-completion for everything (queue/consumer names).
   - data maintainer?
   - release_script?
 
-== Command line ==
+=== Command line ===
 
 
   -Q:: queue name
@@ -219,7 +219,7 @@ Main feature is psql like tab-completion for everything (queue/consumer names).
   --help:: help
   --version:: version
 
-== Internal language ==
+=== Internal language ===
 
 All the commands assume they are connected to a database.
 
@@ -256,7 +256,7 @@ Information:
   SHOW BATCH INFO (<id> | <consumer>) [ON <queue>?];
   SHOW BATCH EVENTS (<id> | <consumer>) [ON <queue>?];
 
-== Smaller Open Questions ==
+=== Smaller Open Questions ===
 
 * What arguments should qadmin accept from command line?
 
@@ -271,7 +271,7 @@ Information:
 
 * Default queue vs. queue name in commands.
 
-== ToDo ==
+=== ToDo ===
 
 * General:
   - Lots of useful commands.
