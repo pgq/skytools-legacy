@@ -24,8 +24,8 @@ declare
     _cur_tick bigint;
 begin
     -- fetch master consumer details, lock the row
-    select q.queue_id, c.co_id
-        into _queue_id, _consumer_id
+    select q.queue_id, c.co_id, s.sub_next_tick
+        into _queue_id, _consumer_id, _cur_tick
         from pgq.queue q, pgq.consumer c, pgq.subscription s
         where q.queue_name = i_queue_name
           and c.co_name = i_consumer_name
@@ -34,6 +34,9 @@ begin
         for update of s;
     if not found then
         raise exception 'main consumer not found';
+    end if;
+    if _cur_tick is not null then
+        raise exception 'main consumer has batch open?';
     end if;
 
     -- fetch subconsumer details
