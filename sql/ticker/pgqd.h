@@ -9,8 +9,7 @@
 #include <usual/list.h>
 #include <usual/statlist.h>
 #include <usual/logging.h>
-
-#include "connection.h"
+#include <usual/pgsocket.h>
 
 enum DbState {
 	DB_CLOSED,

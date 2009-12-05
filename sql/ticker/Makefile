@@ -1,12 +1,12 @@
 
 include ../../config.mak
 
-SRCS = connection.c pgqd.c maint.c ticker.c retry.c
-LOCAL_HDRS = connection.h pgqd.h
+SRCS = pgqd.c maint.c ticker.c retry.c
+LOCAL_HDRS = pgqd.h
 
 USUAL_DIR = ../../lib
 USUAL_OBJDIR = .
-USUAL_LOCAL_SRCS = $(SRCS) connection.h pgqd.h
+USUAL_LOCAL_SRCS = $(SRCS) $(LOCAL_HDRS)
 include $(USUAL_DIR)/Setup.mk
 
 PROGRAM = pgqd
@@ -43,6 +43,9 @@ install: all
 
 clean:
 	rm -f $(PROGRAM) $(OBJS)
+
+tags:
+	ctags *.[ch] ../../lib/usual/*.[ch]
 
 distclean: clean
 installcheck:

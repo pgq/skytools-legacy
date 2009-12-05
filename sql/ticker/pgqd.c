@@ -78,7 +78,7 @@ static void handle_sigterm(int sock, short flags, void *arg)
 static void handle_sigint(int sock, short flags, void *arg)
 {
 	log_info("Got SIGINT, shutting down");
-	/* pidfile cleanup happens via atexit() */
+	/* notify main loop to exit */
 	got_sigint = 1;
 }
 
@@ -129,9 +129,9 @@ static void signal_setup(void)
 
 const char *make_connstr(const char *dbname)
 {
-	char buf[512];
+	static char buf[512];
 	snprintf(buf, sizeof(buf), "%s dbname=%s ", cf.base_connstr, dbname);
-	return strdup(buf);
+	return buf;
 }
 
 static void launch_db(const char *dbname)
@@ -161,9 +161,9 @@ static void launch_db(const char *dbname)
 static void drop_db(struct PgDatabase *db)
 {
 	statlist_remove(&database_list, &db->head);
-	db_free(db->c_ticker);
-	db_free(db->c_maint);
-	db_free(db->c_retry);
+	pgs_free(db->c_ticker);
+	pgs_free(db->c_maint);
+	pgs_free(db->c_retry);
 	strlist_free(db->maint_item_list);
 	free(db->name);
 	free(db);
@@ -175,34 +175,34 @@ static void detect_handler(struct PgSocket *db, void *arg, enum PgEvent ev, PGre
 	const char *s;
 
 	switch (ev) {
-	case DB_CONNECT_OK:
-		db_send_query_simple(db, "select datname from pg_database"
+	case PGS_CONNECT_OK:
+		pgs_send_query_simple(db, "select datname from pg_database"
 				     	 " where not datistemplate and datallowconn");
 		break;
-	case DB_RESULT_OK:
+	case PGS_RESULT_OK:
 		for (i = 0; i < PQntuples(res); i++) {
 			s = PQgetvalue(res, i, 0);
 			launch_db(s);
 		}
-		db_disconnect(db);
-		db_sleep(db, cf.check_period);
+		pgs_disconnect(db);
+		pgs_sleep(db, cf.check_period);
 		break;
-	case DB_TIMEOUT:
+	case PGS_TIMEOUT:
 		detect_dbs();
 		break;
 	default:
-		db_disconnect(db);
-		db_sleep(db, cf.check_period);
+		pgs_disconnect(db);
+		pgs_sleep(db, cf.check_period);
 	}
 }
 
 static void detect_dbs(void)
 {
-	const char *cstr = make_connstr(cf.initial_database);
-	if (!db_template)
-		db_template = db_create(detect_handler, NULL);
-	db_connect(db_template, cstr);
-	free(cstr);
+	if (!db_template) {
+		const char *cstr = make_connstr(cf.initial_database);
+		db_template = pgs_create(cstr, detect_handler, NULL);
+	}
+	pgs_connect(db_template);
 }
 
 static bool launch_db_cb(void *arg, const char *db)
@@ -230,7 +230,7 @@ static void recheck_dbs(void)
 				drop_db(db);
 		}
 		if (db_template) {
-			db_free(db_template);
+			pgs_free(db_template);
 			db_template = NULL;
 		}
 	} else if (!db_template) {
@@ -248,7 +248,7 @@ static void cleanup(void)
 		db = container_of(elem, struct PgDatabase, head);
 		drop_db(db);
 	}
-	db_free(db_template);
+	pgs_free(db_template);
 
 	event_base_free(NULL);
 }

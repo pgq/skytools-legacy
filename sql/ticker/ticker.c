@@ -4,7 +4,7 @@ static void run_pgq_check(struct PgDatabase *db)
 {
 	const char *q = "select 1 from pg_catalog.pg_namespace where nspname='pgq'";
 	log_debug("%s: %s", db->name, q);
-	db_send_query_simple(db->c_ticker, q);
+	pgs_send_query_simple(db->c_ticker, q);
 	db->state = DB_TICKER_CHECK_PGQ;
 }
 
@@ -12,7 +12,7 @@ static void run_version_check(struct PgDatabase *db)
 {
 	const char *q = "select pgq.version()";
 	log_debug("%s: %s", db->name, q);
-	db_send_query_simple(db->c_ticker, q);
+	pgs_send_query_simple(db->c_ticker, q);
 	db->state = DB_TICKER_CHECK_VERSION;
 }
 
@@ -20,7 +20,7 @@ static void run_ticker(struct PgDatabase *db)
 {
 	const char *q = "select pgq.ticker()";
 	log_debug("%s: %s", db->name, q);
-	db_send_query_simple(db->c_ticker, q);
+	pgs_send_query_simple(db->c_ticker, q);
 	db->state = DB_TICKER_RUN;
 }
 
@@ -28,8 +28,8 @@ static void close_ticker(struct PgDatabase *db, double sleep_time)
 {
 	log_debug("%s: close_ticker, %f", db->name, sleep_time);
 	db->state = DB_CLOSED;
-	db_disconnect(db->c_ticker);
-	db_sleep(db->c_ticker, sleep_time);
+	pgs_disconnect(db->c_ticker);
+	pgs_sleep(db->c_ticker, sleep_time);
 }
 
 static void parse_pgq_check(struct PgDatabase *db, PGresult *res)
@@ -77,7 +77,7 @@ static void parse_ticker_result(struct PgDatabase *db, PGresult *res)
 		log_debug("%s: calling pgq.ticker() failed", db->name);
 	}
 
-	db_sleep(db->c_ticker, cf.ticker_period);
+	pgs_sleep(db->c_ticker, cf.ticker_period);
 }
 
 static void tick_handler(struct PgSocket *s, void *arg, enum PgEvent ev, PGresult *res)
@@ -85,10 +85,10 @@ static void tick_handler(struct PgSocket *s, void *arg, enum PgEvent ev, PGresul
 	struct PgDatabase *db = arg;
 
 	switch (ev) {
-	case DB_CONNECT_OK:
+	case PGS_CONNECT_OK:
 		run_pgq_check(db);
 		break;
-	case DB_RESULT_OK:
+	case PGS_RESULT_OK:
 		switch (db->state) {
 		case DB_TICKER_CHECK_PGQ:
 			parse_pgq_check(db, res);
@@ -103,25 +103,25 @@ static void tick_handler(struct PgSocket *s, void *arg, enum PgEvent ev, PGresul
 			fatal("bad state");
 		}
 		break;
-	case DB_TIMEOUT:
+	case PGS_TIMEOUT:
 		log_debug("%s: tick timeout", db->name);
-		if (!db_connection_valid(db->c_ticker))
+		if (!pgs_connection_valid(db->c_ticker))
 			launch_ticker(db);
 		else
 			run_ticker(db);
 		break;
 	default:
-		db_reconnect(db->c_ticker);
+		pgs_reconnect(db->c_ticker);
 	}
 }
 
 void launch_ticker(struct PgDatabase *db)
 {
-	const char *cstr = make_connstr(db->name);
 	log_debug("%s: launch_ticker", db->name);
-	if (!db->c_ticker)
-		db->c_ticker = db_create(tick_handler, db);
-	db_connect(db->c_ticker, cstr);
-	free(cstr);
+	if (!db->c_ticker) {
+		const char *cstr = make_connstr(db->name);
+		db->c_ticker = pgs_create(cstr, tick_handler, db);
+	}
+	pgs_connect(db->c_ticker);
 }
 
