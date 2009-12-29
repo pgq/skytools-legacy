@@ -472,8 +472,6 @@ class WalMgr(skytools.DBScript):
         except:
             self.log.fatal("Cannot write to %s" % fn)
 
-    def authfile_name(self):
-        return os.path.join(self.cf.get("master_data"), os.path.join("global", "pg_auth"))
 
     def master_stop(self):
         """Deconfigure archiving, attempt to stop syncdaemon"""
@@ -899,7 +897,7 @@ STOP TIME: %(stop_time)s
             dst_loc += "/"
 
         # copy data
-        self.exec_rsync([ srcpath, self.authfile_name(), dst_loc ], True)
+        self.exec_rsync([ srcpath, dst_loc ], True)
 
         self.log.debug("%s: done", srcname)
         end_time = time.time()
@@ -1013,15 +1011,7 @@ STOP TIME: %(stop_time)s
         data_dir = self.cf.get("master_data")
         xlog_dir = os.path.join(data_dir, "pg_xlog")
 
-        auth_loc = os.path.join(self.cf.get("completed_wals"), "")
         dst_loc = os.path.join(self.cf.get("partial_wals"), "")
-
-        # sync the auth file
-        if not daemon_mode:
-            # avoid the extra rsync in daemon mode - the file is fairly static, so we 
-            # don't need to sync it every N seconds.
-            if self.exec_rsync([self.authfile_name(), auth_loc]) != 0:
-                self.log.warning('Cannot sync auth file')
 
         db = None
         if use_xlog_functions:
@@ -1447,8 +1437,6 @@ restore_command = '%s %s %s'
         srcdir = self.cf.get("completed_wals")
         datadir = self.cf.get("slave_data")
         stopfile = os.path.join(srcdir, "STOP")
-        src_authfile = os.path.join(srcdir, "pg_auth")
-        dst_authfile = os.path.join(datadir, os.path.join("global", "pg_auth"))
 
         if self.not_really:
             self.log.info("Writing STOP file: %s" % stopfile)
@@ -1456,13 +1444,6 @@ restore_command = '%s %s %s'
             open(stopfile, "w").write("1")
         self.log.info("Stopping recovery mode")
 
-        if os.path.isfile(src_authfile):
-            self.log.debug("Using pg_auth file from master.")
-            try:
-                os.rename(dst_authfile, "%s.old" % dst_authfile)
-                self.exec_cmd(["cp", src_authfile, dst_authfile])
-            except Exception, e:
-                self.log.warning("Unable to restore pg_auth file: %s" % e)
 
     def slave_pause(self, waitcomplete=0):
         """Pause the WAL apply, wait until last file applied if needed"""
