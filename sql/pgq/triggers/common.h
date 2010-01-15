@@ -39,6 +39,7 @@ struct PgqTableInfo {
 	const char *pkey_list;	/* pk column name list */
 	int *pkey_attno;	/* pk column positions */
 	char *table_name;	/* schema-quelified table name */
+	bool invalid;		/* set if the info was invalidated */
 };
 
 /* common.c */

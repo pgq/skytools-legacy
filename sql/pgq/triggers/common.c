@@ -46,6 +46,7 @@ PG_MODULE_MAGIC;
  * primary key info
  */
 
+static bool tbl_cache_invalid;
 static MemoryContext tbl_cache_ctx;
 static HTAB *tbl_cache_map;
 
@@ -222,41 +223,40 @@ static void init_module(void)
 {
 	static int callback_init = 0;
 
-	/* htab can be occasinally dropped */
+	/* do full reset if requested */
+	if (tbl_cache_invalid) {
+		if (tbl_cache_map)
+			hash_destroy(tbl_cache_map);
+		if (tbl_cache_ctx)
+			MemoryContextDelete(tbl_cache_ctx);
+		tbl_cache_map = NULL;
+		tbl_cache_ctx = NULL;
+		tbl_cache_invalid = false;
+	}
+
+	/* re-initialize cache */
 	if (tbl_cache_ctx)
 		return;
 	init_cache();
 
 	/*
-	 * Init plans.
+	 * Rest is done only once.
 	 */
+
 	if (!pkey_plan)
 		init_pkey_plan();
 
-	/* this must be done only once */
 	if (!callback_init) {
 		CacheRegisterRelcacheCallback(relcache_reset_cb, (Datum)0);
 		callback_init = 1;
 	}
 }
 
-static void full_reset(void)
-{
-	if (tbl_cache_ctx) {
-		/* needed only if backend has HASH_STATISTICS set */
-		/* hash_destroy(tbl_cache_map); */
-		MemoryContextDelete(tbl_cache_ctx);
-		tbl_cache_map = NULL;
-		tbl_cache_ctx = NULL;
-	}
-}
-
 /*
  * Fill table information in hash table.
  */
-static struct PgqTableInfo *fill_tbl_info(Relation rel)
+static void fill_tbl_info(Relation rel, struct PgqTableInfo *info)
 {
-	struct PgqTableInfo *info;
 	StringInfo pkeys;
 	Datum values[1];
 	const char *name = pgq_find_table_name(rel);
@@ -265,18 +265,14 @@ static struct PgqTableInfo *fill_tbl_info(Relation rel)
 	bool isnull;
 	int res, i, attno;
 
+	/* allow reset ASAP, but ignore it in this call */
+	info->invalid = false;
+
 	/* load pkeys */
 	values[0] = ObjectIdGetDatum(rel->rd_id);
 	res = SPI_execute_plan(pkey_plan, values, NULL, false, 0);
 	if (res != SPI_OK_SELECT)
 		elog(ERROR, "pkey_plan exec failed");
-
-	/*
-	 * SPI_execute_plan may launch reset callback, thus we need
-	 * to load the final position after calling it.
-	 */
-	init_module();
-	info = hash_search(tbl_cache_map, &rel->rd_id, HASH_ENTER, NULL);
 
 	/*
 	 * Fill info
@@ -299,8 +295,6 @@ static struct PgqTableInfo *fill_tbl_info(Relation rel)
 		appendStringInfoString(pkeys, name);
 	}
 	info->pkey_list = MemoryContextStrdup(tbl_cache_ctx, pkeys->data);
-
-	return info;
 }
 
 static void free_info(struct PgqTableInfo *info)
@@ -310,32 +304,38 @@ static void free_info(struct PgqTableInfo *info)
 	pfree((void *)info->pkey_list);
 }
 
+/*
+ * the callback can be launched any time from signal callback,
+ * only minimal tagging can be done here.
+ */
 static void relcache_reset_cb(Datum arg, Oid relid)
 {
 	if (relid == InvalidOid) {
-		full_reset();
-	} else if (tbl_cache_map) {
+		tbl_cache_invalid = true;
+	} else if (tbl_cache_map && !tbl_cache_invalid) {
 		struct PgqTableInfo *entry;
 		entry = hash_search(tbl_cache_map, &relid, HASH_FIND, NULL);
-		if (entry) {
-			free_info(entry);
-			hash_search(tbl_cache_map, &relid, HASH_REMOVE, NULL);
-		}
+		if (entry)
+			entry->invalid = true;
 	}
 }
 
 /*
- * fetch insert plan from cache.
+ * fetch table struct from cache.
  */
 struct PgqTableInfo *pgq_find_table_info(Relation rel)
 {
 	struct PgqTableInfo *entry;
+	bool found = false;
 
 	init_module();
 
-	entry = hash_search(tbl_cache_map, &rel->rd_id, HASH_FIND, NULL);
-	if (!entry)
-		entry = fill_tbl_info(rel);
+	entry = hash_search(tbl_cache_map, &rel->rd_id, HASH_ENTER, &found);
+	if (!found || entry->invalid) {
+		if (found)
+			free_info(entry);
+		fill_tbl_info(rel, entry);
+	}
 
 	return entry;
 }
