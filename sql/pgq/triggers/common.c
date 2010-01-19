@@ -176,7 +176,7 @@ char *pgq_find_table_name(Relation rel)
 	nspname = ns_struct->nspname;
 
 	/* fill name */
-	sprintf(namebuf, "%s.%s", NameStr(nspname), NameStr(tname));
+	snprintf(namebuf, sizeof(namebuf), "%s.%s", NameStr(nspname), NameStr(tname));
 
 	ReleaseSysCache(ns_tup);
 	return pstrdup(namebuf);
