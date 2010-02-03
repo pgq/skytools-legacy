@@ -77,9 +77,9 @@ class Repairer(Syncer):
             args = "-S 30%"
         else:
             args = ""
-        os.system("sort %s -T . -o %s.sorted %s" % (args, dump_src, dump_src))
+        os.system("LC_ALL=C sort %s -T . -o %s.sorted %s" % (args, dump_src, dump_src))
         self.log.info("Sorting dst table: %s" % tbl)
-        os.system("sort %s -T . -o %s.sorted %s" % (args, dump_dst, dump_dst))
+        os.system("LC_ALL=C sort %s -T . -o %s.sorted %s" % (args, dump_dst, dump_dst))
 
         self.dump_compare(tbl, dump_src + ".sorted", dump_dst + ".sorted")
 
