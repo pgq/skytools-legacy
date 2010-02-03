@@ -1,4 +1,10 @@
-2009-xx-xx  -  SkyTools 2.1.11  -  ""
+2010-02-03  -  SkyTools 2.1.11  -  "Replicates Like Randy Rabbit"
+
+  = Fixes =
+
+  * londiste, pgq smart triggers: crash in case the table info cache
+    invalidation callback was called from signal handler.  Fix it by
+    moving cache operations out of callback.
 
   * walmgr:
     - symlink handling for pg_log and pg_xlog
@@ -16,6 +22,9 @@
 
     - Replace last copy pidfile check with signal_pidfile,
       thus avoiding potential infinite stall with dead copy.
+
+  * londiste repair: set LC_ALL=C when calling 'sort' to have
+    byte based sorting.
 
   * skytools.DBScript:
     - Add --version switch to show skytools version.  (Hannu Krosing)
