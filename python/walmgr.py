@@ -1653,14 +1653,14 @@ restore_command = '%s %s %s'
         partial_wals = self.cf.get("partial_wals")
 
         self.log.debug("cleaning completed wals before %s" % last_applied)
-        last = self.del_wals(completed_wals, last_applied)
-        if last:
-            if os.path.isdir(partial_wals):
-                self.log.debug("cleaning partial wals before %s" % last)
-                self.del_wals(partial_wals, last)
-            else:
-                self.log.warning("partial_wals dir does not exist: %s"
-                              % partial_wals)
+        self.del_wals(completed_wals, last_applied)
+
+        if os.path.isdir(partial_wals):
+            self.log.debug("cleaning partial wals before %s" % last_applied)
+            self.del_wals(partial_wals, last_applied)
+        else:
+            self.log.warning("partial_wals dir does not exist: %s" % partial_wals)
+
         self.log.debug("cleaning done")
 
     def del_wals(self, path, last):
