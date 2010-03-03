@@ -118,7 +118,6 @@ class SmartTicker(skytools.DBScript):
         cx.execute(q)
         new_map = {}
         data_list = []
-        from_list = []
         for row in cx.dictfetchall():
             queue_name = row['queue_name']
             try:
@@ -128,16 +127,14 @@ class SmartTicker(skytools.DBScript):
             que.set_data(row)
             new_map[queue_name] = que
 
-            p1 = "'%s', %s.last_value" % (queue_name, que.seq_name)
+            p1 = "'%s', (select last_value from %s)" % (queue_name, que.seq_name)
             data_list.append(p1)
-            from_list.append(que.seq_name)
 
         self.queue_map = new_map
-        self.seq_query = "select %s from %s" % (
-                ", ".join(data_list),
-                ", ".join(from_list))
+        self.seq_query = "select %s" % (
+                ", ".join(data_list))
 
-        if len(from_list) == 0:
+        if len(data_list) == 0:
             self.seq_query = None
 
         self.refresh_time = time.time()
