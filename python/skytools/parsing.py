@@ -12,7 +12,6 @@ __all__ = [
 
 _rc_listelem = re.compile(r'( [^,"}]+ | ["] ( [^"\\]+ | [\\]. )* ["] )', re.X)
 
-# _parse_pgarray
 def parse_pgarray(array):
     r"""Parse Postgres array and return list of items inside it.
 
@@ -23,11 +22,18 @@ def parse_pgarray(array):
     ['a', 'b', None, 'null']
     >>> parse_pgarray(r'{"a,a","b\"b","c\\c"}')
     ['a,a', 'b"b', 'c\\c']
+    >>> parse_pgarray("[0,3]={1,2,3}")
+    ['1', '2', '3']
     """
-    if not array or array[0] != "{" or array[-1] != '}':
+    if not array or array[0] not in ("{", "[") or array[-1] != '}':
         raise Exception("bad array format: must be surrounded with {}")
     res = []
     pos = 1
+    # skip optional dimensions descriptor "[a,b]={...}"
+    if array[0] == "[":
+        pos = array.find('{') + 1
+        if pos < 1:
+            raise Exception("bad array format: must be surrounded with {}")
     while 1:
         m = _rc_listelem.search(array, pos)
         if not m:
