@@ -38,6 +38,10 @@ drop function pgq.failed_event_retry(text, text, bigint);
 drop function pgq.event_failed(bigint, bigint, text);
 drop table pgq.failed_queue;
 
+-- drop obsolete functions
+drop function pgq.ticker(text, bigint);
+drop function pgq.register_consumer(text, text, int8);
+
 -- drop types and related functions
 drop function pgq.get_batch_events(bigint);
 drop function pgq.get_batch_info(bigint);
