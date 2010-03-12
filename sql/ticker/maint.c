@@ -71,8 +71,7 @@ static void close_maint(struct PgDatabase *db, double sleep_time)
 {
 	log_debug("%s: close_maint, %f", db->name, sleep_time);
 	db->maint_state = DB_CLOSED;
-	pgs_disconnect(db->c_maint);
-	pgs_sleep(db->c_maint, sleep_time);
+	pgs_reconnect(db->c_maint, sleep_time);
 }
 
 static void maint_handler(struct PgSocket *s, void *arg, enum PgEvent ev, PGresult *res)
@@ -121,7 +120,8 @@ static void maint_handler(struct PgSocket *s, void *arg, enum PgEvent ev, PGresu
 			run_queue_list(db);
 		break;
 	default:
-		pgs_reconnect(db->c_maint);
+		log_warning("%s: default reconnect", db->name);
+		pgs_reconnect(db->c_maint, 60);
 	}
 	return;
 mem_err:
