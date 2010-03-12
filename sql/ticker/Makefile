@@ -35,6 +35,10 @@ $(OBJS): $(HDRS)
 %.o: $(USUAL_DIR)/usual/%.c $(USUAL_HDRS)
 	$(CC) $(CFLAGS) $(CPPFLAGS) $(DEFS) -c -o $@ $<
 
+pgqd.o: pgqd.ini.h
+pgqd.ini.h: pgqd.ini
+	sed -e 's/.*/"&\\n"/' $< > $@
+
 install: all
 	mkdir -p '$(DESTDIR)$(bindir)'
 	$(BININSTALL) -m 755 pgqd$(X) '$(DESTDIR)$(bindir)/pgqd'
@@ -42,7 +46,7 @@ install: all
 	$(INSTALL) -m 644 pgqd.ini '$(DESTDIR)$(docdir)/conf/pgqd.ini.templ'
 
 clean:
-	rm -f $(PROGRAM) $(OBJS)
+	rm -f $(PROGRAM) $(OBJS) pgqd.ini.h
 
 tags:
 	ctags *.[ch] ../../lib/usual/*.[ch]

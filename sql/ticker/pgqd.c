@@ -15,12 +15,17 @@ static void recheck_dbs(void);
 static const char *usage_str =
 "usage: pgq-ticker [switches] config.file\n"
 "Switches:\n"
-"  -H        Show help\n"
 "  -v        Increase verbosity\n"
 "  -q        No output to console\n"
-"  -V        Show version\n"
 "  -d        Daemonize\n"
+"  -H        Show help\n"
+"  -V        Show version\n"
+" --ini      Show sample config file\n"
 "";
+
+static const char *sample_ini =
+#include "pgqd.ini.h"
+;
 
 struct Config cf;
 
@@ -84,7 +89,7 @@ static void handle_sigint(int sock, short flags, void *arg)
 
 static void handle_sighup(int sock, short flags, void *arg)
 {
-	log_info("Got SIGHUP re-reading config");
+	log_info("Got SIGHUP, re-reading config");
 	load_config(true);
 	recheck_dbs();
 }
@@ -265,6 +270,13 @@ int main(int argc, char *argv[])
 {
 	int c;
 	bool daemon = false;
+
+	for (c = 1; c < argc; c++) {
+		if (!strcmp(argv[c], "--ini")) {
+			printf("%s", sample_ini);
+			exit(0);
+		}
+	}
 
 	while ((c = getopt(argc, argv, "dqvhV")) != -1) {
 		switch (c) {
