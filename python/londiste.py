@@ -8,7 +8,7 @@ import sys, os, optparse, signal, skytools
 # python 2.3 will try londiste.py first...
 import sys, os.path
 if os.path.exists(os.path.join(sys.path[0], 'londiste.py')) \
-    and not os.path.exists(os.path.join(sys.path[0], 'londiste')):
+    and not os.path.isdir(os.path.join(sys.path[0], 'londiste')):
     del sys.path[0]
 
 from londiste import *
