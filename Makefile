@@ -114,7 +114,7 @@ debclean: distclean
 
 boot: configure
 
-configure: configure.ac
+configure: configure.ac lib/m4/usual.m4
 	aclocal -I lib/m4
 	autoheader
 	autoconf
