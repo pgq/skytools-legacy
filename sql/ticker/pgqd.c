@@ -12,13 +12,13 @@
 static void detect_dbs(void);
 static void recheck_dbs(void);
 
-static const char *usage_str =
+static const char usage_str[] =
 "usage: pgq-ticker [switches] config.file\n"
 "Switches:\n"
 "  -v        Increase verbosity\n"
 "  -q        No output to console\n"
 "  -d        Daemonize\n"
-"  -H        Show help\n"
+"  -h        Show help\n"
 "  -V        Show version\n"
 " --ini      Show sample config file\n"
 "";
@@ -274,6 +274,10 @@ int main(int argc, char *argv[])
 	for (c = 1; c < argc; c++) {
 		if (!strcmp(argv[c], "--ini")) {
 			printf("%s", sample_ini);
+			exit(0);
+		}
+		if (!strcmp(argv[c], "--help")) {
+			printf(usage_str);
 			exit(0);
 		}
 	}
