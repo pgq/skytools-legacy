@@ -11,7 +11,12 @@ SUBDIRS = sql doc
 #	  scripts/queue_loader.py scripts/queue_mover.py scripts/queue_splitter.py \
 #	  scripts/scriptmgr.py scripts/skytools_upgrade.py
 
-SCRIPTS = python/londiste.py python/qadmin.py python/walmgr.py scripts/scriptmgr.py
+# add suffix
+SFX_SCRIPTS = python/londiste.py python/walmgr.py scripts/scriptmgr.py
+# dont add
+NOSFX_SCRIPTS = python/qadmin.py
+
+SCRIPT_SUFFIX = 3
 
 all: python-all sub-all config.mak
 
@@ -50,13 +55,14 @@ python-install: config.mak sub-all
 	$(PYTHON) setup_pkgloader.py install --prefix=$(prefix) --root=$(DESTDIR)/
 	$(PYTHON) setup_skytools.py install --prefix=$(prefix) --root=$(DESTDIR)/ --record=tmp_files.lst \
 		--install-lib=$(prefix)/lib/python$(pyver)/site-packages/skytools-3.0
-	for s in $(SCRIPTS); do \
+	for s in $(SFX_SCRIPTS); do \
+		exe=`echo $$s|sed -e 's!.*/!!' -e 's/[.]py//'`; \
+		install $$s $(DESTDIR)/$(bindir)/$${exe}$(SCRIPT_SUFFIX) || exit 1; \
+	done
+	for s in $(NOSFX_SCRIPTS); do \
 		exe=`echo $$s|sed -e 's!.*/!!' -e 's/[.]py//'`; \
 		install $$s $(DESTDIR)/$(bindir)/$$exe || exit 1; \
 	done
-	#grep '/bin/[a-z_0-9]*.py' tmp_files.lst \
-	#| $(PYTHON) misc/strip_ext.py $(if $(DESTDIR), $(DESTDIR), /)
-	#rm -f tmp_files.lst
 	$(MAKE) -C doc DESTDIR=$(DESTDIR) install
 
 python-install python-all: python/skytools/installer_config.py
