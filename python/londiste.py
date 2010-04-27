@@ -56,7 +56,7 @@ cmd_handlers = (
 
 class Londiste(skytools.DBScript):
     def __init__(self, args):
-        skytools.DBScript.__init__(self, 'londiste', args)
+        skytools.DBScript.__init__(self, 'londiste3', args)
 
         if len(self.args) < 2:
             print("need command")

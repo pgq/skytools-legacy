@@ -261,7 +261,7 @@ class Replicator(CascadedWorker):
 
     def __init__(self, args):
         """Replication init."""
-        CascadedWorker.__init__(self, 'londiste', 'db', args)
+        CascadedWorker.__init__(self, 'londiste3', 'db', args)
 
         self.table_list = []
         self.table_map = {}

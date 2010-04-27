@@ -17,7 +17,7 @@ class LondisteSetup(CascadeAdmin):
     provider_location = None
     def __init__(self, args):
         """Londiste setup init."""
-        CascadeAdmin.__init__(self, 'londiste', 'db', args, worker_setup = True)
+        CascadeAdmin.__init__(self, 'londiste3', 'db', args, worker_setup = True)
 
         # compat
         self.queue_name = self.cf.get('pgq_queue_name', '')
