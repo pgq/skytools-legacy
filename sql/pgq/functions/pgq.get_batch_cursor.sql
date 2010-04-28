@@ -30,7 +30,6 @@ returns setof record as $$
 -- ----------------------------------------------------------------------
 declare
     _cname  text;
-    _rcnt   int4;
 begin
     _cname := quote_ident(i_cursor_name);
 
@@ -45,12 +44,10 @@ begin
     end if;
 
     -- return first block of events
-    _rcnt := 0;
     for ev_id, ev_time, ev_txid, ev_retry, ev_type, ev_data,
         ev_extra1, ev_extra2, ev_extra3, ev_extra4
         in execute 'fetch ' || i_quick_limit || ' from ' || _cname
     loop
-        _rcnt := _rcnt + 1;
         return next;
     end loop;
 
