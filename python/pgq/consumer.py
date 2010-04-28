@@ -58,7 +58,7 @@ class _BatchWalker(object):
         self.curs.execute(q, [self.batch_id, self.sql_cursor, self.fetch_size])
         # this will return first batch of rows
 
-        q = "fetch %d from batch_walker" % self.fetch_size
+        q = "fetch %d from %s" % (self.fetch_size, self.sql_cursor)
         while 1:
             rows = self.curs.dictfetchall()
             if not len(rows):
