@@ -123,3 +123,21 @@ CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, $5, $6, $7)"
 delete from custom_fields;
 NOTICE:  insert_event(que3, my_type, dat1='foo', e1)
 CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, $5, $6, $7)"
+-- test custom expression
+create table custom_expr (
+    dat1 text not null primary key,
+    dat2 int2 not null,
+    dat3 text
+);
+NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "custom_expr_pkey" for table "custom_expr"
+create trigger customex_triga after insert or update or delete on custom_expr
+for each row execute procedure pgq.sqltriga('que3', 'ev_extra1=''test='' || dat1', 'ev_type=dat3');
+insert into custom_expr values ('foo', '2');
+NOTICE:  insert_event(que3, <NULL>, (dat1,dat2,dat3) values ('foo','2',null), test=foo)
+CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, $5, $6, $7)"
+update custom_expr set dat3 = 'bat';
+NOTICE:  insert_event(que3, bat, dat3='bat' where dat1='foo', test=foo)
+CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, $5, $6, $7)"
+delete from custom_expr;
+NOTICE:  insert_event(que3, bat, dat1='foo', test=foo)
+CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, $5, $6, $7)"

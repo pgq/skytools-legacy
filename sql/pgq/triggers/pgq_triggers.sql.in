@@ -16,6 +16,8 @@
 --      ignore=col1[,col2]  - don't look at the specified arguments
 --      pkey=col1[,col2]    - Set pkey fields for the table, PK autodetection will be skipped
 --      backup              - Put urlencoded contents of old row to ev_extra2
+--      colname=EXPR        - Override field value with SQL expression.  Can reference table
+--                            columns.  colname can be: ev_type, ev_data, ev_extra1 .. ev_extra4
 --
 -- Queue event fields:
 --    ev_type     - I/U/D
@@ -46,6 +48,8 @@ AS 'MODULE_PATHNAME', 'pgq_sqltriga' LANGUAGE C;
 --      ignore=col1[,col2]  - don't look at the specified arguments
 --      pkey=col1[,col2]    - Set pkey fields for the table, autodetection will be skipped
 --      backup              - Put urlencoded contents of old row to ev_extra2
+--      colname=EXPR        - Override field value with SQL expression.  Can reference table
+--                            columns.  colname can be: ev_type, ev_data, ev_extra1 .. ev_extra4
 --
 -- Queue event fields:
 --      ev_type      - I/U/D ':' pkey_column_list

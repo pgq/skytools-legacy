@@ -49,7 +49,7 @@ static int is_interesting_change(PgqTriggerEvent *ev, TriggerData *tg)
 		return 1;
 
 	/* if no columns are ignored, all events are interesting */
-	if (ev->ignore_list == NULL)
+	if (ev->tgargs->ignore_list == NULL)
 		return 1;
 
 	for (i = 0; i < tupdesc->natts; i++) {
@@ -108,7 +108,7 @@ static int is_interesting_change(PgqTriggerEvent *ev, TriggerData *tg)
 			}
 		}
 
-		if (pgqtriga_skip_col(ev, tg, i, attkind_idx)) {
+		if (pgqtriga_skip_col(ev, i, attkind_idx)) {
 			/* this change should be ignored */
 			ignore_count++;
 			continue;
@@ -126,8 +126,9 @@ static int is_interesting_change(PgqTriggerEvent *ev, TriggerData *tg)
 	return 1;
 }
 
-void pgq_urlenc_row(PgqTriggerEvent *ev, TriggerData *tg, HeapTuple row, StringInfo buf)
+void pgq_urlenc_row(PgqTriggerEvent *ev, HeapTuple row, StringInfo buf)
 {
+	TriggerData *tg = ev->tgdata;
 	TupleDesc tupdesc = tg->tg_relation->rd_att;
 	bool first = true;
 	int i;
@@ -141,7 +142,7 @@ void pgq_urlenc_row(PgqTriggerEvent *ev, TriggerData *tg, HeapTuple row, StringI
 
 		attkind_idx++;
 
-		if (pgqtriga_skip_col(ev, tg, i, attkind_idx))
+		if (pgqtriga_skip_col(ev, i, attkind_idx))
 			continue;
 
 		if (first)
@@ -201,21 +202,21 @@ Datum pgq_logutriga(PG_FUNCTION_ARGS)
 
 	pgq_prepare_event(&ev, tg, true);
 
-	appendStringInfoChar(ev.ev_type, ev.op_type);
-	appendStringInfoChar(ev.ev_type, ':');
-	appendStringInfoString(ev.ev_type, ev.pkey_list);
-	appendStringInfoString(ev.ev_extra1, ev.info->table_name);
+	appendStringInfoChar(ev.field[EV_TYPE], ev.op_type);
+	appendStringInfoChar(ev.field[EV_TYPE], ':');
+	appendStringInfoString(ev.field[EV_TYPE], ev.pkey_list);
+	appendStringInfoString(ev.field[EV_EXTRA1], ev.info->table_name);
 
 	if (is_interesting_change(&ev, tg)) {
 		/*
 		 * create type, data
 		 */
-		pgq_urlenc_row(&ev, tg, row, ev.ev_data);
+		pgq_urlenc_row(&ev, row, ev.field[EV_DATA]);
 
 		/*
 		 * Construct the parameter array and insert the log row.
 		 */
-		pgq_insert_tg_event(&ev, tg);
+		pgq_insert_tg_event(&ev);
 	}
 
 	if (SPI_finish() < 0)
@@ -226,7 +227,7 @@ Datum pgq_logutriga(PG_FUNCTION_ARGS)
 	 * before trigger skips event if NULL.
 	 */
 skip_it:
-	if (TRIGGER_FIRED_AFTER(tg->tg_event) || ev.skip)
+	if (TRIGGER_FIRED_AFTER(tg->tg_event) || ev.tgargs->skip)
 		return PointerGetDatum(NULL);
 	else
 		return PointerGetDatum(row);
