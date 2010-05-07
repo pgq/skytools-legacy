@@ -40,7 +40,12 @@ begin
       where queue_name = i_queue_name
         and consumer_name = i_consumer_name;
     if found then
-        select 405, 'Consumer already registered: ' || i_queue_name
+        update pgq_node.local_state
+           set provider_node = i_provider_node,
+               last_tick_id = i_custom_tick_id
+         where queue_name = i_queue_name
+           and consumer_name = i_consumer_name;
+        select 201, 'Consumer already registered: ' || i_queue_name
                || '/' || i_consumer_name  into ret_code, ret_note;
         return;
     end if;
