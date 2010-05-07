@@ -7,11 +7,11 @@ set client_min_messages = 'warning';
 --
 create table testdata (
     id serial primary key,
-    data text
+    txt text
 );
 create table testdata_nopk (
     id serial,
-    data text
+    txt text
 );
 
 select current_database();
@@ -21,7 +21,7 @@ select * from pgq_node.create_node('aset', 'root', 'rnode', 'londiste_root', nul
 
 select * from londiste.local_add_table('aset', 'public.testdata_nopk');
 select * from londiste.local_add_table('aset', 'public.testdata');
-insert into testdata (data) values ('test-data');
+insert into testdata (txt) values ('test-data');
 select * from londiste.get_table_list('aset');
 select * from londiste.local_show_missing('aset');
 select * from londiste.local_remove_table('aset', 'public.testdata');
