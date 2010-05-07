@@ -8,6 +8,8 @@ import sys, os, re, skytools
 from pgq.cascade.admin import CascadeAdmin
 from skytools.scripting import UsageError
 
+import londiste.handler
+
 __all__ = ['LondisteSetup']
 
 class LondisteSetup(CascadeAdmin):
@@ -37,6 +39,8 @@ class LondisteSetup(CascadeAdmin):
 
         self.set_name = self.queue_name
 
+        londiste.handler.load_handlers(self.cf)
+
     def connection_hook(self, dbname, db):
         if dbname == 'db':
             curs = db.cursor()
@@ -63,6 +67,8 @@ class LondisteSetup(CascadeAdmin):
                     help="pkey,fkeys,indexes")
         p.add_option("--trigger-arg", action="append",
                     help="Custom trigger arg")
+        p.add_option("--handler", action="append",
+                    help="add: Custom handler for table")
         return p
 
     def extra_init(self, node_type, node_db, provider_db):
@@ -163,23 +169,30 @@ class LondisteSetup(CascadeAdmin):
             self.log.warning('Table "%s" missing on subscriber, use --create if necessary' % tbl)
             return
 
+        attrs = {}
+
+        hlist = self.options.handler
+        if hlist:
+            p = londiste.handler.build_handler(tbl, hlist)
+            attrs['handlers'] = ":".join(hlist)
+
         # actual table registration
         tgargs = self.options.trigger_arg # None by default
         q = "select * from londiste.local_add_table(%s, %s, %s)"
         self.exec_cmd(dst_curs, q, [self.set_name, tbl, tgargs])
+
         if self.options.expect_sync:
             q = "select * from londiste.local_set_table_state(%s, %s, NULL, 'ok')"
             self.exec_cmd(dst_curs, q, [self.set_name, tbl])
         else:
-            attrs = {}
             if self.options.skip_truncate:
                 attrs['skip_truncate'] = 1
             if self.options.copy_condition:
                 attrs['copy_condition'] = self.options.copy_condition
-            if attrs:
-                enc_attrs = skytools.db_urlencode(attrs)
-                q = "select * from londiste.local_set_table_attrs(%s, %s, %s)"
-                self.exec_cmd(dst_curs, q, [self.set_name, tbl, enc_attrs])
+        if attrs:
+            enc_attrs = skytools.db_urlencode(attrs)
+            q = "select * from londiste.local_set_table_attrs(%s, %s, %s)"
+            self.exec_cmd(dst_curs, q, [self.set_name, tbl, enc_attrs])
         dst_db.commit()
 
     def sync_table_list(self, dst_curs, src_tbls, dst_tbls):

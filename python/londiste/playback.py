@@ -7,6 +7,8 @@ import skytools
 
 from pgq.cascade.worker import CascadedWorker
 
+from londiste.handler import *
+
 __all__ = ['Replicator', 'TableState',
     'TABLE_MISSING', 'TABLE_IN_COPY', 'TABLE_CATCHING_UP',
     'TABLE_WANNA_SYNC', 'TABLE_DO_SYNC', 'TABLE_OK']
@@ -69,6 +71,7 @@ class TableState(object):
         self.table_attrs = {}
         self.copy_role = None
         self.dropped_ddl = None
+        self.plugin = None
         # except this
         self.changed = 0
 
@@ -83,6 +86,7 @@ class TableState(object):
         self.last_tick = 0
         self.table_attrs = {}
         self.changed = 1
+        self.plugin = None
 
     def change_snapshot(self, str_snapshot, tag_changed = 1):
         """Set snapshot."""
@@ -171,6 +175,9 @@ class TableState(object):
         if row['merge_state'] == "?":
             self.changed = 1
 
+        hstr = row.get('handler', '')
+        self.plugin = parse_handler(self.name, hstr)
+
     def interesting(self, ev, tick_id, copy_thread):
         """Check if table wants this event."""
 
@@ -233,6 +240,12 @@ class TableState(object):
         if self.last_snapshot_tick < prev_tick:
             self.change_snapshot(None)
 
+    def process_data_event(self, ev, sql_queue_func, batch_info):
+        self.plugin.process_event(ev, sql_queue_func)
+
+    def get_plugin(self):
+        return self.plugin
+
 class Replicator(CascadedWorker):
     """Replication core.
 
@@ -254,12 +267,6 @@ class Replicator(CascadedWorker):
         #compare_fmt = %(cnt)d rows, checksum=%(chksum)s
     """
 
-    sql_command = {
-        'I': "insert into %s %s;",
-        'U': "update only %s set %s;",
-        'D': "delete from only %s where %s;",
-    }
-
     # batch info
     cur_tick = 0
     prev_tick = 0
@@ -275,10 +282,13 @@ class Replicator(CascadedWorker):
 
         self.copy_thread = 0
         self.set_name = self.queue_name
+        self.used_plugins = {}
 
         self.parallel_copies = self.cf.getint('parallel_copies', 1)
         if self.parallel_copies < 1:
             raise Exception('Bad value for parallel_copies: %d' % self.parallel_copies)
+
+        load_handlers(self.cf)
 
     def connection_hook(self, dbname, db):
         if dbname == 'db':
@@ -306,6 +316,11 @@ class Replicator(CascadedWorker):
         if not self.copy_thread:
             self.restore_fkeys(dst_db)
 
+
+        for p in self.used_plugins.values():
+            p.reset()
+        self.used_plugins = {}
+
         # now the actual event processing happens.
         # they must be done all in one tx in dst side
         # and the transaction must be kept open so that
@@ -314,6 +329,10 @@ class Replicator(CascadedWorker):
         self.sql_list = []
         CascadedWorker.process_remote_batch(self, src_db, tick_id, ev_list, dst_db)
         self.flush_sql(dst_curs)
+
+        for p in self.used_plugins.values():
+            p.finish_batch(self.batch_info)
+        self.used_plugins = {}
 
         # finalize table changes
         self.save_table_state(dst_curs)
@@ -456,7 +475,7 @@ class Replicator(CascadedWorker):
         if ev.type in ('I', 'U', 'D'):
             self.handle_data_event(ev, dst_curs)
         elif ev.type[:2] in ('I:', 'U:', 'D:'):
-            self.handle_urlenc_event(ev, dst_curs)
+            self.handle_data_event(ev, dst_curs)
         elif ev.type == "TRUNCATE":
             self.flush_sql(dst_curs)
             self.handle_truncate_event(ev, dst_curs)
@@ -479,42 +498,20 @@ class Replicator(CascadedWorker):
             CascadedWorker.process_remote_event(self, src_curs, dst_curs, ev)
 
     def handle_data_event(self, ev, dst_curs):
-        """handle one data event"""
-        t = self.get_table_by_name(ev.extra1)
-        if t and t.interesting(ev, self.cur_tick, self.copy_thread):
-            # buffer SQL statements, then send them together
-            fqname = skytools.quote_fqident(ev.extra1)
-            fmt = self.sql_command[ev.type]
-            sql = fmt % (fqname, ev.data)
-
-            self.apply_sql(sql, dst_curs)
-        else:
-            self.stat_increase('ignored_events')
-
-    def handle_urlenc_event(self, ev, dst_curs):
         """handle one truncate event"""
         t = self.get_table_by_name(ev.extra1)
         if not t or not t.interesting(ev, self.cur_tick, self.copy_thread):
             self.stat_increase('ignored_events')
             return
         
-        # parse event
-        pklist = ev.type[2:].split(',')
-        row = skytools.db_urldecode(ev.data)
-        op = ev.type[0]
-        tbl = ev.extra1
-
-        # generate sql
-        if op == 'I':
-            sql = skytools.mk_insert_sql(row, tbl, pklist)
-        elif op == 'U':
-            sql = skytools.mk_update_sql(row, tbl, pklist)
-        elif op == 'D':
-            sql = skytools.mk_delete_sql(row, tbl, pklist)
-        else:
-            raise Exception('bug: bad op')
-
-        self.apply_sql(sql, dst_curs)
+        try:
+            p = self.used_plugins[ev.extra1]
+        except KeyError:
+            p = t.get_plugin()
+            self.used_plugins[ev.extra1] = p
+            p.prepare_batch(self.batch_info, dst_curs)
+     
+        p.process_event(ev, self.apply_sql, dst_curs)
 
     def handle_truncate_event(self, ev, dst_curs):
         """handle one truncate event"""
@@ -525,7 +522,9 @@ class Replicator(CascadedWorker):
 
         fqname = skytools.quote_fqident(ev.extra1)
         sql = "TRUNCATE %s;" % fqname
-        self.apply_sql(sql, dst_curs, True)
+
+        self.flush_sql(dst_curs)
+        dst_curs.execute(sql)
 
     def handle_execute_event(self, ev, dst_curs):
         """handle one EXECUTE event"""
@@ -549,15 +548,14 @@ class Replicator(CascadedWorker):
         q = "select * from londiste.execute_finish(%s, %s)"
         self.exec_cmd(dst_curs, q, [self.queue_name, fname], commit = False)
 
-    def apply_sql(self, sql, dst_curs, force = False):
-        if force:
-            self.flush_sql(dst_curs)
+    def apply_sql(self, sql, dst_curs):
+
+        # how many queries to batch together, drop batching on error
+        limit = 200
+        if self.work_state == -1:
+            limit = 0
 
         self.sql_list.append(sql)
-
-        limit = 200
-        if self.work_state == -1 or force:
-            limit = 0
         if len(self.sql_list) >= limit:
             self.flush_sql(dst_curs)
 
@@ -577,10 +575,11 @@ class Replicator(CascadedWorker):
         if ev.type not in ('I', 'U', 'D'):
             raise Exception('bug - bad event type in .interesting')
         t = self.get_table_by_name(ev.extra1)
-        if t:
-            return t.interesting(ev, self.cur_tick, self.copy_thread)
-        else:
+        if not t:
             return 0
+        if not t.interesting(ev, self.cur_tick, self.copy_thread):
+            return 0
+        return 1
 
     def add_set_table(self, dst_curs, tbl):
         """There was new table added to root, remember it."""

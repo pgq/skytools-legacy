@@ -111,6 +111,8 @@ class Londiste(skytools.DBScript):
                 help = "takeover: old node was branch")
         p.add_option("--trigger-arg", action="append",
                 help="add: Custom trigger arg")
+        p.add_option("--handler", action="append",
+                help="add: Custom handler for table")
         p.add_option_group(g)
         return p
 
