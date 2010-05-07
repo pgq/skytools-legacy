@@ -109,6 +109,8 @@ class Londiste(skytools.DBScript):
                 help = "takeover: old node was root")
         g.add_option("--dead-branch", action = 'store_true',
                 help = "takeover: old node was branch")
+        p.add_option("--trigger-arg", action="append",
+                help="add: Custom trigger arg")
         p.add_option_group(g)
         return p
 

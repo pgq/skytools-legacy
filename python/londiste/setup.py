@@ -51,6 +51,8 @@ class LondisteSetup(CascadeAdmin):
                     help="include all tables", default=False)
         p.add_option("--create-only",
                     help="pkey,fkeys,indexes")
+        p.add_option("--trigger-arg", action="append",
+                    help="Custom trigger arg")
         return p
 
     def extra_init(self, node_type, node_db, provider_db):
@@ -152,8 +154,9 @@ class LondisteSetup(CascadeAdmin):
             return
 
         # actual table registration
-        q = "select * from londiste.local_add_table(%s, %s)"
-        self.exec_cmd(dst_curs, q, [self.set_name, tbl])
+        tgargs = self.options.trigger_arg # None by default
+        q = "select * from londiste.local_add_table(%s, %s, %s)"
+        self.exec_cmd(dst_curs, q, [self.set_name, tbl, tgargs])
         if self.options.expect_sync:
             q = "select * from londiste.local_set_table_state(%s, %s, NULL, 'ok')"
             self.exec_cmd(dst_curs, q, [self.set_name, tbl])
