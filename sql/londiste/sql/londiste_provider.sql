@@ -32,3 +32,14 @@ select ev_id, ev_type, ev_data, ev_extra1 from pgq.event_template;
 
 select * from londiste.local_show_missing('aset');
 
+-- trigtest
+create table trg_test (
+    id int4 primary key,
+    txt text
+);
+
+select * from londiste.local_add_table('aset', 'public.trg_test', array['ev_extra4=''test='' || txt']);
+insert into trg_test values (1, 'data');
+select ev_id, ev_type, ev_data, ev_extra1, ev_extra4 from pgq.event_template where ev_extra1 = 'public.trg_test';
+
+
