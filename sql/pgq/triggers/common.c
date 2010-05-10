@@ -497,7 +497,7 @@ void pgq_prepare_event(struct PgqTriggerEvent *ev, TriggerData *tg, bool newstyl
 	 */
 	if (newstyle) {
 		ev->tgargs = find_trigger_info(ev->info, tg->tg_trigger->tgoid, false);
-		if (!ev->tgargs) {
+		if (!ev->tgargs || !ev->tgargs->finalized) {
 			ev->tgargs = find_trigger_info(ev->info, tg->tg_trigger->tgoid, true);
 			parse_newstyle_args(ev, tg);
 		}
@@ -511,6 +511,7 @@ void pgq_prepare_event(struct PgqTriggerEvent *ev, TriggerData *tg, bool newstyl
 	} else {
 		parse_oldstyle_args(ev, tg);
 	}
+	ev->tgargs->finalized = true;
 
 	/*
 	 * init data

@@ -123,6 +123,9 @@ int qb_execute(struct QueryBuilder *q, void *arg)
 	char nulls[FUNC_MAX_ARGS];
 	int i;
 
+	if (!q->plan)
+		elog(ERROR, "QB: query not prepared yet");
+
 	for (i = 0; i < q->nargs; i++) {
 		bool isnull = false;
 		values[i] = q->op->value_lookup(arg, q->arg_map[i], &isnull);

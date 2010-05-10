@@ -45,13 +45,14 @@ typedef struct PgqTriggerEvent PgqTriggerEvent;
 struct PgqTriggerInfo {
 	struct PgqTriggerInfo *next;
 	Oid tgoid;
-
-	const char *ignore_list;
-	const char *pkey_list;
+	bool finalized;
 
 	bool skip;
 	bool backup;
 	bool custom_fields;
+
+	const char *ignore_list;
+	const char *pkey_list;
 
 	struct QueryBuilder *query[EV_NFIELDS];
 };
