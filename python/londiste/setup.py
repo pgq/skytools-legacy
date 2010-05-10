@@ -160,11 +160,16 @@ class LondisteSetup(CascadeAdmin):
         if self.options.expect_sync:
             q = "select * from londiste.local_set_table_state(%s, %s, NULL, 'ok')"
             self.exec_cmd(dst_curs, q, [self.set_name, tbl])
-        if self.options.copy_condition:
-            q = "select * from londiste.local_set_table_attrs(%s, %s, %s)"
-            attrs = {'copy_condition': self.options.copy_condition}
-            enc_attrs = skytools.db_urlencode(attrs)
-            self.exec_cmd(dst_curs, q, [self.set_name, tbl, enc_attrs])
+        else:
+            attrs = {}
+            if self.options.skip_truncate:
+                attrs['skip_truncate'] = 1
+            if self.options.copy_condition:
+                attrs['copy_condition'] = self.options.copy_condition
+            if attrs:
+                enc_attrs = skytools.db_urlencode(attrs)
+                q = "select * from londiste.local_set_table_attrs(%s, %s, %s)"
+                self.exec_cmd(dst_curs, q, [self.set_name, tbl, enc_attrs])
         dst_db.commit()
 
     def sync_table_list(self, dst_curs, src_tbls, dst_tbls):
