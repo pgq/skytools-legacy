@@ -41,6 +41,12 @@ select * from londiste.local_add_table('aset', 'public.testdata');
       200 | Table added: public.testdata
 (1 row)
 
+select tgname from pg_trigger where tgrelid = 'public.testdata'::regclass;
+     tgname     
+----------------
+ _londiste_aset
+(1 row)
+
 insert into testdata (txt) values ('test-data');
 select * from londiste.get_table_list('aset');
    table_name    | local | merge_state | custom_snapshot | table_attrs | dropped_ddl | copy_role 
@@ -67,6 +73,11 @@ select * from londiste.local_remove_table('aset', 'public.testdata');
 ----------+----------------------------------
       400 | Table not found: public.testdata
 (1 row)
+
+select tgname from pg_trigger where tgrelid = 'public.testdata'::regclass;
+ tgname 
+--------
+(0 rows)
 
 select * from londiste.get_table_list('aset');
  table_name | local | merge_state | custom_snapshot | table_attrs | dropped_ddl | copy_role 

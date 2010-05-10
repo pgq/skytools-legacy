@@ -20,6 +20,7 @@ declare
     fq_table_name   text;
     logtrg_name     text;
     tbl             record;
+    b_queue_name    bytea;
 begin
     fq_table_name := londiste.make_fqname(i_table_name);
 
@@ -33,10 +34,22 @@ begin
     end if;
 
     if tbl.local then
-        -- drop trigger if exists
-        logtrg_name := i_queue_name || '_logtrigger';
-        execute 'drop trigger if exists ' || quote_ident(logtrg_name)
-                || ' on ' || londiste.quote_fqname(fq_table_name);
+        -- cast to bytea
+        b_queue_name := replace(i_queue_name, E'\\', E'\\\\')::bytea;
+
+        -- drop all replication triggers that target our queue.
+        -- by checking trigger func and queue name there is not
+        -- dependency on naming standard or side-storage.
+        for logtrg_name in
+            select tgname from pg_catalog.pg_trigger
+             where tgrelid = londiste.find_table_oid(fq_table_name)
+               and tgfoid in ('pgq.sqltriga'::regproc::oid, 'pgq.logutriga'::regproc::oid)
+               and substring(tgargs for (position(E'\\000'::bytea in tgargs) - 1)) = b_queue_name
+        loop
+            execute 'drop trigger ' || quote_ident(logtrg_name)
+                    || ' on ' || londiste.quote_fqname(fq_table_name);
+        end loop;
+
         -- reset data
         update londiste.table_info
             set local = false,
