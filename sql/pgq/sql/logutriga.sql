@@ -1,4 +1,9 @@
 
+select 1 from (select set_config(name, 'escape', false) as ignore
+          from pg_settings where name = 'bytea_output') x
+          where x.ignore = 'foo';
+
+drop function pgq.insert_event(text, text, text,  text, text, text, text);
 create or replace function pgq.insert_event(que text, ev_type text, ev_data text, x1 text, x2 text, x3 text, x4 text)
 returns bigint as $$
 begin
