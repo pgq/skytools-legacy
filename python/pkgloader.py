@@ -63,24 +63,21 @@ def require(pkg, reqver):
             _install_path(pkg, os.path.join(_top, pkgdir))
             break
 
-    # now import whatever is available
     inst_ver = reqval
-    try:
-        mod = __import__(pkg)
-        ver_str = mod.__version__
-        # check if it is actually useful
-        ver_str = ver_str.split('-', 1)[0]
-        full_ver = tuple([int(x) for x in ver_str.split('.')])
-        if full_ver[0] != reqval[0] or reqval > full_ver:
-            raise ImportError("Request for Skytools ver '%s', got '%s'" % (
-                            reqver, '.'.join(full_ver)))
-            raise ImportError("Request for package '%s' ver '%s', have '%s'" % (
-                              pkg, reqver, '.'.join(full_ver)))
-        inst_ver = full_ver
-    except ImportError:
-        pass
-    except AttributeError:
-        pass
+
+    # now import whatever is available
+    mod = __import__(pkg)
+
+    # check if it is actually useful
+    ver_str = mod.__version__
+    ver_str = ver_str.split('-', 1)[0]
+    full_ver = tuple([int(x) for x in ver_str.split('.')])
+    if full_ver[0] != reqval[0] or reqval > full_ver:
+        raise ImportError("Request for Skytools ver '%s', got '%s'" % (
+                        reqver, '.'.join(full_ver)))
+        raise ImportError("Request for package '%s' ver '%s', have '%s'" % (
+                          pkg, reqver, '.'.join(full_ver)))
+    inst_ver = full_ver
 
     # remember full version
     _import_cache[pkg] = inst_ver
