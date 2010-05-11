@@ -72,7 +72,7 @@ begin
                 from londiste.table_info t, pgq_node.node_info n
                 where n.combined_queue = q_target
                     and t.queue_name = n.queue_name
-                    and t.table_name = table_name
+                    and t.table_name = get_table_list.table_name
                     and (t.merge_state is not null
                          and t.merge_state <> 'in-copy');
             if i_queue_name = q_part1 then
@@ -89,7 +89,7 @@ begin
                     -- has lead already dropped ddl?
                     perform 1 from londiste.table_info t
                         where t.queue_name = q_part1
-                            and t.table_name = table_name
+                            and t.table_name = get_table_list.table_name
                             and t.dropped_ddl is not null;
                     if found then
                         copy_role := 'wait-replay';

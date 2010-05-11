@@ -1,5 +1,9 @@
 \set ECHO off
+
 set log_error_verbosity = 'terse';
+
+drop language if exists plpgsql;
+create language plpgsql;
 
 \i ../txid/txid.sql
 \i ../pgq/pgq.sql
