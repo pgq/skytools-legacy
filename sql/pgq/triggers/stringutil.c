@@ -143,9 +143,30 @@ static int pgq_quote_literal(char *dst, const uint8 *src, int srclen)
 	return cp2 - dst;
 }
 
+/* check if ident is keyword that needs quoting */
+static bool is_keyword(const char *ident)
+{
+	const ScanKeyword *kw;
+
+	/* do the lookup */
+#if PG_VERSION_NUM >= 80500
+	kw = ScanKeywordLookup(ident, ScanKeywords, NumScanKeywords);
+#else
+	kw = ScanKeywordLookup(ident);
+#endif
+
+	/* unreserved? */
+#if PG_VERSION_NUM >= 80300
+	if (kw && kw->category == UNRESERVED_KEYWORD)
+		return false;
+#endif
+
+	/* found anything? */
+	return kw != NULL;
+}
 
 /*
- * slon_quote_identifier - Quote an identifier only if needed
+ * pgq_quote_ident - Quote an identifier only if needed
  */
 static int pgq_quote_ident(char *dst, const uint8 *src, int srclen)
 {
@@ -185,16 +206,7 @@ static int pgq_quote_ident(char *dst, const uint8 *src, int srclen)
 	}
 
 	if (safe) {
-		/*
-		 * Check for keyword.  This test is overly strong, since many of
-		 * the "keywords" known to the parser are usable as column names,
-		 * but the parser doesn't provide any easy way to test for whether
-		 * an identifier is safe or not... so be safe not sorry.
-		 *
-		 * Note: ScanKeywordLookup() does case-insensitive comparison, but
-		 * that's fine, since we already know we have all-lower-case.
-		 */
-		if (ScanKeywordLookup(ident) != NULL)
+		if (is_keyword(ident))
 			safe = false;
 	}
 
