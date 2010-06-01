@@ -437,20 +437,7 @@ class DBObject(object):
 
     def find_file(self):
         """Find install script file."""
-        full_fn = None
-        if self.sql_file[0] == "/":
-            full_fn = self.sql_file
-        else:
-            dir_list = skytools.installer_config.sql_locations
-            for fdir in dir_list:
-                fn = os.path.join(fdir, self.sql_file)
-                if os.path.isfile(fn):
-                    full_fn = fn
-                    break
-
-        if not full_fn:
-            raise Exception('File not found: '+self.sql_file)
-        return full_fn
+        return installer_find_file(self.sql_file)
 
 class DBSchema(DBObject):
     """Handles db schema."""
