@@ -120,18 +120,21 @@ begin
     -- Don't report all the trigger names, 8.3 does not have array_accum
     -- available
 
-    select max(trigger_name)
-         into logtrg_previous
-         from information_schema.triggers,
-              londiste.split_fqname(fq_table_name)
-        where event_object_schema = schema_part
-            and event_object_table = name_part
-            and condition_timing = 'AFTER'
-	    and substring(trigger_name from 1 for 10) != '_londiste_'
-            and substring(trigger_name from char_length(trigger_name) - 6) != '_logger'
-            and trigger_name < logtrg_name;
+   select tg.tgname into logtrg_previous
+        from pg_class r, pg_trigger tg
+        where r.oid = londiste.find_table_oid(fq_table_name)
+          and not tg.tgisconstraint
+          and tg.tgname < logtrg_name::name
+          -- per-row AFTER trigger
+          and (tg.tgtype & 3) = 1   -- bits: 0:ROW, 1:BEFORE
+          -- current londiste
+          and tg.tgfoid not in ('pgq.sqltriga'::regproc::oid, 'pgq.logutriga'::regproc::oid)
+          -- old londiste
+          and substring(tg.tgname from 1 for 10) != '_londiste_'
+          and substring(tg.tgname from char_length(tg.tgname) - 6) != '_logger'
+        order by 1 limit 1;
 
-    if logtrg_previous then
+    if logtrg_previous is not null then
        select 301,
               'Table added: ' || fq_table_name
                               || ', but londiste trigger is not first: '
