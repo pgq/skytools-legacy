@@ -310,6 +310,7 @@ class CascadeAdmin(skytools.AdminScript):
             skytools.DBLanguage("plpgsql"),
             skytools.DBFunction("txid_current_snapshot", 0, sql_file="txid.sql"),
             skytools.DBSchema("pgq", sql_file="pgq.sql"),
+            skytools.DBFunction("pgq.get_batch_cursor", 3, sql_file = "pgq.upgrade.2to3.sql"),
             skytools.DBSchema("pgq_ext", sql_file="pgq_ext.sql"), # not needed actually
             skytools.DBSchema("pgq_node", sql_file="pgq_node.sql"),
         ]

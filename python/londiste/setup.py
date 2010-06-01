@@ -13,8 +13,18 @@ __all__ = ['LondisteSetup']
 class LondisteSetup(CascadeAdmin):
     """Londiste-specific admin commands."""
     initial_db_name = 'node_db'
-    extra_objs = [ skytools.DBSchema("londiste", sql_file="londiste.sql") ]
     provider_location = None
+
+    def install_code(self, db):
+        fn = skytools.installer_find_file('londiste.sql')
+        main_sql = open(fn, 'r').read()
+        noschema_sql = main_sql.replace('create schema', '-- create schema')
+        self.extra_objs = [
+            skytools.DBSchema("londiste", sql_file = 'londiste.sql'),
+            skytools.DBFunction("londiste.global_add_table", 2, sql = noschema_sql),
+        ]
+        CascadeAdmin.install_code(self, db)
+
     def __init__(self, args):
         """Londiste setup init."""
         CascadeAdmin.__init__(self, 'londiste3', 'db', args, worker_setup = True)
