@@ -10,7 +10,7 @@ v=
 v=-v
 v=-q
 
-set -o pipefail
+#set -o pipefail
 
 cleardb() {
   echo "Clearing database $1"
