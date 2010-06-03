@@ -174,30 +174,44 @@ static void drop_db(struct PgDatabase *db)
 	free(db);
 }
 
-static void detect_handler(struct PgSocket *db, void *arg, enum PgEvent ev, PGresult *res)
+static void detect_handler(struct PgSocket *sk, void *arg, enum PgEvent ev, PGresult *res)
 {
 	int i;
 	const char *s;
+	struct List *el, *tmp;
+	struct PgDatabase *db;
 
 	switch (ev) {
 	case PGS_CONNECT_OK:
-		pgs_send_query_simple(db, "select datname from pg_database"
+		pgs_send_query_simple(sk, "select datname from pg_database"
 				     	 " where not datistemplate and datallowconn");
 		break;
 	case PGS_RESULT_OK:
+		/* tag old dbs as dead */
+		statlist_for_each(el, &database_list) {
+			db = container_of(el, struct PgDatabase, head);
+			db->dropped = true;
+		}
+		/* process new dbs */
 		for (i = 0; i < PQntuples(res); i++) {
 			s = PQgetvalue(res, i, 0);
 			launch_db(s);
 		}
-		pgs_disconnect(db);
-		pgs_sleep(db, cf.check_period);
+		/* drop old dbs */
+		statlist_for_each_safe(el, &database_list, tmp) {
+			db = container_of(el, struct PgDatabase, head);
+			if (db->dropped)
+				drop_db(db);
+		}
+		pgs_disconnect(sk);
+		pgs_sleep(sk, cf.check_period);
 		break;
 	case PGS_TIMEOUT:
 		detect_dbs();
 		break;
 	default:
-		pgs_disconnect(db);
-		pgs_sleep(db, cf.check_period);
+		pgs_disconnect(sk);
+		pgs_sleep(sk, cf.check_period);
 	}
 }
 
@@ -221,19 +235,24 @@ static void recheck_dbs(void)
 	struct PgDatabase *db;
 	struct List *el, *tmp;
 	if (cf.database_list && cf.database_list[0]) {
+		/* tag old dbs as dead */
 		statlist_for_each(el, &database_list) {
 			db = container_of(el, struct PgDatabase, head);
 			db->dropped = true;
 		}
+		/* process new ones */
 		if (!parse_word_list(cf.database_list, launch_db_cb, NULL)) {
 			log_warning("database_list parsing failed: %s", strerror(errno));
 			return;
 		}
+		/* drop old ones */
 		statlist_for_each_safe(el, &database_list, tmp) {
 			db = container_of(el, struct PgDatabase, head);
 			if (db->dropped)
 				drop_db(db);
 		}
+
+		/* done with template for the moment */
 		if (db_template) {
 			pgs_free(db_template);
 			db_template = NULL;
