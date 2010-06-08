@@ -183,7 +183,7 @@ class CascadedConsumer(Consumer):
             return True
 
         # anything else means problems
-        raise Exception('Lost position: batch %d..%d, dst has %d' % (
+        raise Exception('Lost position: batch %s..%s, dst has %s' % (
                         prev_tick, cur_tick, dst_tick))
 
     def process_remote_batch(self, src_db, tick_id, event_list, dst_db):
