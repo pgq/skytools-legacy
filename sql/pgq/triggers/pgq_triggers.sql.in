@@ -69,8 +69,9 @@ CREATE OR REPLACE FUNCTION pgq.logutriga() RETURNS TRIGGER
 AS 'MODULE_PATHNAME', 'pgq_logutriga' LANGUAGE C;
 
 
+---- disable obsolete trigger
 -- ----------------------------------------------------------------------
--- Function: pgq.logtriga()
+-- Function - pgq.logtriga()
 --
 --      (Obsolete) Non-automatic SQL trigger.  It puts row data in partial SQL form into
 --      queue.  It does not auto-detect table structure, it needs to be passed
@@ -97,6 +98,7 @@ AS 'MODULE_PATHNAME', 'pgq_logutriga' LANGUAGE C;
 --    ev_extra1   - table name
 --
 -- ----------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION pgq.logtriga() RETURNS trigger
-AS 'MODULE_PATHNAME', 'pgq_logtriga' LANGUAGE C;
+
+-- CREATE OR REPLACE FUNCTION pgq.logtriga() RETURNS trigger
+-- AS 'MODULE_PATHNAME', 'pgq_logtriga' LANGUAGE C;
 
