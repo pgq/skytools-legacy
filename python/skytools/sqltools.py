@@ -486,7 +486,7 @@ def installer_find_file(filename):
         if os.path.isfile(filename):
             full_fn = filename
     else:
-        dir_list = ["."] + skytools.installer_config.sql_locations
+        dir_list = skytools.installer_config.sql_locations
         for fdir in dir_list:
             fn = os.path.join(fdir, filename)
             if os.path.isfile(fn):
