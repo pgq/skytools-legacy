@@ -1,6 +1,7 @@
 \set ECHO off
 
 set log_error_verbosity = 'terse';
+set client_min_messages = 'warning';
 
 drop language if exists plpgsql;
 create language plpgsql;
