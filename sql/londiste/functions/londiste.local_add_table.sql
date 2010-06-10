@@ -95,6 +95,12 @@ begin
         raise exception 'lost table: %', fq_table_name;
     end if;
 
+    -- skip triggers on leaf node
+    if pgq_node.is_leaf_node(i_queue_name) then
+        select 200, 'Table added: ' || fq_table_name into ret_code, ret_note;
+        return;
+    end if;
+
     -- create trigger if it does not exists already
     logtrg_name := '_londiste_' || i_queue_name;
     perform 1 from pg_catalog.pg_trigger
