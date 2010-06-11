@@ -144,6 +144,8 @@ class Consumer(skytools.DBScript):
     pgq_min_interval = None
     pgq_min_lag = None
 
+    batch_info = None
+
     def __init__(self, service_name, db_name, args):
         """Initialize new consumer.
         
@@ -298,8 +300,8 @@ class Consumer(skytools.DBScript):
         q = "select * from pgq.next_batch_custom(%s, %s, %s, %s, %s)"
         curs.execute(q, [self.queue_name, self.consumer_name,
                          self.pgq_min_lag, self.pgq_min_count, self.pgq_min_interval])
-        inf = curs.fetchone()
-        return inf['batch_id']
+        self.batch_info = curs.fetchone()
+        return self.batch_info['batch_id']
 
     def _flush_retry(self, curs, batch_id, list):
         """Tag retry events."""
