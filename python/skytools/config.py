@@ -177,3 +177,12 @@ class Config(object):
         """Return new Config() instance with new main section on same config file."""
         return Config(main_section, self.filename, self.sane_config)
 
+
+    def options(self):
+        """Return list of options in main section."""
+        return self.cf.options(self.main_section)
+
+    def has_option(self, opt):
+        """Checks if option exists in main section."""
+        return self.cf.has_option(self.main_section)
+
