@@ -277,7 +277,12 @@ quote_ident(char *dst, const uint8 *src, int srclen)
                  * Note: ScanKeywordLookup() does case-insensitive comparison, but
                  * that's fine, since we already know we have all-lower-case.
                  */
-                if (ScanKeywordLookup(ident) != NULL)
+#if defined(PG_VERSION_NUM) && PG_VERSION_NUM >= 90000
+		if (ScanKeywordLookup(ident, ScanKeywords, NumScanKeywords) != NULL)
+#else
+		if (ScanKeywordLookup(ident) != NULL)
+#endif
+
                         safe = false;
         }
 
