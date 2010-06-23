@@ -53,6 +53,7 @@ modules-install: config.mak
 python-install: config.mak sub-all
 	mkdir -p $(DESTDIR)/$(bindir)
 	$(PYTHON) setup_pkgloader.py install --prefix=$(prefix) --root=$(DESTDIR)/
+	find build -name 'pkgloader*' | xargs rm
 	$(PYTHON) setup_skytools.py install --prefix=$(prefix) --root=$(DESTDIR)/ --record=tmp_files.lst \
 		--install-lib=$(prefix)/lib/python$(pyver)/site-packages/skytools-3.0
 	for s in $(SFX_SCRIPTS); do \

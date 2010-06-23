@@ -11,8 +11,8 @@ Copyright: BSD
 Build: sh
  PATH=/usr/lib/postgresql/PGVER/bin:$PATH \
  ./configure --prefix=/usr --with-pgconfig=/usr/lib/postgresql/PGVER/bin/pg_config --with-asciidoc
- PATH=/usr/lib/postgresql/PGVER/bin:$PATH \
- make DESTDIR=$ROOT
+ #PATH=/usr/lib/postgresql/PGVER/bin:$PATH \
+ #make DESTDIR=$ROOT
 Clean: sh
  PATH=/usr/lib/postgresql/PGVER/bin:$PATH \
  make distclean || make clean || true
