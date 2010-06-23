@@ -245,6 +245,13 @@ class Replicator(CascadedWorker):
 
         # how many tables can be copied in parallel
         #parallel_copies = 1
+
+        ## compare/repair
+        # max amount of time table can be locked
+        #lock_timeout = 10
+        # compare: sql to use
+        #compare_sql = select count(1) as cnt, sum(hashtext(t.*::text)) as chksum from only _TABLE_ t
+        #compare_fmt = %(cnt)d rows, checksum=%(chksum)s
     """
 
     sql_command = {
