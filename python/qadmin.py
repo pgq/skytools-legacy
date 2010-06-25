@@ -801,7 +801,7 @@ class AdminConsole:
         fields = [
             "queue_name",
             "queue_cur_table || '/' || queue_ntables as tables",
-            "queue_ticker_max_count as max_cnt",
+            "queue_ticker_max_count as max_count",
             "queue_ticker_max_lag as max_lag",
             "queue_ticker_idle_period as idle_period",
             "queue_ticker_paused as paused",
