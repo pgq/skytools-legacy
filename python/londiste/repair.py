@@ -7,6 +7,12 @@ missing inserts/updates/deletes.
 
 import sys, os, time, skytools
 
+try:
+    import subprocess
+    have_subprocess = True
+except ImportError:
+    have_subprocess = False
+
 from syncer import Syncer
 
 __all__ = ['Repairer']
@@ -70,13 +76,18 @@ class Repairer(Syncer):
         
         self.log.info("Sorting src table: %s" % tbl)
 
-        s_in, s_out = os.popen4("sort --version")
-        s_ver = s_out.read()
-        del s_in, s_out
+        # check if sort supports -S
+        if have_subprocess:
+            p = subprocess.Popen(["sort", "--version"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            s_ver = p.communicate()[0]
+            del p
+        else:
+            s_ver = os.popen4("sort --version")[1].read()
         if s_ver.find("coreutils") > 0:
             args = "-S 30%"
         else:
             args = ""
+
         os.system("LC_ALL=C sort %s -T . -o %s.sorted %s" % (args, dump_src, dump_src))
         self.log.info("Sorting dst table: %s" % tbl)
         os.system("LC_ALL=C sort %s -T . -o %s.sorted %s" % (args, dump_dst, dump_dst))
