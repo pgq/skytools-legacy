@@ -206,8 +206,8 @@ class ProviderSetup(CommonSetup):
             gotnew = True
             self.provider_add_seq(seq)
 
-        if gotnew:
-            self.provider_notify_change()
+        #if gotnew:
+        #    self.provider_notify_change()
 
     def provider_remove_seq_list(self, seq_list):
         if not seq_list and self.options.all:
@@ -258,7 +258,7 @@ class ProviderSetup(CommonSetup):
                     self.provider_add_table(tbl)
                 else:
                     self.log.info("Table %s already added" % tbl)
-        self.provider_notify_change()
+        #self.provider_notify_change()
 
     def provider_remove_tables(self, table_list):
         self.check_provider_queue()

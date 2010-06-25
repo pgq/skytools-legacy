@@ -19,7 +19,6 @@ begin
 
     insert into londiste.provider_seq (queue_name, seq_name)
         values (i_queue_name, i_seq_name);
-    perform londiste.provider_notify_change(i_queue_name);
 
     return 0;
 end;
