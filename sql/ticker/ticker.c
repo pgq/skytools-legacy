@@ -36,7 +36,7 @@ static void parse_pgq_check(struct PgDatabase *db, PGresult *res)
 	db->has_pgq = PQntuples(res) == 1;
 
 	if (!db->has_pgq) {
-		log_info("%s: no pgq", db->name);
+		log_debug("%s: no pgq", db->name);
 		close_ticker(db, cf.check_period);
 	} else {
 		run_version_check(db);
