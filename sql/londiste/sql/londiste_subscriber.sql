@@ -75,3 +75,38 @@ select londiste.get_last_tick('c');
 select londiste.set_last_tick('c', NULL);
 select londiste.get_last_tick('c');
 
+
+-- test triggers
+
+create table tgfk (
+  id int4 primary key,
+  data text
+);
+
+create table tgtest (
+  id int4 primary key,
+  fk int4 references tgfk,
+  data text
+);
+
+create or replace function notg() returns trigger as $$
+begin
+    return null;
+end;
+$$ language plpgsql;
+
+create trigger tg_nop after insert on tgtest for each row execute procedure notg();
+
+select * from londiste.find_table_triggers('tgtest');
+select * from londiste.subscriber_get_table_pending_triggers('tgtest');
+
+select * from londiste.subscriber_drop_all_table_triggers('tgtest');
+
+select * from londiste.find_table_triggers('tgtest');
+select * from londiste.subscriber_get_table_pending_triggers('tgtest');
+
+select * from londiste.subscriber_restore_all_table_triggers('tgtest');
+
+select * from londiste.find_table_triggers('tgtest');
+select * from londiste.subscriber_get_table_pending_triggers('tgtest');
+
