@@ -20,6 +20,7 @@ Build-Depends: python-dev, postgresql-server-dev-PGVER, xmlto, asciidoc (>= 8.2)
 
 Package: skytools
 Architecture: any
+Contains: unstripped
 Depends: python-psycopg2 | pythonPYVER-psycopg2, skytools-modules-8.4 | skytools-modules-8.3 | skytools-modules-8.2, rsync, []
 Description: Skype database tools - Python parts
  .
@@ -32,6 +33,7 @@ Install: sh
 
 Package: skytools-modules-PGVER
 Architecture: any
+Contains: unstripped
 Depends: postgresql-PGVER, []
 Description: Extra modules for PostgreSQL
  It includes various extra modules for PostgreSQL:
