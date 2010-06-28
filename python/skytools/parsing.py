@@ -110,7 +110,9 @@ class _logtriga_parser:
             else:
                 raise Exception("syntax error, expected WHERE or , got "+repr(t))
         while 1:
-            fields.append(tk.next())
+            fld = tk.next()
+            fields.append(fld)
+            self.pklist.append(fld)
             if tk.next() != "=":
                 raise Exception("syntax error")
             values.append(tk.next())
@@ -122,7 +124,9 @@ class _logtriga_parser:
         """Handler for deletes."""
         # pk1 = 'pk1' and pk2 = 'pk2'
         while 1:
-            fields.append(tk.next())
+            fld = tk.next()
+            fields.append(fld)
+            self.pklist.append(fld)
             if tk.next() != "=":
                 raise Exception("syntax error")
             values.append(tk.next())
@@ -130,8 +134,12 @@ class _logtriga_parser:
             if t.lower() != "and":
                 raise Exception("syntax error, expected AND, got "+repr(t))
 
-    def parse_sql(self, op, sql):
+    def parse_sql(self, op, sql, pklist=None):
         """Main entry point."""
+        if pklist is None:
+            self.pklist = []
+        else:
+            self.pklist = pklist
         tk = self.tokenizer(sql)
         fields = []
         values = []
@@ -154,7 +162,7 @@ class _logtriga_parser:
 def parse_logtriga_sql(op, sql):
     return parse_sqltriga_sql(op, sql)
 
-def parse_sqltriga_sql(op, sql):
+def parse_sqltriga_sql(op, sql, pklist=None):
     """Parse partial SQL used by pgq.sqltriga() back to data values.
 
     Parser has following limitations:
@@ -178,7 +186,7 @@ def parse_sqltriga_sql(op, sql):
     >>> parse_logtriga_sql('D', "id = 1 and id2 = 'str''val'")
     {'id2': "str'val", 'id': '1'}
     """
-    return _logtriga_parser().parse_sql(op, sql)
+    return _logtriga_parser().parse_sql(op, sql, pklist)
 
 
 def parse_tabbed_table(txt):
