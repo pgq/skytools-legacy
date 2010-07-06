@@ -43,6 +43,13 @@ begin
     select 200, 'Table added: ' || i_table_name
         into ret_code, ret_note;
     return;
+
+exception
+    -- seems the row was added from parallel connection (setup vs. replay)
+    when unique_violation then
+        select 200, 'Table already added: ' || i_table_name
+            into ret_code, ret_note;
+        return;
 end;
 $$ language plpgsql strict;
 
