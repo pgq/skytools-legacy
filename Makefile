@@ -52,6 +52,7 @@ modules-install: config.mak
 
 python-install: config.mak sub-all
 	mkdir -p $(DESTDIR)/$(bindir)
+	rm -rf build
 	$(PYTHON) setup_pkgloader.py install --prefix=$(prefix) --root=$(DESTDIR)/
 	find build -name 'pkgloader*' | xargs rm
 	$(PYTHON) setup_skytools.py install --prefix=$(prefix) --root=$(DESTDIR)/ --record=tmp_files.lst \
