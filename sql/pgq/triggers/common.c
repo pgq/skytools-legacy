@@ -495,12 +495,10 @@ void pgq_prepare_event(struct PgqTriggerEvent *ev, TriggerData *tg, bool newstyl
 	/*
 	 * parse args, newstyle args are cached
 	 */
+	ev->tgargs = find_trigger_info(ev->info, tg->tg_trigger->tgoid, true);
 	if (newstyle) {
-		ev->tgargs = find_trigger_info(ev->info, tg->tg_trigger->tgoid, false);
-		if (!ev->tgargs || !ev->tgargs->finalized) {
-			ev->tgargs = find_trigger_info(ev->info, tg->tg_trigger->tgoid, true);
+		if (!ev->tgargs->finalized)
 			parse_newstyle_args(ev, tg);
-		}
 		if (ev->tgargs->pkey_list)
 			ev->pkey_list = ev->tgargs->pkey_list;
 		/* Check if we have pkey */
