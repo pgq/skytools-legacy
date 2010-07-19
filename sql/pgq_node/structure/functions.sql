@@ -13,6 +13,7 @@
 -- \i functions/pgq_node.rename_node.sql
 \i   functions/pgq_node.get_node_info.sql
 \i   functions/pgq_node.is_root_node.sql
+\i   functions/pgq_node.is_leaf_node.sql
 \i functions/pgq_node.get_subscriber_info.sql
 \i functions/pgq_node.get_consumer_info.sql
 

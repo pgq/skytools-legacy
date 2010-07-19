@@ -1,6 +1,7 @@
 
 #SQLS = v2.1.5_londiste.sql  v2.1.5_pgq_core.sql  v2.1.5_pgq_ext.sql
-SQLS = v2.1.6_londiste.sql  v2.1.6_pgq_ext.sql
+#SQLS = v2.1.6_londiste.sql  v2.1.6_pgq_ext.sql
+SQLS = v3.0_pgq_core.sql
 
 SRCS = $(addprefix src/, $(SQLS))
 DSTS = $(addprefix final/, $(SQLS))

@@ -21,7 +21,7 @@ select * from londiste.local_remove_seq('seqroot', 'masterseq');
 
 select * from londiste.get_seq_list('seqroot');
 
-select ev_id, ev_type, ev_data, ev_extra1 from pgq.event_template;
+select ev_id, ev_type, ev_data, ev_extra1 from pgq.event_template where ev_type like '%seq%';
 
 -- subscriber
 select * from pgq_node.register_location('seqbranch', 'subnode', 'dbname=db', false);

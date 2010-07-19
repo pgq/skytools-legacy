@@ -12,15 +12,20 @@
 static void detect_dbs(void);
 static void recheck_dbs(void);
 
-static const char *usage_str =
+static const char usage_str[] =
 "usage: pgq-ticker [switches] config.file\n"
 "Switches:\n"
-"  -H        Show help\n"
 "  -v        Increase verbosity\n"
 "  -q        No output to console\n"
-"  -V        Show version\n"
 "  -d        Daemonize\n"
+"  -h        Show help\n"
+"  -V        Show version\n"
+" --ini      Show sample config file\n"
 "";
+
+static const char *sample_ini =
+#include "pgqd.ini.h"
+;
 
 struct Config cf;
 
@@ -84,7 +89,7 @@ static void handle_sigint(int sock, short flags, void *arg)
 
 static void handle_sighup(int sock, short flags, void *arg)
 {
-	log_info("Got SIGHUP re-reading config");
+	log_info("Got SIGHUP, re-reading config");
 	load_config(true);
 	recheck_dbs();
 }
@@ -169,30 +174,44 @@ static void drop_db(struct PgDatabase *db)
 	free(db);
 }
 
-static void detect_handler(struct PgSocket *db, void *arg, enum PgEvent ev, PGresult *res)
+static void detect_handler(struct PgSocket *sk, void *arg, enum PgEvent ev, PGresult *res)
 {
 	int i;
 	const char *s;
+	struct List *el, *tmp;
+	struct PgDatabase *db;
 
 	switch (ev) {
 	case PGS_CONNECT_OK:
-		pgs_send_query_simple(db, "select datname from pg_database"
+		pgs_send_query_simple(sk, "select datname from pg_database"
 				     	 " where not datistemplate and datallowconn");
 		break;
 	case PGS_RESULT_OK:
+		/* tag old dbs as dead */
+		statlist_for_each(el, &database_list) {
+			db = container_of(el, struct PgDatabase, head);
+			db->dropped = true;
+		}
+		/* process new dbs */
 		for (i = 0; i < PQntuples(res); i++) {
 			s = PQgetvalue(res, i, 0);
 			launch_db(s);
 		}
-		pgs_disconnect(db);
-		pgs_sleep(db, cf.check_period);
+		/* drop old dbs */
+		statlist_for_each_safe(el, &database_list, tmp) {
+			db = container_of(el, struct PgDatabase, head);
+			if (db->dropped)
+				drop_db(db);
+		}
+		pgs_disconnect(sk);
+		pgs_sleep(sk, cf.check_period);
 		break;
 	case PGS_TIMEOUT:
 		detect_dbs();
 		break;
 	default:
-		pgs_disconnect(db);
-		pgs_sleep(db, cf.check_period);
+		pgs_disconnect(sk);
+		pgs_sleep(sk, cf.check_period);
 	}
 }
 
@@ -216,19 +235,24 @@ static void recheck_dbs(void)
 	struct PgDatabase *db;
 	struct List *el, *tmp;
 	if (cf.database_list && cf.database_list[0]) {
+		/* tag old dbs as dead */
 		statlist_for_each(el, &database_list) {
 			db = container_of(el, struct PgDatabase, head);
 			db->dropped = true;
 		}
+		/* process new ones */
 		if (!parse_word_list(cf.database_list, launch_db_cb, NULL)) {
 			log_warning("database_list parsing failed: %s", strerror(errno));
 			return;
 		}
+		/* drop old ones */
 		statlist_for_each_safe(el, &database_list, tmp) {
 			db = container_of(el, struct PgDatabase, head);
 			if (db->dropped)
 				drop_db(db);
 		}
+
+		/* done with template for the moment */
 		if (db_template) {
 			pgs_free(db_template);
 			db_template = NULL;
@@ -265,6 +289,17 @@ int main(int argc, char *argv[])
 {
 	int c;
 	bool daemon = false;
+
+	for (c = 1; c < argc; c++) {
+		if (!strcmp(argv[c], "--ini")) {
+			printf("%s", sample_ini);
+			exit(0);
+		}
+		if (!strcmp(argv[c], "--help")) {
+			printf(usage_str);
+			exit(0);
+		}
+	}
 
 	while ((c = getopt(argc, argv, "dqvhV")) != -1) {
 		switch (c) {

@@ -1,13 +1,14 @@
 create or replace function londiste.local_add_table(
     in i_queue_name     text,
     in i_table_name     text,
+    in i_trg_args       text[],
     out ret_code        int4,
     out ret_note        text)
 as $$
 -- ----------------------------------------------------------------------
--- Function: londiste.local_add_table(2)
+-- Function: londiste.local_add_table(3)
 --
---      Register table on Londiste node.
+--      Register table on Londiste node, with customizable trigger args.
 --
 -- Returns:
 --      200 - Ok
@@ -23,6 +24,7 @@ declare
     logtrg_previous text;
     logtrg text;
     tbl record;
+    i integer;
 begin
     fq_table_name := londiste.make_fqname(i_table_name);
     col_types := londiste.find_column_types(fq_table_name);
@@ -93,6 +95,12 @@ begin
         raise exception 'lost table: %', fq_table_name;
     end if;
 
+    -- skip triggers on leaf node
+    if pgq_node.is_leaf_node(i_queue_name) then
+        select 200, 'Table added: ' || fq_table_name into ret_code, ret_note;
+        return;
+    end if;
+
     -- create trigger if it does not exists already
     logtrg_name := '_londiste_' || i_queue_name;
     perform 1 from pg_catalog.pg_trigger
@@ -101,7 +109,13 @@ begin
     if not found then
         logtrg := 'create trigger ' || quote_ident(logtrg_name)
             || ' after insert or update or delete on ' || londiste.quote_fqname(fq_table_name)
-            || ' for each row execute procedure pgq.sqltriga(' || quote_literal(i_queue_name) || ')';
+            || ' for each row execute procedure pgq.sqltriga(' || quote_literal(i_queue_name);
+        if i_trg_args is not null then
+            for i in array_lower(i_trg_args, 1) .. array_upper(i_trg_args, 1) loop
+                logtrg := logtrg || ', ' || quote_literal(i_trg_args[i]);
+            end loop;
+        end if;
+        logtrg := logtrg || ')';
         execute logtrg;
     end if;
 
@@ -112,18 +126,21 @@ begin
     -- Don't report all the trigger names, 8.3 does not have array_accum
     -- available
 
-    select max(trigger_name)
-         into logtrg_previous
-         from information_schema.triggers,
-              londiste.split_fqname(fq_table_name)
-        where event_object_schema = schema_part
-            and event_object_table = name_part
-            and condition_timing = 'AFTER'
-	    and substring(trigger_name from 1 for 10) != '_londiste_'
-            and substring(trigger_name from char_length(trigger_name) - 6) != '_logger'
-            and trigger_name < logtrg_name;
+   select tg.tgname into logtrg_previous
+        from pg_class r, pg_trigger tg
+        where r.oid = londiste.find_table_oid(fq_table_name)
+          and not tg.tgisconstraint
+          and tg.tgname < logtrg_name::name
+          -- per-row AFTER trigger
+          and (tg.tgtype & 3) = 1   -- bits: 0:ROW, 1:BEFORE
+          -- current londiste
+          and tg.tgfoid not in ('pgq.sqltriga'::regproc::oid, 'pgq.logutriga'::regproc::oid)
+          -- old londiste
+          and substring(tg.tgname from 1 for 10) != '_londiste_'
+          and substring(tg.tgname from char_length(tg.tgname) - 6) != '_logger'
+        order by 1 limit 1;
 
-    if logtrg_previous then
+    if logtrg_previous is not null then
        select 301,
               'Table added: ' || fq_table_name
                               || ', but londiste trigger is not first: '
@@ -135,5 +152,29 @@ begin
     select 200, 'Table added: ' || fq_table_name into ret_code, ret_note;
     return;
 end;
+$$ language plpgsql;
+
+create or replace function londiste.local_add_table(
+    in i_queue_name     text,
+    in i_table_name     text,
+    out ret_code        int4,
+    out ret_note        text)
+as $$
+-- ----------------------------------------------------------------------
+-- Function: londiste.local_add_table(2)
+--
+--      Register table on Londiste node.
+--
+-- Returns:
+--      200 - Ok
+--      301 - Warning, trigger exists that will fire before londiste one
+--      400 - No such set
+-- ----------------------------------------------------------------------
+begin
+    select f.ret_code, f.ret_note into ret_code, ret_note
+      from londiste.local_add_table(i_queue_name, i_table_name, null) f;
+    return;
+end;
 $$ language plpgsql strict;
+
 

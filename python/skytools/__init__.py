@@ -15,6 +15,7 @@ import skytools.parsing
 import skytools.dbstruct
 import skytools.adminscript
 import skytools.timeutil
+import skytools.querybuilder
 
 from skytools.psycopgwrapper import *
 from skytools.config import *
@@ -26,6 +27,7 @@ from skytools.quoting import *
 from skytools.parsing import *
 from skytools.adminscript import *
 from skytools.timeutil import *
+from skytools.querybuilder import *
 
 __all__ = (skytools.psycopgwrapper.__all__
         + skytools.config.__all__
@@ -36,6 +38,7 @@ __all__ = (skytools.psycopgwrapper.__all__
         + skytools.quoting.__all__
         + skytools.adminscript.__all__
         + skytools.timeutil.__all__
+        + skytools.querybuilder.__all__
         + skytools.parsing.__all__)
 
 import skytools.installer_config

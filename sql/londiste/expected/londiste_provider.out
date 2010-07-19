@@ -5,11 +5,11 @@ set client_min_messages = 'warning';
 --
 create table testdata (
     id serial primary key,
-    data text
+    txt text
 );
 create table testdata_nopk (
     id serial,
-    data text
+    txt text
 );
 select current_database();
  current_database 
@@ -41,7 +41,13 @@ select * from londiste.local_add_table('aset', 'public.testdata');
       200 | Table added: public.testdata
 (1 row)
 
-insert into testdata (data) values ('test-data');
+select tgname from pg_trigger where tgrelid = 'public.testdata'::regclass;
+     tgname     
+----------------
+ _londiste_aset
+(1 row)
+
+insert into testdata (txt) values ('test-data');
 select * from londiste.get_table_list('aset');
    table_name    | local | merge_state | custom_snapshot | table_attrs | dropped_ddl | copy_role 
 -----------------+-------+-------------+-----------------+-------------+-------------+-----------
@@ -68,17 +74,22 @@ select * from londiste.local_remove_table('aset', 'public.testdata');
       400 | Table not found: public.testdata
 (1 row)
 
+select tgname from pg_trigger where tgrelid = 'public.testdata'::regclass;
+ tgname 
+--------
+(0 rows)
+
 select * from londiste.get_table_list('aset');
  table_name | local | merge_state | custom_snapshot | table_attrs | dropped_ddl | copy_role 
 ------------+-------+-------------+-----------------+-------------+-------------+-----------
 (0 rows)
 
 select ev_id, ev_type, ev_data, ev_extra1 from pgq.event_template;
- ev_id |        ev_type        |              ev_data               |    ev_extra1    
--------+-----------------------+------------------------------------+-----------------
-     1 | londiste.add-table    | public.testdata                    | 
-     2 | I                     | (id,data) values ('1','test-data') | public.testdata
-     3 | londiste.remove-table | public.testdata                    | 
+ ev_id |        ev_type        |              ev_data              |    ev_extra1    
+-------+-----------------------+-----------------------------------+-----------------
+     1 | londiste.add-table    | public.testdata                   | 
+     2 | I                     | (id,txt) values ('1','test-data') | public.testdata
+     3 | londiste.remove-table | public.testdata                   | 
 (3 rows)
 
 select * from londiste.local_show_missing('aset');
@@ -89,4 +100,22 @@ select * from londiste.local_show_missing('aset');
  r        | public.testdata
  r        | public.testdata_nopk
 (4 rows)
+
+-- trigtest
+create table trg_test (
+    id int4 primary key,
+    txt text
+);
+select * from londiste.local_add_table('aset', 'public.trg_test', array['ev_extra4=''test='' || txt']);
+ ret_code |           ret_note           
+----------+------------------------------
+      200 | Table added: public.trg_test
+(1 row)
+
+insert into trg_test values (1, 'data');
+select ev_id, ev_type, ev_data, ev_extra1, ev_extra4 from pgq.event_template where ev_extra1 = 'public.trg_test';
+ ev_id | ev_type |           ev_data            |    ev_extra1    | ev_extra4 
+-------+---------+------------------------------+-----------------+-----------
+     5 | I       | (id,txt) values ('1','data') | public.trg_test | test=data
+(1 row)
 

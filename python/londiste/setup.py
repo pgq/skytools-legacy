@@ -13,11 +13,21 @@ __all__ = ['LondisteSetup']
 class LondisteSetup(CascadeAdmin):
     """Londiste-specific admin commands."""
     initial_db_name = 'node_db'
-    extra_objs = [ skytools.DBSchema("londiste", sql_file="londiste.sql") ]
     provider_location = None
+
+    def install_code(self, db):
+        fn = skytools.installer_find_file('londiste.sql')
+        main_sql = open(fn, 'r').read()
+        noschema_sql = main_sql.replace('create schema', '-- create schema')
+        self.extra_objs = [
+            skytools.DBSchema("londiste", sql_file = 'londiste.sql'),
+            skytools.DBFunction("londiste.global_add_table", 2, sql = noschema_sql),
+        ]
+        CascadeAdmin.install_code(self, db)
+
     def __init__(self, args):
         """Londiste setup init."""
-        CascadeAdmin.__init__(self, 'londiste', 'db', args, worker_setup = True)
+        CascadeAdmin.__init__(self, 'londiste3', 'db', args, worker_setup = True)
 
         # compat
         self.queue_name = self.cf.get('pgq_queue_name', '')
@@ -51,6 +61,8 @@ class LondisteSetup(CascadeAdmin):
                     help="include all tables", default=False)
         p.add_option("--create-only",
                     help="pkey,fkeys,indexes")
+        p.add_option("--trigger-arg", action="append",
+                    help="Custom trigger arg")
         return p
 
     def extra_init(self, node_type, node_db, provider_db):
@@ -152,16 +164,22 @@ class LondisteSetup(CascadeAdmin):
             return
 
         # actual table registration
-        q = "select * from londiste.local_add_table(%s, %s)"
-        self.exec_cmd(dst_curs, q, [self.set_name, tbl])
+        tgargs = self.options.trigger_arg # None by default
+        q = "select * from londiste.local_add_table(%s, %s, %s)"
+        self.exec_cmd(dst_curs, q, [self.set_name, tbl, tgargs])
         if self.options.expect_sync:
             q = "select * from londiste.local_set_table_state(%s, %s, NULL, 'ok')"
             self.exec_cmd(dst_curs, q, [self.set_name, tbl])
-        if self.options.copy_condition:
-            q = "select * from londiste.local_set_table_attrs(%s, %s, %s)"
-            attrs = {'copy_condition': self.options.copy_condition}
-            enc_attrs = skytools.db_urlencode(attrs)
-            self.exec_cmd(dst_curs, q, [self.set_name, tbl, enc_attrs])
+        else:
+            attrs = {}
+            if self.options.skip_truncate:
+                attrs['skip_truncate'] = 1
+            if self.options.copy_condition:
+                attrs['copy_condition'] = self.options.copy_condition
+            if attrs:
+                enc_attrs = skytools.db_urlencode(attrs)
+                q = "select * from londiste.local_set_table_attrs(%s, %s, %s)"
+                self.exec_cmd(dst_curs, q, [self.set_name, tbl, enc_attrs])
         dst_db.commit()
 
     def sync_table_list(self, dst_curs, src_tbls, dst_tbls):

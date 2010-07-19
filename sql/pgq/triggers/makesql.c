@@ -52,8 +52,9 @@ static void append_normal_eq(StringInfo buf, const char *col_ident, const char *
 		appendStringInfoString(buf, "NULL");
 }
 
-static void process_insert(PgqTriggerEvent *ev, TriggerData *tg, StringInfo sql)
+static void process_insert(PgqTriggerEvent *ev, StringInfo sql)
 {
+	TriggerData *tg = ev->tgdata;
 	HeapTuple new_row = tg->tg_trigtuple;
 	TupleDesc tupdesc = tg->tg_relation->rd_att;
 	int i;
@@ -74,7 +75,7 @@ static void process_insert(PgqTriggerEvent *ev, TriggerData *tg, StringInfo sql)
 
 		/* Check if allowed by colstring */
 		attkind_idx++;
-		if (pgqtriga_skip_col(ev, tg, i, attkind_idx))
+		if (pgqtriga_skip_col(ev, i, attkind_idx))
 			continue;
 
 		if (need_comma)
@@ -106,7 +107,7 @@ static void process_insert(PgqTriggerEvent *ev, TriggerData *tg, StringInfo sql)
 
 		/* Check if allowed by colstring */
 		attkind_idx++;
-		if (pgqtriga_skip_col(ev, tg, i, attkind_idx))
+		if (pgqtriga_skip_col(ev, i, attkind_idx))
 			continue;
 
 		if (need_comma)
@@ -128,8 +129,9 @@ static void process_insert(PgqTriggerEvent *ev, TriggerData *tg, StringInfo sql)
 	appendStringInfoChar(sql, ')');
 }
 
-static int process_update(PgqTriggerEvent *ev, TriggerData *tg, StringInfo sql)
+static int process_update(PgqTriggerEvent *ev, StringInfo sql)
 {
+	TriggerData *tg = ev->tgdata;
 	HeapTuple old_row = tg->tg_trigtuple;
 	HeapTuple new_row = tg->tg_newtuple;
 	TupleDesc tupdesc = tg->tg_relation->rd_att;
@@ -204,7 +206,7 @@ static int process_update(PgqTriggerEvent *ev, TriggerData *tg, StringInfo sql)
 			}
 		}
 
-		if (pgqtriga_skip_col(ev, tg, i, attkind_idx)) {
+		if (pgqtriga_skip_col(ev, i, attkind_idx)) {
 			/* this change should be ignored */
 			ignore_count++;
 			continue;
@@ -238,7 +240,7 @@ static int process_update(PgqTriggerEvent *ev, TriggerData *tg, StringInfo sql)
 				continue;
 
 			attkind_idx++;
-			if (pgqtriga_is_pkey(ev, tg, i, attkind_idx))
+			if (pgqtriga_is_pkey(ev, i, attkind_idx))
 				break;
 		}
 		col_ident = SPI_fname(tupdesc, i + 1);
@@ -257,7 +259,7 @@ static int process_update(PgqTriggerEvent *ev, TriggerData *tg, StringInfo sql)
 			continue;
 
 		attkind_idx++;
-		if (!pgqtriga_is_pkey(ev, tg, i, attkind_idx))
+		if (!pgqtriga_is_pkey(ev, i, attkind_idx))
 			continue;
 
 		col_ident = SPI_fname(tupdesc, i + 1);
@@ -273,8 +275,9 @@ static int process_update(PgqTriggerEvent *ev, TriggerData *tg, StringInfo sql)
 	return 1;
 }
 
-static void process_delete(PgqTriggerEvent *ev, TriggerData *tg, StringInfo sql)
+static void process_delete(PgqTriggerEvent *ev, StringInfo sql)
 {
+	TriggerData *tg = ev->tgdata;
 	HeapTuple old_row = tg->tg_trigtuple;
 	TupleDesc tupdesc = tg->tg_relation->rd_att;
 	char *col_ident;
@@ -288,7 +291,7 @@ static void process_delete(PgqTriggerEvent *ev, TriggerData *tg, StringInfo sql)
 			continue;
 
 		attkind_idx++;
-		if (!pgqtriga_is_pkey(ev, tg, i, attkind_idx))
+		if (!pgqtriga_is_pkey(ev, i, attkind_idx))
 			continue;
 		col_ident = SPI_fname(tupdesc, i + 1);
 		col_value = SPI_getvalue(old_row, tupdesc, i + 1);
@@ -302,8 +305,9 @@ static void process_delete(PgqTriggerEvent *ev, TriggerData *tg, StringInfo sql)
 	}
 }
 
-int pgqtriga_make_sql(PgqTriggerEvent *ev, TriggerData *tg, StringInfo sql)
+int pgqtriga_make_sql(PgqTriggerEvent *ev, StringInfo sql)
 {
+	TriggerData *tg = ev->tgdata;
 	TupleDesc tupdesc;
 	int i;
 	int attcnt;
@@ -324,14 +328,11 @@ int pgqtriga_make_sql(PgqTriggerEvent *ev, TriggerData *tg, StringInfo sql)
 	 * Determine cmdtype and op_data depending on the command type
 	 */
 	if (TRIGGER_FIRED_BY_INSERT(tg->tg_event)) {
-		//appendStringInfoChar(op_type, 'I');
-		process_insert(ev, tg, sql);
+		process_insert(ev, sql);
 	} else if (TRIGGER_FIRED_BY_UPDATE(tg->tg_event)) {
-		//appendStringInfoChar(op_type, 'U');
-		need_event = process_update(ev, tg, sql);
+		need_event = process_update(ev, sql);
 	} else if (TRIGGER_FIRED_BY_DELETE(tg->tg_event)) {
-		//appendStringInfoChar(op_type, 'D');
-		process_delete(ev, tg, sql);
+		process_delete(ev, sql);
 	} else
 		elog(ERROR, "logtriga fired for unhandled event");
 

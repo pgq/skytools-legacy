@@ -56,7 +56,7 @@ cmd_handlers = (
 
 class Londiste(skytools.DBScript):
     def __init__(self, args):
-        skytools.DBScript.__init__(self, 'londiste', args)
+        skytools.DBScript.__init__(self, 'londiste3', args)
 
         if len(self.args) < 2:
             print("need command")
@@ -109,6 +109,8 @@ class Londiste(skytools.DBScript):
                 help = "takeover: old node was root")
         g.add_option("--dead-branch", action = 'store_true',
                 help = "takeover: old node was branch")
+        p.add_option("--trigger-arg", action="append",
+                help="add: Custom trigger arg")
         p.add_option_group(g)
         return p
 

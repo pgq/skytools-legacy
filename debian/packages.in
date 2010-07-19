@@ -11,16 +11,17 @@ Copyright: BSD
 Build: sh
  PATH=/usr/lib/postgresql/PGVER/bin:$PATH \
  ./configure --prefix=/usr --with-pgconfig=/usr/lib/postgresql/PGVER/bin/pg_config --with-asciidoc
- PATH=/usr/lib/postgresql/PGVER/bin:$PATH \
- make DESTDIR=$ROOT
+ #PATH=/usr/lib/postgresql/PGVER/bin:$PATH \
+ #make DESTDIR=$ROOT
 Clean: sh
  PATH=/usr/lib/postgresql/PGVER/bin:$PATH \
  make distclean || make clean || true
 Build-Depends: python-dev, postgresql-server-dev-PGVER, xmlto, asciidoc (>= 8.2)
 
-Package: skytools
+Package: skytools3
 Architecture: any
-Depends: python-psycopg2 | pythonPYVER-psycopg2, skytools-modules-8.4 | skytools-modules-8.3 | skytools-modules-8.2, rsync, []
+Contains: unstripped
+Depends: python-psycopg2 | pythonPYVER-psycopg2, skytools-modules-9.0 | skytools-modules-8.4 | skytools-modules-8.3 | skytools-modules-8.2, rsync, []
 Description: Skype database tools - Python parts
  .
  londiste - replication
@@ -32,6 +33,7 @@ Install: sh
 
 Package: skytools-modules-PGVER
 Architecture: any
+Contains: unstripped
 Depends: postgresql-PGVER, []
 Description: Extra modules for PostgreSQL
  It includes various extra modules for PostgreSQL:

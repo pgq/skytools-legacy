@@ -1,12 +1,7 @@
 select * from pgq.maint_tables_to_vacuum();
  maint_tables_to_vacuum 
 ------------------------
- pgq.subscription
- pgq.consumer
- pgq.queue
- pgq.tick
- pgq.retry_queue
-(5 rows)
+(0 rows)
 
 select * from pgq.maint_retry_events();
  maint_retry_events 

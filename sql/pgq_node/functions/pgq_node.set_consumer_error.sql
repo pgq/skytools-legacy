@@ -20,7 +20,7 @@ begin
         select 100, 'Consumer ' || i_consumer_name || ' error = ' || i_error_msg
             into ret_code, ret_note;
     else
-        select 404, 'Consumer not known: '
+        select 101, 'Consumer not known, ignoring: '
                || i_queue_name || '/' || i_consumer_name
           into ret_code, ret_note;
     end if;

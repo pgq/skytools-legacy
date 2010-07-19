@@ -31,6 +31,7 @@
 
 #include "common.h"
 #include "stringutil.h"
+#include "qbuilder.h"
 
 /*
  * Module tag
@@ -41,6 +42,9 @@ PG_MODULE_MAGIC;
 
 /* memcmp is ok on NameData fields */
 #define is_magic_field(s) (memcmp(s, "_pgq_ev_", 8) == 0)
+
+static void make_query(struct PgqTriggerEvent *ev, int fld, const char *arg);
+static void override_fields(struct PgqTriggerEvent *ev);
 
 /*
  * primary key info
@@ -100,8 +104,9 @@ void pgq_simple_insert(const char *queue_name, Datum ev_type, Datum ev_data,
 		elog(ERROR, "call of pgq.insert_event failed");
 }
 
-static void fill_magic_columns(PgqTriggerEvent *ev, TriggerData *tg)
+static void fill_magic_columns(PgqTriggerEvent *ev)
 {
+	TriggerData *tg = ev->tgdata;
 	int i;
 	char *col_name, *col_value;
 	StringInfo *dst = NULL;
@@ -121,17 +126,17 @@ static void fill_magic_columns(PgqTriggerEvent *ev, TriggerData *tg)
 		if (!is_magic_field(col_name))
 			continue;
 		if (strcmp(col_name, "_pgq_ev_type") == 0)
-			dst = &ev->ev_type;
+			dst = &ev->field[EV_TYPE];
 		else if (strcmp(col_name, "_pgq_ev_data") == 0)
-			dst = &ev->ev_data;
+			dst = &ev->field[EV_DATA];
 		else if (strcmp(col_name, "_pgq_ev_extra1") == 0)
-			dst = &ev->ev_extra1;
+			dst = &ev->field[EV_EXTRA1];
 		else if (strcmp(col_name, "_pgq_ev_extra2") == 0)
-			dst = &ev->ev_extra2;
+			dst = &ev->field[EV_EXTRA2];
 		else if (strcmp(col_name, "_pgq_ev_extra3") == 0)
-			dst = &ev->ev_extra3;
+			dst = &ev->field[EV_EXTRA3];
 		else if (strcmp(col_name, "_pgq_ev_extra4") == 0)
-			dst = &ev->ev_extra4;
+			dst = &ev->field[EV_EXTRA4];
 		else
 			elog(ERROR, "Unknown magic column: %s", col_name);
 
@@ -145,21 +150,23 @@ static void fill_magic_columns(PgqTriggerEvent *ev, TriggerData *tg)
 	}
 }
 
-void pgq_insert_tg_event(PgqTriggerEvent *ev, TriggerData *tg)
+void pgq_insert_tg_event(PgqTriggerEvent *ev)
 {
-	if (ev->custom_fields)
-		fill_magic_columns(ev, tg);
+	if (ev->tgargs->custom_fields)
+		fill_magic_columns(ev);
+
+	override_fields(ev);
 
 	pgq_simple_insert(ev->queue_name,
-			  pgq_finish_varbuf(ev->ev_type),
-			  pgq_finish_varbuf(ev->ev_data),
-			  pgq_finish_varbuf(ev->ev_extra1),
-			  pgq_finish_varbuf(ev->ev_extra2),
-			  pgq_finish_varbuf(ev->ev_extra3),
-			  pgq_finish_varbuf(ev->ev_extra4));
+			  pgq_finish_varbuf(ev->field[EV_TYPE]),
+			  pgq_finish_varbuf(ev->field[EV_DATA]),
+			  pgq_finish_varbuf(ev->field[EV_EXTRA1]),
+			  pgq_finish_varbuf(ev->field[EV_EXTRA2]),
+			  pgq_finish_varbuf(ev->field[EV_EXTRA3]),
+			  pgq_finish_varbuf(ev->field[EV_EXTRA4]));
 }
 
-char *pgq_find_table_name(Relation rel)
+static char *find_table_name(Relation rel)
 {
 	NameData tname = rel->rd_rel->relname;
 	Oid nsoid = rel->rd_rel->relnamespace;
@@ -216,6 +223,21 @@ static void init_cache(void)
 	tbl_cache_map = hash_create("pgq_triggers pkey cache", max_tables, &ctl, flags);
 }
 
+static void clean_htab(void)
+{
+	HASH_SEQ_STATUS seq;
+	struct PgqTableInfo *entry;
+	struct PgqTriggerInfo *tg;
+	hash_seq_init(&seq, tbl_cache_map);
+	while (1) {
+		entry = hash_seq_search(&seq);
+		if (!entry)
+			break;
+		for (tg = entry->tg_cache; tg; tg = tg->next) {
+		}
+	}
+}
+
 /*
  * Prepare utility plans and plan cache.
  */
@@ -227,8 +249,10 @@ static void init_module(void)
 	if (tbl_cache_invalid) {
 		if (tbl_cache_map)
 			hash_destroy(tbl_cache_map);
-		if (tbl_cache_ctx)
+		if (tbl_cache_ctx) {
+			clean_htab();
 			MemoryContextDelete(tbl_cache_ctx);
+		}
 		tbl_cache_map = NULL;
 		tbl_cache_ctx = NULL;
 		tbl_cache_invalid = false;
@@ -259,7 +283,7 @@ static void fill_tbl_info(Relation rel, struct PgqTableInfo *info)
 {
 	StringInfo pkeys;
 	Datum values[1];
-	const char *name = pgq_find_table_name(rel);
+	const char *name = find_table_name(rel);
 	TupleDesc desc;
 	HeapTuple row;
 	bool isnull;
@@ -295,10 +319,17 @@ static void fill_tbl_info(Relation rel, struct PgqTableInfo *info)
 		appendStringInfoString(pkeys, name);
 	}
 	info->pkey_list = MemoryContextStrdup(tbl_cache_ctx, pkeys->data);
+	info->tg_cache = NULL;
 }
 
 static void free_info(struct PgqTableInfo *info)
 {
+	struct PgqTriggerInfo *tg, *tmp = info->tg_cache;
+	for (tg = info->tg_cache; tg; ) {
+		tmp = tg->next;
+		pfree(tg);
+		tg = tmp;
+	}
 	pfree(info->table_name);
 	pfree(info->pkey_attno);
 	pfree((void *)info->pkey_list);
@@ -323,7 +354,7 @@ static void relcache_reset_cb(Datum arg, Oid relid)
 /*
  * fetch table struct from cache.
  */
-struct PgqTableInfo *pgq_find_table_info(Relation rel)
+static struct PgqTableInfo *find_table_info(Relation rel)
 {
 	struct PgqTableInfo *entry;
 	bool found = false;
@@ -340,35 +371,55 @@ struct PgqTableInfo *pgq_find_table_info(Relation rel)
 	return entry;
 }
 
+static struct PgqTriggerInfo *find_trigger_info(struct PgqTableInfo *info, Oid tgoid, bool create)
+{
+	struct PgqTriggerInfo *tgargs = info->tg_cache;
+	for (tgargs = info->tg_cache; tgargs; tgargs = tgargs->next) {
+		if (tgargs->tgoid == tgoid)
+			return tgargs;
+	}
+	if (!create)
+		return NULL;
+	tgargs = MemoryContextAllocZero(tbl_cache_ctx, sizeof(*tgargs));
+	tgargs->tgoid = tgoid;
+	tgargs->next = info->tg_cache;
+	info->tg_cache = tgargs;
+	return tgargs;
+}
+
 static void parse_newstyle_args(PgqTriggerEvent *ev, TriggerData *tg)
 {
 	int i;
+
 	/*
 	 * parse args
 	 */
-	ev->skip = false;
-	ev->queue_name = tg->tg_trigger->tgargs[0];
 	for (i = 1; i < tg->tg_trigger->tgnargs; i++) {
 		const char *arg = tg->tg_trigger->tgargs[i];
 		if (strcmp(arg, "SKIP") == 0)
-			ev->skip = true;
+			ev->tgargs->skip = true;
 		else if (strncmp(arg, "ignore=", 7) == 0)
-			ev->ignore_list = arg + 7;
+			ev->tgargs->ignore_list = MemoryContextStrdup(tbl_cache_ctx, arg + 7);
 		else if (strncmp(arg, "pkey=", 5) == 0)
-			ev->pkey_list = arg + 5;
+			ev->tgargs->pkey_list = MemoryContextStrdup(tbl_cache_ctx, arg + 5);
 		else if (strcmp(arg, "backup") == 0)
-			ev->backup = true;
+			ev->tgargs->backup = true;
+		else if (strncmp(arg, "ev_extra4=", 10) == 0)
+			make_query(ev, EV_EXTRA4, arg + 10);
+		else if (strncmp(arg, "ev_extra3=", 10) == 0)
+			make_query(ev, EV_EXTRA3, arg + 10);
+		else if (strncmp(arg, "ev_extra2=", 10) == 0)
+			make_query(ev, EV_EXTRA2, arg + 10);
+		else if (strncmp(arg, "ev_extra1=", 10) == 0)
+			make_query(ev, EV_EXTRA1, arg + 10);
+		else if (strncmp(arg, "ev_data=", 8) == 0)
+			make_query(ev, EV_DATA, arg + 8);
+		else if (strncmp(arg, "ev_type=", 8) == 0)
+			make_query(ev, EV_TYPE, arg + 8);
 		else
 			elog(ERROR, "bad param to pgq trigger");
 	}
 
-	/*
-	 * Check if we have pkey
-	 */
-	if (ev->op_type == 'U' || ev->op_type == 'D') {
-		if (ev->pkey_list[0] == 0)
-			elog(ERROR, "Update/Delete on table without pkey");
-	}
 }
 
 static void parse_oldstyle_args(PgqTriggerEvent *ev, TriggerData *tg)
@@ -377,15 +428,12 @@ static void parse_oldstyle_args(PgqTriggerEvent *ev, TriggerData *tg)
 	int attcnt, i;
 	TupleDesc tupdesc = tg->tg_relation->rd_att;
 
-	ev->skip = false;
 	if (tg->tg_trigger->tgnargs < 2 || tg->tg_trigger->tgnargs > 3)
 		elog(ERROR, "pgq.logtriga must be used with 2 or 3 args");
-	ev->queue_name = tg->tg_trigger->tgargs[0];
 	ev->attkind = tg->tg_trigger->tgargs[1];
 	ev->attkind_len = strlen(ev->attkind);
 	if (tg->tg_trigger->tgnargs > 2)
 		ev->table_name = tg->tg_trigger->tgargs[2];
-
 
 	/*
 	 * Count number of active columns
@@ -438,39 +486,53 @@ void pgq_prepare_event(struct PgqTriggerEvent *ev, TriggerData *tg, bool newstyl
 	/*
 	 * load table info
 	 */
-	ev->info = pgq_find_table_info(tg->tg_relation);
+	ev->tgdata = tg;
+	ev->info = find_table_info(tg->tg_relation);
 	ev->table_name = ev->info->table_name;
 	ev->pkey_list = ev->info->pkey_list;
+	ev->queue_name = tg->tg_trigger->tgargs[0];
 
 	/*
-	 * parse args
+	 * parse args, newstyle args are cached
 	 */
-	if (newstyle)
-		parse_newstyle_args(ev, tg);
-	else
+	ev->tgargs = find_trigger_info(ev->info, tg->tg_trigger->tgoid, true);
+	if (newstyle) {
+		if (!ev->tgargs->finalized)
+			parse_newstyle_args(ev, tg);
+		if (ev->tgargs->pkey_list)
+			ev->pkey_list = ev->tgargs->pkey_list;
+		/* Check if we have pkey */
+		if (ev->op_type == 'U' || ev->op_type == 'D') {
+			if (ev->pkey_list[0] == 0)
+				elog(ERROR, "Update/Delete on table without pkey");
+		}
+	} else {
 		parse_oldstyle_args(ev, tg);
+	}
+	ev->tgargs->finalized = true;
 
 	/*
 	 * init data
 	 */
-	ev->ev_type = pgq_init_varbuf();
-	ev->ev_data = pgq_init_varbuf();
-	ev->ev_extra1 = pgq_init_varbuf();
+	ev->field[EV_TYPE] = pgq_init_varbuf();
+	ev->field[EV_DATA] = pgq_init_varbuf();
+	ev->field[EV_EXTRA1] = pgq_init_varbuf();
 
 	/*
 	 * Do the backup, if requested.
 	 */
-	if (ev->backup) {
-		ev->ev_extra2 = pgq_init_varbuf();
-		pgq_urlenc_row(ev, tg, tg->tg_trigtuple, ev->ev_extra2);
+	if (ev->tgargs->backup) {
+		ev->field[EV_EXTRA2] = pgq_init_varbuf();
+		pgq_urlenc_row(ev, tg->tg_trigtuple, ev->field[EV_EXTRA2]);
 	}
 }
 
 /*
  * Check if column should be skipped
  */
-bool pgqtriga_skip_col(PgqTriggerEvent *ev, TriggerData *tg, int i, int attkind_idx)
+bool pgqtriga_skip_col(PgqTriggerEvent *ev, int i, int attkind_idx)
 {
+	TriggerData *tg = ev->tgdata;
 	TupleDesc tupdesc;
 	const char *name;
 
@@ -480,7 +542,7 @@ bool pgqtriga_skip_col(PgqTriggerEvent *ev, TriggerData *tg, int i, int attkind_
 	name = NameStr(tupdesc->attrs[i]->attname);
 
 	if (is_magic_field(name)) {
-		ev->custom_fields = 1;
+		ev->tgargs->custom_fields = 1;
 		return true;
 	}
 
@@ -488,8 +550,8 @@ bool pgqtriga_skip_col(PgqTriggerEvent *ev, TriggerData *tg, int i, int attkind_
 		if (attkind_idx >= ev->attkind_len)
 			return true;
 		return ev->attkind[attkind_idx] == 'i';
-	} else if (ev->ignore_list) {
-		return pgq_strlist_contains(ev->ignore_list, name);
+	} else if (ev->tgargs->ignore_list) {
+		return pgq_strlist_contains(ev->tgargs->ignore_list, name);
 	}
 	return false;
 }
@@ -497,8 +559,9 @@ bool pgqtriga_skip_col(PgqTriggerEvent *ev, TriggerData *tg, int i, int attkind_
 /*
  * Check if column is pkey.
  */
-bool pgqtriga_is_pkey(PgqTriggerEvent *ev, TriggerData *tg, int i, int attkind_idx)
+bool pgqtriga_is_pkey(PgqTriggerEvent *ev, int i, int attkind_idx)
 {
+	TriggerData *tg = ev->tgdata;
 	TupleDesc tupdesc;
 	const char *name;
 
@@ -512,7 +575,7 @@ bool pgqtriga_is_pkey(PgqTriggerEvent *ev, TriggerData *tg, int i, int attkind_i
 			return false;
 		name = NameStr(tupdesc->attrs[i]->attname);
 		if (is_magic_field(name)) {
-			ev->custom_fields = 1;
+			ev->tgargs->custom_fields = 1;
 			return false;
 		}
 		return pgq_strlist_contains(ev->pkey_list, name);
@@ -537,3 +600,123 @@ bool pgq_is_logging_disabled(void)
 #endif
 	return false;
 }
+
+/*
+ * Callbacks for queryfilter
+ */
+
+static int tg_name_lookup(void *arg, const char *name, int len)
+{
+	TriggerData *tg = arg;
+	TupleDesc desc = tg->tg_relation->rd_att;
+	char namebuf[NAMEDATALEN + 1];
+	int nr;
+
+	if (len >= sizeof(namebuf))
+		return -1;
+	memcpy(namebuf, name, len);
+	namebuf[len] = 0;
+
+	nr = SPI_fnumber(desc, namebuf);
+	if (nr > 0)
+		return nr;
+	return -1;
+}
+
+static Oid tg_type_lookup(void *arg, int spi_nr)
+{
+	TriggerData *tg = arg;
+	TupleDesc desc = tg->tg_relation->rd_att;
+
+	return SPI_gettypeid(desc, spi_nr);
+}
+
+static Datum tg_value_lookup(void *arg, int spi_nr, bool *isnull)
+{
+	TriggerData *tg = arg;
+	TupleDesc desc = tg->tg_relation->rd_att;
+	HeapTuple row;
+
+	if (TRIGGER_FIRED_BY_UPDATE(tg->tg_event))
+		row = tg->tg_newtuple;
+	else
+		row = tg->tg_trigtuple;
+
+	return SPI_getbinval(row, desc, spi_nr, isnull);
+}
+
+static const struct QueryBuilderOps tg_ops = {
+	tg_name_lookup,
+	tg_type_lookup,
+	tg_value_lookup,
+};
+
+/*
+ * Custom override queries for field values.
+ */
+
+static void make_query(struct PgqTriggerEvent *ev, int fld, const char *arg)
+{
+	struct TriggerData *tg = ev->tgdata;
+	struct PgqTriggerInfo *tgargs;
+	struct QueryBuilder *q;
+	Oid tgoid = tg->tg_trigger->tgoid;
+	const char *pfx = "select ";
+
+	/* make sure tgargs exists */
+	if (!ev->tgargs)
+		ev->tgargs = find_trigger_info(ev->info, tgoid, true);
+	tgargs = ev->tgargs;
+
+	if (tgargs->query[fld]) {
+		/* seems we already have prepared query */
+		if (tgargs->query[fld]->plan)
+			return;
+		/* query is broken, last prepare failed? */
+		qb_free(tgargs->query[fld]);
+		tgargs->query[fld] = NULL;
+	}
+
+	/* allocate query in right context */
+	q = qb_create(&tg_ops, tbl_cache_ctx);
+
+	/* attach immediately */
+	tgargs->query[fld] = q;
+
+	/* prepare the query */
+	qb_add_raw(q, pfx, strlen(pfx));
+	qb_add_parse(q, arg, tg);
+	qb_prepare(q, tg);
+}
+
+static void override_fields(struct PgqTriggerEvent *ev)
+{
+	TriggerData *tg = ev->tgdata;
+	int res, i;
+	char *val;
+
+	/* no overrides */
+	if (!ev->tgargs)
+		return;
+
+	for (i = 0; i < EV_NFIELDS; i++) {
+		if (!ev->tgargs->query[i])
+			continue;
+		res = qb_execute(ev->tgargs->query[i], tg);
+		if (res != SPI_OK_SELECT)
+			elog(ERROR, "Override query failed");
+		if (SPI_processed != 1)
+			elog(ERROR, "Expect 1 row from override query, got %d", SPI_processed);
+		val = SPI_getvalue(SPI_tuptable->vals[0], SPI_tuptable->tupdesc, 1);
+		if (ev->field[i]) {
+			pfree(ev->field[i]->data);
+			pfree(ev->field[i]);
+			ev->field[i] = NULL;
+		}
+		if (val) {
+			ev->field[i] = pgq_init_varbuf();
+			appendStringInfoString(ev->field[i], val);
+		}
+	}
+}
+

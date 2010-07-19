@@ -5,8 +5,7 @@
 static void close_retry(struct PgDatabase *db, double sleep_time)
 {
 	log_debug("%s: close_retry, %f", db->name, sleep_time);
-	pgs_disconnect(db->c_retry);
-	pgs_sleep(db->c_retry, sleep_time);
+	pgs_reconnect(db->c_retry, sleep_time);
 }
 
 static void run_retry(struct PgDatabase *db)
@@ -45,7 +44,8 @@ static void retry_handler(struct PgSocket *s, void *arg, enum PgEvent ev, PGresu
 		launch_retry(db);
 		break;
 	default:
-		pgs_reconnect(db->c_retry);
+		log_warning("%s: default reconnect", db->name);
+		pgs_reconnect(db->c_retry, 30);
 	}
 }
 

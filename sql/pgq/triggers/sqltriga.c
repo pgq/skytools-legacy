@@ -61,14 +61,14 @@ Datum pgq_sqltriga(PG_FUNCTION_ARGS)
 
 	pgq_prepare_event(&ev, tg, true);
 
-	appendStringInfoChar(ev.ev_type, ev.op_type);
-	appendStringInfoString(ev.ev_extra1, ev.info->table_name);
+	appendStringInfoChar(ev.field[EV_TYPE], ev.op_type);
+	appendStringInfoString(ev.field[EV_EXTRA1], ev.info->table_name);
 
 	/*
 	 * create sql and insert if interesting
 	 */
-	if (pgqtriga_make_sql(&ev, tg, ev.ev_data))
-		pgq_insert_tg_event(&ev, tg);
+	if (pgqtriga_make_sql(&ev, ev.field[EV_DATA]))
+		pgq_insert_tg_event(&ev);
 
 	if (SPI_finish() < 0)
 		elog(ERROR, "SPI_finish failed");
@@ -78,7 +78,7 @@ Datum pgq_sqltriga(PG_FUNCTION_ARGS)
 	 * before trigger skips event if NULL.
 	 */
 skip_it:
-	if (TRIGGER_FIRED_AFTER(tg->tg_event) || ev.skip)
+	if (TRIGGER_FIRED_AFTER(tg->tg_event) || ev.tgargs->skip)
 		return PointerGetDatum(NULL);
 	else if (TRIGGER_FIRED_BY_UPDATE(tg->tg_event))
 		return PointerGetDatum(tg->tg_newtuple);

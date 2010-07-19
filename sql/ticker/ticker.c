@@ -28,8 +28,7 @@ static void close_ticker(struct PgDatabase *db, double sleep_time)
 {
 	log_debug("%s: close_ticker, %f", db->name, sleep_time);
 	db->state = DB_CLOSED;
-	pgs_disconnect(db->c_ticker);
-	pgs_sleep(db->c_ticker, sleep_time);
+	pgs_reconnect(db->c_ticker, sleep_time);
 }
 
 static void parse_pgq_check(struct PgDatabase *db, PGresult *res)
@@ -37,7 +36,7 @@ static void parse_pgq_check(struct PgDatabase *db, PGresult *res)
 	db->has_pgq = PQntuples(res) == 1;
 
 	if (!db->has_pgq) {
-		log_info("%s: no pgq", db->name);
+		log_debug("%s: no pgq", db->name);
 		close_ticker(db, cf.check_period);
 	} else {
 		run_version_check(db);
@@ -111,7 +110,8 @@ static void tick_handler(struct PgSocket *s, void *arg, enum PgEvent ev, PGresul
 			run_ticker(db);
 		break;
 	default:
-		pgs_reconnect(db->c_ticker);
+		log_warning("%s: default timeout", db->name);
+		pgs_reconnect(db->c_ticker, 60);
 	}
 }
 

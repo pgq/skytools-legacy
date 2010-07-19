@@ -9,7 +9,7 @@ class Syncer(skytools.DBScript):
 
     def __init__(self, args):
         """Syncer init."""
-        skytools.DBScript.__init__(self, 'londiste', args)
+        skytools.DBScript.__init__(self, 'londiste3', args)
         self.set_single_loop(1)
 
         # compat names

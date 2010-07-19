@@ -92,4 +92,17 @@ insert into custom_fields values ('foo', '2');
 update custom_fields set dat3 = 'bat';
 delete from custom_fields;
 
+-- test custom expression
+create table custom_expr (
+    dat1 text not null primary key,
+    dat2 int2 not null,
+    dat3 text
+);
+create trigger customex_triga after insert or update or delete on custom_expr
+for each row execute procedure pgq.sqltriga('que3', 'ev_extra1=''test='' || dat1', 'ev_type=dat3');
+
+insert into custom_expr values ('foo', '2');
+update custom_expr set dat3 = 'bat';
+delete from custom_expr;
+
 

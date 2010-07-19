@@ -63,6 +63,9 @@ begin
         delete from pgq_node.node_info
          where queue_name = i_queue_name
             and node_name = i_node_name;
+
+        perform pgq.drop_queue(queue_name)
+           from pgq.queue where queue_name = i_queue_name;
     end if;
 
     delete from pgq_node.node_location

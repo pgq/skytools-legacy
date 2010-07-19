@@ -66,14 +66,14 @@ Datum pgq_logtriga(PG_FUNCTION_ARGS)
 
 	pgq_prepare_event(&ev, tg, false);
 
-	appendStringInfoChar(ev.ev_type, ev.op_type);
-	appendStringInfoString(ev.ev_extra1, ev.info->table_name);
+	appendStringInfoChar(ev.field[EV_TYPE], ev.op_type);
+	appendStringInfoString(ev.field[EV_EXTRA1], ev.info->table_name);
 
 	/*
 	 * create sql and insert if interesting
 	 */
-	if (pgqtriga_make_sql(&ev, tg, ev.ev_data))
-		pgq_insert_tg_event(&ev, tg);
+	if (pgqtriga_make_sql(&ev, ev.field[EV_DATA]))
+		pgq_insert_tg_event(&ev);
 
 	if (SPI_finish() < 0)
 		elog(ERROR, "SPI_finish failed");

@@ -40,7 +40,7 @@ static void run_rotate_part1(struct PgDatabase *db)
 	const char *q;
 	const char *qname;
 	qname = strlist_pop(db->maint_item_list);
-	q = "select pgq.maint_rotate_part1($1)";
+	q = "select pgq.maint_rotate_tables_step1($1)";
 	log_debug("%s: %s [%s]", db->name, q, qname);
 	pgs_send_query_params(db->c_maint, q, 1, qname);
 	free(qname);
@@ -49,7 +49,7 @@ static void run_rotate_part1(struct PgDatabase *db)
 
 static void run_rotate_part2(struct PgDatabase *db)
 {
-	const char *q = "select pgq.maint_rotate_part2()";
+	const char *q = "select pgq.maint_rotate_tables_step2()";
 	log_debug("%s: %s", db->name, q);
 	pgs_send_query_simple(db->c_maint, q);
 	db->maint_state = DB_MAINT_ROT2;
@@ -71,8 +71,7 @@ static void close_maint(struct PgDatabase *db, double sleep_time)
 {
 	log_debug("%s: close_maint, %f", db->name, sleep_time);
 	db->maint_state = DB_CLOSED;
-	pgs_disconnect(db->c_maint);
-	pgs_sleep(db->c_maint, sleep_time);
+	pgs_reconnect(db->c_maint, sleep_time);
 }
 
 static void maint_handler(struct PgSocket *s, void *arg, enum PgEvent ev, PGresult *res)
@@ -121,7 +120,8 @@ static void maint_handler(struct PgSocket *s, void *arg, enum PgEvent ev, PGresu
 			run_queue_list(db);
 		break;
 	default:
-		pgs_reconnect(db->c_maint);
+		log_warning("%s: default reconnect", db->name);
+		pgs_reconnect(db->c_maint, 60);
 	}
 	return;
 mem_err:

@@ -58,7 +58,7 @@ class _BatchWalker(object):
         self.curs.execute(q, [self.batch_id, self.sql_cursor, self.fetch_size])
         # this will return first batch of rows
 
-        q = "fetch %d from batch_walker" % self.fetch_size
+        q = "fetch %d from %s" % (self.fetch_size, self.sql_cursor)
         while 1:
             rows = self.curs.dictfetchall()
             if not len(rows):
@@ -143,6 +143,8 @@ class Consumer(skytools.DBScript):
     pgq_min_count = None
     pgq_min_interval = None
     pgq_min_lag = None
+
+    batch_info = None
 
     def __init__(self, service_name, db_name, args):
         """Initialize new consumer.
@@ -298,8 +300,8 @@ class Consumer(skytools.DBScript):
         q = "select * from pgq.next_batch_custom(%s, %s, %s, %s, %s)"
         curs.execute(q, [self.queue_name, self.consumer_name,
                          self.pgq_min_lag, self.pgq_min_count, self.pgq_min_interval])
-        inf = curs.fetchone()
-        return inf['batch_id']
+        self.batch_info = curs.fetchone()
+        return self.batch_info['batch_id']
 
     def _flush_retry(self, curs, batch_id, list):
         """Tag retry events."""
