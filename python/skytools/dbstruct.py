@@ -75,14 +75,19 @@ class TConstraint(TElem):
     """Info about constraint."""
     type = T_CONSTRAINT
     SQL = """
-        SELECT conname as name, pg_get_constraintdef(oid) as def, contype
-          FROM pg_constraint WHERE conrelid = %(oid)s AND contype != 'f'
+        SELECT c.conname as name, pg_get_constraintdef(c.oid) as def, c.contype,
+               i.indisclustered as is_clustered
+          FROM pg_constraint c LEFT JOIN pg_index i ON
+            c.conrelid = i.indrelid AND
+            c.conname = (SELECT r.relname FROM pg_class r WHERE r.oid = i.indexrelid)
+          WHERE c.conrelid = %(oid)s AND c.contype != 'f'
     """
     def __init__(self, table_name, row):
         self.table_name = table_name
         self.name = row['name']
         self.defn = row['def']
         self.contype = row['contype']
+        self.is_clustered = row['is_clustered']
 
         # tag pkeys
         if self.contype == 'p':
@@ -102,6 +107,8 @@ class TConstraint(TElem):
             qtbl = quote_fqident(self.table_name)
             qname = quote_ident(self.name)
         sql = fmt % (qtbl, qname, self.defn)
+        if self.is_clustered:
+            sql +=' ALTER TABLE ONLY %s CLUSTER ON %s;' % (qtbl, qname)
         return sql
 
     def get_drop_sql(self, curs):
@@ -114,7 +121,9 @@ class TIndex(TElem):
     type = T_INDEX
     SQL = """
         SELECT n.nspname || '.' || c.relname as name,
-               pg_get_indexdef(i.indexrelid) as defn
+               pg_get_indexdef(i.indexrelid) as defn,
+               c.relname                     as local_name,
+               i.indisclustered              as is_clustered
          FROM pg_index i, pg_class c, pg_namespace n
         WHERE c.oid = i.indexrelid AND i.indrelid = %(oid)s
           AND n.oid = c.relnamespace
@@ -127,16 +136,27 @@ class TIndex(TElem):
     def __init__(self, table_name, row):
         self.name = row['name']
         self.defn = row['defn'] + ';'
+        self.is_clustered = row['is_clustered']
+        self.table_name = table_name
+        self.local_name = row['local_name']
 
     def get_create_sql(self, curs, new_table_name = None):
-        if not new_table_name:
-            return self.defn
-        # fixme: seems broken
-        name = find_new_name(curs, self.name)
-        pnew = "INDEX %s ON %s " % (quote_ident(name), quote_fqident(new_table_name))
-        rx = r"\bINDEX[ ][a-z0-9._]+[ ]ON[ ][a-z0-9._]+[ ]"
-        sql = rx_replace(rx, self.defn, pnew)
+        if new_table_name:
+            # fixme: seems broken
+            iname = find_new_name(curs, self.name)
+            tname = new_table_name
+            pnew = "INDEX %s ON %s " % (quote_ident(iname), quote_fqident(tname))
+            rx = r"\bINDEX[ ][a-z0-9._]+[ ]ON[ ][a-z0-9._]+[ ]"
+            sql = rx_replace(rx, self.defn, pnew)
+        else:
+            sql = self.defn
+            iname = self.local_name
+            tname = self.table_name
+        if self.is_clustered:
+            sql += ' ALTER TABLE ONLY %s CLUSTER ON %s;' % (
+                quote_fqident(tname), quote_ident(iname))
         return sql
+
     def get_drop_sql(self, curs):
         return 'DROP INDEX %s;' % quote_fqident(self.name)
 

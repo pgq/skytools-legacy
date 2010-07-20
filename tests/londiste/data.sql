@@ -5,6 +5,7 @@ create table data1 (
     id serial primary key,
     data text
 );
+cluster data1 using data1_pkey;
 
 create or replace function test_triga() returns trigger
 as $$ begin return new; end; $$ language plpgsql;
@@ -25,7 +26,7 @@ create table data2 (
 );
 
 create index idx_data2_rand on data2 (id, data);
-
+cluster data2 using idx_data2_rand;
 
 create sequence test_seq;
 select setval('test_seq', 50);
