@@ -1,23 +1,24 @@
 
+PACKAGE_NAME = @PACKAGE_NAME@
+PACKAGE_TARNAME = @PACKAGE_TARNAME@
+PACKAGE_VERSION = @PACKAGE_VERSION@
+PACKAGE_STRING = @PACKAGE_STRING@
+
+SUFFIX = @SUFFIX@
+
 prefix = @prefix@
 datarootdir = @datarootdir@
 exec_prefix = @exec_prefix@
 datadir = @datadir@
-docdir = @docdir@
+docdir = @docdir@$(SUFFIX)
 mandir = @mandir@
 bindir = @bindir@
-
-PACKAGE_NAME = @PACKAGE_NAME@
-PACKAGE_TARNAME = @PACKAGE_TARNAME@
-PACKAGE_VERSION = @PACKAGE_VERSION@
 
 PYTHON = @PYTHON@
 override PG_CONFIG = @PG_CONFIG@
 
 # additional CPPFLAGS to pgxs modules
 PG_CPPFLAGS = $(filter -DHAVE%, @DEFS@)
-
-SQLDIR = $(prefix)/share/skytools
 
 PGXS = $(shell $(PG_CONFIG) --pgxs)
 
@@ -36,8 +37,4 @@ INSTALL = @INSTALL@
 BININSTALL = @BININSTALL@
 
 
-PACKAGE_NAME = @PACKAGE_NAME@
-PACKAGE_TARNAME = @PACKAGE_TARNAME@
-PACKAGE_VERSION = @PACKAGE_VERSION@
-PACKAGE_STRING = @PACKAGE_STRING@
 

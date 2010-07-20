@@ -17,11 +17,14 @@ SCRIPT_TXTS = walmgr.txt queue_mover.txt queue_splitter.txt qadmin.txt \
 	      scriptmgr.txt skytools_upgrade.txt londiste.txt pgqadm.txt
 SCRIPT_HTMLS = $(SCRIPT_TXTS:.txt=.html)
 
-MAN1 = $(SCRIPT_TXTS:.txt=.1)
 MAN5 = 
+MAN1_SFX = londiste.1 pgqadm.1 scriptmgr.1 skytools_upgrade.1 walmgr.1 \
+	   queue_splitter.1 queue_mover.1
+MAN1 = qadmin.1
 
 FQHTML = $(addprefix html/, $(HTMLS))
 FQMAN1 = $(addprefix man/, $(MAN1))
+FQMAN1_SFX = $(addprefix man/, $(MAN1_SFX))
 FQMAN5 = $(addprefix man/, $(MAN5))
 FQMAN = $(FQMAN1) $(FQMAN5)
 
@@ -43,6 +46,10 @@ install: $(FQMAN) $(FQHTML)
 	mkdir -p $(DESTDIR)/$(mandir)/man1
 	mkdir -p $(DESTDIR)/$(mandir)/man5
 	mkdir -p $(DESTDIR)/$(docdir)
+	for m in $(FQMAN1_SFX); do \
+	  xf="`basename $$m | sed 's/[.]/$(SUFFIX)./'`"; \
+	  install -m 644 $$m $(DESTDIR)/$(mandir)/man1/$$xf ; \
+	done
 	for m in $(FQMAN1); do \
 	  install -m 644 $$m $(DESTDIR)/$(mandir)/man1 ; \
 	done

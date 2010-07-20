@@ -38,6 +38,25 @@ else
 fi
 AC_SUBST(MAKE)
 
+dnl name suffix
+default_SUFFIX=3
+SUFFIX="$default_SUFFIX"
+AC_MSG_CHECKING(whether to add suffix to script names)
+AC_ARG_WITH(suffix, [  --with-suffix[[=sfx]]  common package suffix (default: 3)],
+[ if test "$withval" = "yes"; then
+    SUFFIX="$default_SUFFIX"
+  elif test "$withval" = "no"; then
+    SUFFIX=""
+  else
+    SUFFIX="$withval"
+  fi ])
+if test "$SUFFIX" = ""; then
+  AC_MSG_RESULT(no)
+else
+  AC_MSG_RESULT([yes, "$SUFFIX"])
+fi
+AC_SUBST(SUFFIX)
+
 dnl asciidoc >= 8.2
 AC_ARG_WITH(asciidoc, [  --with-asciidoc[[=prog]]  path to asciidoc 8.2 (default: asciidoc)],
 [ if test "$withval" = "yes"; then
