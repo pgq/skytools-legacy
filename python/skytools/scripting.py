@@ -248,13 +248,7 @@ class DBCachedConn(object):
         conn = self.conn
         self.conn = None
 
-        if self.isolation_level == I_AUTOCOMMIT:
-            return
-
-        # rollback & close
-        try:
-            conn.rollback()
-        except: pass
+        # close
         try:
             conn.close()
         except: pass
