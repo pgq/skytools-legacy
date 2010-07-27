@@ -43,3 +43,7 @@ sql/ticker/pgqd
 tests/londiste/conf
 tests/merge/conf
 
+build
+doc/londiste.5
+doc/man
+reconfigure.sh
