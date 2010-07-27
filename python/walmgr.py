@@ -1231,12 +1231,6 @@ STOP TIME: %(stop_time)s
             self.log.debug("%s: copy done, cleanup" % srcname)
             self.slave_cleanup(lstname)
 
-        if os.path.isfile(partfile) and not srcfile == partfile:
-            # Remove any partial files after restore. Only leave the partial if
-            # it is actually used in recovery.
-            self.log.debug("%s: removing partial not anymore needed for recovery." % partfile)
-            os.remove(partfile)
-
         # create a PROGRESS file to notify that postgres is processing the WAL
         open(prgrfile, "w").write("1")
 
