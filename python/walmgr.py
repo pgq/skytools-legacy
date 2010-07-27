@@ -1246,7 +1246,7 @@ STOP TIME: %(stop_time)s
 
         If setname is specified, the contents of that backup set directory are 
         restored instead of "full_backup". Also copy is used instead of rename to 
-        restore the directory.
+        restore the directory (unless a pg_xlog directory has been specified).
 
         Restore to altdst if specified. Complain if it exists.
         """
@@ -1305,9 +1305,15 @@ STOP TIME: %(stop_time)s
             # nothing to back up
             createbackup = False
 
-        if not setname and os.path.isdir(data_dir):
-            # compatibility mode - restore without a set name and data directory 
-            # already exists. Move it out of the way.
+        # see if we have to make a backup of the data directory 
+        backup_datadir = self.cf.getboolean('backup_datadir', True)
+
+        if os.path.isdir(data_dir) and not backup_datadir:
+            self.log.warning('backup_datadir is disabled, deleting old data dir')
+            shutil.rmtree(data_dir)
+
+        if not setname and os.path.isdir(data_dir) and backup_datadir:
+            # compatibility mode - restore without a set name and data directory exists
             self.log.warning("Data directory already exists, moving it out of the way.")
             createbackup = True
 
