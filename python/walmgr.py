@@ -1325,20 +1325,38 @@ STOP TIME: %(stop_time)s
 
         # move new data, copy if setname specified
         self.log.info("%s %s to %s" % (setname and "Copy" or "Move", full_dir, data_dir))
+
+        if self.cf.get('slave_pg_xlog', ''):
+            link_xlog_dir = True
+            exclude_pg_xlog = '--exclude=pg_xlog'
+        else:
+            link_xlog_dir = False
+            exclude_pg_xlog = ''
+
         if not self.not_really:
-            if not setname:
+            if not setname and not link_xlog_dir:
                 os.rename(full_dir, data_dir)
             else:
-                self.exec_rsync(["--delete", "--no-relative", "--exclude=pg_xlog/*",
-                    os.path.join(full_dir,""), data_dir], True)
-                if self.wtype == MASTER and createbackup and os.path.isdir(bak):
+                rsync_args=["--delete", "--no-relative", "--exclude=pg_xlog/*"]
+                if exclude_pg_xlog:
+                    rsync_args.append(exclude_pg_xlog)
+                rsync_args += [os.path.join(full_dir, ""), data_dir]
+
+                self.exec_rsync(rsync_args, True)
+
+                if link_xlog_dir:
+                   os.symlink(self.cf.get('slave_pg_xlog'), "%s/pg_xlog" % data_dir)
+
+                if (self.wtype == MASTER and createbackup and os.path.isdir(bak)):
                     # restore original xlog files to data_dir/pg_xlog   
-                    # symlinked directories are dereferences
-                    self.exec_cmd(["cp", "-rL", "%s/pg_xlog" % bak, data_dir])
+                    # symlinked directories are dereferenced
+                    self.exec_cmd(["cp", "-rL", "%s/pg_xlog/" % full_dir, "%s/pg_xlog" % data_dir ])
                 else:
                     # create an archive_status directory
                     xlog_dir = os.path.join(data_dir, "pg_xlog")
-                    os.mkdir(os.path.join(xlog_dir, "archive_status"), 0700)
+                    archive_path = os.path.join(xlog_dir, "archive_status")
+                    if not os.path.exists(archive_path):
+                        os.mkdir(archive_path, 0700)
         else:
             data_dir = full_dir
 
