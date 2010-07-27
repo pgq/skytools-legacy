@@ -26,7 +26,7 @@ FQHTML = $(addprefix html/, $(HTMLS))
 FQMAN1 = $(addprefix man/, $(MAN1))
 FQMAN1_SFX = $(addprefix man/, $(MAN1_SFX))
 FQMAN5 = $(addprefix man/, $(MAN5))
-FQMAN = $(FQMAN1) $(FQMAN5)
+FQMAN = $(FQMAN1) $(FQMAN1_SFX) $(FQMAN5)
 
 COMMON = common.switches.txt common.config.txt common.logutriga.txt
 
