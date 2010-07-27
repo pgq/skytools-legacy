@@ -261,6 +261,9 @@ class WalMgr(skytools.DBScript):
 
     def __init__(self, args):
 
+        if len(args) == 1 and args[0] == '--version':
+           skytools.DBScript.__init__(self, 'wal-master', args)
+
         if len(args) < 2:
             # need at least config file and command
             usage(1)
