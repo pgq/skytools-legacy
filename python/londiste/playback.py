@@ -703,9 +703,12 @@ class Replicator(CascadedWorker):
             self.log.warning("Waiting for existing copy to exit")
             time.sleep(2)
 
+        # launch and wait for daemonization result
         self.log.debug("Launch args: "+repr(cmd))
-        pid = os.spawnvp(os.P_NOWAIT, script, cmd)
-        self.log.debug("Launch result: "+repr(pid))
+        res = os.spawnvp(os.P_WAIT, script, cmd)
+        self.log.debug("Launch result: "+repr(res))
+        if res != 0:
+            self.log.error("Failed to launch copy process, result=%d" % res)
 
     def sync_database_encodings(self, src_db, dst_db):
         """Make sure client_encoding is same on both side."""

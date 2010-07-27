@@ -8,7 +8,7 @@ from skytools.sqltools import dbdict
 
 __all__ = [
     "parse_pgarray", "parse_logtriga_sql", "parse_tabbed_table",
-    "parse_statements", 'sql_tokenizer']
+    "parse_statements", 'sql_tokenizer', 'parse_sqltriga_sql']
 
 _rc_listelem = re.compile(r'( [^,"}]+ | ["] ( [^"\\]+ | [\\]. )* ["] )', re.X)
 

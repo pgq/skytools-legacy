@@ -21,6 +21,10 @@ Following commands expect default queue:
 
     show batch <batch_id>;
     show batch <consumer>;
+
+Other commands:
+
+    exit;   (or press ^D)
 """
 
 # unimplemented:
@@ -380,6 +384,7 @@ w_top = List(
     Word('register', w_cons_on_queue),
     Word('unregister', w_cons_from_queue),
     Word('show', w_show),
+    Word('exit', w_done),
     name = "cmd")
 
 top_level.set_real(w_top)
@@ -975,6 +980,9 @@ class AdminConsole:
 
     def cmd_show_help(self, params):
         print __doc__
+
+    def cmd_exit(self, params):
+        sys.exit(0)
 
 def main():
     global script

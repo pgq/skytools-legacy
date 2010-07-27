@@ -16,7 +16,9 @@ SFX_SCRIPTS = python/londiste.py python/walmgr.py scripts/scriptmgr.py scripts/q
 # dont add
 NOSFX_SCRIPTS = python/qadmin.py
 
-SCRIPT_SUFFIX = 3
+SCRIPT_SUFFIX = $(SUFFIX)
+
+SQLDIR = $(prefix)/share/skytools$(SUFFIX)
 
 all: python-all sub-all config.mak
 

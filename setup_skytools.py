@@ -18,6 +18,13 @@ buf = open("configure.ac","r").read(256)
 m = re.search("AC_INIT[(][^,]*,\s+([^)]*)[)]", buf)
 ac_ver = m.group(1)
 
+def getvar(name):
+    cf = open('config.mak').read()
+    m = re.search(r'^%s\s*=\s*(.*)' % name, cf, re.M)
+    return m.group(1).strip()
+
+sfx = getvar('SUFFIX')
+
 share_dup_files = [
    'sql/pgq/pgq.sql',
    'sql/londiste/londiste.sql',
@@ -38,11 +45,11 @@ setup(
     package_dir = {'': 'python'},
     packages = ['skytools', 'londiste', 'pgq', 'pgq.cascade'],
     data_files = [
-      ('share/doc/skytools/conf', [
+      ('share/doc/skytools%s/conf' % sfx, [
         'python/conf/wal-master.ini',
         'python/conf/wal-slave.ini',
         ]),
-      ('share/skytools', share_dup_files)],
+      ('share/skytools' + sfx, share_dup_files)],
     ext_modules=[Extension("skytools._cquoting", ['python/modules/cquoting.c'])],
 )
 
