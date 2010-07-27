@@ -38,7 +38,7 @@ Switches:
 """
 
 import os, sys, re, signal, time, traceback
-import errno, glob, ConfigParser, shutil
+import errno, glob, ConfigParser, shutil, subprocess
 
 import pkgloader
 pkgloader.require('skytools', '3.0')
@@ -109,19 +109,27 @@ class WalChunk:
 class PgControlData:
     """Contents of pg_controldata"""
 
-    def __init__(self, slave_bin, slave_data, findRestartPoint):
+    def __init__(self, bin_dir, data_dir, findRestartPoint):
         """Collect last checkpoint information from pg_controldata output"""
         self.xlogid = None
         self.xrecoff = None
         self.timeline = None
         self.wal_size = None
         self.wal_name = None
-        self.is_valid = False
+        self.cluster_state = None
+        self.is_shutdown = False
         self.pg_version = 0
-        matches = 0
-        pg_controldata = "%s %s" % (os.path.join(slave_bin, "pg_controldata"), slave_data)
+        self.is_valid = False
 
-        for line in os.popen(pg_controldata, "r"):
+        try:
+            pg_controldata = os.path.join(bin_dir, "pg_controldata")
+            pipe = subprocess.Popen([ pg_controldata, data_dir ], stdout=subprocess.PIPE)
+        except OSError:
+            # don't complain if we cannot execute it
+            return
+
+        matches = 0
+        for line in pipe.stdout.readlines():
             if findRestartPoint:
                 m = re.match("^Latest checkpoint's REDO location:\s+([0-9A-F]+)/([0-9A-F]+)", line)
             else:
@@ -142,8 +150,14 @@ class PgControlData:
             if m:
                 matches += 1
                 self.pg_version = int(m.group(1))
+            m = re.match("^Database cluster state:\s+(.*$)", line)
+            if m:
+                matches += 1
+                self.cluster_state = m.group(1)
+                self.is_shutdown = (self.cluster_state == "shut down")
 
-        if matches == 4:
+        # ran successfully and we got our needed matches
+        if pipe.wait() == 0 and matches == 5:
             self.wal_name = "%08X%08X%08X" % \
                 (self.timeline, self.xlogid, self.xrecoff / self.wal_size)
             self.is_valid = True
@@ -1010,6 +1024,7 @@ STOP TIME: %(stop_time)s
         use_xlog_functions = self.cf.getint("use_xlog_functions", False)
         data_dir = self.cf.get("master_data")
         xlog_dir = os.path.join(data_dir, "pg_xlog")
+        master_bin = self.cf.get("master_bin", "")
 
         dst_loc = os.path.join(self.cf.get("partial_wals"), "")
 
@@ -1052,6 +1067,22 @@ STOP TIME: %(stop_time)s
             else:
                 self.log.info("last complete not found, copying all")
 
+            # obtain the last checkpoint wal name, this can be used for
+            # limiting the amount of WAL files to copy if the database
+            # has been cleanly shut down
+            ctl = PgControlData(master_bin, data_dir, False)
+            checkpoint_wal = None
+            if ctl.is_valid:
+                if not ctl.is_shutdown:
+                    # cannot rely on the checkpoint wal, should use some other method
+                    self.log.info("Database state is not 'shut down', copying all")
+                else:
+                    # ok, the database is shut down, we can use last checkpoint wal
+                    checkpoint_wal = ctl.wal_name
+                    self.log.info("last checkpoint wal: %s" % checkpoint_wal)
+            else:
+                self.log.info("Unable to obtain control file information, copying all")
+
             for fn in files:
                 # check if interesting file
                 if len(fn) < 10:
@@ -1060,7 +1091,7 @@ STOP TIME: %(stop_time)s
                     continue
                 if fn.find(".") > 0:
                     continue
-                # check if to old
+                # check if too old
                 if last:
                     dot = last.find(".")
                     if dot > 0:
@@ -1070,6 +1101,9 @@ STOP TIME: %(stop_time)s
                     else:
                         if fn <= last:
                             continue
+                # check if too new
+                if checkpoint_wal and fn > checkpoint_wal:
+                    continue
 
                 # got interesting WAL
                 xlog = os.path.join(xlog_dir, fn)
