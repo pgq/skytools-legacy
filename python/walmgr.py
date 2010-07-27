@@ -38,7 +38,7 @@ Switches:
 """
 
 import os, sys, re, signal, time, traceback
-import errno, glob, ConfigParser, shutil
+import errno, glob, ConfigParser, shutil, subprocess
 
 import pkgloader
 pkgloader.require('skytools', '3.0')
@@ -109,19 +109,27 @@ class WalChunk:
 class PgControlData:
     """Contents of pg_controldata"""
 
-    def __init__(self, slave_bin, slave_data, findRestartPoint):
+    def __init__(self, bin_dir, data_dir, findRestartPoint):
         """Collect last checkpoint information from pg_controldata output"""
         self.xlogid = None
         self.xrecoff = None
         self.timeline = None
         self.wal_size = None
         self.wal_name = None
-        self.is_valid = False
+        self.cluster_state = None
+        self.is_shutdown = False
         self.pg_version = 0
-        matches = 0
-        pg_controldata = "%s %s" % (os.path.join(slave_bin, "pg_controldata"), slave_data)
+        self.is_valid = False
 
-        for line in os.popen(pg_controldata, "r"):
+        try:
+            pg_controldata = os.path.join(bin_dir, "pg_controldata")
+            pipe = subprocess.Popen([ pg_controldata, data_dir ], stdout=subprocess.PIPE)
+        except OSError:
+            # don't complain if we cannot execute it
+            return
+
+        matches = 0
+        for line in pipe.stdout.readlines():
             if findRestartPoint:
                 m = re.match("^Latest checkpoint's REDO location:\s+([0-9A-F]+)/([0-9A-F]+)", line)
             else:
@@ -142,8 +150,14 @@ class PgControlData:
             if m:
                 matches += 1
                 self.pg_version = int(m.group(1))
+            m = re.match("^Database cluster state:\s+(.*$)", line)
+            if m:
+                matches += 1
+                self.cluster_state = m.group(1)
+                self.is_shutdown = (self.cluster_state == "shut down")
 
-        if matches == 4:
+        # ran successfully and we got our needed matches
+        if pipe.wait() == 0 and matches == 5:
             self.wal_name = "%08X%08X%08X" % \
                 (self.timeline, self.xlogid, self.xrecoff / self.wal_size)
             self.is_valid = True
@@ -246,6 +260,9 @@ class WalMgr(skytools.DBScript):
         return p
 
     def __init__(self, args):
+
+        if len(args) == 1 and args[0] == '--version':
+           skytools.DBScript.__init__(self, 'wal-master', args)
 
         if len(args) < 2:
             # need at least config file and command
@@ -1010,6 +1027,7 @@ STOP TIME: %(stop_time)s
         use_xlog_functions = self.cf.getint("use_xlog_functions", False)
         data_dir = self.cf.get("master_data")
         xlog_dir = os.path.join(data_dir, "pg_xlog")
+        master_bin = self.cf.get("master_bin", "")
 
         dst_loc = os.path.join(self.cf.get("partial_wals"), "")
 
@@ -1052,6 +1070,22 @@ STOP TIME: %(stop_time)s
             else:
                 self.log.info("last complete not found, copying all")
 
+            # obtain the last checkpoint wal name, this can be used for
+            # limiting the amount of WAL files to copy if the database
+            # has been cleanly shut down
+            ctl = PgControlData(master_bin, data_dir, False)
+            checkpoint_wal = None
+            if ctl.is_valid:
+                if not ctl.is_shutdown:
+                    # cannot rely on the checkpoint wal, should use some other method
+                    self.log.info("Database state is not 'shut down', copying all")
+                else:
+                    # ok, the database is shut down, we can use last checkpoint wal
+                    checkpoint_wal = ctl.wal_name
+                    self.log.info("last checkpoint wal: %s" % checkpoint_wal)
+            else:
+                self.log.info("Unable to obtain control file information, copying all")
+
             for fn in files:
                 # check if interesting file
                 if len(fn) < 10:
@@ -1060,7 +1094,7 @@ STOP TIME: %(stop_time)s
                     continue
                 if fn.find(".") > 0:
                     continue
-                # check if to old
+                # check if too old
                 if last:
                     dot = last.find(".")
                     if dot > 0:
@@ -1070,6 +1104,9 @@ STOP TIME: %(stop_time)s
                     else:
                         if fn <= last:
                             continue
+                # check if too new
+                if checkpoint_wal and fn > checkpoint_wal:
+                    continue
 
                 # got interesting WAL
                 xlog = os.path.join(xlog_dir, fn)
@@ -1197,12 +1234,6 @@ STOP TIME: %(stop_time)s
             self.log.debug("%s: copy done, cleanup" % srcname)
             self.slave_cleanup(lstname)
 
-        if os.path.isfile(partfile) and not srcfile == partfile:
-            # Remove any partial files after restore. Only leave the partial if
-            # it is actually used in recovery.
-            self.log.debug("%s: removing partial not anymore needed for recovery." % partfile)
-            os.remove(partfile)
-
         # create a PROGRESS file to notify that postgres is processing the WAL
         open(prgrfile, "w").write("1")
 
@@ -1215,7 +1246,7 @@ STOP TIME: %(stop_time)s
 
         If setname is specified, the contents of that backup set directory are 
         restored instead of "full_backup". Also copy is used instead of rename to 
-        restore the directory.
+        restore the directory (unless a pg_xlog directory has been specified).
 
         Restore to altdst if specified. Complain if it exists.
         """
@@ -1274,9 +1305,15 @@ STOP TIME: %(stop_time)s
             # nothing to back up
             createbackup = False
 
-        if not setname and os.path.isdir(data_dir):
-            # compatibility mode - restore without a set name and data directory 
-            # already exists. Move it out of the way.
+        # see if we have to make a backup of the data directory 
+        backup_datadir = self.cf.getboolean('backup_datadir', True)
+
+        if os.path.isdir(data_dir) and not backup_datadir:
+            self.log.warning('backup_datadir is disabled, deleting old data dir')
+            shutil.rmtree(data_dir)
+
+        if not setname and os.path.isdir(data_dir) and backup_datadir:
+            # compatibility mode - restore without a set name and data directory exists
             self.log.warning("Data directory already exists, moving it out of the way.")
             createbackup = True
 
@@ -1288,20 +1325,38 @@ STOP TIME: %(stop_time)s
 
         # move new data, copy if setname specified
         self.log.info("%s %s to %s" % (setname and "Copy" or "Move", full_dir, data_dir))
+
+        if self.cf.get('slave_pg_xlog', ''):
+            link_xlog_dir = True
+            exclude_pg_xlog = '--exclude=pg_xlog'
+        else:
+            link_xlog_dir = False
+            exclude_pg_xlog = ''
+
         if not self.not_really:
-            if not setname:
+            if not setname and not link_xlog_dir:
                 os.rename(full_dir, data_dir)
             else:
-                self.exec_rsync(["--delete", "--no-relative", "--exclude=pg_xlog/*",
-                    os.path.join(full_dir,""), data_dir], True)
-                if self.wtype == MASTER and createbackup and os.path.isdir(bak):
+                rsync_args=["--delete", "--no-relative", "--exclude=pg_xlog/*"]
+                if exclude_pg_xlog:
+                    rsync_args.append(exclude_pg_xlog)
+                rsync_args += [os.path.join(full_dir, ""), data_dir]
+
+                self.exec_rsync(rsync_args, True)
+
+                if link_xlog_dir:
+                   os.symlink(self.cf.get('slave_pg_xlog'), "%s/pg_xlog" % data_dir)
+
+                if (self.wtype == MASTER and createbackup and os.path.isdir(bak)):
                     # restore original xlog files to data_dir/pg_xlog   
-                    # symlinked directories are dereferences
-                    self.exec_cmd(["cp", "-rL", "%s/pg_xlog" % bak, data_dir])
+                    # symlinked directories are dereferenced
+                    self.exec_cmd(["cp", "-rL", "%s/pg_xlog/" % full_dir, "%s/pg_xlog" % data_dir ])
                 else:
                     # create an archive_status directory
                     xlog_dir = os.path.join(data_dir, "pg_xlog")
-                    os.mkdir(os.path.join(xlog_dir, "archive_status"), 0700)
+                    archive_path = os.path.join(xlog_dir, "archive_status")
+                    if not os.path.exists(archive_path):
+                        os.mkdir(archive_path, 0700)
         else:
             data_dir = full_dir
 
@@ -1653,14 +1708,14 @@ restore_command = '%s %s %s'
         partial_wals = self.cf.get("partial_wals")
 
         self.log.debug("cleaning completed wals before %s" % last_applied)
-        last = self.del_wals(completed_wals, last_applied)
-        if last:
-            if os.path.isdir(partial_wals):
-                self.log.debug("cleaning partial wals before %s" % last)
-                self.del_wals(partial_wals, last)
-            else:
-                self.log.warning("partial_wals dir does not exist: %s"
-                              % partial_wals)
+        self.del_wals(completed_wals, last_applied)
+
+        if os.path.isdir(partial_wals):
+            self.log.debug("cleaning partial wals before %s" % last_applied)
+            self.del_wals(partial_wals, last_applied)
+        else:
+            self.log.warning("partial_wals dir does not exist: %s" % partial_wals)
+
         self.log.debug("cleaning done")
 
     def del_wals(self, path, last):

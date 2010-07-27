@@ -273,6 +273,19 @@ Backups will be named data.master, data.master.0, data.master.1 etc.
 Script to execute before rotating away the oldest backup. If it fails
 backups will not be rotated.
 
+
+==== slave_pg_xlog ====
+Set slave_pg_xlog to the directory on the slave where pg_xlog files get 
+written to. On a restore to the slave walmgr.py will
+create a symbolic link from data/pg_xlog to this location.
+
+
+==== backup_datadir ====
+Set backup_datadir to 'no' to prevent walmgr.py from making a backup
+of the data directory when restoring to the slave.  This defaults to
+'yes'
+
+
 === Sample slave.ini ===
 
   [wal-slave]
@@ -285,4 +298,4 @@ backups will not be rotated.
   partial_wals         = %(slave)s/logs.partial
   full_backup          = %(slave)s/data.master
   keep_backups         = 5
-
+  backup_datadir       = yes
