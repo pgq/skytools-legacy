@@ -48,16 +48,16 @@ install: $(FQMAN) $(FQHTML)
 	mkdir -p $(DESTDIR)/$(docdir)
 	for m in $(FQMAN1_SFX); do \
 	  xf="`basename $$m | sed 's/[.]/$(SUFFIX)./'`"; \
-	  install -m 644 $$m $(DESTDIR)/$(mandir)/man1/$$xf ; \
+	  install -m 644 $$m $(DESTDIR)/$(mandir)/man1/$$xf || exit 1; \
 	done
 	for m in $(FQMAN1); do \
-	  install -m 644 $$m $(DESTDIR)/$(mandir)/man1 ; \
+	  install -m 644 $$m $(DESTDIR)/$(mandir)/man1 || exit 1; \
 	done
 	for m in $(FQMAN5); do \
-	  install -m 644 $$m $(DESTDIR)/$(mandir)/man5 ; \
+	  install -m 644 $$m $(DESTDIR)/$(mandir)/man5 || exit 1; \
 	done
 	for h in $(FQHTML); do \
-	  install -m 644 $$h $(DESTDIR)/$(docdir) ; \
+	  install -m 644 $$h $(DESTDIR)/$(docdir) || exit 1; \
 	done
 
 old.wiki.upload:
