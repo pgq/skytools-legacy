@@ -487,7 +487,7 @@ class DBScript(object):
                      help = "stop program safely (send SIGINT)")
         g.add_option("-k", "--kill",
                      action="store_const", const="kill", dest="cmd",
-                     help = "kill program immidiately (send SIGTERM)")
+                     help = "kill program immediately (send SIGTERM)")
         p.add_option_group(g)
 
         return p
@@ -759,7 +759,7 @@ class DBScript(object):
         """Here should user's processing happen.
 
         Return value is taken as boolean - if true, the next loop
-        starts immidiately.  If false, DBScript sleeps for a loop_delay.
+        starts immediately.  If false, DBScript sleeps for a loop_delay.
         """
         raise Exception("Nothing implemented?")
 
