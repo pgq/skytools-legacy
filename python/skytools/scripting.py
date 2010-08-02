@@ -131,12 +131,18 @@ def run_single_process(runnable, daemon, pidfile):
 _log_config_done = 0
 _log_init_done = {}
 
-def _init_log(job_name, service_name, cf, log_level):
+def _init_log(job_name, service_name, cf, log_level, is_daemon):
     """Logging setup happens here."""
     global _log_init_done, _log_config_done
 
     got_skylog = 0
     use_skylog = cf.getint("use_skylog", 0)
+
+    # if non-daemon, avoid skylog if script is running on console.
+    # set use_skylog=2 to disable.
+    if not is_daemon and use_skylog == 1:
+        if os.isatty(sys.stdout.fileno()):
+            use_skylog = 0
 
     # load logging config if needed
     if use_skylog and not _log_config_done:
@@ -298,7 +304,11 @@ class DBScript(object):
         # per-process name to use in logging
         #job_name = %(config_name)s
 
-        # whether centralized logging should be used (loaded from skylog.ini)
+        # whether centralized logging should be used
+        # search-path [ ./skylog.ini, ~/.skylog.ini, /etc/skylog.ini ]
+        #   0 - disabled
+        #   1 - enabled, unless non-daemon on console (os.isatty())
+        #   2 - always enabled
         #use_skylog = 0
 
         # default lifetime for database connections (in seconds)
@@ -368,7 +378,7 @@ class DBScript(object):
         self.reload()
 
         # init logging
-        self.log = _init_log(self.job_name, self.service_name, self.cf, self.log_level)
+        self.log = _init_log(self.job_name, self.service_name, self.cf, self.log_level, self.go_daemon)
 
         # send signal, if needed
         if self.options.cmd == "kill":
