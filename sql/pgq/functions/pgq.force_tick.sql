@@ -38,8 +38,9 @@ begin
     --end if;
 
     -- return last tick id
-    select tick_id into t from pgq.tick
-     where tick_queue = q.queue_id
+    select tick_id into t
+      from pgq.tick, pgq.queue
+     where tick_queue = queue_id and queue_name = i_queue_name
      order by tick_queue desc, tick_id desc limit 1;
 
     return t.tick_id;
