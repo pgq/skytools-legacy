@@ -2,22 +2,16 @@
 
 """Puts events into queue specified by field from 'queue_field' config parameter.
 
-Config template::
+Config parameters::
 
-    [queue_splitter]
-    job_name          = queue_splitter_test
+    ## Parameters for queue_splitter
 
+    # database locations
     src_db            = dbname=sourcedb_test
     dst_db            = dbname=destdb_test
 
-    pgq_queue_name    = source_queue
-
     # event fields from  where target queue name is read
     #queue_field       = extra1
-
-    logfile           = ~/log/%(job_name)s.log
-    pidfile           = ~/pid/%(job_name)s.pid
-    use_skylog        = 0
 """
 
 import sys

@@ -2,21 +2,14 @@
 
 """This script simply mover events from one queue to another.
 
-Config template::
+Config parameters::
 
-    [queue_mover]
-    job_name          = qm_sourcedb_to_targetdb
+    ## Parameters for queue_mover
 
     src_db            = dbname=sourcedb
     dst_db            = dbname=targetdb
 
-    pgq_queue_name    = source_queue
     dst_queue_name    = dest_queue
-
-    logfile           = ~/log/%(job_name)s.log
-    pidfile           = ~/pid/%(job_name)s.pid
-
-    use_skylog        = 0
 """
 
 import sys, os
