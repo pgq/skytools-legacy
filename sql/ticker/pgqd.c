@@ -21,6 +21,11 @@ static const char usage_str[] =
 "  -h        Show help\n"
 "  -V        Show version\n"
 " --ini      Show sample config file\n"
+"  -s        Stop - send SIGINT to running process\n"
+"  -k        Kill - send SIGTERM to running process\n"
+#ifdef SIGHUP
+"  -r        Reload - send SIGHUP to running process\n"
+#endif
 "";
 
 static const char *sample_ini =
@@ -289,6 +294,8 @@ int main(int argc, char *argv[])
 {
 	int c;
 	bool daemon = false;
+	int sig = 0;
+	const char *signame = NULL;
 
 	for (c = 1; c < argc; c++) {
 		if (!strcmp(argv[c], "--ini")) {
@@ -301,7 +308,7 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	while ((c = getopt(argc, argv, "dqvhV")) != -1) {
+	while ((c = getopt(argc, argv, "dqvhVrsk")) != -1) {
 		switch (c) {
 		case 'd':
 			daemon = true;
@@ -315,6 +322,20 @@ int main(int argc, char *argv[])
 		case 'h':
 			printf(usage_str);
 			return 0;
+#ifdef SIGHUP
+		case 'r':
+			sig = SIGHUP;
+			signame = "SIGHUP";
+			break;
+#endif
+		case 's':
+			sig = SIGINT;
+			signame = "SIGINT";
+			break;
+		case 'k':
+			sig = SIGTERM;
+			signame = "SIGTERM";
+			break;
 		default:
 			printf("bad switch: ");
 			printf(usage_str);
@@ -322,13 +343,27 @@ int main(int argc, char *argv[])
 		}
 	}
 	if (optind + 1 != argc) {
-		printf("pgqd requires config file\n");
+		fprintf(stderr, "pgqd requires config file\n");
 		return 1;
 	}
 
 	cf.config_file = argv[optind];
 
 	load_config(false);
+
+	if (sig) {
+		if (!cf.pidfile || !cf.pidfile[0]) {
+			fprintf(stderr, "No pidfile configured\n");
+			return 1;
+		}
+		if (signal_pidfile(cf.pidfile, sig))
+			fprintf(stderr, "%s sent\n", signame);
+		else
+			fprintf(stderr, "Old process is not running\n");
+		return 0;
+	}
+
+	log_info("Starting pgqd " PACKAGE_VERSION);
 
 	daemonize(cf.pidfile, daemon);
 
