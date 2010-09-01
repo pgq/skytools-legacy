@@ -244,13 +244,13 @@ update pgq.queue set queue_rotation_period = '0 seconds';
 select queue_name, pgq.maint_rotate_tables_step1(queue_name) from pgq.queue;
  queue_name | maint_rotate_tables_step1 
 ------------+---------------------------
- myqueue    |                         1
+ myqueue    |                         0
 (1 row)
 
 select pgq.maint_rotate_tables_step2();
  maint_rotate_tables_step2 
 ---------------------------
-                         1
+                         0
 (1 row)
 
 -- test extra
@@ -374,3 +374,28 @@ select pgq.insert_event('myqueue', 'test', 'event3');
 (1 row)
 
 end;
+select * from pgq.maint_operations();
+           func_name           | func_arg 
+-------------------------------+----------
+ pgq.maint_rotate_tables_step1 | myqueue
+ pgq.maint_rotate_tables_step2 | 
+(2 rows)
+
+alter table pgq.queue add column queue_extra_maint text[];
+select * from pgq.maint_operations();
+           func_name           | func_arg 
+-------------------------------+----------
+ pgq.maint_rotate_tables_step1 | myqueue
+ pgq.maint_rotate_tables_step2 | 
+(2 rows)
+
+update pgq.queue set queue_extra_maint = array['baz', 'foo.bar'];
+select * from pgq.maint_operations();
+           func_name           | func_arg 
+-------------------------------+----------
+ pgq.maint_rotate_tables_step1 | myqueue
+ pgq.maint_rotate_tables_step2 | 
+ baz                           | myqueue
+ foo.bar                       | myqueue
+(4 rows)
+

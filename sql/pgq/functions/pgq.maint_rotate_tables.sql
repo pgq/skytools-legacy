@@ -9,7 +9,7 @@ returns integer as $$
 --      i_queue_name        - Name of the queue
 --
 -- Returns:
---      1 if rotation happened, otherwise 0.
+--      0
 -- ----------------------------------------------------------------------
 declare
     badcnt          integer;
@@ -87,7 +87,7 @@ begin
         where tick_queue = cf.queue_id
           and txid_snapshot_xmin(tick_snapshot) < cf.queue_switch_step2;
 
-    return 1;
+    return 0;
 end;
 $$ language plpgsql; -- need admin access
 
@@ -104,7 +104,7 @@ begin
     update pgq.queue
        set queue_switch_step2 = txid_current()
      where queue_switch_step2 is null;
-    return 1;
+    return 0;
 end;
 $$ language plpgsql; -- need admin access
 

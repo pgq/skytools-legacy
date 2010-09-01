@@ -19,6 +19,7 @@
 \i functions/pgq.maint_retry_events.sql
 \i functions/pgq.maint_rotate_tables.sql
 \i functions/pgq.maint_tables_to_vacuum.sql
+\i functions/pgq.maint_operations.sql
 
 -- Group: Random utility functions
 

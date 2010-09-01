@@ -111,4 +111,9 @@ select pgq.insert_event('myqueue', 'test', 'event2');
 select pgq.insert_event('myqueue', 'test', 'event3');
 end;
 
+select * from pgq.maint_operations();
+alter table pgq.queue add column queue_extra_maint text[];
+select * from pgq.maint_operations();
+update pgq.queue set queue_extra_maint = array['baz', 'foo.bar'];
+select * from pgq.maint_operations();
 
