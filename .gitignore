@@ -24,6 +24,7 @@ log
 dist
 tags
 zconf*
+.gdb*
 
 python/skytools/installer_config.py
 sql/txid/txid.sql
@@ -40,8 +41,13 @@ sql/pgq/lowlevel/pgq_lowlevel.sql
 sql/pgq/triggers/pgq_triggers.sql
 sql/pgq_ext/pgq_ext.sql
 sql/ticker/pgqd
+sql/txid/txid.sql.in
 tests/londiste/conf
 tests/merge/conf
+
+sql/*/*.sql
+tmp_files.lst
+sql/ticker/pgqd.ini.h
 
 build
 doc/londiste.5
