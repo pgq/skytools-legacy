@@ -174,7 +174,7 @@ static void drop_db(struct PgDatabase *db)
 	pgs_free(db->c_ticker);
 	pgs_free(db->c_maint);
 	pgs_free(db->c_retry);
-	strlist_free(db->maint_item_list);
+	free_maint(db);
 	free(db->name);
 	free(db);
 }
