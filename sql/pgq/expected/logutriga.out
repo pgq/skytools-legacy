@@ -110,3 +110,39 @@ CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, $5, $6, $7)"
 delete from custom_expr2;
 NOTICE:  insert_event(que3, bat, dat1=foo&dat2=2&dat3=bat, test=foo)
 CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, $5, $6, $7)"
+-- test when=
+create table when_test (
+    dat1 text not null primary key,
+    dat2 int2 not null,
+    dat3 text
+);
+NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "when_test_pkey" for table "when_test"
+create trigger when_triga after insert or update or delete on when_test
+for each row execute procedure pgq.logutriga('que3', 'when=dat1=''foo''');
+insert into when_test values ('foo', '2');
+NOTICE:  insert_event(que3, I:dat1, dat1=foo&dat2=2&dat3, public.when_test)
+CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, $5, $6, $7)"
+insert into when_test values ('bar', '2');
+select * from when_test;
+ dat1 | dat2 | dat3 
+------+------+------
+ foo  |    2 | 
+ bar  |    2 | 
+(2 rows)
+
+update when_test set dat3 = 'bat';
+NOTICE:  insert_event(que3, U:dat1, dat1=foo&dat2=2&dat3=bat, public.when_test)
+CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, $5, $6, $7)"
+delete from when_test;
+NOTICE:  insert_event(que3, D:dat1, dat1=foo&dat2=2&dat3=bat, public.when_test)
+CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, $5, $6, $7)"
+drop trigger when_triga on when_test;
+create trigger when_triga after insert or update or delete on when_test
+for each row execute procedure pgq.logutriga('que3', 'when=current_user=''random''');
+insert into when_test values ('foo', '2');
+select * from when_test;
+ dat1 | dat2 | dat3 
+------+------+------
+ foo  |    2 | 
+(1 row)
+

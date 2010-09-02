@@ -157,6 +157,9 @@ void pgq_insert_tg_event(PgqTriggerEvent *ev)
 
 	override_fields(ev);
 
+	if (ev->skip_event)
+		return;
+
 	pgq_simple_insert(ev->queue_name,
 			  pgq_finish_varbuf(ev->field[EV_TYPE]),
 			  pgq_finish_varbuf(ev->field[EV_DATA]),
@@ -416,6 +419,8 @@ static void parse_newstyle_args(PgqTriggerEvent *ev, TriggerData *tg)
 			make_query(ev, EV_DATA, arg + 8);
 		else if (strncmp(arg, "ev_type=", 8) == 0)
 			make_query(ev, EV_TYPE, arg + 8);
+		else if (strncmp(arg, "when=", 5) == 0)
+			make_query(ev, EV_WHEN, arg + 5);
 		else
 			elog(ERROR, "bad param to pgq trigger");
 	}
@@ -707,6 +712,23 @@ static void override_fields(struct PgqTriggerEvent *ev)
 			elog(ERROR, "Override query failed");
 		if (SPI_processed != 1)
 			elog(ERROR, "Expect 1 row from override query, got %d", SPI_processed);
+
+		/* special handling for EV_WHEN */
+		if (i == EV_WHEN) {
+			bool isnull;
+			Oid oid = SPI_gettypeid(SPI_tuptable->tupdesc, 1);
+			Datum res;
+			if (oid != BOOLOID)
+				elog(ERROR, "when= query result must be boolean, got=%u", oid);
+			res = SPI_getbinval(SPI_tuptable->vals[0], SPI_tuptable->tupdesc, 1, &isnull);
+			if (isnull)
+				elog(ERROR, "when= should not be NULL");
+			if (DatumGetBool(res) == 0)
+				ev->skip_event = true;
+			continue;
+		}
+
+		/* normal field */
 		val = SPI_getvalue(SPI_tuptable->vals[0], SPI_tuptable->tupdesc, 1);
 		if (ev->field[i]) {
 			pfree(ev->field[i]->data);

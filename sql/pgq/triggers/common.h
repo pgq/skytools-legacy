@@ -5,6 +5,7 @@ enum PgqFields {
 	EV_EXTRA2,
 	EV_EXTRA3,
 	EV_EXTRA4,
+	EV_WHEN,
 	EV_NFIELDS
 };
 
@@ -35,6 +36,9 @@ struct PgqTriggerEvent {
 
 	/* result fields */
 	StringInfo field[EV_NFIELDS];
+
+	/* if 'when=' query fails */
+	bool skip_event;
 };
 typedef struct PgqTriggerEvent PgqTriggerEvent;
 

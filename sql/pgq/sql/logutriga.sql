@@ -87,4 +87,26 @@ insert into custom_expr2 values ('foo', '2');
 update custom_expr2 set dat3 = 'bat';
 delete from custom_expr2;
 
+-- test when=
+create table when_test (
+    dat1 text not null primary key,
+    dat2 int2 not null,
+    dat3 text
+);
+create trigger when_triga after insert or update or delete on when_test
+for each row execute procedure pgq.logutriga('que3', 'when=dat1=''foo''');
+
+insert into when_test values ('foo', '2');
+insert into when_test values ('bar', '2');
+select * from when_test;
+update when_test set dat3 = 'bat';
+delete from when_test;
+
+drop trigger when_triga on when_test;
+create trigger when_triga after insert or update or delete on when_test
+for each row execute procedure pgq.logutriga('que3', 'when=current_user=''random''');
+
+insert into when_test values ('foo', '2');
+select * from when_test;
+
 

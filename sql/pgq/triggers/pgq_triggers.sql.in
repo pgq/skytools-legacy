@@ -18,6 +18,7 @@
 --      backup              - Put urlencoded contents of old row to ev_extra2
 --      colname=EXPR        - Override field value with SQL expression.  Can reference table
 --                            columns.  colname can be: ev_type, ev_data, ev_extra1 .. ev_extra4
+--      when=EXPR           - If EXPR returns false, don't insert event.
 --
 -- Queue event fields:
 --    ev_type     - I/U/D
@@ -50,6 +51,7 @@ AS 'MODULE_PATHNAME', 'pgq_sqltriga' LANGUAGE C;
 --      backup              - Put urlencoded contents of old row to ev_extra2
 --      colname=EXPR        - Override field value with SQL expression.  Can reference table
 --                            columns.  colname can be: ev_type, ev_data, ev_extra1 .. ev_extra4
+--      when=EXPR           - If EXPR returns false, don't insert event.
 --
 -- Queue event fields:
 --      ev_type      - I/U/D ':' pkey_column_list
