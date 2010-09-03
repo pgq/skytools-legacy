@@ -34,6 +34,8 @@ static const char *sample_ini =
 
 struct Config cf;
 
+struct Stats stats;
+
 static struct PgSocket *db_template;
 
 static STATLIST(database_list);
@@ -52,6 +54,7 @@ static const struct CfKey conf_params[] = {
 	{ "maint_period", CF_REL_TIME_DOUBLE(maint_period), "120" },
 	{ "retry_period", CF_REL_TIME_DOUBLE(retry_period), "30" },
 	{ "ticker_period", CF_REL_TIME_DOUBLE(ticker_period), "1" },
+	{ "stats_period", CF_REL_TIME_DOUBLE(stats_period), "30" },
 	{ NULL },
 };
 
@@ -162,6 +165,7 @@ static void launch_db(const char *dbname)
 	db = calloc(1, sizeof(*db));
 	db->name = strdup(dbname);
 	list_init(&db->head);
+	statlist_init(&db->maint_op_list, "maint_op_list");
 	statlist_append(&database_list, &db->head);
 
 	/* start working on it */
@@ -268,6 +272,28 @@ static void recheck_dbs(void)
 	}
 }
 
+static struct event stats_ev;
+
+static void stats_handler(int fd, short flags, void *arg)
+{
+	struct timeval tv = { cf.stats_period, 0 };
+
+	log_info("{ticks: %d, maint: %d, retry: %d}",
+		 stats.n_ticks, stats.n_maint, stats.n_retry);
+	memset(&stats, 0, sizeof(stats));
+
+	if (evtimer_add(&stats_ev, &tv) < 0)
+		fatal_perror("evtimer_add");
+}
+
+static void stats_setup(void)
+{
+	struct timeval tv = { cf.stats_period, 0 };
+	evtimer_set(&stats_ev, stats_handler, NULL);
+	if (evtimer_add(&stats_ev, &tv) < 0)
+		fatal_perror("evtimer_add");
+}
+
 static void cleanup(void)
 {
 	struct PgDatabase *db;
@@ -372,11 +398,14 @@ int main(int argc, char *argv[])
 
 	signal_setup();
 
+	stats_setup();
+
 	recheck_dbs();
 
 	while (!got_sigint)
 		main_loop_once();
 
+	_exit(1);
 	cleanup();
 
 	return 0;

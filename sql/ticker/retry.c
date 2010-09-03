@@ -19,6 +19,7 @@ static void parse_retry(struct PgDatabase *db, PGresult *res)
 {
 	if (PQntuples(res) == 1) {
 		char *val = PQgetvalue(res, 0, 0);
+		stats.n_retry += atoi(val);
 		if (strcmp(val, "0") != 0) {
 			run_retry(db);
 			return;

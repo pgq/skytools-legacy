@@ -19,7 +19,7 @@ static void run_version_check(struct PgDatabase *db)
 static void run_ticker(struct PgDatabase *db)
 {
 	const char *q = "select pgq.ticker()";
-	log_debug("%s: %s", db->name, q);
+	log_noise("%s: %s", db->name, q);
 	pgs_send_query_simple(db->c_ticker, q);
 	db->state = DB_TICKER_RUN;
 }
@@ -74,6 +74,8 @@ static void parse_ticker_result(struct PgDatabase *db, PGresult *res)
 {
 	if (PQntuples(res) != 1) {
 		log_debug("%s: calling pgq.ticker() failed", db->name);
+	} else {
+		stats.n_ticks++;
 	}
 
 	pgs_sleep(db->c_ticker, cf.ticker_period);
@@ -103,7 +105,7 @@ static void tick_handler(struct PgSocket *s, void *arg, enum PgEvent ev, PGresul
 		}
 		break;
 	case PGS_TIMEOUT:
-		log_debug("%s: tick timeout", db->name);
+		log_noise("%s: tick timeout", db->name);
 		if (!pgs_connection_valid(db->c_ticker))
 			launch_ticker(db);
 		else

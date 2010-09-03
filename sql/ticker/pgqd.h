@@ -42,6 +42,8 @@ struct PgDatabase {
 	struct StrList *maint_item_list;
 	struct StatList maint_op_list;
 	struct MaintOp *cur_maint;
+
+	bool has_maint_operations;
 };
 
 struct Config {
@@ -56,10 +58,17 @@ struct Config {
 	double check_period;
 	double maint_period;
 	double ticker_period;
+	double stats_period;
+};
+
+struct Stats {
+	int n_ticks;
+	int n_maint;
+	int n_retry;
 };
 
 extern struct Config cf;
-
+extern struct Stats stats;
 
 void launch_ticker(struct PgDatabase *db);
 void launch_maint(struct PgDatabase *db);
