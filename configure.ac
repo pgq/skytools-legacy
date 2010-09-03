@@ -93,6 +93,18 @@ else
   XMLTO="no"
 fi
 
+# when in .git tree, turn asciidoc/xmlto uncondicionally on
+if test -d .git; then
+  if test "$ASCIIDOC" = "no"; then
+    echo "*** Building from GIT requires asciidoc, enabling it ***"
+    ASCIIDOC="asciidoc"
+  fi
+  if test "$XMLTO" = "no"; then
+    echo "*** Building from GIT requires xmlto, enabling it ***"
+    XMLTO="xmlto"
+  fi
+fi
+
 AC_USUAL_PORT_CHECK
 AC_USUAL_PROGRAM_CHECK
 AC_USUAL_HEADER_CHECK
