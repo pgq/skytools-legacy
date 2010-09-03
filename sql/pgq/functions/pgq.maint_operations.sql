@@ -17,8 +17,10 @@ returns setof record as $$
 -- ----------------------------------------------------------------------
 declare
     ops text[];
+    nrot int4;
 begin
     -- rotate step 1
+    nrot := 0;
     func_name := 'pgq.maint_rotate_tables_step1';
     for func_arg in
         select queue_name from pgq.queue
@@ -27,13 +29,16 @@ begin
                 and queue_switch_time + queue_rotation_period < current_timestamp
             order by 1
     loop
+        nrot := nrot + 1;
         return next;
     end loop;
 
     -- rotate step 2
-    func_name := 'pgq.maint_rotate_tables_step2';
-    func_arg := NULL;
-    return next;
+    if nrot > 0 then
+        func_name := 'pgq.maint_rotate_tables_step2';
+        func_arg := NULL;
+        return next;
+    end if;
 
     -- check if extra field exists
     perform 1 from pg_attribute
