@@ -477,8 +477,6 @@ void pgq_prepare_event(struct PgqTriggerEvent *ev, TriggerData *tg, bool newstyl
 	/*
 	 * Check trigger calling conventions
 	 */
-	if (!TRIGGER_FIRED_AFTER(tg->tg_event))
-		/* dont care */ ;
 	if (TRIGGER_FIRED_BY_TRUNCATE(tg->tg_event)) {
 		if (!TRIGGER_FIRED_FOR_STATEMENT(tg->tg_event))
 			elog(ERROR, "pgq tRuncate trigger must be fired FOR EACH STATEMENT");
@@ -529,6 +527,17 @@ void pgq_prepare_event(struct PgqTriggerEvent *ev, TriggerData *tg, bool newstyl
 		parse_oldstyle_args(ev, tg);
 	}
 	ev->tgargs->finalized = true;
+
+	/*
+	 * Check if BEFORE/AFTER makes sense.
+	 */
+	if (ev->tgargs->skip) {
+		if (TRIGGER_FIRED_AFTER(tg->tg_event))
+			elog(ERROR, "SKIP does not work in AFTER trigger.");
+	} else {
+		if (!TRIGGER_FIRED_AFTER(tg->tg_event))
+			/* dont care ??? */ ;
+	}
 
 	/*
 	 * init data
