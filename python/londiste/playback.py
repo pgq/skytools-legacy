@@ -476,7 +476,7 @@ class Replicator(CascadedWorker):
             self.handle_data_event(ev, dst_curs)
         elif ev.type[:2] in ('I:', 'U:', 'D:'):
             self.handle_data_event(ev, dst_curs)
-        elif ev.type == "TRUNCATE":
+        elif ev.type == "R":
             self.flush_sql(dst_curs)
             self.handle_truncate_event(ev, dst_curs)
         elif ev.type == 'EXECUTE':
@@ -521,6 +521,10 @@ class Replicator(CascadedWorker):
             return
 
         fqname = skytools.quote_fqident(ev.extra1)
+        if dst_curs.connection.server_version >= 80400:
+            sql = "TRUNCATE ONLY %s;" % fqname
+        else:
+            sql = "TRUNCATE %s;" % fqname
         sql = "TRUNCATE %s;" % fqname
 
         self.flush_sql(dst_curs)
@@ -572,7 +576,7 @@ class Replicator(CascadedWorker):
 
     def interesting(self, ev):
         """See if event is interesting."""
-        if ev.type not in ('I', 'U', 'D'):
+        if ev.type not in ('I', 'U', 'D', 'R'):
             raise Exception('bug - bad event type in .interesting')
         t = self.get_table_by_name(ev.extra1)
         if not t:

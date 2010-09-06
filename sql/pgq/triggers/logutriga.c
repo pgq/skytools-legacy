@@ -135,6 +135,9 @@ void pgq_urlenc_row(PgqTriggerEvent *ev, HeapTuple row, StringInfo buf)
 	const char *col_ident, *col_value;
 	int attkind_idx = -1;
 
+	if (ev->op_type == 'R')
+		return;
+
 	for (i = 0; i < tg->tg_relation->rd_att->natts; i++) {
 		/* Skip dropped columns */
 		if (tupdesc->attrs[i]->attisdropped)
@@ -202,10 +205,12 @@ Datum pgq_logutriga(PG_FUNCTION_ARGS)
 
 	pgq_prepare_event(&ev, tg, true);
 
-	appendStringInfoChar(ev.field[EV_TYPE], ev.op_type);
-	appendStringInfoChar(ev.field[EV_TYPE], ':');
-	appendStringInfoString(ev.field[EV_TYPE], ev.pkey_list);
 	appendStringInfoString(ev.field[EV_EXTRA1], ev.info->table_name);
+	appendStringInfoChar(ev.field[EV_TYPE], ev.op_type);
+	if (ev.op_type != 'R') {
+		appendStringInfoChar(ev.field[EV_TYPE], ':');
+		appendStringInfoString(ev.field[EV_TYPE], ev.pkey_list);
+	}
 
 	if (is_interesting_change(&ev, tg)) {
 		/*

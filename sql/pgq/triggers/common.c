@@ -425,6 +425,14 @@ static void parse_newstyle_args(PgqTriggerEvent *ev, TriggerData *tg)
 			elog(ERROR, "bad param to pgq trigger");
 	}
 
+	if (ev->op_type == 'R') {
+		if (ev->tgargs->ignore_list)
+			elog(ERROR, "Column ignore does not make sense for truncate trigger");
+		if (ev->tgargs->pkey_list)
+			elog(ERROR, "Custom pkey_list does not make sense for truncate trigger");
+		if (ev->tgargs->backup)
+			elog(ERROR, "Backup does not make sense for truncate trigger");
+	}
 }
 
 static void parse_oldstyle_args(PgqTriggerEvent *ev, TriggerData *tg)
@@ -471,8 +479,12 @@ void pgq_prepare_event(struct PgqTriggerEvent *ev, TriggerData *tg, bool newstyl
 	 */
 	if (!TRIGGER_FIRED_AFTER(tg->tg_event))
 		/* dont care */ ;
-	if (!TRIGGER_FIRED_FOR_ROW(tg->tg_event))
-		elog(ERROR, "pgq trigger must be fired FOR EACH ROW");
+	if (TRIGGER_FIRED_BY_TRUNCATE(tg->tg_event)) {
+		if (!TRIGGER_FIRED_FOR_STATEMENT(tg->tg_event))
+			elog(ERROR, "pgq tRuncate trigger must be fired FOR EACH STATEMENT");
+	} else if (!TRIGGER_FIRED_FOR_ROW(tg->tg_event)) {
+		elog(ERROR, "pgq Ins/Upd/Del trigger must be fired FOR EACH ROW");
+	}
 	if (tg->tg_trigger->tgnargs < 1)
 		elog(ERROR, "pgq trigger must have destination queue as argument");
 
@@ -485,6 +497,8 @@ void pgq_prepare_event(struct PgqTriggerEvent *ev, TriggerData *tg, bool newstyl
 		ev->op_type = 'U';
 	else if (TRIGGER_FIRED_BY_DELETE(tg->tg_event))
 		ev->op_type = 'D';
+	else if (TRIGGER_FIRED_BY_TRUNCATE(tg->tg_event))
+		ev->op_type = 'R';
 	else
 		elog(ERROR, "unknown event for pgq trigger");
 
@@ -667,6 +681,9 @@ static void make_query(struct PgqTriggerEvent *ev, int fld, const char *arg)
 	struct QueryBuilder *q;
 	Oid tgoid = tg->tg_trigger->tgoid;
 	const char *pfx = "select ";
+
+	if (ev->op_type == 'R')
+		elog(ERROR, "Custom expressions do not make sense for truncater trigger");
 
 	/* make sure tgargs exists */
 	if (!ev->tgargs)

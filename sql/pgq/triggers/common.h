@@ -93,3 +93,7 @@ int pgqtriga_make_sql(PgqTriggerEvent *ev, StringInfo sql);
 /* logutriga.c */
 void pgq_urlenc_row(PgqTriggerEvent *ev, HeapTuple row, StringInfo buf);
 
+#ifndef TRIGGER_FIRED_BY_TRUNCATE
+#define TRIGGER_FIRED_BY_TRUNCATE(tg)	0
+#endif
+

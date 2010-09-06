@@ -21,7 +21,7 @@ select * from pgq_node.create_node('aset', 'root', 'rnode', 'londiste_root', nul
 
 select * from londiste.local_add_table('aset', 'public.testdata_nopk');
 select * from londiste.local_add_table('aset', 'public.testdata');
-select tgname from pg_trigger where tgrelid = 'public.testdata'::regclass;
+select tgname from pg_trigger where tgrelid = 'public.testdata'::regclass order by 1;
 insert into testdata (txt) values ('test-data');
 select * from londiste.get_table_list('aset');
 select * from londiste.local_show_missing('aset');
@@ -42,6 +42,7 @@ create table trg_test (
 
 select * from londiste.local_add_table('aset', 'public.trg_test', array['ev_extra4=''test='' || txt']);
 insert into trg_test values (1, 'data');
+truncate trg_test;
 select ev_id, ev_type, ev_data, ev_extra1, ev_extra4 from pgq.event_template where ev_extra1 = 'public.trg_test';
 
 

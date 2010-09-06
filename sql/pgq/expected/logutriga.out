@@ -146,3 +146,9 @@ select * from when_test;
  foo  |    2 | 
 (1 row)
 
+-- test truncate
+create trigger trunc_triga after truncate on when_test
+for each statement execute procedure pgq.logutriga('que3');
+truncate when_test;
+NOTICE:  insert_event(que3, R, , public.when_test)
+CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, $5, $6, $7)"

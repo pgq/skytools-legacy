@@ -333,6 +333,8 @@ int pgqtriga_make_sql(PgqTriggerEvent *ev, StringInfo sql)
 		need_event = process_update(ev, sql);
 	} else if (TRIGGER_FIRED_BY_DELETE(tg->tg_event)) {
 		process_delete(ev, sql);
+	} else if (TRIGGER_FIRED_BY_TRUNCATE(tg->tg_event)) {
+		/* nothing to do for truncate */
 	} else
 		elog(ERROR, "logtriga fired for unhandled event");
 

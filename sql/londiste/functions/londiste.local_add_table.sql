@@ -21,6 +21,8 @@ declare
     new_state text;
 
     logtrg_name text;
+    trunctrg_name text;
+    pgversion int;
     logtrg_previous text;
     logtrg text;
     tbl record;
@@ -101,7 +103,7 @@ begin
         return;
     end if;
 
-    -- create trigger if it does not exists already
+    -- create Ins/Upd/Del trigger if it does not exists already
     logtrg_name := '_londiste_' || i_queue_name;
     perform 1 from pg_catalog.pg_trigger
         where tgrelid = londiste.find_table_oid(fq_table_name)
@@ -117,6 +119,22 @@ begin
         end if;
         logtrg := logtrg || ')';
         execute logtrg;
+    end if;
+
+    -- create tRuncate trigger if it does not exists already
+    show server_version_num into pgversion;
+    if pgversion >= 80400 then
+        trunctrg_name  := '_londiste_' || i_queue_name || '_truncate';
+        perform 1 from pg_catalog.pg_trigger
+          where tgrelid = londiste.find_table_oid(fq_table_name)
+            and tgname = trunctrg_name;
+        if not found then
+            logtrg := 'create trigger ' || quote_ident(trunctrg_name)
+                || ' after truncate on ' || londiste.quote_fqname(fq_table_name)
+                || ' for each statement execute procedure pgq.sqltriga(' || quote_literal(i_queue_name)
+                || ')';
+            execute logtrg;
+        end if;
     end if;
 
     -- Check that no trigger exists on the target table that will get fired

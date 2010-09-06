@@ -109,4 +109,7 @@ for each row execute procedure pgq.logutriga('que3', 'when=current_user=''random
 insert into when_test values ('foo', '2');
 select * from when_test;
 
-
+-- test truncate
+create trigger trunc_triga after truncate on when_test
+for each statement execute procedure pgq.logutriga('que3');
+truncate when_test;

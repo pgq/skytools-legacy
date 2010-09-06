@@ -141,3 +141,9 @@ CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, $5, $6, $7)"
 delete from custom_expr;
 NOTICE:  insert_event(que3, bat, dat1='foo', test=foo)
 CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, $5, $6, $7)"
+-- test truncate
+create trigger customtrc_triga after truncate on custom_expr
+for each statement execute procedure pgq.sqltriga('que3');
+truncate custom_expr;
+NOTICE:  insert_event(que3, R, , public.custom_expr)
+CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, $5, $6, $7)"

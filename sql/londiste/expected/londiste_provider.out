@@ -41,11 +41,12 @@ select * from londiste.local_add_table('aset', 'public.testdata');
       200 | Table added: public.testdata
 (1 row)
 
-select tgname from pg_trigger where tgrelid = 'public.testdata'::regclass;
-     tgname     
-----------------
+select tgname from pg_trigger where tgrelid = 'public.testdata'::regclass order by 1;
+         tgname          
+-------------------------
  _londiste_aset
-(1 row)
+ _londiste_aset_truncate
+(2 rows)
 
 insert into testdata (txt) values ('test-data');
 select * from londiste.get_table_list('aset');
@@ -113,9 +114,11 @@ select * from londiste.local_add_table('aset', 'public.trg_test', array['ev_extr
 (1 row)
 
 insert into trg_test values (1, 'data');
+truncate trg_test;
 select ev_id, ev_type, ev_data, ev_extra1, ev_extra4 from pgq.event_template where ev_extra1 = 'public.trg_test';
  ev_id | ev_type |           ev_data            |    ev_extra1    | ev_extra4 
 -------+---------+------------------------------+-----------------+-----------
      5 | I       | (id,txt) values ('1','data') | public.trg_test | test=data
-(1 row)
+     6 | R       |                              | public.trg_test | 
+(2 rows)
 
