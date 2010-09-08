@@ -1,4 +1,5 @@
 
+drop function pgq.insert_event(text, text, text, text, text, text, text);
 create or replace function pgq.insert_event(que text, ev_type text, ev_data text, x1 text, x2 text, x3 text, x4 text)
 returns bigint as $$
 begin
