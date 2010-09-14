@@ -405,7 +405,6 @@ int main(int argc, char *argv[])
 	while (!got_sigint)
 		main_loop_once();
 
-	_exit(1);
 	cleanup();
 
 	return 0;
