@@ -25,20 +25,20 @@ class Config(object):
             job_name = main_section
 
         # initialize defaults, make them usable in config file
-        defs = {
+        self.defs = {
             'job_name': job_name,
             'service_name': main_section,
             'host_name': socket.gethostname(),
         }
-        defs.update(user_defs)
+        self.defs.update(user_defs)
 
         self.main_section = main_section
         self.filename = filename
         self.sane_config = sane_config
         if sane_config:
-            self.cf = ConfigParser.SafeConfigParser(defs)
+            self.cf = ConfigParser.SafeConfigParser()
         else:
-            self.cf = ConfigParser.ConfigParser(defs)
+            self.cf = ConfigParser.ConfigParser()
 
         if filename is None:
             self.cf.add_section(main_section)
@@ -53,6 +53,9 @@ class Config(object):
             self.cf.read(self.filename)
         if not self.cf.has_section(self.main_section):
             raise Exception("Wrong config file, no section '%s'" % self.main_section)
+        for k, v in self.defs.items():
+            if not self.cf.has_option(self.main_section, k):
+                self.cf.set(self.main_section, k, v)
 
     def get(self, key, default=None):
         """Reads string value, if not set then default."""
