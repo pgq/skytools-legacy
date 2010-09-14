@@ -42,18 +42,17 @@ class Config(object):
 
         if filename is None:
             self.cf.add_section(main_section)
-            return
-
-        if not os.path.isfile(filename):
+        elif not os.path.isfile(filename):
             raise Exception('Config file not found: '+filename)
-        self.cf.read(filename)
-        if not self.cf.has_section(main_section):
-            raise Exception("Wrong config file, no section '%s'"%main_section)
+
+        self.reload()
 
     def reload(self):
         """Re-reads config file."""
         if self.filename:
             self.cf.read(self.filename)
+        if not self.cf.has_section(self.main_section):
+            raise Exception("Wrong config file, no section '%s'" % self.main_section)
 
     def get(self, key, default=None):
         """Reads string value, if not set then default."""
