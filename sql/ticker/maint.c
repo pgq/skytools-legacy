@@ -180,7 +180,7 @@ static bool fill_items(struct PgDatabase *db, PGresult *res)
 	int i;
 	if (db->maint_item_list)
 		strlist_free(db->maint_item_list);
-	db->maint_item_list = strlist_new();
+	db->maint_item_list = strlist_new(USUAL_ALLOC);
 	if (!db->maint_item_list)
 		return false;
 	for (i = 0; i < PQntuples(res); i++) {
