@@ -170,7 +170,8 @@ def connect_database(connstr, keepalive = True,
     curs = db.cursor()
 
     # tune keepalive
-    set_tcp_keepalive(curs, keepalive, tcp_keepidle, tcp_keepcnt, tcp_keepintvl)
+    fd = hasattr(db, 'fileno') and db.fileno() or curs.fileno()
+    set_tcp_keepalive(fd, keepalive, tcp_keepidle, tcp_keepcnt, tcp_keepintvl)
 
     # fill .server_version on older psycopg
     if not hasattr(db, 'server_version'):
