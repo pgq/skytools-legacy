@@ -18,12 +18,9 @@ class LondisteSetup(CascadeAdmin):
     provider_location = None
 
     def install_code(self, db):
-        fn = skytools.installer_find_file('londiste.sql')
-        main_sql = open(fn, 'r').read()
-        noschema_sql = main_sql.replace('create schema', '-- create schema')
         self.extra_objs = [
             skytools.DBSchema("londiste", sql_file = 'londiste.sql'),
-            skytools.DBFunction("londiste.global_add_table", 2, sql = noschema_sql),
+            skytools.DBFunction("londiste.global_add_table", 2, sql_file = 'londiste.upgrade.2to3.sql'),
         ]
         CascadeAdmin.install_code(self, db)
 
