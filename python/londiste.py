@@ -82,23 +82,9 @@ class Londiste(skytools.DBScript):
         p = skytools.DBScript.init_optparse(self, parser)
         p.set_usage(command_usage.strip())
 
-        g = optparse.OptionGroup(p, "expert options")
-        g.add_option("--all", action="store_true",
-                help = "add: include add possible tables")
-        g.add_option("--force", action="store_true",
-                help = "add: ignore table differences, repair: ignore lag")
-        g.add_option("--expect-sync", action="store_true", dest="expect_sync",
-                help = "add: no copy needed", default=False)
-        g.add_option("--skip-truncate", action="store_true", dest="skip_truncate",
-                help = "add: keep old data", default=False)
-        p.add_option("--copy-condition", dest="copy_condition",
-                help = "copy: where expression")
+        g = optparse.OptionGroup(p, "options for cascading")
         g.add_option("--provider",
                 help = "init: upstream node temp connect string")
-        g.add_option("--create", action="store_true",
-                help = "add: create table/seq if not exist")
-        g.add_option("--create-only",
-                help = "add: create table/seq if not exist (seq,pkey,full,indexes,fkeys)")
         g.add_option("--target",
                 help = "switchover: target node")
         g.add_option("--merge",
@@ -109,11 +95,35 @@ class Londiste(skytools.DBScript):
                 help = "takeover: old node was root")
         g.add_option("--dead-branch", action = 'store_true',
                 help = "takeover: old node was branch")
-        p.add_option("--trigger-arg", action="append",
-                help="add: Custom trigger arg")
-        p.add_option("--handler", action="append",
-                help="add: Custom handler for table")
         p.add_option_group(g)
+        g = optparse.OptionGroup(p, "repair queue position")
+        g.add_option("--rewind", action = "store_true",
+                help = "change queue position according to destination")
+        g.add_option("--reset", action = "store_true",
+                help = "reset queue pos on destination side")
+        p.add_option_group(g)
+
+        g = optparse.OptionGroup(p, "options for add")
+        g.add_option("--all", action="store_true",
+                help = "add: include add possible tables")
+        g.add_option("--force", action="store_true",
+                help = "add: ignore table differences, repair: ignore lag")
+        g.add_option("--expect-sync", action="store_true", dest="expect_sync",
+                help = "add: no copy needed", default=False)
+        g.add_option("--skip-truncate", action="store_true", dest="skip_truncate",
+                help = "add: keep old data", default=False)
+        g.add_option("--create", action="store_true",
+                help = "add: create table/seq if not exist")
+        g.add_option("--create-only",
+                help = "add: create table/seq if not exist (seq,pkey,full,indexes,fkeys)")
+        g.add_option("--trigger-arg", action="append",
+                help="add: Custom trigger arg")
+        g.add_option("--handler", action="append",
+                help="add: Custom handler for table")
+        g.add_option("--copy-condition", dest="copy_condition",
+                help = "add: set WHERE expression for copy")
+        p.add_option_group(g)
+
         return p
 
 if __name__ == '__main__':
