@@ -13,6 +13,7 @@ __all__ = [
     "quote_bytea_literal", "quote_bytea_copy", "quote_statement",
     "quote_ident", "quote_fqident", "quote_json", "unescape_copy",
     "unquote_ident", "unquote_fqident",
+    "json_encode", "json_decode",
 ]
 
 try:
@@ -144,6 +145,39 @@ def unquote_fqident(val):
     """
     tmp = val.split('.', 1)
     return "%s.%s" % (unquote_ident(tmp[0]), unquote_ident(tmp[1]))
+
+# accept simplejson or py2.6+ json module
+# search for simplejson first as there exists
+# incompat 'json' module
+try:
+    import simplejson as json
+except ImportError:
+    try:
+        import json
+    except:
+        pass
+
+def json_encode(val = None, **kwargs):
+    """Creates JSON string from Python object.
+
+    >>> json_encode({'a': 1})
+    '{"a": 1}'
+    >>> json_encode('a')
+    '"a"'
+    >>> json_encode(['a'])
+    '["a"]'
+    >>> json_encode(a=1)
+    '{"a": 1}'
+    """
+    return json.dumps(val or kwargs)
+
+def json_decode(s):
+    """Parses JSON string into Python object.
+
+    >>> json_decode('[1]')
+    [1]
+    """
+    return json.loads(s)
 
 if __name__ == '__main__':
     import doctest
