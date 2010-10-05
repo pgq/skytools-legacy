@@ -13,7 +13,11 @@ endif
 
 ifeq ($(pg83),true)  # we have 8.3 with internal txid
 
-# nothing to do
+# create empty file
+txid.sql:
+	echo > txid.sql
+
+EXTRA_CLEAN = txid.sql.in txid.sql
 
 else # 8.2 or 8.1
 #
