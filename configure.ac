@@ -72,6 +72,19 @@ else
   XMLTO="no"
 fi
 
+# when in cvs/git tree, turn asciidoc/xmlto unconditionally on
+if test -d .git -o -d CVS; then
+  if test "$ASCIIDOC" = "no"; then
+    echo "*** Building from CVS/GIT requires asciidoc, enabling it ***"
+    ASCIIDOC="asciidoc"
+  fi
+  if test "$XMLTO" = "no"; then
+    echo "*** Building from CVS/GIT requires xmlto, enabling it ***"
+    XMLTO="xmlto"
+  fi
+fi
+
+
 dnl Postres headers on Solaris define incompat unsetenv without that
 AC_CHECK_FUNCS(unsetenv)
 
