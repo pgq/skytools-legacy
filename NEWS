@@ -1,6 +1,11 @@
 2010-xx-xx  -  SkyTools 2.1.12  -  ""
 
+To apply Londiste database-side fixes, run 'londiste.upgrade.sql'
+where needed.
+
  = Features =
+
+  * Support Postgres 9.0.  (Devrim Gündüz, Jason Buberel, Sébastien Lardière)
 
   * walmgr: Introduce a 'slave_pg_xlog' configuration variable.
     This allows master and slave pg_xlog files to be in different
@@ -18,8 +23,6 @@
   * psycopgwrapper: always set db.server_version
 
  = Fixes =
-
-  * Support Postgres 9.0.  (Devrim Gündüz, Jason Buberel, Sébastien Lardière)
 
   * londiste copy: restore index clustering info.  (André Malo)
 
@@ -39,6 +42,11 @@
     database has been cleanly shut down. This greatly reduces
     sync time during planned switchovers as usually there
     is only a single WAL file to be synched to slave.
+
+  * londiste.link: Add missing quoting.  The functions are unused,
+    thus missed the last round of fixes.
+
+  * Building from CVS/GIT assumes --with-asciidoc automatically.
 
 2010-02-03  -  SkyTools 2.1.11  -  "Replicates Like Randy Rabbit"
 
