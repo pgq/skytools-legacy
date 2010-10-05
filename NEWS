@@ -6,14 +6,20 @@
     This allows master and slave pg_xlog files to be in different
     locations. During restore this directory is symlinked to
     slave pg_xlog.  (Steve Singer)
-  
+
   * walmgr: Introduce a 'backup_datadir' configuration variable to
     control whether the slave data directory is kept or
     overwritten during restore.  (Steve Singer)
 
+  * walmgr: consider wal_level during setup/stop (Martin Pihlak)
+
+  * skytools.dbstruct: support version-dependant sql.
+
+  * psycopgwrapper: always set db.server_version
+
  = Fixes =
 
-  * Support Postgres 9.0.  (Devrim Gündüz, Jason Buberel)
+  * Support Postgres 9.0.  (Devrim Gündüz, Jason Buberel, Sébastien Lardière)
 
   * londiste copy: restore index clustering info.  (André Malo)
 
@@ -33,7 +39,7 @@
     database has been cleanly shut down. This greatly reduces
     sync time during planned switchovers as usually there
     is only a single WAL file to be synched to slave.
-    
+
 2010-02-03  -  SkyTools 2.1.11  -  "Replicates Like Randy Rabbit"
 
   = Fixes =
