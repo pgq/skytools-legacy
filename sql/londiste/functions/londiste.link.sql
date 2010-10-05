@@ -28,7 +28,7 @@ declare
     tmp   record;
     list2 text;
 begin
-    sql := 'select ' || a_field || ' as name from ' || a_table
+    sql := 'select ' || quote_ident(a_field) || ' as name from ' || londiste.quote_fqname(a_table)
         || ' where queue_name = ' || quote_literal(a_queue)
         || ' order by 1';
     list2 := '';
