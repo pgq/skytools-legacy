@@ -39,3 +39,6 @@
 \i   functions/pgq_node.set_consumer_completed.sql
 \i   functions/pgq_node.set_consumer_error.sql
 
+-- Group: Maintenance operations
+\i functions/pgq_node.maint_watermark.sql
+

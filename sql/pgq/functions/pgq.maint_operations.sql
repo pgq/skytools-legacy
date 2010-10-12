@@ -67,6 +67,45 @@ begin
         return next;
     end loop;
 
+    --
+    -- pgq_node & londiste
+    --
+    -- although they belong to queue_extra_maint, they are
+    -- common enough so its more effective to handle them here.
+    --
+
+    perform 1 from pg_proc p, pg_namespace n
+      where p.pronamespace = n.oid
+        and n.nspname = 'pgq_node'
+        and p.proname = 'maint_watermark';
+    if found then
+        func_name := 'pgq_node.maint_watermark';
+        for func_arg in
+            select n.queue_name
+              from pgq_node n
+              where n.node_type = 'root'
+        loop
+            return next;
+        end loop;
+    end if;
+
+    perform 1 from pg_proc p, pg_namespace n
+      where p.pronamespace = n.oid
+        and n.nspname = 'londiste'
+        and p.proname = 'root_check_seqs';
+    if found then
+        func_name := 'londiste.root_check_seqs';
+        for func_arg in
+            select distinct s.queue_name
+              from londiste.seq_info s, pgq_node n
+              where s.local
+                and n.node_type = 'root'
+                and n.queue_name = s.queue_name
+        loop
+            return next;
+        end loop;
+    end if;
+
     return;
 end;
 $$ language plpgsql;

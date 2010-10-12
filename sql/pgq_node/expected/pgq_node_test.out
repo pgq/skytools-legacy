@@ -84,6 +84,18 @@ select * from pgq_node.register_subscriber('aqueue', 'node3', 'node3_worker', nu
       200 | Subscriber registered: node3 |                1
 (1 row)
 
+select * from pgq_node.maint_watermark('aqueue');
+ maint_watermark 
+-----------------
+               0
+(1 row)
+
+select * from pgq_node.maint_watermark('aqueue-x');
+ maint_watermark 
+-----------------
+               0
+(1 row)
+
 select * from pgq_node.get_consumer_info('aqueue');
  consumer_name | provider_node | last_tick_id | paused | uptodate | cur_error 
 ---------------+---------------+--------------+--------+----------+-----------

@@ -20,6 +20,9 @@ select * from pgq_node.create_node('aqueue', 'root', 'node1', 'node1_worker', nu
 select * from pgq_node.register_subscriber('aqueue', 'node2', 'node2_worker', null);
 select * from pgq_node.register_subscriber('aqueue', 'node3', 'node3_worker', null);
 
+select * from pgq_node.maint_watermark('aqueue');
+select * from pgq_node.maint_watermark('aqueue-x');
+
 select * from pgq_node.get_consumer_info('aqueue');
 select * from pgq_node.unregister_subscriber('aqueue', 'node3');
 select queue_name, consumer_name, last_tick from pgq.get_consumer_info();
