@@ -31,7 +31,7 @@ begin
       where queue_name = i_queue_name;
 
     if not found then
-        select 404, 'No such node: ' || i_node_name into ret_code, ret_note;
+        select 404, 'No such queue: ' || i_queue_name into ret_code, ret_note;
         return;
     end if;
 
