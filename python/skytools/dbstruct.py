@@ -73,6 +73,11 @@ class TElem(object):
         """Return SQL statement for dropping or None of not supported."""
         return None
 
+    @classmethod
+    def get_load_sql(cls, pgver):
+        """Return SQL statement for finding objects."""
+        return self.SQL
+
 class TConstraint(TElem):
     """Info about constraint."""
     type = T_CONSTRAINT
@@ -195,11 +200,7 @@ class TRule(TElem):
 class TTrigger(TElem):
     """Info about trigger."""
     type = T_TRIGGER
-    SQL = """
-        SELECT tgname as name, pg_get_triggerdef(oid) as def
-          FROM  pg_trigger
-         WHERE tgrelid = %(oid)s AND NOT tgisconstraint
-    """
+
     def __init__(self, table_name, row):
         self.table_name = table_name
         self.name = row['name']
@@ -217,6 +218,19 @@ class TTrigger(TElem):
 
     def get_drop_sql(self, curs):
         return 'DROP TRIGGER %s ON %s' % (quote_ident(self.name), quote_fqident(self.table_name))
+
+    @classmethod
+    def get_load_sql(cls, pg_vers):
+        """Return SQL statement for finding objects."""
+
+        sql = "SELECT tgname as name, pg_get_triggerdef(oid) as def "\
+              "  FROM  pg_trigger "\
+              "  WHERE tgrelid = %(oid)s AND "
+        if pg_vers >= 90000:
+            sql += "NOT tgisinternal"
+        else:
+            sql += "NOT tgisconstraint"
+        return sql
 
 class TParent(TElem):
     """Info about trigger."""
@@ -424,7 +438,8 @@ class BaseStruct(object):
         """Fetch element(s) from db."""
         elem_list = []
         #print "Loading %s, name=%s, args=%s" % (repr(eclass), repr(name), repr(args))
-        curs.execute(eclass.SQL % args)
+        sql = eclass.get_load_sql(curs.connection.server_version)
+        curs.execute(sql % args)
         for row in curs.dictfetchall():
             elem_list.append(eclass(name, row))
         return elem_list

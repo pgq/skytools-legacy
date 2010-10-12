@@ -144,7 +144,22 @@ begin
     -- Don't report all the trigger names, 8.3 does not have array_accum
     -- available
 
-   select tg.tgname into logtrg_previous
+    if pgversion >= 90000 then
+        select tg.tgname into logtrg_previous
+        from pg_class r, pg_trigger tg
+        where r.oid = londiste.find_table_oid(fq_table_name)
+          and not tg.tgisinternal
+          and tg.tgname < logtrg_name::name
+          -- per-row AFTER trigger
+          and (tg.tgtype & 3) = 1   -- bits: 0:ROW, 1:BEFORE
+          -- current londiste
+          and tg.tgfoid not in ('pgq.sqltriga'::regproc::oid, 'pgq.logutriga'::regproc::oid)
+          -- old londiste
+          and substring(tg.tgname from 1 for 10) != '_londiste_'
+          and substring(tg.tgname from char_length(tg.tgname) - 6) != '_logger'
+        order by 1 limit 1;
+    else
+        select tg.tgname into logtrg_previous
         from pg_class r, pg_trigger tg
         where r.oid = londiste.find_table_oid(fq_table_name)
           and not tg.tgisconstraint
@@ -157,6 +172,7 @@ begin
           and substring(tg.tgname from 1 for 10) != '_londiste_'
           and substring(tg.tgname from char_length(tg.tgname) - 6) != '_logger'
         order by 1 limit 1;
+    end if;
 
     if logtrg_previous is not null then
        select 301,
