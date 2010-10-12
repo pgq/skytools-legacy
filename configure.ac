@@ -85,6 +85,21 @@ changequote([, ])dnl
   esac
 fi
 
+dnl Find PostgreSQL pg_config
+SKYLOG=0
+AC_MSG_CHECKING(for skylog default setting)
+AC_ARG_WITH(skylog, [  --with-skylog=0|1  set default value for skylog (default: 0)],
+[ if test "$withval" = "yes"; then
+    SKYLOG="1"
+  elif test "$withval" = "no"; then
+    SKYLOG="0"
+  else
+    SKYLOG="$withval"
+  fi
+  AC_MSG_RESULT([$SKYLOG])])
+AC_MSG_RESULT([$SKYLOG])
+AC_SUBST(SKYLOG)
+
 dnl check for xmlto, but only if asciidoc is found
 if test "$ASCIIDOC" != "no"; then
   AC_CHECK_PROGS(XMLTO, [$XMLTO xmlto])

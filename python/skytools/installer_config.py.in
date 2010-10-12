@@ -9,3 +9,5 @@ sql_locations = [
 
 package_version = "@PACKAGE_VERSION@"
 
+skylog = @SKYLOG@
+
