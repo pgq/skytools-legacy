@@ -32,7 +32,8 @@ begin
 
     select node_type, node_name into n
         from pgq_node.node_info
-        where queue_name = i_queue_name;
+        where queue_name = i_queue_name
+        for update;
     if not found then
         select 404, 'Queue not found: ' || i_queue_name into ret_code, ret_note;
         return;
