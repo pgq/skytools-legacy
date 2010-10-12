@@ -175,6 +175,8 @@ class CascadedConsumer(Consumer):
         # extra sleep
         time.sleep(10*self.loop_delay)
 
+        self.log.info('{standby: 1}')
+
     def work(self):
         """Refresh state before calling Consumer.work()."""
 
