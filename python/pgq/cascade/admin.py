@@ -41,15 +41,12 @@ Works, naming problems:
 
   status                Show set state      [set-status]
   members               Show members in set [nodes]
-  switchover --target NODE [--all]
   takeover FROMNODE [--all] [--dead]
 
 Broken:
 
   drop-node NAME
-  rename-node OLD NEW   Rename a node
   show-consumers [--node]
-  failover NEWROOT
   tag-dead NODE ..      Tag node as dead
   tag-alive NODE ..     Tag node as alive
 """
