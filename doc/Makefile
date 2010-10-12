@@ -1,9 +1,7 @@
 
 include ../config.mak
 
-wiki = https://developer.skype.com/SkypeGarage/DbProjects/SkyTools
-
-web = mkz@shell.pgfoundry.org:/home/pgfoundry.org/groups/skytools/htdocs/skytools-3.0
+web = mkz@pgf:/home/pgfoundry.org/groups/skytools/htdocs/skytools-3.0
 
 EPYDOC = epydoc
 EPYARGS = --no-private --url="http://pgfoundry.org/projects/skytools/" \
@@ -59,16 +57,6 @@ install: $(FQMAN) $(FQHTML)
 	for h in $(FQHTML); do \
 	  install -m 644 $$h $(DESTDIR)/$(docdir) || exit 1; \
 	done
-
-old.wiki.upload:
-	devupload.sh overview.txt $(wiki)
-	#devupload.sh TODO.txt $(wiki)/ToDo
-	#devupload.sh londiste.txt $(wiki)/LondisteUsage
-	#devupload.sh londiste.ref.txt $(wiki)/LondisteReference
-	#devupload.sh pgq-sql.txt $(wiki)/PgQdocs
-	#devupload.sh pgq-nodupes.txt $(wiki)/PgqNoDupes
-	#devupload.sh walmgr.txt $(wiki)/WalMgr
-	#devupload.sh pgq-admin.txt $(wiki)/PgqAdm
 
 PY_PKGS = skytools pgq londiste
 
