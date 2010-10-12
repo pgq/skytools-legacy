@@ -1,6 +1,60 @@
 2009-xx-xx  -  SkyTools 3.0  -  ""
 
-    * Some changes
+* make python modules parallel installable with skytools 2.x:
+  - new pkgloader module, (ala pygtk but universal)
+  - installed under `skytools-3.0` top dir
+  - python modules import skytools via pkgloader:
+
+      import pkgloader
+      pkgloader.require('skytools', '3.0')
+      import skytools
+
+* newadm: rename to qadmin
+* pgq
+  - drop failed event concept
+  - lazy fetch is now default
+  - relaxed event processing for python modules - .tag_done() is not needed
+  - get_{queue|consumer}_info() now report quick stats
+  - ability to request big batches (10000 rows, 5 min), which combine several actual batches.
+  - ability to stay behind on queue.
+  - pgq.Consumer new config vars: pgq_batch_collect_events, pgq_batch_collect_interval, pgq_keep_lag
+  - pgq triggers: magic fields to set event fields directly:
+    `_pgq_ev_type, _pgq_ev_data, _pgq_ev_extra[1-4]`
+* python/skytools:
+  - config templates in docstr: `./script.py --ini` shows default conf
+  - show connection name with error message
+  - use config file name as default job name, `job_name` is thus optional now
+  - new querybuilder class
+  - .getdict() method for Config
+* pgqd:
+  - specifying fixed list of databases in config works
+  - periodic detection works
+* cascading
+  - fix watermark publishing
+  - several log message and level fixes
+  - Replace 'switchover'/'failover' with 'takeover'
+  - 'status' with dead nodes works
+  - consumers last error is stored in db, showed by `londiste status`
+* londiste
+  - resync
+  - missing
+  - --all
+  - globbing
+  - compare/repair
+  - apply sql one-by-one if last batch got error
+  - support WHERE for COPY: londiste add --copy-condition=XX
+
+* Simple Python consumer for pgq_coop, where each subconsumer
+  is separate process.
+
+* psycopgwrapper: make .server_version always available
+
+* Sleeping while waiting notices from db.  It seems good to speed up
+  change-provider, switchover etc commands by using LISTEN/NOTIFY
+  to wake up daemons.
+
+* londiste/pgq: truncate trigger / event
+
 
 2009-03-13  -  SkyTools 2.1.9  -  "Six Pack of Luck"
 
