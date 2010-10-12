@@ -11,6 +11,12 @@ from skytools.psycopgwrapper import connect_database
 from skytools.quoting import quote_statement
 import skytools.skylog, psycopg2
 
+try:
+    import skytools.installer_config
+    default_skylog = skytools.installer_config.skylog
+except ImportError:
+    default_skylog = 0
+
 __pychecker__ = 'no-badexcept'
 
 #: how old connections need to be closed
@@ -136,7 +142,7 @@ def _init_log(job_name, service_name, cf, log_level, is_daemon):
     global _log_init_done, _log_config_done
 
     got_skylog = 0
-    use_skylog = cf.getint("use_skylog", 0)
+    use_skylog = cf.getint("use_skylog", default_skylog)
 
     # if non-daemon, avoid skylog if script is running on console.
     # set use_skylog=2 to disable.
