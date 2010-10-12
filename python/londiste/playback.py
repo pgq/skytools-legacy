@@ -296,10 +296,23 @@ class Replicator(CascadedWorker):
             curs.execute("set session_replication_role = 'replica'")
             db.commit()
 
+    code_check_done = 0
+    def check_code(self, db):
+        objs = [
+            skytools.DBFunction("pgq.maint_operations", 0,
+                sql_file = "londiste.maint-upgrade.sql"),
+        ]
+        skytools.db_install(db.cursor(), objs, self.log)
+        db.commit()
+
     def process_remote_batch(self, src_db, tick_id, ev_list, dst_db):
         "All work for a batch.  Entry point from SetConsumer."
 
         # this part can play freely with transactions
+
+        if not self.code_check_done:
+            self.check_code(dst_db)
+            self.code_check_done = 1
 
         self.sync_database_encodings(src_db, dst_db)
         
