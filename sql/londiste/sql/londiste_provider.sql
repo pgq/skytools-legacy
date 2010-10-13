@@ -45,4 +45,7 @@ insert into trg_test values (1, 'data');
 truncate trg_test;
 select ev_id, ev_type, ev_data, ev_extra1, ev_extra4 from pgq.event_template where ev_extra1 = 'public.trg_test';
 
+select tgname from pg_trigger where tgrelid = 'public.trg_test'::regclass order by 1;
+delete from londiste.table_info where table_name = 'public.trg_test';
+select tgname from pg_trigger where tgrelid = 'public.trg_test'::regclass order by 1;
 

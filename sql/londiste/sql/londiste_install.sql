@@ -10,9 +10,7 @@ create language plpgsql;
 \i ../pgq/pgq.sql
 \i ../pgq_node/pgq_node.sql
 
--- install directly from source files
-\i structure/tables.sql
-\i structure/functions.sql
+\i londiste.sql
 
 \set ECHO all
 

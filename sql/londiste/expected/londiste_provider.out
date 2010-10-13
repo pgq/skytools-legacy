@@ -122,3 +122,16 @@ select ev_id, ev_type, ev_data, ev_extra1, ev_extra4 from pgq.event_template whe
      6 | R       |                              | public.trg_test | 
 (2 rows)
 
+select tgname from pg_trigger where tgrelid = 'public.trg_test'::regclass order by 1;
+         tgname          
+-------------------------
+ _londiste_aset
+ _londiste_aset_truncate
+(2 rows)
+
+delete from londiste.table_info where table_name = 'public.trg_test';
+select tgname from pg_trigger where tgrelid = 'public.trg_test'::regclass order by 1;
+ tgname 
+--------
+(0 rows)
+

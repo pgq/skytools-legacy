@@ -1,7 +1,7 @@
 
 DATA_built = londiste.sql londiste.upgrade.sql
 
-SQLS = structure/tables.sql structure/grants.sql structure/functions.sql
+SQLS = structure/tables.sql structure/grants.sql structure/functions.sql structure/triggers.sql
 FUNCS = $(shell sed -e 's/^[^\\].*//' -e 's/\\i //' $(SQLS))
 SRCS = $(SQLS) $(FUNCS)
 
