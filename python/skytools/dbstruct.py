@@ -76,7 +76,7 @@ class TElem(object):
     @classmethod
     def get_load_sql(cls, pgver):
         """Return SQL statement for finding objects."""
-        return self.SQL
+        return cls.SQL
 
 class TConstraint(TElem):
     """Info about constraint."""
