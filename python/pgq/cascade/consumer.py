@@ -96,6 +96,7 @@ class CascadedConsumer(Consumer):
         q = "select * from pgq_node.get_consumer_state(%s, %s)"
         rows = self.exec_cmd(dst_db, q, [ self.queue_name, self.consumer_name ])
         state = rows[0]
+        return state
 
     def get_provider_db(self, state):
         provider_loc = state['provider_location']
