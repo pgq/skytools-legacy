@@ -452,7 +452,7 @@ class Checker(Syncer):
 
         extra_connstr = user=marko
 
-        # one of: compare, repair, repair-apply
+        # one of: compare, repair, repair-apply, compare-repair-apply
         check_type = compare
 
         # random params used in queries
@@ -552,6 +552,11 @@ class Checker(Syncer):
                     elif check == 'repair-apply':
                         r = TableRepair(tbl, self.log)
                         r.do_repair(src_db, dst_db, where, 'fix.' + tbl, True)
+                    elif check == 'compare-repair-apply':
+                        ok = self.do_compare(tbl, src_db, dst_db, where)
+                        if not ok:
+                            r = TableRepair(tbl, self.log)
+                            r.do_repair(src_db, dst_db, where, 'fix.' + tbl, True)
                     else:
                         raise Exception('unknown check type')
                     self.reset()
