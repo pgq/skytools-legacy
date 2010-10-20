@@ -82,11 +82,12 @@ begin
         func_name := 'pgq_node.maint_watermark';
         for func_arg in
             select n.queue_name
-              from pgq_node n
+              from pgq_node.node_info n
               where n.node_type = 'root'
         loop
             return next;
         end loop;
+
     end if;
 
     perform 1 from pg_proc p, pg_namespace n
@@ -97,7 +98,7 @@ begin
         func_name := 'londiste.root_check_seqs';
         for func_arg in
             select distinct s.queue_name
-              from londiste.seq_info s, pgq_node n
+              from londiste.seq_info s, pgq_node.node_info n
               where s.local
                 and n.node_type = 'root'
                 and n.queue_name = s.queue_name
