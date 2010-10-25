@@ -12,7 +12,8 @@ SUBDIRS = sql doc
 #	  scripts/scriptmgr.py scripts/skytools_upgrade.py
 
 # add suffix
-SFX_SCRIPTS = python/londiste.py python/walmgr.py scripts/scriptmgr.py scripts/queue_splitter.py
+SFX_SCRIPTS = python/londiste.py python/walmgr.py scripts/scriptmgr.py \
+	      scripts/queue_splitter.py scripts/queue_mover.py
 # dont add
 NOSFX_SCRIPTS = python/qadmin.py
 
