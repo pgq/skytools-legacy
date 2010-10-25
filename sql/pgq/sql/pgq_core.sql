@@ -43,6 +43,9 @@ select pgq.insert_event('myqueue', 'r3', 'data');
 select pgq.current_event_table('myqueue');
 select pgq.ticker();
 
+select * from pgq.next_batch_custom('myqueue', 'consumer', '1 hour', null, null);
+select * from pgq.next_batch_custom('myqueue', 'consumer', null, 10000, null);
+select * from pgq.next_batch_custom('myqueue', 'consumer', null, null, '10 minutes');
 select pgq.next_batch('myqueue', 'consumer');
 select ev_id,ev_retry,ev_type,ev_data,ev_extra1,ev_extra2,ev_extra3,ev_extra4 from pgq.get_batch_events(3);
 

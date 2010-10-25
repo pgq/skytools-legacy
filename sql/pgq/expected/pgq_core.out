@@ -173,6 +173,24 @@ select pgq.ticker();
       1
 (1 row)
 
+select * from pgq.next_batch_custom('myqueue', 'consumer', '1 hour', null, null);
+ batch_id | cur_tick_id | prev_tick_id | cur_tick_time | prev_tick_time | cur_tick_event_seq | prev_tick_event_seq 
+----------+-------------+--------------+---------------+----------------+--------------------+---------------------
+          |             |              |               |                |                    |                    
+(1 row)
+
+select * from pgq.next_batch_custom('myqueue', 'consumer', null, 10000, null);
+ batch_id | cur_tick_id | prev_tick_id | cur_tick_time | prev_tick_time | cur_tick_event_seq | prev_tick_event_seq 
+----------+-------------+--------------+---------------+----------------+--------------------+---------------------
+          |             |              |               |                |                    |                    
+(1 row)
+
+select * from pgq.next_batch_custom('myqueue', 'consumer', null, null, '10 minutes');
+ batch_id | cur_tick_id | prev_tick_id | cur_tick_time | prev_tick_time | cur_tick_event_seq | prev_tick_event_seq 
+----------+-------------+--------------+---------------+----------------+--------------------+---------------------
+          |             |              |               |                |                    |                    
+(1 row)
+
 select pgq.next_batch('myqueue', 'consumer');
  next_batch 
 ------------
