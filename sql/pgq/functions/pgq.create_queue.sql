@@ -65,6 +65,8 @@ begin
 
     perform pgq.ticker(i_queue_name);
 
+    perform pgq.tune_storage(i_queue_name);
+
     return 1;
 end;
 $$ language plpgsql security definer;

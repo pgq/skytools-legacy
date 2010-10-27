@@ -24,6 +24,7 @@
 -- Group: Random utility functions
 
 \i functions/pgq.grant_perms.sql
+\i functions/pgq.tune_storage.sql
 \i functions/pgq.force_tick.sql
 \i functions/pgq.seq_funcs.sql
 
