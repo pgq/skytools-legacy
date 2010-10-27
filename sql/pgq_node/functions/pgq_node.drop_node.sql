@@ -47,16 +47,6 @@ begin
         and subscriber_node = i_node_name;
 
     if _is_local then
-        -- At the dropped node, remove local state
-        delete from londiste.table_info
-         where queue_name = i_queue_name;
-
-        delete from londiste.seq_info
-         where queue_name = i_queue_name;
-
-        delete from londiste.applied_execute
-         where queue_name = i_queue_name;
-
         delete from pgq_node.local_state
          where queue_name = i_queue_name;
 
@@ -64,7 +54,7 @@ begin
          where queue_name = i_queue_name
             and node_name = i_node_name;
 
-        perform pgq.drop_queue(queue_name)
+        perform pgq.drop_queue(queue_name, true)
            from pgq.queue where queue_name = i_queue_name;
     end if;
 
