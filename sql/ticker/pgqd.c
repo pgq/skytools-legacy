@@ -306,6 +306,7 @@ static void cleanup(void)
 	pgs_free(db_template);
 
 	event_base_free(NULL);
+	reset_logging();
 }
 
 static void main_loop_once(void)
