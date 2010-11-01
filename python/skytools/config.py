@@ -186,5 +186,5 @@ class Config(object):
 
     def has_option(self, opt):
         """Checks if option exists in main section."""
-        return self.cf.has_option(self.main_section)
+        return self.cf.has_option(self.main_section, opt)
 
