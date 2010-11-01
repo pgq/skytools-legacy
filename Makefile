@@ -56,10 +56,9 @@ modules-install: config.mak
 python-install: config.mak sub-all
 	mkdir -p $(DESTDIR)/$(bindir)
 	rm -rf build
-	$(PYTHON) setup_pkgloader.py install --prefix=$(prefix) --root=$(DESTDIR)/
+	$(PYTHON) setup_pkgloader.py install --prefix=$(prefix) --root=$(DESTDIR)/ $(BROKEN_PYTHON)
 	find build -name 'pkgloader*' | xargs rm
-	$(PYTHON) setup_skytools.py install --prefix=$(prefix) --root=$(DESTDIR)/ --record=tmp_files.lst \
-		--install-lib=$(prefix)/lib/python$(pyver)/site-packages/skytools-3.0
+	$(PYTHON) setup_skytools.py install --prefix=$(prefix) --root=$(DESTDIR)/ $(BROKEN_PYTHON) --record=tmp_files.lst
 	for s in $(SFX_SCRIPTS); do \
 		exe=`echo $$s|sed -e 's!.*/!!' -e 's/[.]py//'`; \
 		install $$s $(DESTDIR)/$(bindir)/$${exe}$(SCRIPT_SUFFIX) || exit 1; \
@@ -88,37 +87,37 @@ distclean: sub-distclean
 	rm -rf autom4te.cache config.log config.status config.mak
 
 deb80:
-	./configure --with-pgconfig=/usr/lib/postgresql/8.0/bin/pg_config
+	./configure --with-pgconfig=/usr/lib/postgresql/8.0/bin/pg_config --with-python=$(PYTHON)
 	sed -e s/PGVER/8.0/g -e s/PYVER/$(pyver)/g < debian/packages.in > debian/packages
 	yada rebuild
 	debuild -uc -us -b
 
 deb81:
-	./configure --with-pgconfig=/usr/lib/postgresql/8.1/bin/pg_config
+	./configure --with-pgconfig=/usr/lib/postgresql/8.1/bin/pg_config --with-python=$(PYTHON)
 	sed -e s/PGVER/8.1/g -e s/PYVER/$(pyver)/g < debian/packages.in > debian/packages
 	yada rebuild
 	debuild -uc -us -b
 
 deb82:
-	./configure --with-pgconfig=/usr/lib/postgresql/8.2/bin/pg_config
+	./configure --with-pgconfig=/usr/lib/postgresql/8.2/bin/pg_config --with-python=$(PYTHON)
 	sed -e s/PGVER/8.2/g -e s/PYVER/$(pyver)/g < debian/packages.in > debian/packages
 	yada rebuild
 	debuild -uc -us -b
 
 deb83:
-	./configure --with-pgconfig=/usr/lib/postgresql/8.3/bin/pg_config
+	./configure --with-pgconfig=/usr/lib/postgresql/8.3/bin/pg_config --with-python=$(PYTHON)
 	sed -e s/PGVER/8.3/g -e s/PYVER/$(pyver)/g < debian/packages.in > debian/packages
 	yada rebuild
 	debuild -uc -us -b
 
 deb84:
-	./configure --with-pgconfig=/usr/lib/postgresql/8.4/bin/pg_config
+	./configure --with-pgconfig=/usr/lib/postgresql/8.4/bin/pg_config --with-python=$(PYTHON)
 	sed -e s/PGVER/8.4/g -e s/PYVER/$(pyver)/g < debian/packages.in > debian/packages
 	yada rebuild
 	debuild -uc -us -b
 
 deb90:
-	./configure --with-pgconfig=/usr/lib/postgresql/9.0/bin/pg_config
+	./configure --with-pgconfig=/usr/lib/postgresql/9.0/bin/pg_config --with-python=$(PYTHON)
 	sed -e s/PGVER/9.0/g -e s/PYVER/$(pyver)/g < debian/packages.in > debian/packages
 	yada rebuild
 	debuild -uc -us -b
@@ -144,6 +143,11 @@ tags:
 
 check:
 	./misc/docheck.sh
+
+# workaround for Debian's broken python
+debfix:
+	@$(PYTHON) setup_skytools.py install --help | grep -q install-layout \
+	&& echo BROKEN_PYTHON=--install-layout=deb || echo 'WORKING_PYTHON=found'
 
 .PHONY: all clean distclean install deb debclean tgz tags
 .PHONY: python-all python-clean python-install check
