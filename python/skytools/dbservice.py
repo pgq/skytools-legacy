@@ -448,7 +448,7 @@ class ServiceContext(DBService):
             plpy.error("Username must be provided in db service context parameter")
         self.username = rec['username']     # used for logging purposes
 
-        res = plpy.execute("select get_current_txid() as txid;")
+        res = plpy.execute("select txid_current() as txid;")
         row = res[0]
         self.version = row["txid"]
         self.rows_found = 0                 # Flag set by run query to inicate number of rows got
