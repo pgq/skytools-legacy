@@ -328,7 +328,7 @@ class TColumn(TElem):
             a.attname || ' '
                 || format_type(a.atttypid, a.atttypmod)
                 || case when a.attnotnull then ' not null' else '' end
-                || case when a.atthasdef then ' default ' || d.adsrc else '' end
+                || case when a.atthasdef then ' default ' || pg_get_expr(d.adbin, d.adrelid) else '' end
             as def,
             pg_get_serial_sequence(%(fq2name)s, a.attname) as seqname
           from pg_attribute a left join pg_attrdef d
