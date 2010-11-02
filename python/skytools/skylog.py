@@ -191,3 +191,5 @@ class LogDBHandler(logging.handlers.SocketHandler):
             query = "select * from log.add(%s, %s, %s)"
             logcur.execute(query, [type, service, msg])
 
+class SysLogHostnameHandler(logging.handlers.SysLogHandler):
+     log_format_string = '<%d> ' + socket.gethostname() + ' %s\000'
