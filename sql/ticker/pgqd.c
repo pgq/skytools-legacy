@@ -55,6 +55,7 @@ static const struct CfKey conf_params[] = {
 	{ "retry_period", CF_REL_TIME_DOUBLE(retry_period), "30" },
 	{ "ticker_period", CF_REL_TIME_DOUBLE(ticker_period), "1" },
 	{ "stats_period", CF_REL_TIME_DOUBLE(stats_period), "30" },
+	{ "connection_lifetime", CF_REL_TIME_DOUBLE(connection_lifetime), "3600" },
 	{ NULL },
 };
 

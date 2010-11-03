@@ -59,6 +59,8 @@ struct Config {
 	double maint_period;
 	double ticker_period;
 	double stats_period;
+
+	double connection_lifetime;
 };
 
 struct Stats {

@@ -123,6 +123,7 @@ void launch_ticker(struct PgDatabase *db)
 	if (!db->c_ticker) {
 		const char *cstr = make_connstr(db->name);
 		db->c_ticker = pgs_create(cstr, tick_handler, db);
+		pgs_set_lifetime(db->c_ticker, cf.connection_lifetime);
 	}
 	pgs_connect(db->c_ticker);
 }
