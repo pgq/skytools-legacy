@@ -53,12 +53,16 @@ modules-install: config.mak
 	$(MAKE) -C sql install DESTDIR=$(DESTDIR)
 	test \! -d compat || $(MAKE) -C compat $@ DESTDIR=$(DESTDIR)
 
+SITEDIR = site-packages
+
 python-install: config.mak sub-all
 	mkdir -p $(DESTDIR)/$(bindir)
 	rm -rf build
 	$(PYTHON) setup_pkgloader.py install --prefix=$(prefix) --root=$(DESTDIR)/ $(BROKEN_PYTHON)
 	find build -name 'pkgloader*' | xargs rm
-	$(PYTHON) setup_skytools.py install --prefix=$(prefix) --root=$(DESTDIR)/ $(BROKEN_PYTHON) --record=tmp_files.lst
+	$(PYTHON) setup_skytools.py install --prefix=$(prefix) --root=$(DESTDIR)/ \
+		--install-lib=$(prefix)/lib/python$(pyver)/$(SITEDIR)/skytools-3.0 \
+		--record=tmp_files.lst
 	for s in $(SFX_SCRIPTS); do \
 		exe=`echo $$s|sed -e 's!.*/!!' -e 's/[.]py//'`; \
 		install $$s $(DESTDIR)/$(bindir)/$${exe}$(SCRIPT_SUFFIX) || exit 1; \
