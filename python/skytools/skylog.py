@@ -191,5 +191,27 @@ class LogDBHandler(logging.handlers.SocketHandler):
             query = "select * from log.add(%s, %s, %s)"
             logcur.execute(query, [type, service, msg])
 
+# send messages to syslog
 class SysLogHostnameHandler(logging.handlers.SysLogHandler):
-     log_format_string = '<%d> ' + socket.gethostname() + ' %s\000'
+    """Slightly modified standard SysLogHandler - sends also hostname and service type"""
+
+    def emit(self, record):
+        msg = self.format(record)
+        format_string = '<%d> %s %s %s\000'
+        msg = format_string % (self.encodePriority(self.facility,self.mapPriority(record.levelname)),
+                               socket.gethostname(),
+                               _service_name,
+                               msg)
+        try:
+            if self.unixsocket:
+                try:
+                    self.socket.send(msg)
+                except socket.error:
+                    self._connect_unixsocket(self.address)
+                    self.socket.send(msg)
+            else:
+                self.socket.sendto(msg, self.address)
+        except (KeyboardInterrupt, SystemExit):
+            raise
+        except:
+            self.handleError(record)
