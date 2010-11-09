@@ -42,6 +42,9 @@ begin
           from pgq.tick
          where tick_queue = cf.queue_id
            and tick_id = lowest_tick_id;
+        if not found then
+            raise exception 'queue % maint failure: tick % not found', i_queue_name, lowest_tick_id;
+        end if;
         if lowest_xmin <= cf.queue_switch_step2 then
             return 0; -- skip rotation then
         end if;
