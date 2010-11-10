@@ -120,7 +120,7 @@ def set_tcp_keepalive(fd, keepalive = True,
     """
 
     # usable on this OS?
-    if not hasattr(socket, 'SO_KEEPALIVE'):
+    if not hasattr(socket, 'SO_KEEPALIVE') or not hasattr(socket, 'fromfd'):
         return
 
     # get numeric fd and cast to socket
