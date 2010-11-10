@@ -1,85 +1,18 @@
 
 = Skytools ToDo list =
 
-== Next major release - 3.0 ==
+== Ideas for 2.1 ==
 
- * cascaded replication, switchover, failover [marko]
- * skytools: config from database
- * drop support for psycopg1 ?
- * drop support for 8.1 ??
+ * Frozen code, no new features.
+ * Fix things in existing code.
 
- * new londiste sql:
-   - support new trigger flags in 8.3?
+== Ideas for 2.2 ==
 
-== High-prority ==
+ * Use pgq.sqltriga() in Londiste by default
+ * Backport triggers code from 3.0
+ * Backport truncate trigger 3.0
+ * londiste: support creating slave from master by pg_dump / PITR.
 
-=== Smaller things ===
-
- * pgq/sql: mention queue/consumer name in error msgs
- * pgq: RemoteConsumer/SerialConsumer/pgq_ext sanity, too much duplication [marko]
- * londiste: create tables on subscriber
- * pgqadm: Utility commands:
-  - reg-copy que cons1 cons2
-  - reg-move que cons1 cons2
-  - queue-rename
-  - show-batch-events
-  - del-event
- * londiste: londiste status cmd
-  - check what modules are installed
-  - check if replay is running (lag?)
-  - check if copy is running (lag?)
-  - count of tables done, count of unsynced
-  - table in the middle of copy
-
-== Low-priority ==
-
-=== Larger things ===
-
- * londiste: denytriggers on subscriber
- * londiste: Quote SQL identifiers, keep combined name, rule will be "Split schema as first dot"
- * skylog: publish sample logdb schema, with some tools
- * londiste: allow table redirection on subscriber side
- * londiste/pgqset: support creating slave from master by pg_dump / PITR.
-
-=== Smaller things ===
-
- * londiste: make sure unprivileged provider connection works for ordinery replication,
-   but not for admin commands.  Need to remove SECURITY DEFINER from londiste
-   admin functions (both provider and subscriber, because londiste needs admin
-   rights on subscriber anyway).
- * pgqadm: separate priod for retry queue processing
- * skytools: switch for silence for cron scripts
- * pgq: drop_fkeys.sql for live envs
- * logdb: hostname
- * DBScript: failure to write pidfile should be logged (cronscripts)
- * ideas from SlonyI:
-  - force timestamps to ISO
-  - when buffering queries, check their size
-  - store event_id with tick, thus making possible to guess the size of
-    upcoming batches.
- * pgqadm: show count of events to be processed [--count switch].
-   it should be relatively cheap with optimized query if consumers are not lagging.
-   - exact method - `SELECT count(*) FROM pgq.event_X WHERE NOT txid_in_snapshot(ev_txid, last_tick_snapshot) AND ev_txid > xmin;`
-     Can be optimized: `(ev_txid > xmax OR ev_txid IN get_snapshot_active())`.
-     Several consumer can be done in one go if spread out to separate columns.
-   - inexact method: take ev_id near xmax and compare with value from sequence
-     * broken by retry events, rollbacked transactions and use of force_tick()
- * automatic "repair" - after reaching sync point, the "replay" must be killed/paused, then fixes can be applied
- * pgq: sqltriga/logtriga - dont cache table struct?
- * pgq: store txid/event_id_seq with each tick
-
-== Just ideas ==
-
- * skytools: config-less operation?
- * skytools: partial sql parser for log processing
- * londiste: EXECUTE SCRIPT
- * londiste: somehow automatic sync of table structure/functions/...?
-
-== walmgr ==
-
-(walmgr needs thorough review of pending issues)
-
- * copy master config to slave
- * slave needs to decide which config to use
-
+ * Backport EXECUTE 3.0?
+ * Use session_replication_role?
 
