@@ -93,7 +93,7 @@ walmgr.1: walmgr.xml
 
 %.xml: %.txt $(COMMON)
 	$(ASCIIDOC) -b docbook -d manpage `$(GETATTRS) $<` -o - $< \
-	| python fixman.py > $@
+	| cat > $@
 
 %.1: %.xml
 	$(XMLTO) man $<
