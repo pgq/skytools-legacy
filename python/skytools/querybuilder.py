@@ -1,6 +1,5 @@
 #! /usr/bin/env python
 
-
 """Helper classes for complex query generation.
 
 Main target is code execution under PL/Python.
@@ -16,7 +15,10 @@ See L{plpy_exec} for examples.
 from skytools.sqltools import dbdict
 from skytools.quoting import quote_literal
 
-__all__ = ['QueryBuilder', 'PLPyQueryBuilder', 'PLPyQuery', 'plpy_exec']
+__all__ = [ 
+    'QueryBuilder', 'PLPyQueryBuilder', 'PLPyQuery', 'plpy_exec',
+    "run_query", "run_query_row", "run_lookup", "run_exists",
+]
 
 # make plpy available
 try:
@@ -365,6 +367,54 @@ class fake_plpy:
         print "DBG: plpy.execute(%s, %s)" % (repr(plan), repr(args))
     def error(self, msg):
         print "DBG: plpy.error(%s)" % repr(msg)
+
+# some helper functions for convenient sql execution
+
+def run_query(cur, sql, params = None, **kvargs):
+    """ Helper function if everything you need is just paramertisized execute
+        Sets rows_found that is coneninet to use when you don't need result just
+        want to know how many rows were affected
+    """
+    params = params or kvargs
+    sql = QueryBuilder(sql, params).get_sql(0)
+    cur.execute(sql)
+    rows = cur.dictfetchall()
+    # convert result rows to dbdict
+    if rows:
+        rows = [dbdict(r) for r in rows]
+    return rows
+
+def run_query_row(cur, sql, params = None, **kvargs):
+    """ Helper function if everything you need is just paramertisized execute to
+        fetch one row only. If not found none is returned
+    """
+    params = params or kvargs
+    rows = run_query(cur, sql, params)
+    if len(rows) == 0:
+        return None
+    return rows[0]
+
+def run_lookup(cur, sql, params = None, **kvargs):
+    """ Helper function to fetch one value Takes away all the hassle of preparing statements
+        and processing returned result giving out just one value. Uses plan cache if used inside
+        db service
+    """
+    params = params or kvargs
+    sql = QueryBuilder(sql, params).get_sql(0)
+    cur.execute(sql)
+    row = cur.fetchone()
+    if row is None:
+        return None
+    return row[0]
+
+def run_exists(cur, sql, params = None, **kvargs):
+    """ Helper function to fetch one value Takes away all the hassle of preparing statements
+        and processing returned result giving out just one value. Uses plan cache if used inside
+        db service
+    """
+    params = params or kvargs
+    val = run_lookup(cur, sql, params)
+    return not (val is None)
 
 # launch doctest
 if __name__ == '__main__':
