@@ -44,8 +44,8 @@ static int got_sigint;
 
 #define CF_REL_BASE struct Config
 static const struct CfKey conf_params[] = {
-	{ "logfile", CF_ABS_STR(cf_logfile) },
-	{ "pidfile", CF_REL_STR(pidfile) },
+	{ "logfile", CF_ABS_FILENAME(cf_logfile) },
+	{ "pidfile", CF_REL_FILENAME(pidfile) },
 	{ "initial_database", CF_REL_STR(initial_database), "template1" },
 	{ "base_connstr", CF_REL_STR(base_connstr), "" },
 	{ "database_list", CF_REL_STR(database_list) },
