@@ -152,6 +152,11 @@ begin
         raise exception '%', errmsg;
     end if;
 
+    -- sanity check
+    if prev_tick_id is null then
+        raise exception 'PgQ corruption: Consumer % on queue % does not see tick %', i_consumer_name, i_queue_name, prev_tick_id;
+    end if;
+
     -- has already active batch
     if batch_id is not null then
         return;

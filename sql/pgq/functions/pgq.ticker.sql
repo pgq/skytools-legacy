@@ -77,7 +77,7 @@ begin
     -- load state from last tick
     select now() - tick_time as lag,
            q.event_seq - tick_event_seq as new_events,
-           tick_id, tick_time
+           tick_id, tick_time, txid_snapshot_xmax(tick_snapshot) as sxmax
         into state
         from pgq.tick
         where tick_queue = q.queue_id
@@ -85,6 +85,12 @@ begin
         limit 1;
 
     if found then
+        if state.new_events < 0 or
+           state.sxmax > txid_snapshot_xmax(txid_current_snapshot())
+        then
+            raise exception 'Invalid PgQ state, event seq or txids backwards';
+        end if;
+
         if state.new_events > 0 then
             -- there are new events, should we wait a bit?
             if state.new_events < q.queue_ticker_max_count
