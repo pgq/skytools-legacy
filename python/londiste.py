@@ -116,8 +116,10 @@ class Londiste(skytools.DBScript):
                 help = "add: create table/seq if not exist")
         g.add_option("--create-only",
                 help = "add: create table/seq if not exist (seq,pkey,full,indexes,fkeys)")
+        g.add_option("--trigger-flags",
+                help="add: Set trigger flags (BAIUDLQ)")
         g.add_option("--trigger-arg", action="append",
-                help="add: Custom trigger arg")
+                help="add: Custom trigger arg (can be specified multiply times)")
         g.add_option("--handler", action="append",
                 help="add: Custom handler for table")
         g.add_option("--copy-condition", dest="copy_condition",
