@@ -99,6 +99,7 @@ def connect_database(connstr):
     if not hasattr(db, 'server_version'):
         iso = db.isolation_level
         db.set_isolation_level(0)
+        curs = db.cursor()
         curs.execute('show server_version_num')
         db.server_version = int(curs.fetchone()[0])
         db.set_isolation_level(iso)
