@@ -43,7 +43,7 @@ setup(
     maintainer_email = "markokr@gmail.com",
     url = "http://pgfoundry.org/projects/skytools/",
     package_dir = {'': 'python'},
-    packages = ['skytools', 'londiste', 'pgq', 'pgq.cascade'],
+    packages = ['skytools', 'londiste', 'londiste.handlers', 'pgq', 'pgq.cascade'],
     data_files = [
       ('share/doc/skytools%s/conf' % sfx, [
         'python/conf/wal-master.ini',
