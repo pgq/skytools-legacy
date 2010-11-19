@@ -26,6 +26,14 @@ tags
 zconf*
 .gdb*
 
+debian/*-stamp
+debian/*tmp*
+debian/rules
+debian/packages
+debian/files
+debian/control
+debian/substvars
+
 python/skytools/installer_config.py
 sql/txid/txid.sql
 sql/pgq_node/pgq_node.sql
