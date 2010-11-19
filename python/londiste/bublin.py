@@ -8,7 +8,7 @@ from londiste.handler import BaseHandler
 __all__ = ['Bublin']
 
 class Bublin(BaseHandler):
-    plugin_name = 'bublin'
+    handler_name = 'bublin'
 
     bubbles_max_slot = None         # NUM_SLOTS - 1 (NUM_SLOTS -> power of 2)
     bubbles_local_slots = None      # dict with local slot numbers

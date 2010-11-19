@@ -344,7 +344,7 @@ class Replicator(CascadedWorker):
         self.flush_sql(dst_curs)
 
         for p in self.used_plugins.values():
-            p.finish_batch(self.batch_info)
+            p.finish_batch(self._batch_info)
         self.used_plugins = {}
 
         # finalize table changes
@@ -527,7 +527,7 @@ class Replicator(CascadedWorker):
         except KeyError:
             p = t.get_plugin()
             self.used_plugins[ev.extra1] = p
-            p.prepare_batch(self.batch_info, dst_curs)
+            p.prepare_batch(self._batch_info, dst_curs)
      
         p.process_event(ev, self.apply_sql, dst_curs)
 
