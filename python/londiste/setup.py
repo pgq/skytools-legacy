@@ -162,20 +162,21 @@ class LondisteSetup(CascadeAdmin):
             self.log.warning('Table "%s" missing on subscriber, use --create if necessary' % tbl)
             return
 
-        attrs = {}
+        tgargs = []
+        if self.options.trigger_arg:
+            tgargs = self.options.trigger_arg
+        tgflags = self.options.trigger_flags
+        if tgflags:
+            tgargs.append('tgflags='+tgflags)
 
+        attrs = {}
         hlist = self.options.handler
         if hlist:
             p = londiste.handler.build_handler(tbl, hlist)
             attrs['handlers'] = ":".join(hlist)
+            p.add(tgargs)
 
         # actual table registration
-        tgflags = self.options.trigger_flags
-        tgargs = self.options.trigger_arg # None by default
-        if tgflags:
-            if not tgargs:
-                tgargs = []
-            tgargs.append('tgflags='+tgflags)
         q = "select * from londiste.local_add_table(%s, %s, %s)"
         self.exec_cmd(dst_curs, q, [self.set_name, tbl, tgargs])
 
