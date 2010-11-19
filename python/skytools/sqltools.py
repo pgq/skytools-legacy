@@ -245,14 +245,20 @@ def _gen_dict_insert(tbl, row, fields, qfields):
 def _gen_list_copy(tbl, row, fields, qfields):
     tmp = []
     for i in range(len(fields)):
-        v = row[i]
+        try:
+            v = row[i]
+        except IndexError:
+            v = None
         tmp.append(quote_copy(v))
     return "\t".join(tmp)
 
 def _gen_list_insert(tbl, row, fields, qfields):
     tmp = []
     for i in range(len(fields)):
-        v = row[i]
+        try:
+            v = row[i]
+        except IndexError:
+            v = None
         tmp.append(quote_literal(v))
     fmt = "insert into %s (%s) values (%s);"
     return fmt % (tbl, ",".join(qfields), ",".join(tmp))
