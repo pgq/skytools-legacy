@@ -9,7 +9,7 @@ from skytools.quoting import quote_ident, quote_fqident, quote_literal, unquote_
 __all__ = ['TableStruct', 'SeqStruct',
     'T_TABLE', 'T_CONSTRAINT', 'T_INDEX', 'T_TRIGGER',
     'T_RULE', 'T_GRANT', 'T_OWNER', 'T_PKEY', 'T_ALL',
-    'T_SEQUENCE', 'T_PARENT']
+    'T_SEQUENCE', 'T_PARENT', 'T_DEFAULT']
 
 T_TABLE       = 1 << 0
 T_CONSTRAINT  = 1 << 1
@@ -20,9 +20,10 @@ T_GRANT       = 1 << 5
 T_OWNER       = 1 << 6
 T_SEQUENCE    = 1 << 7
 T_PARENT      = 1 << 8
+T_DEFAULT     = 1 << 9
 T_PKEY        = 1 << 20 # special, one of constraints
 T_ALL = (  T_TABLE | T_CONSTRAINT | T_INDEX | T_SEQUENCE
-         | T_TRIGGER | T_RULE | T_GRANT | T_OWNER )
+         | T_TRIGGER | T_RULE | T_GRANT | T_OWNER | T_DEFAULT )
 
 #
 # Utility functions
@@ -321,14 +322,42 @@ class TGrant(TElem):
             sql_list.append(sql)
         return "\n".join(sql_list)
 
+class TColumnDefault(TElem):
+    """Info about table column default value."""
+    type = T_DEFAULT
+    SQL = """
+        select a.attname as name, pg_get_expr(d.adbin, d.adrelid) as expr
+          from pg_attribute a left join pg_attrdef d
+            on (d.adrelid = a.attrelid and d.adnum = a.attnum)
+         where a.attrelid = %(oid)s
+           and not a.attisdropped
+           and a.atthasdef
+           and a.attnum > 0
+         order by a.attnum;
+    """
+    def __init__(self, table_name, row):
+        self.table_name = table_name
+        self.name = row['name']
+        self.expr = row['expr']
+
+    def get_create_sql(self, curs, new_name = None):
+        """Generate creation SQL."""
+        tbl = new_name or self.table_name
+        sql = "alter table only %s alter column %s set default %s;" % (
+                quote_fqident(tbl), quote_ident(self.name), self.expr)
+        return sql
+
+    def get_drop_sql(self, curs):
+        return "alter table %s alter column %s drop default;" % (
+                quote_fqident(self.table_name), quote_ident(self.name))
+
 class TColumn(TElem):
     """Info about table column."""
     SQL = """
         select a.attname as name,
-            a.attname || ' '
+            quote_ident(a.attname) || ' '
                 || format_type(a.atttypid, a.atttypmod)
                 || case when a.attnotnull then ' not null' else '' end
-                || case when a.atthasdef then ' default ' || pg_get_expr(d.adbin, d.adrelid) else '' end
             as def,
             pg_get_serial_sequence(%(fq2name)s, a.attname) as seqname
           from pg_attribute a left join pg_attrdef d
@@ -524,7 +553,8 @@ class TableStruct(BaseStruct):
         self.object_list += self.seq_list
 
         # load additional objects
-        to_load = [TConstraint, TIndex, TTrigger, TRule, TGrant, TOwner, TParent]
+        to_load = [TColumnDefault, TConstraint, TIndex, TTrigger,
+                   TRule, TGrant, TOwner, TParent]
         for eclass in to_load:
             self.object_list += self._load_elem(curs, self.name, args, eclass)
 
