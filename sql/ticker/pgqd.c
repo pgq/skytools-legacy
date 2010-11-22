@@ -44,41 +44,37 @@ static int got_sigint;
 
 #define CF_REL_BASE struct Config
 static const struct CfKey conf_params[] = {
-	{ "logfile", CF_ABS_FILENAME(cf_logfile) },
-	{ "pidfile", CF_REL_FILENAME(pidfile) },
-	{ "initial_database", CF_REL_STR(initial_database), "template1" },
-	{ "base_connstr", CF_REL_STR(base_connstr), "" },
-	{ "database_list", CF_REL_STR(database_list) },
-	{ "syslog", CF_REL_INT(syslog) },
-	{ "check_period", CF_REL_TIME_DOUBLE(check_period), "60" },
-	{ "maint_period", CF_REL_TIME_DOUBLE(maint_period), "120" },
-	{ "retry_period", CF_REL_TIME_DOUBLE(retry_period), "30" },
-	{ "ticker_period", CF_REL_TIME_DOUBLE(ticker_period), "1" },
-	{ "stats_period", CF_REL_TIME_DOUBLE(stats_period), "30" },
-	{ "connection_lifetime", CF_REL_TIME_DOUBLE(connection_lifetime), "3600" },
+	CF_ABS("logfile", CF_FILE, cf_logfile, 0, NULL),
+	CF_REL("pidfile", CF_FILE, pidfile, 0, NULL),
+	CF_REL("initial_database", CF_STR, initial_database, 0, "template1"),
+	CF_REL("base_connstr", CF_STR, base_connstr, 0, ""),
+	CF_REL("database_list", CF_STR, database_list, 0, NULL),
+	CF_ABS("syslog", CF_INT, cf_syslog, 0, "0"),
+	CF_ABS("syslog_ident", CF_STR, cf_syslog_ident, 0, "pgqd"),
+	CF_REL("check_period", CF_TIME_DOUBLE, check_period, 0, "60"),
+	CF_REL("maint_period", CF_TIME_DOUBLE, maint_period, 0, "120"),
+	CF_REL("retry_period", CF_TIME_DOUBLE, retry_period, 0, "30"),
+	CF_REL("ticker_period", CF_TIME_DOUBLE, ticker_period, 0, "1"),
+	CF_REL("stats_period", CF_TIME_DOUBLE, stats_period, 0, "30"),
+	CF_REL("connection_lifetime", CF_TIME_DOUBLE, connection_lifetime, 0, "3600"),
 	{ NULL },
 };
 
-static void *get_cf_target(void *arg, const char *name) { return &cf; }
-
 static const struct CfSect conf_sects[] = {
-	{ "pgqd", get_cf_target, conf_params },
+	{ "pgqd", conf_params },
 	{ NULL }
 };
 
-static void load_config(bool reload)
-{
-	bool ok = load_ini_file(cf.config_file, conf_sects, NULL);
-	if (!ok) {
-		if (reload) {
-			log_warning("failed to read config");
-		} else {
-			fatal("failed to read config");
-		}
-	}
+static struct CfContext conf_info = {
+	.sect_list = conf_sects,
+	.base = &cf,
+};
 
-	/* fixme */
-	cf_syslog_ident = cf.syslog ? "pgqd" : NULL;
+static void load_config(void)
+{
+	bool ok = cf_load_file(&conf_info, cf.config_file);
+	if (!ok)
+		fatal("failed to read config");
 	reset_logging();
 }
 
@@ -99,7 +95,7 @@ static void handle_sigint(int sock, short flags, void *arg)
 static void handle_sighup(int sock, short flags, void *arg)
 {
 	log_info("Got SIGHUP, re-reading config");
-	load_config(true);
+	load_config();
 	recheck_dbs();
 }
 
@@ -377,7 +373,8 @@ int main(int argc, char *argv[])
 
 	cf.config_file = argv[optind];
 
-	load_config(false);
+	load_config();
+	conf_info.loaded = true;
 
 	if (sig) {
 		if (!cf.pidfile || !cf.pidfile[0]) {

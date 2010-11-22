@@ -49,11 +49,10 @@ struct PgDatabase {
 struct Config {
 	const char *config_file;
 	const char *pidfile;
-	const char *logfile;
 	const char *base_connstr;
 	const char *initial_database;
 	const char *database_list;
-	int syslog;
+
 	double retry_period;
 	double check_period;
 	double maint_period;
