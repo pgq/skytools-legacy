@@ -39,42 +39,26 @@ returns setof record as $$
 --
 declare
     q_part1     text;
-    q_target    text;
     n_parts     int4;
     n_done      int4;
 begin
-    -- get first part queue, if exists
-    select n.combined_queue into q_target
-        from pgq_node.node_info n
-        where n.queue_name = i_queue_name;
-    if q_target is not null then
-        select n.queue_name into q_part1
-            from pgq_node.node_info n
-            where n.combined_queue = q_target
-            order by n.queue_name
-            limit 1;
-        select count(*) into n_parts
-            from pgq_node.node_info n
-            where n.combined_queue = q_target;
-    end if;
-
-    for table_name, local, merge_state, custom_snapshot, table_attrs, dropped_ddl in 
-        select t.table_name, t.local, t.merge_state, t.custom_snapshot, t.table_attrs, t.dropped_ddl
+    for table_name, local, merge_state, custom_snapshot, table_attrs, dropped_ddl, q_part1, n_parts, n_done in
+        select t.table_name, t.local, t.merge_state, t.custom_snapshot, t.table_attrs, t.dropped_ddl,
+               min(t2.queue_name) as _queue1,
+               count(t2.table_name) as _total,
+               count(nullif(t2.merge_state, 'in-copy')) as _done
             from londiste.table_info t
+            join pgq_node.node_info n on (n.queue_name = t.queue_name)
+            left join pgq_node.node_info n2 on (n2.combined_queue = n.combined_queue)
+            left join londiste.table_info t2 on (t2.table_name = t.table_name and t2.queue_name = n2.queue_name)
             where t.queue_name = i_queue_name
+            group by t.nr, t.table_name, t.local, t.merge_state, t.custom_snapshot, t.table_attrs, t.dropped_ddl
             order by t.nr, t.table_name
     loop
         -- if the table is in middle of copy from multiple partitions,
         -- the copy processes need coordination
         copy_role := null;
         if q_part1 is not null then
-            select count(*) into n_done
-                from londiste.table_info t, pgq_node.node_info n
-                where n.combined_queue = q_target
-                    and t.queue_name = n.queue_name
-                    and t.table_name = get_table_list.table_name
-                    and (t.merge_state is not null
-                         and t.merge_state <> 'in-copy');
             if i_queue_name = q_part1 then
                 -- lead
                 if merge_state = 'in-copy' then
