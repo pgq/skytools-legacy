@@ -41,4 +41,5 @@
 
 -- Group: Maintenance operations
 \i functions/pgq_node.maint_watermark.sql
+\i functions/pgq_node.version.sql
 
