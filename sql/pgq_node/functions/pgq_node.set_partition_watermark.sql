@@ -28,22 +28,17 @@ begin
         where p.queue_name = i_part_queue_name
           and c.queue_name = i_combined_queue_name
           and p.combined_queue = c.queue_name
-          and p.node_type = 'merge-leaf'
-          and c.node_type = 'combined-branch';
+          and p.node_type = 'leaf'
+          and c.node_type = 'branch';
     if not found then
         select 201, 'Part-queue does not exist' into ret_code, ret_note;
         return;
     end if;
 
-    if n.node_type <> 'branch' then
-        select 202, 'Not branch node' into ret_code, ret_note;
-        return;
-    end if;
-
     update pgq_node.local_state
        set last_tick_id = i_watermark
-     where queue_name = i_part_node_name
-       and worker_name = n.worker_name;
+     where queue_name = i_part_queue_name
+       and consumer_name = n.worker_name;
     if not found then
         select 401, 'Worker registration not found' into ret_code, ret_note;
         return;
