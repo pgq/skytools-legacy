@@ -46,6 +46,11 @@ run() {
   "$@" 2>&1 | sed 's/^/    /'
 }
 
+run_sql() {
+  echo "    $ psql -d \"$1\" -c \"$2\""
+  psql -d "$1" -c "$2" 2>&1 | sed 's/^/    /'
+}
+
 msg() {
   echo ""
   echo "$@"
