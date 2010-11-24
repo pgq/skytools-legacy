@@ -169,8 +169,10 @@ static void launch_db(const char *dbname)
 	launch_ticker(db);
 }
 
-static void drop_db(struct PgDatabase *db)
+static void drop_db(struct PgDatabase *db, bool log)
 {
+	if (log)
+		log_info("Unregister database: %s", db->name);
 	statlist_remove(&database_list, &db->head);
 	pgs_free(db->c_ticker);
 	pgs_free(db->c_maint);
@@ -207,7 +209,7 @@ static void detect_handler(struct PgSocket *sk, void *arg, enum PgEvent ev, PGre
 		statlist_for_each_safe(el, &database_list, tmp) {
 			db = container_of(el, struct PgDatabase, head);
 			if (db->dropped)
-				drop_db(db);
+				drop_db(db, true);
 		}
 		pgs_disconnect(sk);
 		pgs_sleep(sk, cf.check_period);
@@ -255,7 +257,7 @@ static void recheck_dbs(void)
 		statlist_for_each_safe(el, &database_list, tmp) {
 			db = container_of(el, struct PgDatabase, head);
 			if (db->dropped)
-				drop_db(db);
+				drop_db(db, true);
 		}
 
 		/* done with template for the moment */
@@ -298,7 +300,7 @@ static void cleanup(void)
 
 	statlist_for_each_safe(elem, &database_list, tmp) {
 		db = container_of(elem, struct PgDatabase, head);
-		drop_db(db);
+		drop_db(db, false);
 	}
 	pgs_free(db_template);
 
