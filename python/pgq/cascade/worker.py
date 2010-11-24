@@ -152,6 +152,18 @@ class CascadedWorker(CascadedConsumer):
             time.sleep(10 * self.loop_delay)
             self._consumer_state = self.refresh_state(dst_db)
 
+    def is_batch_done(self, state, batch_info):
+        wst = self._worker_state
+
+        # on combined-branch the target can get several batches ahead
+        if wst.wait_behind:
+            cur_tick = batch_info['tick_id']
+            dst_tick = state['completed_tick']
+            if cur_tick < dst_tick:
+                return True
+
+        return CascadedConsumer.is_batch_done(self, state, batch_info)
+
     def publish_local_wm(self, src_db):
         """Send local watermark to provider.
         """
