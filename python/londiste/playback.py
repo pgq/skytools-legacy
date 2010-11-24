@@ -436,6 +436,11 @@ class Replicator(CascadedWorker):
     def sync_from_copy_thread(self, cnt, src_db, dst_db):
         "Copy thread sync logic."
 
+        # somebody may have done remove-table in the meantime
+        if self.copy_table_name not in self.table_map:
+            self.log.error("copy_sync: lost table: %s" % self.copy_table_name)
+            return SYNC_EXIT
+
         # This operates on single table
         t = self.table_map[self.copy_table_name]
 
