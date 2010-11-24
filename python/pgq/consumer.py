@@ -81,9 +81,6 @@ class _BatchWalker(object):
         self.fetch_status = 2
 
     def __len__(self):
-        if self.fetch_status != 2:
-            return -1
-            #raise Exception("BatchWalker: len() for incomplete result. (%d)" % self.fetch_status)
         return self.length
 
     def tag_event_done(self, event):
