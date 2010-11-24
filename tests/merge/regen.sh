@@ -23,23 +23,19 @@ rm -f log/*.log
 msg "Create configs"
 
 # create ticker conf
-for db in $all_list; do
-cat > conf/ticker_$db.ini << EOF
-[pgqadm]
-job_name = ticker_$db
-db = dbname=$db
-loop_delay = 0.5
-logfile = log/%(job_name)s.log
-pidfile = pid/%(job_name)s.pid
+cat > conf/pgqd.ini << EOF
+[pgqd]
+database_list = $kdb_list
+logfile = log/pgqd.log
+pidfile = pid/pgqd.pid
 EOF
-done
 
 # partition replicas
 for db in $part_list; do
 
 # londiste on part node
 cat > conf/londiste_$db.ini << EOF
-[londiste]
+[londiste3]
 job_name = londiste_$db
 db = dbname=$db
 queue_name = replika_$db
@@ -50,7 +46,7 @@ EOF
 # londiste on combined nodes
 for dst in full1 full2; do
 cat > conf/londiste_${db}_${dst}.ini << EOF
-[londiste]
+[londiste3]
 job_name = londiste_${db}_${dst}
 db = dbname=$dst
 queue_name = replika_$db
@@ -65,7 +61,7 @@ done
 for db in $full_list; do
 
 cat > conf/londiste_$db.ini << EOF
-[londiste]
+[londiste3]
 job_name = londiste_$db
 db = dbname=$db
 queue_name = replika
@@ -77,76 +73,74 @@ done
 
 set -e
 
-msg "Install PgQ"
-
-for db in $all_list; do
-  run pgqadm $v conf/ticker_$db.ini install
-done
-
 msg "Create nodes for merged queue"
 
-run londiste $v conf/londiste_full1.ini create-root fnode1 'dbname=full1'
-run londiste $v conf/londiste_full2.ini create-branch fnode2 'dbname=full2' --provider='dbname=full1'
-run londiste $v conf/londiste_full3.ini create-branch fnode3 'dbname=full3' --provider='dbname=full1'
-run londiste $v conf/londiste_full4.ini create-leaf fnode4 'dbname=full4' --provider='dbname=full2'
+run londiste3 $v conf/londiste_full1.ini create-root fnode1 'dbname=full1'
+run londiste3 $v conf/londiste_full2.ini create-branch fnode2 'dbname=full2' --provider='dbname=full1'
+run londiste3 $v conf/londiste_full3.ini create-branch fnode3 'dbname=full3' --provider='dbname=full1'
+run londiste3 $v conf/londiste_full4.ini create-leaf fnode4 'dbname=full4' --provider='dbname=full2'
 
 msg "Create nodes for partition queues"
 
-run londiste $v conf/londiste_part1.ini create-root p1root 'dbname=part1'
-run londiste $v conf/londiste_part2.ini create-root p2root 'dbname=part2'
-run londiste $v conf/londiste_part3.ini create-root p3root 'dbname=part3'
-run londiste $v conf/londiste_part4.ini create-root p4root 'dbname=part4'
+run londiste3 $v conf/londiste_part1.ini create-root p1root 'dbname=part1'
+run londiste3 $v conf/londiste_part2.ini create-root p2root 'dbname=part2'
+run londiste3 $v conf/londiste_part3.ini create-root p3root 'dbname=part3'
+run londiste3 $v conf/londiste_part4.ini create-root p4root 'dbname=part4'
 
 msg "Create merge nodes for partition queues"
 
 for dst in full1 full2; do
   for src in $part_list; do
-    run londiste $v conf/londiste_${src}_${dst}.ini \
+    run londiste3 $v conf/londiste_${src}_${dst}.ini \
                     create-leaf merge_${src}_${dst} "dbname=$dst" \
                     --provider="dbname=$src" --merge="replika"
   done
 done
 
 
-msg "Launch tickers"
-for db in $all_list; do
-  run pgqadm $v -d conf/ticker_$db.ini ticker
+msg "Tune PgQ"
+
+for db in part1 full1; do
+  run_sql $db "update pgq.queue set queue_ticker_idle_period='5 secs'"
 done
+
+msg "Launch ticker"
+run pgqd $v -d conf/pgqd.ini
 
 msg "Launch londiste replay"
 for db in $all_list; do
-  run londiste $v -d conf/londiste_$db.ini replay
+  run londiste3 $v -d conf/londiste_$db.ini worker
 done
 
 msg "Launch merge londiste"
 for dst in full1 full2; do
   for src in $part_list; do
-    run londiste $v -d conf/londiste_${src}_${dst}.ini replay
+    run londiste3 $v -d conf/londiste_${src}_${dst}.ini worker
   done
 done
 
 msg "Create table in partition nodes"
 for db in $part_list; do
-  run psql $db -c "create table mydata (id int4 primary key, data text)"
+  run_sql "$db" "create table mydata (id int4 primary key, data text)"
 done
 
 msg "Register table in partition nodes"
 for db in $part_list; do
-  run londiste $v conf/londiste_$db.ini add-table mydata
+  run londiste3 $v conf/londiste_$db.ini add-table mydata
 done
 
 
 msg "Insert few rows"
 for n in 1 2 3 4; do
-  run psql -d part$n -c "insert into mydata values ($n, 'part$n')"
+  run_sql part$n "insert into mydata values ($n, 'part$n')"
 done
 
 msg "Create table and register it in merge nodes"
 for db in full1; do
-  run psql $db -c "create table mydata (id int4 primary key, data text)"
-  run londiste $v conf/londiste_$db.ini add-table mydata
+  run_sql $db "create table mydata (id int4 primary key, data text)"
+  run londiste3 $v conf/londiste_$db.ini add-table mydata
   for src in $part_list; do
-    run londiste $v conf/londiste_${src}_${db}.ini add-table mydata
+    run londiste3 $v conf/londiste_${src}_${db}.ini add-table mydata
   done
 done
 
@@ -155,18 +149,18 @@ run sleep 10
 
 msg "Insert few rows"
 for n in 1 2 3 4; do
-  run psql -d part$n -c "insert into mydata values (4 + $n, 'part$n')"
+  run_sql part$n "insert into mydata values (4 + $n, 'part$n')"
 done
 
 run sleep 10
 
 msg "Now check if data apprered"
 for db in full1; do
-run psql -d $db -c "select * from mydata order by id"
-run psql -d $db -c "select * from londiste.table_info order by queue_name"
+run_sql $db "select * from mydata order by id"
+run_sql $db "select * from londiste.table_info order by queue_name"
 done
-run psql -d full1 -c "select * from londiste.get_table_list('replika_part1')"
-run psql -d full1 -c "select * from londiste.get_table_list('replika_part2')"
+run_sql full1 "select * from londiste.get_table_list('replika_part1')"
+run_sql full2 "select * from londiste.get_table_list('replika_part2')"
 
 ../zcheck.sh
 
