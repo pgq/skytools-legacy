@@ -291,7 +291,7 @@ class Replicator(CascadedWorker):
         load_handlers(self.cf)
 
     def connection_hook(self, dbname, db):
-        if dbname == 'db':
+        if dbname == 'db' and db.server_version >= 80300:
             curs = db.cursor()
             curs.execute("set session_replication_role = 'replica'")
             db.commit()
