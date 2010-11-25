@@ -13,6 +13,7 @@ for dst in $full_list; do
   done
 done
 all_list="$part_list $full_list"
+kdb_list="`echo $all_list|sed 's/ /,/g'`"
 
 for db in $part_list $full_list; do
   cleardb $db
@@ -142,6 +143,12 @@ for db in full1; do
   for src in $part_list; do
     run londiste3 $v conf/londiste_${src}_${db}.ini add-table mydata
   done
+done
+
+msg "Create table and register it in full nodes"
+for db in full2 full3 full4; do
+  run_sql $db "create table mydata (id int4 primary key, data text)"
+  run londiste3 $v conf/londiste_$db.ini add-table mydata
 done
 
 msg "Sleep a bit"
