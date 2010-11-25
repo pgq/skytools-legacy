@@ -133,18 +133,29 @@ def unescape_copy(val):
     return unescape(val)
 
 def unquote_ident(val):
-    """Unquotes possibly quoted SQL identifier."""
+    """Unquotes possibly quoted SQL identifier.
+    
+    >>> unquote_ident('foo')
+    'foo'
+    >>> unquote_ident('"Wei "" rd"')
+    'Wei " rd'
+    """
     if val[0] == '"' and val[-1] == '"':
         return val[1:-1].replace('""', '"')
+    if val.find('"') > 0:
+        raise Exception('unsupported syntax')
     return val
 
 def unquote_fqident(val):
     """Unquotes fully-qualified possibly quoted SQL identifier.
 
-    It must be prefixed schema, which does not contain dots.
+    >>> unquote_fqident('foo')
+    'foo'
+    >>> unquote_fqident('"Foo"."Bar "" z"')
+    'Foo.Bar " z'
     """
     tmp = val.split('.', 1)
-    return "%s.%s" % (unquote_ident(tmp[0]), unquote_ident(tmp[1]))
+    return '.'.join([unquote_ident(i) for i in tmp])
 
 # accept simplejson or py2.6+ json module
 # search for simplejson first as there exists
