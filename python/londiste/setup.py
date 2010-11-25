@@ -38,12 +38,6 @@ class LondisteSetup(CascadeAdmin):
 
         londiste.handler.load_handlers(self.cf)
 
-    def connection_hook(self, dbname, db):
-        if dbname == 'db':
-            curs = db.cursor()
-            curs.execute("set session_replication_role = 'replica'")
-            db.commit()
-
     def init_optparse(self, parser=None):
         """Add londiste switches to cascadeadmin ones."""
 
@@ -348,6 +342,10 @@ class LondisteSetup(CascadeAdmin):
     def cmd_execute(self, *files):
         db = self.get_database('db')
         curs = db.cursor()
+
+        # set replica role for EXECUTE transaction
+        curs.execute("set local session_replication_role = 'replica'")
+
         for fn in files:
             fname = os.path.basename(fn)
             sql = open(fn, "r").read()
