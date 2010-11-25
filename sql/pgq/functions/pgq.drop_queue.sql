@@ -22,7 +22,10 @@ begin
         raise exception 'No such event queue';
     end if;
 
-    if not x_force then
+    if x_force then
+        perform pgq.unregister_consumer(queue_name, consumer_name)
+           from pgq.get_consumer_info(x_queue_name);
+    else
         -- check if no consumers
         select count(*) into num from pgq.subscription
             where sub_queue = q.queue_id;
