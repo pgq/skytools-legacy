@@ -247,7 +247,8 @@ _ext_sql_fq = r"""(?: (?P<str> [E]? %s ) | %s )""" % (_extstr, _base_sql_fq)
 _std_sql_rc = _ext_sql_rc = None
 _std_sql_fq_rc = _ext_sql_fq_rc = None
 
-def sql_tokenizer(sql, standard_quoting = False, ignore_whitespace = False, fqident = False):
+def sql_tokenizer(sql, standard_quoting = False, ignore_whitespace = False,
+                  fqident = False, show_location = False):
     r"""Parser SQL to tokens.
 
     Iterator, returns (toktype, tokstr) tuples.
@@ -287,7 +288,10 @@ def sql_tokenizer(sql, standard_quoting = False, ignore_whitespace = False, fqid
         typ = m.lastgroup
         if ignore_whitespace and typ == "ws":
             continue
-        yield (typ, m.group())
+        if show_location:
+            yield (typ, m.group(), pos)
+        else:
+            yield (typ, m.group())
 
 _copy_from_stdin_re = "copy.*from\s+stdin"
 _copy_from_stdin_rc = None
