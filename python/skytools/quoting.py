@@ -135,7 +135,7 @@ def unescape_copy(val):
 def unquote_ident(val):
     """Unquotes possibly quoted SQL identifier.
     
-    >>> unquote_ident('foo')
+    >>> unquote_ident('Foo')
     'foo'
     >>> unquote_ident('"Wei "" rd"')
     'Wei " rd'
@@ -144,7 +144,7 @@ def unquote_ident(val):
         return val[1:-1].replace('""', '"')
     if val.find('"') > 0:
         raise Exception('unsupported syntax')
-    return val
+    return val.lower()
 
 def unquote_fqident(val):
     """Unquotes fully-qualified possibly quoted SQL identifier.
