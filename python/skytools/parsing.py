@@ -220,9 +220,13 @@ def parse_tabbed_table(txt):
 
 _extstr = r""" ['] (?: [^'\\]+ | \\. | [']['] )* ['] """
 _stdstr = r""" ['] (?: [^']+ | [']['] )* ['] """
+_name = r""" (?: [a-z][a-z0-9_$]* | " (?: [^"]+ | "" )* " ) """
+
+_ident   = r""" (?P<ident> %s ) """ % _name
+_fqident = r""" (?P<ident> %s (?: \. %s )? ) """ % (_name, _name)
+
 _base_sql = r"""
-      (?P<ident>  [a-z][a-z0-9_$]* | ["] (?: [^"]+ | ["]["] )* ["] )
-    | (?P<dolq>   (?P<dname> [$] (?: [_a-z][_a-z0-9]*)? [$] )
+      (?P<dolq>   (?P<dname> [$] (?: [_a-z][_a-z0-9]*)? [$] )
                   .*?
                   (?P=dname) )
     | (?P<num>    [0-9][0-9.e]* )
@@ -232,11 +236,18 @@ _base_sql = r"""
     | (?P<ws>     (?: \s+ | [/][*] .*? [*][/] | [-][-][^\n]* )+ )
     | (?P<error>  ['"$\\] )
     | (?P<sym>    . )"""
-_std_sql = r"""(?: (?P<str> [E] %s | %s ) | %s )""" % (_extstr, _stdstr, _base_sql)
-_ext_sql = r"""(?: (?P<str> [E]? %s ) | %s )""" % (_extstr, _base_sql)
-_std_sql_rc = _ext_sql_rc = None
 
-def sql_tokenizer(sql, standard_quoting = False, ignore_whitespace = False):
+_base_sql_fq = r"%s | %s" % (_fqident, _base_sql)
+_base_sql    = r"%s | %s" % (_ident, _base_sql)
+
+_std_sql    = r"""(?: (?P<str> [E] %s | %s ) | %s )""" % (_extstr, _stdstr, _base_sql)
+_std_sql_fq = r"""(?: (?P<str> [E] %s | %s ) | %s )""" % (_extstr, _stdstr, _base_sql_fq)
+_ext_sql    = r"""(?: (?P<str> [E]? %s ) | %s )""" % (_extstr, _base_sql)
+_ext_sql_fq = r"""(?: (?P<str> [E]? %s ) | %s )""" % (_extstr, _base_sql_fq)
+_std_sql_rc = _ext_sql_rc = None
+_std_sql_fq_rc = _ext_sql_fq_rc = None
+
+def sql_tokenizer(sql, standard_quoting = False, ignore_whitespace = False, fqident = False):
     r"""Parser SQL to tokens.
 
     Iterator, returns (toktype, tokstr) tuples.
@@ -246,16 +257,26 @@ def sql_tokenizer(sql, standard_quoting = False, ignore_whitespace = False):
     [('ident', 'select'), ('sym', '*'), ('ident', 'from'), ('ident', 'a'), ('sym', '.'), ('ident', 'b')]
     >>> [x for x in sql_tokenizer("\"c olumn\",'str''val'")]
     [('ident', '"c olumn"'), ('sym', ','), ('str', "'str''val'")]
+    >>> list(sql_tokenizer('a.b a."b "" c" a.1', fqident=True, ignore_whitespace=True))
+    [('ident', 'a.b'), ('ident', 'a."b "" c"'), ('ident', 'a'), ('sym', '.'), ('num', '1')]
     """
-    global _std_sql_rc, _ext_sql_rc
+    global _std_sql_rc, _ext_sql_rc, _std_sql_fq_rc, _ext_sql_fq_rc
     if not _std_sql_rc:
         _std_sql_rc = re.compile(_std_sql, re.X | re.I | re.S)
         _ext_sql_rc = re.compile(_ext_sql, re.X | re.I | re.S)
+        _std_sql_fq_rc = re.compile(_std_sql_fq, re.X | re.I | re.S)
+        _ext_sql_fq_rc = re.compile(_ext_sql_fq, re.X | re.I | re.S)
 
     if standard_quoting:
-        rc = _std_sql_rc
+        if fqident:
+            rc = _std_sql_fq_rc
+        else:
+            rc = _std_sql_rc
     else:
-        rc = _ext_sql_rc
+        if fqident:
+            rc = _ext_sql_fq_rc
+        else:
+            rc = _ext_sql_rc
 
     pos = 0
     while 1:
@@ -264,8 +285,9 @@ def sql_tokenizer(sql, standard_quoting = False, ignore_whitespace = False):
             break
         pos = m.end()
         typ = m.lastgroup
-        if not ignore_whitespace or typ != "ws":
-            yield (m.lastgroup, m.group())
+        if ignore_whitespace and typ == "ws":
+            continue
+        yield (typ, m.group())
 
 _copy_from_stdin_re = "copy.*from\s+stdin"
 _copy_from_stdin_rc = None
