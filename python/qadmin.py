@@ -91,16 +91,13 @@ IGNORE_HOSTS = {
     'ip6-mcastprefix': 1,
 }
 
-def unquote_any(s):
+def normalize_any(s):
     if s:
         c = s[0]
         if c == "'":
             s = skytools.unquote_literal(s, stdstr = True)
-        elif c == '"':
-            s = skytools.unquote_ident(s)
-        # extquote?
         else:
-            s = s.lower()
+            s = skytools.unquote_fqident(s)
     return s
 
 def display_result(curs, desc, fields = []):
@@ -166,7 +163,6 @@ class List(Token):
         self.tok_list = args
 
     def get_next(self, typ, word, params):
-        cw = word.lower()
         for w in self.tok_list:
             n = w.get_next(typ, word, params)
             if n:
@@ -223,7 +219,7 @@ class DynIdentList(DynList):
         """Allow quoted queue names"""
         next = DynList.get_next(self, typ, word, params)
         if next and self.name:
-            params[self.name] = unquote_any(word)
+            params[self.name] = normalize_any(word)
         return next
 
 class Queue(DynIdentList):
@@ -476,20 +472,40 @@ class AdminConsole:
         q = "select distinct node_name from pgq_node.node_location order by 1"
         return self._ccache('node_list', q, 'pgq_node')
 
+    def _new_obj_sql(self, queue, objname, objkind):
+        args = {'queue': skytools.quote_literal(queue),
+                'obj': objname,
+                'ifield': objname + '_name',
+                'itable': 'londiste.' + objname + '_info',
+                'kind': skytools.quote_literal(objkind),
+            }
+        q = """select quote_ident(n.nspname) || '.' || quote_ident(r.relname)
+            from pg_catalog.pg_class r
+            join pg_catalog.pg_namespace n on (n.oid = r.relnamespace)
+            left join %(itable)s i
+                 on (i.queue_name = %(queue)s and
+                     i.%(ifield)s = (n.nspname || '.' || r.relname))
+            where r.relkind = %(kind)s
+              and n.nspname not in ('pg_catalog', 'information_schema', 'pgq', 'londiste', 'pgq_node', 'pgq_ext')
+              and n.nspname !~ 'pg_.*'
+              and i.%(ifield)s is null
+            union all
+            select londiste.quote_fqname(%(ifield)s) from %(itable)s
+             where queue_name = %(queue)s and not local
+            order by 1 """ % args
+        return q
+
     def get_new_table_list(self):
         if not self.cur_queue:
             return []
-        qname = skytools.quote_literal(self.cur_queue)
-        q = """select n.nspname || '.' || r.relname
-            from pg_catalog.pg_class r
-            join pg_catalog.pg_namespace n on (n.oid = r.relnamespace)
-            left join londiste.table_info i on (i.queue_name = %s and i.table_name = (n.nspname || '.' || r.relname))
-            where r.relkind='r'
-              and n.nspname not in ('pg_catalog', 'information_schema', 'pgq', 'londiste', 'pgq_node', 'pgq_ext')
-              and n.nspname !~ 'pg_.*'
-              and i.table_name is null
-            order by 1 """ % qname
+        q = self._new_obj_sql(self.cur_queue, 'table', 'r')
         return self._ccache('new_table_list', q, 'londiste')
+
+    def get_new_seq_list(self):
+        if not self.cur_queue:
+            return []
+        q = self._new_obj_sql(self.cur_queue, 'seq', 'S')
+        return self._ccache('new_seq_list', q, 'londiste')
 
     def get_known_table_list(self):
         if not self.cur_queue:
@@ -498,21 +514,6 @@ class AdminConsole:
         q = "select table_name from londiste.table_info"\
             " where queue_name = %s order by 1" % qname
         return self._ccache('known_table_list', q, 'londiste')
-
-    def get_new_seq_list(self):
-        if not self.cur_queue:
-            return []
-        qname = skytools.quote_literal(self.cur_queue)
-        q = """select n.nspname || '.' || r.relname
-            from pg_catalog.pg_class r
-            join pg_catalog.pg_namespace n on (n.oid = r.relnamespace)
-            left join londiste.seq_info i on (i.queue_name = %s and i.seq_name = (n.nspname || '.' || r.relname))
-            where r.relkind='S'
-              and n.nspname not in ('pg_catalog', 'information_schema', 'pgq', 'londiste', 'pgq_node', 'pgq_ext')
-              and n.nspname !~ 'pg_.*'
-              and i.seq_name is null
-            order by 1 """ % qname
-        return self._ccache('new_seq_list', q, 'londiste')
 
     def get_known_seq_list(self):
         if not self.cur_queue:
@@ -681,7 +682,9 @@ class AdminConsole:
     def main_loop(self):
         readline.parse_and_bind('tab: complete')
         readline.set_completer(self.rl_completer_safe)
-        #print 'delims: ', repr(readline.get_completer_delims())
+        print 'delims: ', repr(readline.get_completer_delims())
+        # remove " from delims
+        readline.set_completer_delims(" \t\n`~!@#$%^&*()-=+[{]}\\|;:',<>/?")
 
         hist_file = os.path.expanduser("~/.qadmin_history")
         try:
@@ -734,46 +737,66 @@ class AdminConsole:
         return skytools.sql_tokenizer(sql,
                 standard_quoting = True,
                 fqident = True,
+                show_location = True,
                 ignore_whitespace = True)
 
     def reset_comp_cache(self):
         self.comp_cache = {}
 
     def find_suggestions(self, pfx, curword, params = {}):
+
+        # refresh word cache
         c_pfx = self.comp_cache.get('comp_pfx')
         c_list = self.comp_cache.get('comp_list', [])
+        c_pos = self.comp_cache.get('comp_pos')
         if c_pfx != pfx:
-            c_list = self.find_suggestions_real(pfx, params)
+            c_list, c_pos = self.find_suggestions_real(pfx, params)
+            while c_pos < len(pfx) and pfx[c_pos].isspace():
+                c_pos += 1
             self.comp_cache['comp_pfx'] = pfx
             self.comp_cache['comp_list'] = c_list
+            self.comp_cache['comp_pos'] = c_pos
 
+        skip = len(pfx) - c_pos
+        if skip:
+            curword = pfx[c_pos : ] + curword
+
+        # generate suggestions
         wlen = len(curword)
         res = []
         for cword in c_list:
             if curword == cword[:wlen]:
                 res.append(cword)
+
+        # resync with readline offset
+        if skip:
+            res = [s[skip:] for s in res]
+        #print '\nfind_suggestions', repr(pfx), repr(curword), repr(res)
         return res
 
     def find_suggestions_real(self, pfx, params):
         # find level
         node = top_level
-        for typ, w in self.sql_words(pfx):
-            w = w.lower()
+        pos = 0
+        for typ, w, pos in self.sql_words(pfx):
+            if typ == 'ident':
+                w = normalize_any(w)
             node = node.get_next(typ, w, params)
             if not node:
                 break
 
         # find possible matches
         if node:
-            return node.get_completions(params)
+            return (node.get_completions(params), pos)
         else:
-            return []
+            return ([], pos)
 
     def exec_string(self, ln, eof = False):
         node = top_level
         params = {}
-        for typ, w in self.sql_words(ln):
-            w = w.lower()
+        for typ, w, pos in self.sql_words(ln):
+            if typ == 'ident':
+                w = normalize_any(w)
             #print repr(typ), repr(w)
             if typ == 'error':
                 print 'syntax error 1:', repr(ln)
