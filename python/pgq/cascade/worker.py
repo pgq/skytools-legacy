@@ -96,7 +96,7 @@ class CascadedWorker(CascadedConsumer):
     main_worker = True
 
     _worker_state = None
-    ev_buf = None
+    ev_buf = []
 
     def __init__(self, service_name, db_name, args):
         """Initialize new consumer.

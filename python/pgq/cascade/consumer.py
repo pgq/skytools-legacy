@@ -145,7 +145,7 @@ class CascadedConsumer(Consumer):
         src_curs = src_db.cursor()
 
         # fetch last tick from source
-        q = "select pgq.get_consumer_info(%s, %s)"
+        q = "select last_tick from pgq.get_consumer_info(%s, %s)"
         src_curs.execute(q, [self.queue_name, self.consumer_name])
         last_tick = src_curs.fetchone()['last_tick']
 
