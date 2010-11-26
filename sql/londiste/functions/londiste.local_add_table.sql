@@ -141,7 +141,7 @@ begin
         lg_pos := 'after';
 
         -- parse extra args
-        if i_trg_args is not null then
+        if array_length(i_trg_args, 1) > 0 then
             for i in array_lower(i_trg_args, 1) .. array_upper(i_trg_args, 1) loop
                 arg := i_trg_args[i];
                 if arg like 'tgflags=%' then
