@@ -15,8 +15,6 @@
     unregister consumer foo [from <qname>];
     show consumer [ <cname | *> [on <qname>] ];
 
-    show node [ <node | *> [on <qname>] ];
-
 Following commands expect default queue:
 
     show batch <batch_id>;
@@ -24,7 +22,9 @@ Following commands expect default queue:
 
 Londiste commands:
 
-    londiste add_table <tbl>;
+    londiste add_table <tbl> [ , ... ]
+        with skip_truncate, tgflags=urlenc,
+             expect_sync, skip_trigger;
     londiste remove_table <tbl>;
     londiste add_seq <seq>;
     londiste remove_seq <seq>;
@@ -49,6 +49,23 @@ drop node
 status
 rename node
 
+node create
+
+create root_node <name>;
+create branch_node <name>;
+create leaf_node <name>;
+
+alter node <name> provider <new>;
+
+alter node <name> takeover <oldnow> with all;
+alter node <name> rename <new>;
+
+takeover <oldnode>;
+
+drop node <name>;
+
+show node [ <node | *> [on <qname>] ];
+show cascade;
 
 """
 
@@ -91,13 +108,11 @@ IGNORE_HOSTS = {
     'ip6-mcastprefix': 1,
 }
 
-def normalize_any(s):
-    if s:
-        c = s[0]
-        if c == "'":
-            s = skytools.unquote_literal(s, stdstr = True)
-        else:
-            s = skytools.unquote_fqident(s)
+def normalize_any(typ, s):
+    if typ == 'str':
+        s = skytools.unquote_literal(s, stdstr = True)
+    elif typ == 'ident':
+        s = skytools.unquote_fqident(s)
     return s
 
 def display_result(curs, desc, fields = []):
@@ -143,12 +158,21 @@ class Token:
     """
     def __init__(self, **kwargs):
         self.name = kwargs.get('name')
+        self._append = kwargs.get('append', 0)
     def get_next(self, typ, word, params):
         """Return next token if 'word' matches this token."""
         return None
     def get_completions(self, params):
         """Return list of all completions possible at this point."""
         return []
+    def set_param(self, word, params):
+        if not self.name:
+            return
+        if self._append:
+            lst = params.setdefault(self.name, [])
+            lst.append(word)
+        else:
+            params[self.name] = word
 
 class Proxy(Token):
     """Forward def for Token, in case it needs to be referenced recursively."""
@@ -166,8 +190,7 @@ class List(Token):
         for w in self.tok_list:
             n = w.get_next(typ, word, params)
             if n:
-                if self.name:
-                    params[self.name] = word
+                self.set_param(word, params)
                 return n
         return None
 
@@ -198,8 +221,7 @@ class Word(Token):
             return None
         if self.word and word != self.word:
             return None
-        if self.name: # and not self.name in params:
-            params[self.name] = word
+        self.set_param(word, params)
         return self.next
     def get_completions(self, params):
         wlist = self.get_wlist()
@@ -218,8 +240,8 @@ class DynIdentList(DynList):
     def get_next(self, typ, word, params):
         """Allow quoted queue names"""
         next = DynList.get_next(self, typ, word, params)
-        if next and self.name:
-            params[self.name] = normalize_any(word)
+        if next:
+            self.set_param(word, params)
         return next
 
 class Queue(DynIdentList):
@@ -397,10 +419,47 @@ w_cons_from_queue = Word('consumer',
         Consumer(List(w_done, w_from_queue), name = 'consumer'),
         name = 'cmd2')
 
-w_londiste_add_table = NewTable(w_done, name = 'table')
-w_londiste_add_seq = NewSeq(w_done, name = 'seq')
-w_londiste_remove_table = KnownTable(w_done, name = 'table')
-w_londiste_remove_seq = KnownSeq(w_done, name = 'seq')
+w_table_with2 = Proxy()
+
+w_table_with = List(
+    Word('skip_truncate', w_table_with2, name = 'skip_truncate'),
+    Word('expect_sync', w_table_with2, name = 'expect_sync'),
+    WordEQ('tgfmt', Value(w_table_with2, name = 'tgfmt')))
+
+w_table_with2.set_real(List(
+    w_done,
+    Symbol(',', w_table_with)))
+
+w_londiste_add_table = Proxy()
+w_londiste_add_table2 = List(
+    Symbol(',', w_londiste_add_table),
+    Word('with', w_table_with),
+    w_done)
+w_londiste_add_table.set_real(
+    NewTable(w_londiste_add_table2,
+             name = 'tables', append = 1))
+
+w_londiste_add_seq = Proxy()
+w_londiste_add_seq2 = List(
+    Symbol(',', w_londiste_add_seq),
+    w_done)
+w_londiste_add_seq.set_real(
+    NewSeq(w_londiste_add_seq2, name = 'seqs', append = 1))
+
+w_londiste_remove_table = Proxy()
+w_londiste_remove_table2 = List(
+    Symbol(',', w_londiste_remove_table),
+    w_done)
+w_londiste_remove_table.set_real(
+    KnownTable(w_londiste_remove_table2, name = 'tables', append = 1))
+
+w_londiste_remove_seq = KnownSeq(w_done, name = 'seqs', append = 1)
+w_londiste_remove_seq = Proxy()
+w_londiste_remove_seq2 = List(
+    Symbol(',', w_londiste_remove_seq),
+    w_done)
+w_londiste_remove_seq.set_real(
+    KnownSeq(w_londiste_remove_seq2, name = 'seqs', append = 1))
 
 w_londiste = List(
     Word('add_table', w_londiste_add_table),
@@ -511,7 +570,8 @@ class AdminConsole:
         if not self.cur_queue:
             return []
         qname = skytools.quote_literal(self.cur_queue)
-        q = "select table_name from londiste.table_info"\
+        q = "select londiste.quote_fqname(table_name)"\
+            " from londiste.table_info"\
             " where queue_name = %s order by 1" % qname
         return self._ccache('known_table_list', q, 'londiste')
 
@@ -519,7 +579,8 @@ class AdminConsole:
         if not self.cur_queue:
             return []
         qname = skytools.quote_literal(self.cur_queue)
-        q = "select seq_name from londiste.seq_info"\
+        q = "select londiste.quote_fqname(seq_name)"\
+            " from londiste.seq_info"\
             " where queue_name = %s order by 1" % qname
         return self._ccache('known_seq_list', q, 'londiste')
 
@@ -682,9 +743,9 @@ class AdminConsole:
     def main_loop(self):
         readline.parse_and_bind('tab: complete')
         readline.set_completer(self.rl_completer_safe)
-        print 'delims: ', repr(readline.get_completer_delims())
+        #print 'delims: ', repr(readline.get_completer_delims())
         # remove " from delims
-        readline.set_completer_delims(" \t\n`~!@#$%^&*()-=+[{]}\\|;:',<>/?")
+        #readline.set_completer_delims(" \t\n`~!@#$%^&*()-=+[{]}\\|;:',<>/?")
 
         hist_file = os.path.expanduser("~/.qadmin_history")
         try:
@@ -751,8 +812,10 @@ class AdminConsole:
         c_pos = self.comp_cache.get('comp_pos')
         if c_pfx != pfx:
             c_list, c_pos = self.find_suggestions_real(pfx, params)
+            orig_pos = c_pos
             while c_pos < len(pfx) and pfx[c_pos].isspace():
                 c_pos += 1
+            #print repr(pfx), orig_pos, c_pos
             self.comp_cache['comp_pfx'] = pfx
             self.comp_cache['comp_list'] = c_list
             self.comp_cache['comp_pos'] = c_pos
@@ -771,32 +834,34 @@ class AdminConsole:
         # resync with readline offset
         if skip:
             res = [s[skip:] for s in res]
-        #print '\nfind_suggestions', repr(pfx), repr(curword), repr(res)
+        #print '\nfind_suggestions', repr(pfx), repr(curword), repr(res), repr(c_list)
         return res
 
     def find_suggestions_real(self, pfx, params):
         # find level
         node = top_level
         pos = 0
+        xpos = 0
+        xnode = node
         for typ, w, pos in self.sql_words(pfx):
-            if typ == 'ident':
-                w = normalize_any(w)
+            w = normalize_any(typ, w)
             node = node.get_next(typ, w, params)
             if not node:
                 break
+            xnode = node
+            xpos = pos
 
         # find possible matches
-        if node:
-            return (node.get_completions(params), pos)
+        if xnode:
+            return (xnode.get_completions(params), xpos)
         else:
-            return ([], pos)
+            return ([], xpos)
 
     def exec_string(self, ln, eof = False):
         node = top_level
         params = {}
         for typ, w, pos in self.sql_words(ln):
-            if typ == 'ident':
-                w = normalize_any(w)
+            w = normalize_any(typ, w)
             #print repr(typ), repr(w)
             if typ == 'error':
                 print 'syntax error 1:', repr(ln)
@@ -1140,39 +1205,43 @@ class AdminConsole:
 
         curs = self.db.cursor()
         q = """select * from londiste.local_add_table(%s, %s)"""
-        curs.execute(q, [self.cur_queue, params['table']])
-
-        res = curs.fetchone()
-        print 'ADD_TABLE:', res[0], res[1]
+        for tbl in params['tables']:
+            curs.execute(q, [self.cur_queue, tbl])
+            res = curs.fetchone()
+            print res[0], res[1]
+        print 'ADD_TABLE'
 
     def cmd_londiste_remove_table(self, params):
         """Remove table."""
 
         curs = self.db.cursor()
         q = """select * from londiste.local_remove_table(%s, %s)"""
-        curs.execute(q, [self.cur_queue, params['table']])
-
-        res = curs.fetchone()
-        print 'REMOVE_TABLE:', res[0], res[1]
+        for tbl in params['tables']:
+            curs.execute(q, [self.cur_queue, tbl])
+            res = curs.fetchone()
+            print res[0], res[1]
+        print 'REMOVE_TABLE'
 
     def cmd_londiste_add_seq(self, params):
         """Add seq."""
 
         curs = self.db.cursor()
         q = """select * from londiste.local_add_seq(%s, %s)"""
-        curs.execute(q, [self.cur_queue, params['seq']])
-
-        res = curs.fetchone()
-        print 'ADD_SEQ:', res[0], res[1]
+        for seq in params['seqs']:
+            curs.execute(q, [self.cur_queue, seq])
+            res = curs.fetchone()
+            print res[0], res[1]
+        print 'ADD_SEQ'
 
     def cmd_londiste_remove_seq(self, params):
         """Remove seq."""
 
         curs = self.db.cursor()
         q = """select * from londiste.local_remove_seq(%s, %s)"""
-        curs.execute(q, [self.cur_queue, params['seq']])
-
-        res = curs.fetchone()
+        for seq in params['seqs']:
+            curs.execute(q, [self.cur_queue, seq])
+            res = curs.fetchone()
+            print res[0], res[1]
         print 'REMOVE_SEQ:', res[0], res[1]
 
 def main():
