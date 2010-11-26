@@ -19,6 +19,11 @@ declare
     logtrg_name     text;
     b_queue_name    bytea;
 begin
+    -- skip if no triggers found on that table
+    perform 1 from pg_catalog.pg_trigger where tgrelid = londiste.find_table_oid(i_table_name);
+    if not found then
+        return;
+    end if;
     -- cast to bytea
     b_queue_name := replace(i_queue_name, E'\\', E'\\\\')::bytea;
 
@@ -28,7 +33,7 @@ begin
     for logtrg_name in
         select tgname from pg_catalog.pg_trigger
          where tgrelid = londiste.find_table_oid(i_table_name)
-           and tgfoid in ('pgq.sqltriga'::regproc::oid, 'pgq.logutriga'::regproc::oid)
+           and londiste.is_replica_func(tgfoid)
            and substring(tgargs for (position(E'\\000'::bytea in tgargs) - 1)) = b_queue_name
     loop
         execute 'drop trigger ' || quote_ident(logtrg_name)

@@ -218,28 +218,28 @@ begin
 
     if pgversion >= 90000 then
         select tg.tgname into logtrg_previous
-        from pg_class r, pg_trigger tg
+        from pg_class r join pg_trigger tg on (tg.tgrelid = r.oid)
         where r.oid = londiste.find_table_oid(fq_table_name)
           and not tg.tgisinternal
           and tg.tgname < lg_name::name
           -- per-row AFTER trigger
           and (tg.tgtype & 3) = 1   -- bits: 0:ROW, 1:BEFORE
           -- current londiste
-          and tg.tgfoid not in ('pgq.sqltriga'::regproc::oid, 'pgq.logutriga'::regproc::oid)
+          and not londiste.is_replica_func(tg.tgfoid)
           -- old londiste
           and substring(tg.tgname from 1 for 10) != '_londiste_'
           and substring(tg.tgname from char_length(tg.tgname) - 6) != '_logger'
         order by 1 limit 1;
     else
         select tg.tgname into logtrg_previous
-        from pg_class r, pg_trigger tg
+        from pg_class r join pg_trigger tg on (tg.tgrelid = r.oid)
         where r.oid = londiste.find_table_oid(fq_table_name)
           and not tg.tgisconstraint
           and tg.tgname < lg_name::name
           -- per-row AFTER trigger
           and (tg.tgtype & 3) = 1   -- bits: 0:ROW, 1:BEFORE
           -- current londiste
-          and tg.tgfoid not in ('pgq.sqltriga'::regproc::oid, 'pgq.logutriga'::regproc::oid)
+          and not londiste.is_replica_func(t.tgfoid)
           -- old londiste
           and substring(tg.tgname from 1 for 10) != '_londiste_'
           and substring(tg.tgname from char_length(tg.tgname) - 6) != '_logger'

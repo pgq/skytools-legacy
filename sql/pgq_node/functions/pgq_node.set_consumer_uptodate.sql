@@ -25,7 +25,8 @@ begin
      where queue_name = i_queue_name
        and consumer_name = i_consumer_name;
     if found then
-        select 200, 'Consumer uptodate = '||i_uptodate into ret_code, ret_note;
+        select 200, 'Consumer uptodate = ' || i_uptodate::int4::text
+               into ret_code, ret_note;
     else
         select 404, 'Consumer not known: '
                || i_queue_name || '/' || i_consumer_name

@@ -37,13 +37,6 @@ begin
         perform pgq.insert_event(i_queue_name, 'EXECUTE', sql, i_file_name, null, null, null);
     end if;
 
-    -- try educated guess of previous state
-    if is_root then
-        SET LOCAL session_replication_role = 'origin';
-    else
-        SET LOCAL session_replication_role = 'replica';
-    end if;
-
     select 200, 'Execute finished: ' || i_file_name into ret_code, ret_note;
     return;
 end;

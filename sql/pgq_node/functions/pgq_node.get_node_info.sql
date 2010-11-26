@@ -44,17 +44,16 @@ create or replace function pgq_node.get_node_info(
 declare
     sql text;
 begin
-    select 100, 'Ok', n.node_type, n.node_name, g.last_tick,
+    select 100, 'Ok', n.node_type, n.node_name,
            c.node_type, c.queue_name, w.provider_node, l.node_location,
            n.worker_name, w.paused, w.uptodate, w.last_tick_id
-      into ret_code, ret_note, node_type, node_name, global_watermark,
+      into ret_code, ret_note, node_type, node_name,
            combined_type, combined_queue, provider_node, provider_location,
            worker_name, worker_paused, worker_uptodate, worker_last_tick
       from pgq_node.node_info n
            left join pgq_node.node_info c on (c.queue_name = n.combined_queue)
            left join pgq_node.local_state w on (w.queue_name = n.queue_name and w.consumer_name = n.worker_name)
            left join pgq_node.node_location l on (l.queue_name = w.queue_name and l.node_name = w.provider_node)
-           left join pgq.get_consumer_info(i_queue_name, '.global_watermark') g on (g.queue_name = n.queue_name)
       where n.queue_name = i_queue_name;
     if not found then
         select 404, 'Unknown queue: ' || i_queue_name into ret_code, ret_note;
@@ -62,9 +61,10 @@ begin
     end if;
 
     if node_type in ('root', 'branch') then
-        select min(last_tick) into local_watermark
-          from pgq.get_consumer_info(i_queue_name)
-         where consumer_name <> '.global_watermark';
+        select min(case when consumer_name = '.global_watermark' then null else last_tick end),
+               min(case when consumer_name = '.global_watermark' then last_tick else null end)
+          into local_watermark, global_watermark
+          from pgq.get_consumer_info(i_queue_name);
         if local_watermark is null then
             select t.tick_id into local_watermark
               from pgq.tick t, pgq.queue q

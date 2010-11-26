@@ -53,8 +53,6 @@ begin
     insert into londiste.applied_execute (queue_name, execute_file, execute_sql)
         values (i_queue_name, i_file_name, i_sql);
 
-    SET LOCAL session_replication_role = 'local';
-
     select 200, 'Executing: ' || i_file_name into ret_code, ret_note;
     return;
 end;

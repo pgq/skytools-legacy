@@ -98,22 +98,19 @@ returns setof record as $$
 --      current_batch       - Current batch ID, if one is active or NULL
 --      next_tick           - If batch is active, then its final tick.
 -- ----------------------------------------------------------------------
+declare
+    _pending_events bigint;
+    _queue_id bigint;
 begin
     for queue_name, consumer_name, lag, last_seen,
-        last_tick, current_batch, next_tick, pending_events
+        last_tick, current_batch, next_tick, _pending_events, _queue_id
     in
         select q.queue_name, c.co_name,
                current_timestamp - t.tick_time,
                current_timestamp - s.sub_active,
                s.sub_last_tick, s.sub_batch, s.sub_next_tick,
-               top.tick_event_seq - t.tick_event_seq
-          from pgq.queue q
-               left join pgq.tick top
-                 on (top.tick_queue = q.queue_id
-                     and top.tick_id = (select tmp.tick_id from pgq.tick tmp
-                                         where tmp.tick_queue = q.queue_id
-                                         order by tmp.tick_queue desc, tmp.tick_id desc
-                                         limit 1)),
+               t.tick_event_seq, q.queue_id
+          from pgq.queue q,
                pgq.consumer c,
                pgq.subscription s
                left join pgq.tick t
@@ -124,6 +121,12 @@ begin
            and (i_consumer_name is null or c.co_name = i_consumer_name)
          order by 1,2
     loop
+        select t.tick_event_seq - _pending_events
+            into pending_events
+            from pgq.tick t
+            where t.tick_queue = _queue_id
+            order by t.tick_queue desc, t.tick_id desc
+            limit 1;
         return next;
     end loop;
     return;

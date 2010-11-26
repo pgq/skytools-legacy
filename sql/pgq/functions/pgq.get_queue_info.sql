@@ -63,41 +63,54 @@ returns setof record as $$
 -- Returns:
 --      One pgq.ret_queue_info record.
 -- ----------------------------------------------------------------------
+declare
+    _ticker_lag interval;
+    _top_tick_id bigint;
+    _ht_tick_id bigint;
+    _top_tick_time timestamptz;
+    _top_tick_event_seq bigint;
+    _ht_tick_time timestamptz;
+    _ht_tick_event_seq bigint;
+    _queue_id integer;
+    _queue_event_seq text;
 begin
     for queue_name, queue_ntables, queue_cur_table, queue_rotation_period,
         queue_switch_time, queue_external_ticker, queue_ticker_paused,
         queue_ticker_max_count, queue_ticker_max_lag, queue_ticker_idle_period,
-        ticker_lag, ev_per_sec, ev_new
+        _queue_id, _queue_event_seq
     in select
         q.queue_name, q.queue_ntables, q.queue_cur_table,
         q.queue_rotation_period, q.queue_switch_time,
         q.queue_external_ticker, q.queue_ticker_paused,
         q.queue_ticker_max_count, q.queue_ticker_max_lag,
         q.queue_ticker_idle_period,
-        (select current_timestamp - tick_time
-           from pgq.tick where tick_queue = queue_id
-          order by tick_queue desc, tick_id desc limit 1),
-        case when ht.tick_time < top.tick_time
-             then (top.tick_event_seq - ht.tick_event_seq) / extract(epoch from (top.tick_time - ht.tick_time))
-             else null end,
-        pgq.seq_getval(q.queue_event_seq) - top.tick_event_seq
+        q.queue_id, q.queue_event_seq
         from pgq.queue q
-          left join pgq.tick top
-            on (top.tick_queue = q.queue_id
-                and top.tick_id = (select tmp.tick_id from pgq.tick tmp
-                                    where tmp.tick_queue = q.queue_id
-                                    order by tmp.tick_queue desc, tmp.tick_id desc
-                                    limit 1))
-          left join pgq.tick ht
-            on (ht.tick_queue = q.queue_id
-                and ht.tick_id = (select tmp2.tick_id from pgq.tick tmp2
-                                   where tmp2.tick_queue = q.queue_id
-                                     and tmp2.tick_id >= top.tick_id - 20
-                                   order by tmp2.tick_queue asc, tmp2.tick_id asc
-                                   limit 1))
         where (i_queue_name is null or q.queue_name = i_queue_name)
         order by q.queue_name
     loop
+        -- most recent tick
+        select (current_timestamp - t.tick_time),
+               tick_id, t.tick_time, t.tick_event_seq
+            into ticker_lag, _top_tick_id, _top_tick_time, _top_tick_event_seq
+            from pgq.tick t
+            where t.tick_queue = _queue_id
+            order by t.tick_queue desc, t.tick_id desc
+            limit 1;
+        -- slightly older tick
+        select ht.tick_id, ht.tick_time, ht.tick_event_seq
+            into _ht_tick_id, _ht_tick_time, _ht_tick_event_seq
+            from pgq.tick ht
+            where ht.tick_queue = _queue_id
+             and ht.tick_id >= _top_tick_id - 20
+            order by ht.tick_queue asc, ht.tick_id asc
+            limit 1;
+        if _ht_tick_time < _top_tick_time then
+            ev_per_sec = (_top_tick_event_seq - _ht_tick_event_seq) / extract(epoch from (_top_tick_time - _ht_tick_time));
+        else
+            ev_per_sec = null;
+        end if;
+        ev_new = pgq.seq_getval(_queue_event_seq) - _top_tick_event_seq;
         return next;
     end loop;
     return;
