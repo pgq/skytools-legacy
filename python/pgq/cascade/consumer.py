@@ -18,7 +18,6 @@ class CascadedConsumer(Consumer):
     Loads provider from target node, accepts pause/resume commands.
     """
 
-    _batch_info = None
     _consumer_state = None
 
     def __init__(self, service_name, db_name, args):
@@ -156,15 +155,13 @@ class CascadedConsumer(Consumer):
         dst_db.commit()
 
     def process_batch(self, src_db, batch_id, event_list):
-        self._batch_info = self.get_batch_info(batch_id)
-
         state = self._consumer_state
 
-        if self.is_batch_done(state, self._batch_info):
+        if self.is_batch_done(state, self.batch_info):
             return
 
         dst_db = self.get_database(self.target_db)
-        tick_id = self._batch_info['tick_id']
+        tick_id = self.batch_info['tick_id']
         self.process_remote_batch(src_db, tick_id, event_list, dst_db)
 
         # this also commits

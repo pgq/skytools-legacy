@@ -239,8 +239,8 @@ class CascadedWorker(CascadedConsumer):
                 dst_curs.execute(q, [st.target_queue, str(tick_id), self.pgq_queue_name])
             if st.create_tick:
                 # create actual tick
-                tick_id = self._batch_info['tick_id']
-                tick_time = self._batch_info['batch_end']
+                tick_id = self.batch_info['tick_id']
+                tick_time = self.batch_info['batch_end']
                 q = "select pgq.ticker(%s, %s, %s, %s)"
                 dst_curs.execute(q, [self.pgq_queue_name, tick_id, tick_time, self.cur_max_id])
 

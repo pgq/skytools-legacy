@@ -316,8 +316,8 @@ class Replicator(CascadedWorker):
 
         self.sync_database_encodings(src_db, dst_db)
         
-        self.cur_tick = self._batch_info['tick_id']
-        self.prev_tick = self._batch_info['prev_tick_id']
+        self.cur_tick = self.batch_info['tick_id']
+        self.prev_tick = self.batch_info['prev_tick_id']
 
         dst_curs = dst_db.cursor()
         self.load_table_state(dst_curs)
@@ -344,7 +344,7 @@ class Replicator(CascadedWorker):
         self.flush_sql(dst_curs)
 
         for p in self.used_plugins.values():
-            p.finish_batch(self._batch_info)
+            p.finish_batch(self.batch_info)
         self.used_plugins = {}
 
         # finalize table changes
@@ -527,7 +527,7 @@ class Replicator(CascadedWorker):
         except KeyError:
             p = t.get_plugin()
             self.used_plugins[ev.extra1] = p
-            p.prepare_batch(self._batch_info, dst_curs)
+            p.prepare_batch(self.batch_info, dst_curs)
      
         p.process_event(ev, self.apply_sql, dst_curs)
 
