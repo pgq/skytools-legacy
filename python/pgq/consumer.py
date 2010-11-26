@@ -294,7 +294,14 @@ class Consumer(skytools.DBScript):
     def _load_next_batch(self, curs):
         """Allocate next batch. (internal)"""
 
-        q = "select * from pgq.next_batch_custom(%s, %s, %s, %s, %s)"
+        q = """select batch_id,
+                      prev_tick_id,
+                      cur_tick_id as tick_id,
+                      cur_tick_time as batch_end,
+                      prev_tick_time as batch_start,
+                      prev_tick_event_seq as seq_start,
+                      cur_tick_event_seq as seq_end
+                 from pgq.next_batch_custom(%s, %s, %s, %s, %s)"""
         curs.execute(q, [self.queue_name, self.consumer_name,
                          self.pgq_min_lag, self.pgq_min_count, self.pgq_min_interval])
         self.batch_info = curs.fetchone()
