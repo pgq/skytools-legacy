@@ -152,7 +152,7 @@ class CascadedConsumer(Consumer):
 
         # set on destination
         q = "select * from pgq_node.set_consumer_completed(%s, %s, %s)"
-        dst_curs.execute(q, [self.queue_name, self.consumer_name, tick_id])
+        dst_curs.execute(q, [self.queue_name, self.consumer_name, last_tick])
         dst_db.commit()
 
     def process_batch(self, src_db, batch_id, event_list):
