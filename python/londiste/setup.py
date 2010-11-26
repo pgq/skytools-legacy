@@ -125,12 +125,12 @@ class LondisteSetup(CascadeAdmin):
             "full": skytools.T_ALL,
             "pkey": skytools.T_PKEY,
         }
-        create_flags = 0
+        create_flags = skytools.T_TABLE
         if create:
             for f in create.split(','):
                 if f not in fmap:
                     raise Exception("bad --create-only flag: " + f)
-                create_flags += fmap[f]
+                create_flags |= fmap[f]
 
         # seems ok
         for tbl in args:
