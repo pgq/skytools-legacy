@@ -148,11 +148,11 @@ class CascadedConsumer(Consumer):
         q = "select last_tick from pgq.get_consumer_info(%s, %s)"
         src_curs.execute(q, [self.queue_name, self.consumer_name])
         last_tick = src_curs.fetchone()['last_tick']
+        src_db.commit()
 
         # set on destination
-        self.finish_remote_batch(src_db, dst_db, last_tick)
-
-        src_db.commit()
+        q = "select * from pgq_node.set_consumer_completed(%s, %s, %s)"
+        dst_curs.execute(q, [self.queue_name, self.consumer_name, tick_id])
         dst_db.commit()
 
     def process_batch(self, src_db, batch_id, event_list):
