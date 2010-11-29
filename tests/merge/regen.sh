@@ -137,29 +137,50 @@ for n in 1 2 3 4; do
 done
 
 msg "Create table and register it in merge nodes"
+run_sql full1 "create table mydata (id int4 primary key, data text)"
+run londiste3 $v conf/londiste_full1.ini add-table mydata
 for db in full1; do
-  run_sql $db "create table mydata (id int4 primary key, data text)"
-  run londiste3 $v conf/londiste_$db.ini add-table mydata
   for src in $part_list; do
     run londiste3 $v conf/londiste_${src}_${db}.ini add-table mydata
   done
 done
 
-msg "Create table and register it in full nodes"
-for db in full2 full3 full4; do
-  run_sql $db "create table mydata (id int4 primary key, data text)"
-  run londiste3 $v conf/londiste_$db.ini add-table mydata
+msg "Wait until table is in sync on combined-root"
+cnt=0
+while test $cnt -ne 5; do
+  sleep 5
+  cnt=`psql -A -t -d full1 -c "select count(*) from londiste.table_info where merge_state = 'ok'"`
+  echo "cnt=$cnt"
 done
+
+msg "Create table and register it in full nodes"
+for db in full2; do
+  run londiste3 $v conf/londiste_$db.ini add-table mydata --create-only=pkey
+  for src in $part_list; do
+    run londiste3 $v conf/londiste_${src}_${db}.ini add-table mydata
+  done
+done
+for db in full3 full4; do
+  run londiste3 $v conf/londiste_$db.ini add-table mydata --create-only=pkey
+done
+
+./showtbl.sh
 
 msg "Sleep a bit"
 run sleep 10
+
+./showtbl.sh
 
 msg "Insert few rows"
 for n in 1 2 3 4; do
   run_sql part$n "insert into mydata values (4 + $n, 'part$n')"
 done
 
+./showtbl.sh
+
 run sleep 10
+
+./showtbl.sh
 
 msg "Now check if data apprered"
 for db in full1; do
