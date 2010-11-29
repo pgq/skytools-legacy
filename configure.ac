@@ -129,6 +129,9 @@ AC_USUAL_FUNCTION_CHECK
 dnl Postres headers on Solaris define incompat unsetenv without that
 AC_CHECK_FUNCS(unsetenv)
 
+dnl Optional use of libevent
+AC_USUAL_LIBEVENT_OPT
+
 AC_USUAL_DEBUG
 AC_USUAL_CASSERT
 
