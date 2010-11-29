@@ -52,6 +52,7 @@ declare
     i integer;
     sql text;
     arg text;
+    _node record;
 begin
     fq_table_name := londiste.make_fqname(i_table_name);
     col_types := londiste.find_column_types(fq_table_name);
@@ -73,8 +74,8 @@ begin
         end if;
     end if;
 
-    perform 1 from pgq_node.node_info where queue_name = i_queue_name;
-    if not found then
+    select * from pgq_node.get_node_info(i_queue_name) into _node;
+    if not found or _node.ret_code >= 400 then
         select 400, 'No such set: ' || i_queue_name into ret_code, ret_note;
         return;
     end if;
@@ -84,7 +85,7 @@ begin
         where queue_name = i_queue_name and table_name = fq_table_name;
     if not found then
         -- add to set on root
-        if pgq_node.is_root_node(i_queue_name) then
+        if _node.node_type = 'root' then
             select f.ret_code, f.ret_note into ret_code, ret_note
                 from londiste.global_add_table(i_queue_name, i_table_name) f;
             if ret_code <> 200 then
@@ -107,9 +108,11 @@ begin
         return;
     end if;
 
-    if pgq_node.is_root_node(i_queue_name) then
+    if _node.node_type = 'root' then
         new_state := 'ok';
         perform londiste.root_notify_change(i_queue_name, 'londiste.add-table', fq_table_name);
+    elsif _node.node_type = 'leaf' and _node.combined_type = 'branch' then
+        new_state := 'ok';
     else
         new_state := NULL;
     end if;
@@ -123,7 +126,7 @@ begin
     end if;
 
     -- skip triggers on leaf node
-    if pgq_node.is_leaf_node(i_queue_name) then
+    if _node.node_type = 'leaf' then
         select 200, 'Table added: ' || fq_table_name into ret_code, ret_note;
         return;
     end if;
