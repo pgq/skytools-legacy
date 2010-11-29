@@ -101,8 +101,8 @@ done
 
 msg "Tune PgQ"
 
-for db in part1 full1; do
-  run_sql $db "update pgq.queue set queue_ticker_idle_period='5 secs'"
+for db in part1 part2 part3 part4 full1; do
+  run_sql $db "update pgq.queue set queue_ticker_idle_period='3 secs'"
 done
 
 msg "Launch ticker"
@@ -164,23 +164,15 @@ for db in full3 full4; do
   run londiste3 $v conf/londiste_$db.ini add-table mydata --create-only=pkey
 done
 
-./showtbl.sh
-
 msg "Sleep a bit"
 run sleep 10
-
-./showtbl.sh
 
 msg "Insert few rows"
 for n in 1 2 3 4; do
   run_sql part$n "insert into mydata values (4 + $n, 'part$n')"
 done
 
-./showtbl.sh
-
 run sleep 10
-
-./showtbl.sh
 
 msg "Now check if data apprered"
 for db in full1; do
