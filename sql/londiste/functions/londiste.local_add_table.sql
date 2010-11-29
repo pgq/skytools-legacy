@@ -138,7 +138,7 @@ begin
             and tgname = lg_name;
     if not found then
         -- new trigger
-        lg_func := 'pgq.sqltriga';
+        lg_func := 'pgq.logutriga';
         lg_event := '';
         lg_args := quote_literal(i_queue_name);
         lg_pos := 'after';
