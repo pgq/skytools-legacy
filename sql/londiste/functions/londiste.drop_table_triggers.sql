@@ -34,6 +34,7 @@ begin
         select tgname from pg_catalog.pg_trigger
          where tgrelid = londiste.find_table_oid(i_table_name)
            and londiste.is_replica_func(tgfoid)
+           and octet_length(tgargs) > 0
            and substring(tgargs for (position(E'\\000'::bytea in tgargs) - 1)) = b_queue_name
     loop
         execute 'drop trigger ' || quote_ident(logtrg_name)
