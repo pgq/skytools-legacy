@@ -242,7 +242,7 @@ begin
           -- per-row AFTER trigger
           and (tg.tgtype & 3) = 1   -- bits: 0:ROW, 1:BEFORE
           -- current londiste
-          and not londiste.is_replica_func(t.tgfoid)
+          and not londiste.is_replica_func(tg.tgfoid)
           -- old londiste
           and substring(tg.tgname from 1 for 10) != '_londiste_'
           and substring(tg.tgname from char_length(tg.tgname) - 6) != '_logger'
