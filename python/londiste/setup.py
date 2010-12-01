@@ -453,3 +453,17 @@ class LondisteSetup(CascadeAdmin):
             raise UsageError("Cannot proceed")
         return res_list
 
+    def load_extra_status(self, curs, node):
+        """Fetch extra info."""
+        CascadeAdmin.load_extra_status(self, curs, node)
+        curs.execute("select * from londiste.get_table_list(%s)", [self.queue_name])
+        n_ok = n_half = n_ign = 0
+        for tbl in curs.fetchall():
+            if not tbl['local']:
+                n_ign += 1
+            elif tbl['merge_state'] == 'ok':
+                n_ok += 1
+            else:
+                n_half += 1
+        node.add_info_line('Tables: %d/%d/%d' % (n_ok, n_half, n_ign))
+

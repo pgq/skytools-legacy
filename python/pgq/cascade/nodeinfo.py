@@ -100,7 +100,7 @@ class NodeInfo:
             lag = self.queue_info['ticker_lag']
         else:
             lag = "(n/a)"
-        txt = "lag: %s" % lag
+        txt = "Lag: %s" % lag
         if self.paused:
             txt += ", PAUSED"
         if not self.uptodate:
