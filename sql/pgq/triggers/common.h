@@ -54,6 +54,7 @@ struct PgqTriggerInfo {
 	bool skip;
 	bool backup;
 	bool custom_fields;
+	bool deny;
 
 	const char *ignore_list;
 	const char *pkey_list;

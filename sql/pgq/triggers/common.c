@@ -407,6 +407,8 @@ static void parse_newstyle_args(PgqTriggerEvent *ev, TriggerData *tg)
 			ev->tgargs->pkey_list = MemoryContextStrdup(tbl_cache_ctx, arg + 5);
 		else if (strcmp(arg, "backup") == 0)
 			ev->tgargs->backup = true;
+		else if (strcmp(arg, "deny") == 0)
+			ev->tgargs->deny = true;
 		else if (strncmp(arg, "ev_extra4=", 10) == 0)
 			make_query(ev, EV_EXTRA4, arg + 10);
 		else if (strncmp(arg, "ev_extra3=", 10) == 0)
@@ -537,6 +539,11 @@ void pgq_prepare_event(struct PgqTriggerEvent *ev, TriggerData *tg, bool newstyl
 	} else {
 		if (!TRIGGER_FIRED_AFTER(tg->tg_event))
 			/* dont care ??? */ ;
+	}
+
+	if (ev->tgargs->deny) {
+		elog(ERROR, "Table '%s' to queue '%s': change not allowed (%c)",
+		     ev->table_name, ev->queue_name, ev->op_type);
 	}
 
 	/*

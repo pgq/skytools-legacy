@@ -113,3 +113,16 @@ select * from when_test;
 create trigger trunc_triga after truncate on when_test
 for each statement execute procedure pgq.logutriga('que3');
 truncate when_test;
+
+-- test deny
+create table deny_test (
+    dat1 text not null primary key,
+    dat2 text
+);
+create trigger deny_triga after insert or update or delete on deny_test
+for each row execute procedure pgq.logutriga('noqueue', 'deny');
+create trigger deny_triga2 after truncate on deny_test
+for each statement execute procedure pgq.logutriga('noqueue', 'deny');
+insert into deny_test values ('1', '2');
+truncate deny_test;
+
