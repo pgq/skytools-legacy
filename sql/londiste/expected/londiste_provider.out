@@ -86,11 +86,11 @@ select * from londiste.get_table_list('aset');
 (0 rows)
 
 select ev_id, ev_type, ev_data, ev_extra1 from pgq.event_template;
- ev_id |        ev_type        |              ev_data              |    ev_extra1    
--------+-----------------------+-----------------------------------+-----------------
-     1 | londiste.add-table    | public.testdata                   | 
-     2 | I                     | (id,txt) values ('1','test-data') | public.testdata
-     3 | londiste.remove-table | public.testdata                   | 
+ ev_id |        ev_type        |       ev_data        |    ev_extra1    
+-------+-----------------------+----------------------+-----------------
+     1 | londiste.add-table    | public.testdata      | 
+     2 | I:id                  | id=1&txt=test%2ddata | public.testdata
+     3 | londiste.remove-table | public.testdata      | 
 (3 rows)
 
 select * from londiste.local_show_missing('aset');
@@ -116,10 +116,10 @@ select * from londiste.local_add_table('aset', 'public.trg_test', array['ev_extr
 insert into trg_test values (1, 'data');
 truncate trg_test;
 select ev_id, ev_type, ev_data, ev_extra1, ev_extra4 from pgq.event_template where ev_extra1 = 'public.trg_test';
- ev_id | ev_type |           ev_data            |    ev_extra1    | ev_extra4 
--------+---------+------------------------------+-----------------+-----------
-     5 | I       | (id,txt) values ('1','data') | public.trg_test | test=data
-     6 | R       |                              | public.trg_test | 
+ ev_id | ev_type |    ev_data    |    ev_extra1    | ev_extra4 
+-------+---------+---------------+-----------------+-----------
+     5 | I:id    | id=1&txt=data | public.trg_test | test=data
+     6 | R       |               | public.trg_test | 
 (2 rows)
 
 select tgname from pg_trigger where tgrelid = 'public.trg_test'::regclass order by 1;
