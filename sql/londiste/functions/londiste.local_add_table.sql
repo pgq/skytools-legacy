@@ -53,8 +53,16 @@ declare
     sql text;
     arg text;
     _node record;
+    _tbloid oid;
+    _trunc_args text;
 begin
+    _trunc_args := '';
     fq_table_name := londiste.make_fqname(i_table_name);
+    _tbloid := londiste.find_table_oid(fq_table_name);
+    if _tbloid is null then
+        select 404, 'Table does not exist: ' || fq_table_name into ret_code, ret_note;
+        return;
+    end if;
     col_types := londiste.find_column_types(fq_table_name);
     if position('k' in col_types) < 1 then
         -- allow missing primary key in case of combined table where
@@ -127,8 +135,16 @@ begin
 
     -- skip triggers on leaf node
     if _node.node_type = 'leaf' then
-        select 200, 'Table added: ' || fq_table_name into ret_code, ret_note;
-        return;
+        -- on weird leafs the trigger funcs may not exist
+        perform 1 from pg_proc p join pg_namespace n on (n.oid = p.pronamespace)
+            where n.nspname = 'pgq' and p.proname in ('logutriga', 'sqltriga');
+        if not found then
+            select 200, 'Table added with no triggers: ' || fq_table_name into ret_code, ret_note;
+            return;
+        end if;
+        -- on regular leaf, install deny trigger
+        i_trg_args := array['deny'];
+        _trunc_args := ', ' || quote_literal('deny');
     end if;
 
     -- create Ins/Upd/Del trigger if it does not exists already
@@ -207,7 +223,7 @@ begin
             sql := 'create trigger ' || quote_ident(trunctrg_name)
                 || ' after truncate on ' || londiste.quote_fqname(fq_table_name)
                 || ' for each statement execute procedure pgq.sqltriga(' || quote_literal(i_queue_name)
-                || ')';
+                || _trunc_args || ')';
             execute sql;
         end if;
     end if;
