@@ -82,7 +82,30 @@ msg "Register table on other node with creation"
 for db in db2 db3 db4 db5; do
   run londiste3 $v conf/londiste_$db.ini add-table mytable --create
 done
-run sleep 20
+
+msg "Register another table to test unregistration"
+run psql -d db1 -c "create table mytable2 (id int4 primary key, data text)"
+run londiste3 $v conf/londiste_db1.ini add-table mytable2
+for db in db2 db3 db4 db5; do
+  run londiste3 $v conf/londiste_$db.ini add-table mytable2 --create-only=pkey
+done
+
+msg "Wait until tables are in sync on db5"
+cnt=0
+while test $cnt -ne 2; do
+  sleep 5
+  cnt=`psql -A -t -d db5 -c "select count(*) from londiste.table_info where merge_state = 'ok'"`
+  echo "cnt=$cnt"
+done
+
+msg "Unregister table2 from root"
+run londiste3 $v conf/londiste_db1.ini remove-table mytable2
+msg "Wait until unregister reaches db5"
+while test $cnt -ne 1; do
+  sleep 5
+  cnt=`psql -A -t -d db5 -c "select count(*) from londiste.table_info where merge_state = 'ok'"`
+  echo "cnt=$cnt"
+done
 
 if false; then
 
