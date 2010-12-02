@@ -13,10 +13,16 @@ as $$
 -- Parameters:
 --      i_queue_name - queue name
 --      i_table_name - table name
---      i_trg_args   - args to trigger, or tgflags=X for trigger creation flags
+--      i_trg_args   - args to trigger, or magic parameters.
 --
 -- Trigger args:
 --      See documentation for pgq triggers.
+--
+-- Magic parameters:
+--      no_triggers     - skip trigger creation
+--      skip_truncate   - set 'skip_truncate' table attribute
+--      expect_sync     - set table state to 'ok'
+--      tgflags=X       - trigger creation flags
 --
 -- Trigger creation flags (default: AIUDL):
 --      I - ON INSERT
@@ -121,6 +127,8 @@ begin
         perform londiste.root_notify_change(i_queue_name, 'londiste.add-table', fq_table_name);
     elsif _node.node_type = 'leaf' and _node.combined_type = 'branch' then
         new_state := 'ok';
+    elsif 'expect_sync' = any (i_trg_args) then
+        new_state := 'ok';
     else
         new_state := NULL;
     end if;
@@ -190,6 +198,13 @@ begin
                     if position('S' in arg) > 0 then
                         lg_args := lg_args || ', ' || quote_literal('SKIP');
                     end if;
+                elsif arg = 'expect_sync' then
+                    -- already handled
+                elsif arg = 'skip_truncate' then
+                    perform 1 from londiste.local_set_table_attrs(i_queue_name, fq_table_name, 'skip_truncate=1');
+                elsif arg = 'no_triggers' then
+                    select 200, 'Table added with no triggers: ' || fq_table_name into ret_code, ret_note;
+                    return;
                 else
                     -- ordinary arg
                     lg_args := lg_args || ', ' || quote_literal(arg);
