@@ -77,11 +77,11 @@ apidoc:
 	cd ../sql/londiste && rm -rf docs/html && $(MAKE) dox
 
 apiupload: apidoc
-	rsync -rtlz api/* $(web)/api
-	rsync -rtlz ../sql/pgq/docs/html/* $(web)/pgq/
-	rsync -rtlz ../sql/pgq_coop/docs/html/* $(web)/pgq_coop/
-	rsync -rtlz ../sql/pgq_node/docs/html/* $(web)/pgq_node/
-	rsync -rtlz ../sql/londiste/docs/html/* $(web)/londiste/
+	-rsync -rtlz api/* $(web)/api
+	-rsync -rtlz ../sql/pgq/docs/html/* $(web)/pgq/
+	-rsync -rtlz ../sql/pgq_coop/docs/html/* $(web)/pgq_coop/
+	-rsync -rtlz ../sql/pgq_node/docs/html/* $(web)/pgq_node/
+	-rsync -rtlz ../sql/londiste/docs/html/* $(web)/londiste/
 
 clean:
 	rm -rf api *.xml
