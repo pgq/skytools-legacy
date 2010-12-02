@@ -310,8 +310,20 @@ class WordEQ(Word):
         next = Symbol('=', next)
         Word.__init__(self, word, next, **kwargs)
 
+class WordEQQ(Word):
+    """Word that is followed by '=' and string."""
+    c_append = "='"
+    def __init__(self, word, next, **kwargs):
+        next = Symbol('=', next)
+        Word.__init__(self, word, next, **kwargs)
+
 class Value(DynList):
     tk_type = ("str", "num", "ident")
+    def get_wlist(self):
+        return []
+
+class StrValue(DynList):
+    tk_type = ("str",)
     def get_wlist(self):
         return []
 
@@ -420,11 +432,23 @@ w_cons_from_queue = Word('consumer',
         name = 'cmd2')
 
 w_table_with2 = Proxy()
-
 w_table_with = List(
     Word('skip_truncate', w_table_with2, name = 'skip_truncate'),
     Word('expect_sync', w_table_with2, name = 'expect_sync'),
-    WordEQ('tgfmt', Value(w_table_with2, name = 'tgfmt')))
+    Word('backup', w_table_with2, name = 'backup'),
+    Word('skip', w_table_with2, name = 'skip'),
+    Word('no_triggers', w_table_with2, name = 'no_triggers'),
+    WordEQQ('ev_ignore', StrValue(w_table_with2, name = 'ignore')),
+    WordEQQ('ev_type', StrValue(w_table_with2, name = 'ev_type')),
+    WordEQQ('ev_data', StrValue(w_table_with2, name = 'ev_data')),
+    WordEQQ('ev_extra1', StrValue(w_table_with2, name = 'ev_extra1')),
+    WordEQQ('ev_extra2', StrValue(w_table_with2, name = 'ev_extra2')),
+    WordEQQ('ev_extra3', StrValue(w_table_with2, name = 'ev_extra3')),
+    WordEQQ('ev_extra4', StrValue(w_table_with2, name = 'ev_extra4')),
+    WordEQQ('pkey', StrValue(w_table_with2, name = 'pkey')),
+    WordEQQ('when', StrValue(w_table_with2, name = 'when')),
+    WordEQQ('tgflags', StrValue(w_table_with2, name = 'tgflags'))
+    )
 
 w_table_with2.set_real(List(
     w_done,
@@ -1203,10 +1227,20 @@ class AdminConsole:
     def cmd_londiste_add_table(self, params):
         """Add table."""
 
+        args = []
+        for a in ('skip_truncate', 'expect_sync', 'backup', 'no_triggers', 'skip'):
+            if a in params:
+                args.append(a)
+        for a in ('tgflags', 'ignore', 'pkey', 'when',
+                  'ev_type', 'ev_data',
+                  'ev_extra1', 'ev_extra2', 'ev_extra3', 'ev_extra4'):
+            if a in params:
+                args.append("%s=%s" % (a, params[a]))
+
         curs = self.db.cursor()
-        q = """select * from londiste.local_add_table(%s, %s)"""
+        q = """select * from londiste.local_add_table(%s, %s, %s)"""
         for tbl in params['tables']:
-            curs.execute(q, [self.cur_queue, tbl])
+            curs.execute(q, [self.cur_queue, tbl, args])
             res = curs.fetchone()
             print res[0], res[1]
         print 'ADD_TABLE'
