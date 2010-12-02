@@ -60,6 +60,8 @@ class LondisteSetup(CascadeAdmin):
                     help="Set trigger flags (BAIUDLQ)")
         p.add_option("--trigger-arg", action="append",
                     help="Custom trigger arg")
+        p.add_option("--no-triggers", action="store_true",
+                    help="Custom trigger arg")
         p.add_option("--handler", action="append",
                     help="add: Custom handler for table")
         return p
@@ -168,6 +170,8 @@ class LondisteSetup(CascadeAdmin):
         tgflags = self.options.trigger_flags
         if tgflags:
             tgargs.append('tgflags='+tgflags)
+        if self.options.no_triggers:
+            tgargs.append('no_triggers')
 
         attrs = {}
         hlist = self.options.handler
