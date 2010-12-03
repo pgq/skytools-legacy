@@ -565,7 +565,7 @@ class Replicator(CascadedWorker):
         # fixme: curs?
         pgver = dst_curs.connection.server_version
         if pgver >= 80300:
-            curs.execute("set local session_replication_role = 'local'")
+            dst_curs.execute("set local session_replication_role = 'local'")
         q = "select * from londiste.execute_start(%s, %s, %s, false)"
         res = self.exec_cmd(dst_curs, q, [self.queue_name, fname, sql], commit = False)
         ret = res[0]['ret_code']
@@ -577,7 +577,7 @@ class Replicator(CascadedWorker):
         q = "select * from londiste.execute_finish(%s, %s)"
         self.exec_cmd(dst_curs, q, [self.queue_name, fname], commit = False)
         if pgver >= 80300:
-            curs.execute("set local session_replication_role = 'replica'")
+            dst_curs.execute("set local session_replication_role = 'replica'")
 
     def apply_sql(self, sql, dst_curs):
 
