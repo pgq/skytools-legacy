@@ -8,10 +8,8 @@ who already is handling it.
 
 == Required for 3.0-final ==
 
-* drop node fixes
-
 * More handlers work:
-  - convert queue_loader to handler
+  - convert cube/table disaptcher to handler
   - make is support pooler target (cross-mover)
 
 * takeover testing
@@ -19,7 +17,6 @@ who already is handling it.
 * qadmin
   - make usable as python module
   - merge cascade commands
-  - merge londiste commands
 
 * some documentation
   - qadmin as main admin tool ?
@@ -28,7 +25,6 @@ who already is handling it.
 
 == Good to have changes ==
 
-* qadmin: show stats about event counts based on seq values in ticks. [easy]
 * tests for coopconsumer
 * londiste: check transactional UI
 * dbscript: configurable error timeout (20s)
@@ -37,8 +33,6 @@ who already is handling it.
   - execute --wait [moderate]
 
 === sql/pgq ===
-
-* drop_queue(force) - to drop consumers [3.0, easy]
 
 * pgq_node.is_root_event() rettype [easy, but hard to decide]
 
@@ -49,8 +43,6 @@ who already is handling it.
 === python/pgq ===
 
 * Expose commands for node connstr change, pgq_node.drop_node(). [easy]
-
-* Move all consumers to pgq.next_batch_info() [3.0, easy]
 
 === python/pgq/cascade ===
 
@@ -95,8 +87,6 @@ who already is handling it.
 
 * replace "raise Exception" with "raise UsageError" , where we just
   want to inform user and so traceback is not needed. [easy]
-
-* Document DB-API and psycopg2 details under psycopgwrapper. [hard?]
 
 == Low-priority ==
 
