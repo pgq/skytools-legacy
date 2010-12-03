@@ -248,7 +248,7 @@ _std_sql_rc = _ext_sql_rc = None
 _std_sql_fq_rc = _ext_sql_fq_rc = None
 
 def sql_tokenizer(sql, standard_quoting = False, ignore_whitespace = False,
-                  fqident = False, show_location = False):
+                  fqident = False, show_location = False, use_qident = False):
     r"""Parser SQL to tokens.
 
     Iterator, returns (toktype, tokstr) tuples.
@@ -288,10 +288,13 @@ def sql_tokenizer(sql, standard_quoting = False, ignore_whitespace = False,
         typ = m.lastgroup
         if ignore_whitespace and typ == "ws":
             continue
+        tk = m.group()
+        if use_qident and typ == 'ident' and tk[0] == '"':
+            typ = 'qident'
         if show_location:
-            yield (typ, m.group(), pos)
+            yield (typ, tk, pos)
         else:
-            yield (typ, m.group())
+            yield (typ, tk)
 
 _copy_from_stdin_re = "copy.*from\s+stdin"
 _copy_from_stdin_rc = None
