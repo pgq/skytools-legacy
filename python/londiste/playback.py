@@ -175,8 +175,8 @@ class TableState(object):
         if row['merge_state'] == "?":
             self.changed = 1
 
-        hstr = row.get('handler', '')
-        self.plugin = parse_handler(self.name, hstr)
+        hstr = self.table_attrs.get('handlers', '')
+        self.plugin = parse_handler(self.name, hstr, self.log)
 
     def interesting(self, ev, tick_id, copy_thread):
         """Check if table wants this event."""
@@ -344,7 +344,7 @@ class Replicator(CascadedWorker):
         self.flush_sql(dst_curs)
 
         for p in self.used_plugins.values():
-            p.finish_batch(self.batch_info)
+            p.finish_batch(self.batch_info, dst_curs)
         self.used_plugins = {}
 
         # finalize table changes

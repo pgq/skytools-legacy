@@ -31,14 +31,43 @@ plain londiste:
 
 import sys, skytools
 
-__all__ = ['BaseHandler', 'parse_handler', 'build_handler', 'load_handlers']
+__all__ = ['RowCache', 'BaseHandler', 'parse_handler', 'build_handler', 'load_handlers']
+
+class RowCache:
+    def __init__(self, table_name):
+        self.table_name = table_name
+        self.keys = {}
+        self.rows = []
+
+    def add_row(self, d):
+        row = [None] * len(self.keys)
+        for k, v in d.items():
+            try:
+                row[self.keys[k]] = v
+            except KeyError:
+                i = len(row)
+                self.keys[k] = i
+                row.append(v)
+        row = tuple(row)
+        self.rows.append(row)
+
+    def get_fields(self):
+        row = [None] * len(self.keys)
+        for k, i in self.keys.keys():
+            row[i] = k
+        return tuple(row)
+
+    def apply_rows(self, curs):
+        fields = self.get_fields()
+        skytools.magic_insert(curs, self.table_name, self.rows, fields)
 
 class BaseHandler:
     handler_name = 'fwd'
-    def __init__(self, name, next, args):
-        self.name = name
+    def __init__(self, table_name, next, args, log):
+        self.table_name = table_name
         self.next = next
         self.args = args
+        self.log = log
 
     def add(self, trigger_arg_list):
         """Called when table is added.
@@ -68,10 +97,10 @@ class BaseHandler:
         if self.next:
             self.next.process_event(ev, sql_queue_func, arg)
 
-    def finish_batch(self, batch_info):
+    def finish_batch(self, batch_info, dst_curs):
         """Called when batch finishes."""
         if self.next:
-            self.next.finish_batch(batch_info)
+            self.next.finish_batch(batch_info, dst_curs)
 
     def prepare_copy(self, expr_list, dst_curs):
         """Can change COPY behaviour.
@@ -122,7 +151,7 @@ def register_handler_module(modname):
     for h in m.__londiste_handlers__:
         _handler_map[h.handler_name] = h
 
-def build_handler(tblname, hlist):
+def build_handler(tblname, hlist, log):
     """Execute array of handler initializers."""
     klist = []
     for h in hlist:
@@ -149,13 +178,13 @@ def build_handler(tblname, hlist):
     p = None
     klist.reverse()
     for klass, args in klist:
-        p = klass(tblname, p, args)
+        p = klass(tblname, p, args, log)
     return p
 
-def parse_handler(tblname, hstr):
+def parse_handler(tblname, hstr, log):
     """Parse and execute string of colon-separated handler initializers."""
     hlist = hstr.split(':')
-    return build_handler(tblname, hlist)
+    return build_handler(tblname, hlist, log)
 
 def load_handlers(cf):
     """Load and register modules from config."""

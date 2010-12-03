@@ -13,8 +13,8 @@ class Bublin(BaseHandler):
     bubbles_max_slot = None         # NUM_SLOTS - 1 (NUM_SLOTS -> power of 2)
     bubbles_local_slots = None      # dict with local slot numbers
 
-    def __init__(self, name, next, args):
-        BaseHandler.__init__(self, name, next, args)
+    def __init__(self, name, next, args, log):
+        BaseHandler.__init__(self, name, next, args, log)
         self.key = args[0]
 
     def reset(self):

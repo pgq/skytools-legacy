@@ -176,7 +176,7 @@ class LondisteSetup(CascadeAdmin):
         attrs = {}
         hlist = self.options.handler
         if hlist:
-            p = londiste.handler.build_handler(tbl, hlist)
+            p = londiste.handler.build_handler(tbl, hlist, self.log)
             attrs['handlers'] = ":".join(hlist)
             p.add(tgargs)
 
