@@ -41,4 +41,5 @@
 \i functions/londiste.table_info_trigger.sql
 \i functions/londiste.drop_table_triggers.sql
 \i functions/londiste.is_replica_func.sql
+\i functions/londiste.version.sql
 
