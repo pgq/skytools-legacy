@@ -445,6 +445,10 @@ class Replicator(CascadedWorker):
         t = self.table_map[self.copy_table_name]
 
         if t.state == TABLE_DO_SYNC:
+            # these settings may cause copy to miss right tick
+            self.pgq_min_count = None
+            self.pgq_min_interval = None
+
             # main thread is waiting, catch up, then handle over
             if self.cur_tick == t.sync_tick_id:
                 self.change_table_state(dst_db, t, TABLE_OK)
