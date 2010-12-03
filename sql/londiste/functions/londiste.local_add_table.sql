@@ -60,9 +60,9 @@ declare
     arg text;
     _node record;
     _tbloid oid;
-    _trunc_args text;
+    _extra_args text;
 begin
-    _trunc_args := '';
+    _extra_args := '';
     fq_table_name := londiste.make_fqname(i_table_name);
     _tbloid := londiste.find_table_oid(fq_table_name);
     if _tbloid is null then
@@ -151,8 +151,7 @@ begin
             return;
         end if;
         -- on regular leaf, install deny trigger
-        i_trg_args := array['deny'];
-        _trunc_args := ', ' || quote_literal('deny');
+        _extra_args := ', ' || quote_literal('deny');
     end if;
 
     -- create Ins/Upd/Del trigger if it does not exists already
@@ -223,7 +222,7 @@ begin
             || ' ' || lg_pos || ' ' || lg_event
             || ' on ' || londiste.quote_fqname(fq_table_name)
             || ' for each row execute procedure '
-            || lg_func || '(' || lg_args || ')';
+            || lg_func || '(' || lg_args || _extra_args || ')';
         execute sql;
     end if;
 
@@ -238,7 +237,7 @@ begin
             sql := 'create trigger ' || quote_ident(trunctrg_name)
                 || ' after truncate on ' || londiste.quote_fqname(fq_table_name)
                 || ' for each statement execute procedure pgq.sqltriga(' || quote_literal(i_queue_name)
-                || _trunc_args || ')';
+                || _extra_args || ')';
             execute sql;
         end if;
     end if;
