@@ -6,11 +6,11 @@ To use set in londiste.ini:
     handler_modules = londiste.handlers.bulk
 
 then add table with:
-  londiste3 add-table xx --handlers="bulk"
+  londiste3 add-table xx --handler="bulk"
 
 or
 
-  londiste3 add-table xx --handlers="bulk(method=X)"
+  londiste3 add-table xx --handler="bulk(method=X)"
 
 Methods:
 
