@@ -22,12 +22,12 @@ Following commands expect default queue:
 
 Londiste commands:
 
-    londiste add_table <tbl> [ , ... ]
+    londiste add table <tbl> [ , ... ]
         with skip_truncate, tgflags=urlenc,
              expect_sync, skip_trigger;
-    londiste remove_table <tbl>;
-    londiste add_seq <seq>;
-    londiste remove_seq <seq>;
+    londiste add sequence <seq>;
+    londiste remove table <tbl>;
+    londiste remove sequence <seq>;
     londiste tables;
     londiste seqs;
     londiste missing;
@@ -156,15 +156,39 @@ class Token:
     The optional 'param' kwarg will set corresponding key in
     'params' dict to final token value.
     """
-    def __init__(self, **kwargs):
-        self.name = kwargs.get('name')
-        self._append = kwargs.get('append', 0)
+    # string to append to completions
+    c_append = ' '
+
+    # token type to accept
+    tk_type = ("ident", "qident", "dolq", "str", "num")
+    # skipped: numarg, pyold, pynew, sym
+
+    def __init__(self, next = None, name = None, append = 0):
+        self.next = next
+        self.name = name
+        self._append = append
+
+    # top-level api
+
     def get_next(self, typ, word, params):
         """Return next token if 'word' matches this token."""
-        return None
+        if not self.is_acceptable(typ, word):
+            return None
+        self.set_param(word, params)
+        return self.next
+
     def get_completions(self, params):
         """Return list of all completions possible at this point."""
+        wlist = self.get_wlist()
+        comp_list = [w + self.c_append for w in wlist]
+        return comp_list
+
+    # internal api
+
+    def get_wlist(self):
+        """Return list of potential words at this point."""
         return []
+
     def set_param(self, word, params):
         if not self.name:
             return
@@ -173,6 +197,11 @@ class Token:
             lst.append(word)
         else:
             params[self.name] = word
+
+    def is_acceptable(self, tok, word):
+        if tok not in self.tk_type:
+            return False
+        return True
 
 class Proxy(Token):
     """Forward def for Token, in case it needs to be referenced recursively."""
@@ -204,104 +233,93 @@ class List(Token):
 ## Dynamic token classes
 ##
 
+class ConnstrPassword(Token):
+    tk_type = ("str", "num", "ident")
+
+class StrValue(Token):
+    tk_type = ("str",)
+
+class NumValue(Token):
+    tk_type = ("num",)
+
 class Word(Token):
-    """Single fixed word."""
+    """Single fixed keyword."""
     # token types to accept
     tk_type = ("ident",)
-    # string to append to completions
-    c_append = ' '
     def __init__(self, word, next, **kwargs):
-        Token.__init__(self, **kwargs)
+        Token.__init__(self, next, **kwargs)
         self.word = word
-        self.next = next
     def get_wlist(self):
         return [self.word]
-    def get_next(self, typ, word, params):
-        if typ not in self.tk_type:
-            return None
-        if self.word and word != self.word:
-            return None
-        self.set_param(word, params)
-        return self.next
-    def get_completions(self, params):
-        wlist = self.get_wlist()
-        comp_list = [w + self.c_append for w in wlist]
-        return comp_list
+    def is_acceptable(self, typ, word):
+        if not Token.is_acceptable(self, typ, word):
+            return False
+        return word == self.word
 
-class DynList(Word):
+class Symbol(Word):
+    """Single fixed symbol."""
+    tk_type = ("sym",)
+    c_append = ''
+
+class DynIdent(Token):
     """Dynamically generated list of words."""
-    def __init__(self, next, **kwargs):
-        Word.__init__(self, None, next, **kwargs)
-    def get_wlist(self):
-        return []
+    tk_type = ("ident", "qident")
 
-class DynIdentList(DynList):
-    """Accept quoted words."""
-    def get_next(self, typ, word, params):
-        """Allow quoted queue names"""
-        next = DynList.get_next(self, typ, word, params)
-        if next:
-            self.set_param(word, params)
-        return next
+# data-dependant completions
 
-class Queue(DynIdentList):
+class Queue(DynIdent):
     def get_wlist(self):
         return script.get_queue_list()
 
-class Consumer(DynIdentList):
+class Consumer(DynIdent):
     def get_wlist(self):
         return script.get_consumer_list()
 
-class DBNode(DynList):
+class DBNode(DynIdent):
     def get_wlist(self):
         return script.get_node_list()
 
-class Database(DynList):
+class Database(DynIdent):
     def get_wlist(self):
         return script.get_database_list()
 
-class Host(DynList):
+class Host(DynIdent):
     def get_wlist(self):
         return script.get_host_list()
 
-class User(DynList):
+class User(DynIdent):
     def get_wlist(self):
         return script.get_user_list()
 
-class NewTable(DynList):
+class NewTable(DynIdent):
     def get_wlist(self):
         return script.get_new_table_list()
 
-class KnownTable(DynList):
+class KnownTable(DynIdent):
     def get_wlist(self):
         return script.get_known_table_list()
 
-class NewSeq(DynList):
+class NewSeq(DynIdent):
     def get_wlist(self):
         return script.get_new_seq_list()
 
-class KnownSeq(DynList):
+class KnownSeq(DynIdent):
     def get_wlist(self):
         return script.get_known_seq_list()
 
-class BatchId(DynList):
-    tk_type = ("num",)
+class BatchId(NumValue):
     def get_wlist(self):
         return script.get_batch_list()
 
-class TickId(DynList):
-    tk_type = ("num",)
+class TickId(NumValue):
     def get_wlist(self):
         return []
 
-class Port(DynList):
-    tk_type = ("num",)
+class Port(NumValue):
     def get_wlist(self):
         return ['5432', '6432']
 
-class Symbol(Word):
-    tk_type = ("sym",)
-    c_append = ''
+# easier completion - add follow-up symbols
 
 class WordEQ(Word):
     """Word that is followed by '='."""
@@ -317,16 +335,6 @@ class WordEQQ(Word):
         next = Symbol('=', next)
         Word.__init__(self, word, next, **kwargs)
 
-class Value(DynList):
-    tk_type = ("str", "num", "ident")
-    def get_wlist(self):
-        return []
-
-class StrValue(DynList):
-    tk_type = ("str",)
-    def get_wlist(self):
-        return []
-
 ##
 ##  Now describe the syntax.
 ##
@@ -335,8 +343,6 @@ top_level = Proxy()
 
 w_done = Symbol(';', top_level)
 
-eq_val = Symbol('=', Value(w_done, name = 'value'))
-
 w_connect = Proxy()
 w_connect.set_real(
     List(
@@ -344,7 +350,7 @@ w_connect.set_real(
         WordEQ('host', Host(w_connect, name = 'host')),
         WordEQ('port', Port(w_connect, name = 'port')),
         WordEQ('user', User(w_connect, name = 'user')),
-        WordEQ('password', Value(w_connect, name = 'password')),
+        WordEQ('password', ConnstrPassword(w_connect, name = 'password')),
         WordEQ('queue', Queue(w_connect, name = 'queue')),
         WordEQ('node', DBNode(w_connect, name = 'node')),
         w_done))
@@ -391,10 +397,10 @@ w_install = List(
 w_qargs2 = Proxy()
 
 w_qargs = List(
-    WordEQ('idle_period', Value(w_qargs2, name = 'ticker_idle_period')),
-    WordEQ('max_count', Value(w_qargs2, name = 'ticker_max_count')),
-    WordEQ('max_lag', Value(w_qargs2, name = 'ticker_max_lag')),
-    WordEQ('paused', Value(w_qargs2, name = 'ticker_paused')))
+    WordEQQ('idle_period', StrValue(w_qargs2, name = 'ticker_idle_period')),
+    WordEQ('max_count', NumValue(w_qargs2, name = 'ticker_max_count')),
+    WordEQQ('max_lag', StrValue(w_qargs2, name = 'ticker_max_lag')),
+    WordEQ('paused', NumValue(w_qargs2, name = 'ticker_paused')))
 
 w_qargs2.set_real(List(
     w_done,
@@ -823,6 +829,7 @@ class AdminConsole:
                 standard_quoting = True,
                 fqident = True,
                 show_location = True,
+                use_qident = True,
                 ignore_whitespace = True)
 
     def reset_comp_cache(self):
