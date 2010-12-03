@@ -263,7 +263,7 @@ def _gen_list_insert(tbl, row, fields, qfields):
     fmt = "insert into %s (%s) values (%s);"
     return fmt % (tbl, ",".join(qfields), ",".join(tmp))
 
-def magic_insert(curs, tablename, data, fields = None, use_insert = 0):
+def magic_insert(curs, tablename, data, fields = None, use_insert = 0, quoted_table = False):
     r"""Copy/insert a list of dict/list data to database.
 
     If curs == None, then the copy or insert statements are returned
@@ -294,7 +294,10 @@ def magic_insert(curs, tablename, data, fields = None, use_insert = 0):
             row_func = _gen_list_copy
 
     qfields = [quote_ident(f) for f in fields]
-    qtablename = quote_fqident(tablename)
+    if quoted_table:
+        qtablename = tablename
+    else:
+        qtablename = quote_fqident(tablename)
 
     # init processing
     buf = StringIO()
