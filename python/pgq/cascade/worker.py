@@ -4,7 +4,7 @@ CascadedConsumer that also maintains node.
 
 """
 
-import time
+import sys, time
 
 from pgq.cascade.consumer import CascadedConsumer
 from pgq.producer import bulk_insert_events
