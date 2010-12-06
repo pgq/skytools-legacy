@@ -106,7 +106,7 @@ class TConstraint(TElem):
         """Generate creation SQL."""
         # no ONLY here as table with childs (only case that matters)
         # cannot have contraints that childs do not have
-        fmt = "ALTER TABLE %s ADD CONSTRAINT %s %s;"
+        fmt = "ALTER TABLE %s ADD CONSTRAINT %s\n  %s;"
         if new_table_name:
             name = self.name
             if self.contype in ('p', 'u'):
@@ -118,12 +118,12 @@ class TConstraint(TElem):
             qname = quote_ident(self.name)
         sql = fmt % (qtbl, qname, self.defn)
         if self.is_clustered:
-            sql +=' ALTER TABLE ONLY %s CLUSTER ON %s;' % (qtbl, qname)
+            sql +=' ALTER TABLE ONLY %s\n  CLUSTER ON %s;' % (qtbl, qname)
         return sql
 
     def get_drop_sql(self, curs):
         """Generate removal sql."""
-        fmt = "ALTER TABLE ONLY %s DROP CONSTRAINT %s;"
+        fmt = "ALTER TABLE ONLY %s\n  DROP CONSTRAINT %s;"
         sql = fmt % (quote_fqident(self.table_name), quote_ident(self.name))
         return sql
 
@@ -146,7 +146,7 @@ class TIndex(TElem):
     """
     def __init__(self, table_name, row):
         self.name = row['name']
-        self.defn = row['defn'] + ';'
+        self.defn = row['defn'].replace(' USING ', '\n  USING ', 1) + ';'
         self.is_clustered = row['is_clustered']
         self.table_name = table_name
         self.local_name = row['local_name']
@@ -165,7 +165,7 @@ class TIndex(TElem):
             iname = self.local_name
             tname = self.table_name
         if self.is_clustered:
-            sql += ' ALTER TABLE ONLY %s CLUSTER ON %s;' % (
+            sql += ' ALTER TABLE ONLY %s\n  CLUSTER ON %s;' % (
                 quote_fqident(tname), quote_ident(iname))
         return sql
 
@@ -206,6 +206,7 @@ class TTrigger(TElem):
         self.table_name = table_name
         self.name = row['name']
         self.defn = row['def'] + ';'
+        self.defn = self.defn.replace('FOR EACH', '\n  FOR EACH', 1)
 
     def get_create_sql(self, curs, new_table_name = None):
         """Generate creation SQL."""
@@ -248,10 +249,10 @@ class TParent(TElem):
         self.parent_name = row['name']
 
     def get_create_sql(self, curs, new_table_name = None):
-        return 'ALTER TABLE ONLY %s INHERIT %s' % (quote_fqident(self.name), quote_fqident(self.parent_name))
+        return 'ALTER TABLE ONLY %s\n  INHERIT %s' % (quote_fqident(self.name), quote_fqident(self.parent_name))
 
     def get_drop_sql(self, curs):
-        return 'ALTER TABLE ONLY %s NO INHERIT %s' % (quote_fqident(self.name), quote_fqident(self.parent_name))
+        return 'ALTER TABLE ONLY %s\n  NO INHERIT %s' % (quote_fqident(self.name), quote_fqident(self.parent_name))
 
 
 class TOwner(TElem):
@@ -270,7 +271,7 @@ class TOwner(TElem):
         """Generate creation SQL."""
         if not new_name:
             new_name = self.table_name
-        return 'ALTER TABLE %s OWNER TO %s;' % (quote_fqident(new_name), quote_ident(self.owner))
+        return 'ALTER TABLE %s\n  OWNER TO %s;' % (quote_fqident(new_name), quote_ident(self.owner))
 
 class TGrant(TElem):
     """Info about permissions."""
@@ -311,7 +312,7 @@ class TGrant(TElem):
         sql_list = []
         for user, acl, who in self.acl_list:
             astr = self.acl_to_grants(acl)
-            sql = "GRANT %s ON %s TO %s;" % (astr, quote_fqident(new_name), quote_ident(user))
+            sql = "GRANT %s ON %s\n  TO %s;" % (astr, quote_fqident(new_name), quote_ident(user))
             sql_list.append(sql)
         return "\n".join(sql_list)
 
@@ -343,23 +344,24 @@ class TColumnDefault(TElem):
     def get_create_sql(self, curs, new_name = None):
         """Generate creation SQL."""
         tbl = new_name or self.table_name
-        sql = "alter table only %s alter column %s set default %s;" % (
+        sql = "ALTER TABLE ONLY %s ALTER COLUMN %s\n  SET DEFAULT %s;" % (
                 quote_fqident(tbl), quote_ident(self.name), self.expr)
         return sql
 
     def get_drop_sql(self, curs):
-        return "alter table %s alter column %s drop default;" % (
+        return "ALTER TABLE %s ALTER COLUMN %s\n  DROP DEFAULT;" % (
                 quote_fqident(self.table_name), quote_ident(self.name))
 
 class TColumn(TElem):
     """Info about table column."""
     SQL = """
         select a.attname as name,
-            quote_ident(a.attname) || ' '
-                || format_type(a.atttypid, a.atttypmod)
-                || case when a.attnotnull then ' not null' else '' end
-            as def,
-            pg_get_serial_sequence(%(fq2name)s, a.attname) as seqname
+               quote_ident(a.attname) as qname,
+               format_type(a.atttypid, a.atttypmod) as dtype,
+               a.attnotnull,
+               (select max(char_length(aa.attname))
+                  from pg_attribute aa where aa.attrelid = %(oid)s) as maxcol,
+               pg_get_serial_sequence(%(fq2name)s, a.attname) as seqname
           from pg_attribute a left join pg_attrdef d
             on (d.adrelid = a.attrelid and d.adnum = a.attnum)
          where a.attrelid = %(oid)s
@@ -370,7 +372,12 @@ class TColumn(TElem):
     seqname = None
     def __init__(self, table_name, row):
         self.name = row['name']
-        self.column_def = row['def']
+
+        fname = row['qname'].ljust(row['maxcol'] + 3)
+        self.column_def = fname + ' ' + row['dtype']
+        if row['attnotnull']:
+            self.column_def += ' not null'
+
         self.sequence = None
         if row['seqname']:
             self.seqname = unquote_fqident(row['seqname'])
@@ -386,11 +393,11 @@ class TTable(TElem):
         """Generate creation SQL."""
         if not new_name:
             new_name = self.name
-        sql = "create table %s (" % quote_fqident(new_name)
-        sep = "\n\t"
+        sql = "CREATE TABLE %s (" % quote_fqident(new_name)
+        sep = "\n    "
         for c in self.col_list:
             sql += sep + c.column_def
-            sep = ",\n\t"
+            sep = ",\n    "
         sql += "\n);"
         return sql
 
@@ -431,7 +438,7 @@ class TSeq(TElem):
 
         # we are in table def, forget full def
         if self.owner:
-            sql = "ALTER SEQUENCE %s OWNED BY %s" % (
+            sql = "ALTER SEQUENCE %s\n  OWNED BY %s;" % (
                     quote_fqident(self.name), self.owner )
             return sql
 
