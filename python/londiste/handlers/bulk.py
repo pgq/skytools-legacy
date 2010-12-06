@@ -88,8 +88,11 @@ class BulkLoader(BaseHandler):
         self.bulk_flush(dst_curs)
 
     def process_event(self, ev, sql_queue_func, arg):
+        if len(ev.ev_type) < 2 or ev.ev_type[1] != ':':
+            raise Exception('Unsupported event type: %s/extra1=%s/data=%s' % (
+                            ev.ev_type, ev.ev_extra1, ev.ev_data))
         op = ev.ev_type[0]
-        if ev.ev_type[1] != ':' or op not in 'IUD':
+        if op not in 'IUD':
             raise Exception('Unknown event type: '+ev.ev_type)
         self.log.debug('bulk.process_event: %s/%s' % (ev.ev_type, ev.ev_data))
         pkey_list = ev.ev_type[2:].split(',')
