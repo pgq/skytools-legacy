@@ -223,7 +223,7 @@ _stdstr = r""" ['] (?: [^']+ | [']['] )* ['] """
 _name = r""" (?: [a-z][a-z0-9_$]* | " (?: [^"]+ | "" )* " ) """
 
 _ident   = r""" (?P<ident> %s ) """ % _name
-_fqident = r""" (?P<ident> %s (?: \. %s )? ) """ % (_name, _name)
+_fqident = r""" (?P<ident> %s (?: \. %s )* ) """ % (_name, _name)
 
 _base_sql = r"""
       (?P<dolq>   (?P<dname> [$] (?: [_a-z][_a-z0-9]*)? [$] )
@@ -231,11 +231,11 @@ _base_sql = r"""
                   (?P=dname) )
     | (?P<num>    [0-9][0-9.e]* )
     | (?P<numarg> [$] [0-9]+ )
-    | (?P<pyold>  [%][(] [a-z0-9_]+ [)][s] | [%][%] )
-    | (?P<pynew>  [{] [^}]+ [}] | [{][{] | [}] [}] )
+    | (?P<pyold>  [%][(] [a-z_][a-z0-9_]* [)] [s] )
+    | (?P<pynew>  [{] [^{}]+ [}] )
     | (?P<ws>     (?: \s+ | [/][*] .*? [*][/] | [-][-][^\n]* )+ )
-    | (?P<error>  ['"$\\] )
-    | (?P<sym>    . )"""
+    | (?P<sym>    (?: [-+*~!@#^&|?/%<>=]+ | [,()\[\].:;] ) )
+    | (?P<error>  . )"""
 
 _base_sql_fq = r"%s | %s" % (_fqident, _base_sql)
 _base_sql    = r"%s | %s" % (_ident, _base_sql)
@@ -248,7 +248,7 @@ _std_sql_rc = _ext_sql_rc = None
 _std_sql_fq_rc = _ext_sql_fq_rc = None
 
 def sql_tokenizer(sql, standard_quoting = False, ignore_whitespace = False,
-                  fqident = False, show_location = False, use_qident = False):
+                  fqident = False, show_location = False):
     r"""Parser SQL to tokens.
 
     Iterator, returns (toktype, tokstr) tuples.
@@ -289,8 +289,6 @@ def sql_tokenizer(sql, standard_quoting = False, ignore_whitespace = False,
         if ignore_whitespace and typ == "ws":
             continue
         tk = m.group()
-        if use_qident and typ == 'ident' and tk[0] == '"':
-            typ = 'qident'
         if show_location:
             yield (typ, tk, pos)
         else:
