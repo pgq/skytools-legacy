@@ -29,7 +29,7 @@ plain londiste:
 
 """
 
-import sys, skytools
+import sys, skytools, londiste.handlers
 
 __all__ = ['RowCache', 'BaseHandler', 'parse_handler', 'build_handler', 'load_handlers']
 
@@ -188,7 +188,8 @@ def parse_handler(tblname, hstr, log):
 
 def load_handlers(cf):
     """Load and register modules from config."""
-    lst = cf.getlist('handler_modules', [])
+    lst = londiste.handlers.DEFAULT_HANDLERS
+    lst += cf.getlist('handler_modules', [])
 
     for m in lst:
         register_handler_module(m)
