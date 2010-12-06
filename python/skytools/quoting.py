@@ -76,6 +76,8 @@ def quote_ident(s):
 
     if _ident_bad.search(s) or s in _ident_kwmap:
         s = '"%s"' % s.replace('"', '""')
+    elif not s:
+        return '""'
     return s
 
 def quote_fqident(s):
