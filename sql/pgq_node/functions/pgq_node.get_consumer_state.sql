@@ -35,18 +35,30 @@ create or replace function pgq_node.get_consumer_state(
 --      cur_error - failure reason
 -- ----------------------------------------------------------------------
 begin
-    select 100, 'Ok', n.node_type, n.node_name, s.last_tick_id,
-           s.provider_node, p.node_location, s.paused, s.uptodate, s.cur_error
-      into ret_code, ret_note, node_type, node_name, completed_tick,
-           provider_node, provider_location, paused, uptodate, cur_error
-      from pgq_node.node_info n, pgq_node.local_state s, pgq_node.node_location p
-     where n.queue_name = i_queue_name
-       and s.queue_name = n.queue_name
-       and s.consumer_name = i_consumer_name
-       and p.queue_name = n.queue_name
-       and p.node_name = s.provider_node;
+    select n.node_type, n.node_name
+      into node_type, node_name
+      from pgq_node.node_info n
+    where n.queue_name = i_queue_name;
+    if not found then
+        select 404, 'Unknown queue: ' || i_queue_name
+          into ret_code, ret_note;
+    end if;
+    select s.last_tick_id, s.provider_node, s.paused, s.uptodate, s.cur_error
+      into completed_tick, provider_node, paused, uptodate, cur_error
+      from pgq_node.local_state s
+     where s.queue_name = i_queue_name
+       and s.consumer_name = i_consumer_name;
     if not found then
         select 404, 'Unknown consumer: ' || i_queue_name || '/' || i_consumer_name
+          into ret_code, ret_note;
+    end if;
+    select 100, 'Ok', p.node_location
+      into ret_code, ret_note, provider_location
+      from pgq_node.node_location p
+     where p.queue_name = i_queue_name
+      and p.node_name = provider_node;
+    if not found then
+        select 404, 'Unknown provider node: ' || i_queue_name || '/' || provider_node
           into ret_code, ret_note;
     end if;
     return;
