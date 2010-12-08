@@ -96,7 +96,7 @@ General options:
     --version
 '''
 
-import sys, os, readline, getopt, re, psycopg2
+import sys, os, readline, getopt, re, psycopg2, traceback
 
 import pkgloader
 pkgloader.require('skytools', '3.0')
@@ -864,6 +864,7 @@ class AdminConsole:
             try:
                 ln = self.line_input()
                 self.exec_string(ln)
+                raise Exception('exctest')
             except KeyboardInterrupt:
                 print
             except EOFError:
@@ -871,6 +872,8 @@ class AdminConsole:
                 break
             except psycopg2.Error, d:
                 print 'ERROR:', str(d).strip()
+            except Exception:
+                traceback.print_exc()
             self.reset_comp_cache()
 
         try:
