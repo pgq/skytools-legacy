@@ -142,7 +142,7 @@ def unquote_ident(val):
     >>> unquote_ident('"Wei "" rd"')
     'Wei " rd'
     """
-    if val[0] == '"' and val[-1] == '"':
+    if len(val) > 1 and val[0] == '"' and val[-1] == '"':
         return val[1:-1].replace('""', '"')
     if val.find('"') > 0:
         raise Exception('unsupported syntax')
