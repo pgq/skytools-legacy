@@ -325,7 +325,7 @@ class LondisteSetup(CascadeAdmin):
 
     def cmd_tables(self):
         """Show attached tables."""
-        q = "select table_name, local, merge_state from londiste.get_table_list(%s)"
+        q = "select table_name, merge_state from londiste.get_table_list(%s) where local"
         db = self.get_database('db')
         self.display_table(db, "Tables on node", q, [self.set_name])
 
