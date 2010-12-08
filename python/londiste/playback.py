@@ -413,6 +413,8 @@ class Replicator(CascadedWorker):
             if self.pgq_min_count or self.pgq_min_interval:
                 bak = (self.cur_tick, self.pgq_min_count, self.pgq_min_interval)
                 self.dsync_backup = bak
+                self.pgq_min_count = None
+                self.pgq_min_interval = None
         elif self.dsync_backup:
             self.pgq_min_count = self.dsync_backup[1]
             self.pgq_min_interval = self.dsync_backup[2]
