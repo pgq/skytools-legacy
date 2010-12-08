@@ -15,7 +15,8 @@ as $$
 --      Helper function for pgq.next_batch_custom() to do extended tick search.
 -- ----------------------------------------------------------------------
 declare
-    ok      boolean;
+    sure    boolean;
+    can_set boolean;
     t       record;
     cnt     int8;
     ival    interval;
@@ -31,41 +32,46 @@ begin
         return;
     end if;
     
-    -- check if it is reasonably ok
-    ok := true;
+    -- check whether batch would end up within reasonable limits
+    sure := true;
+    can_set := false;
     if i_min_count is not null then
         cnt = t.tick_event_seq - i_prev_tick_seq;
-        if cnt < i_min_count then
-            return;
+        if cnt >= i_min_count then
+            can_set := true;
         end if;
         if cnt > i_min_count * 2 then
-            ok := false;
+            sure := false;
         end if;
     end if;
     if i_min_interval is not null then
         ival = t.tick_time - i_prev_tick_time;
-        if ival < i_min_interval then
-            return;
+        if ival >= i_min_interval then
+            can_set := true;
         end if;
         if ival > i_min_interval * 2 then
-            ok := false;
+            sure := false;
         end if;
     end if;
 
     -- if last tick too far away, do large scan
-    if not ok then
+    if not sure then
         select tick_id, tick_time, tick_event_seq into t
             from pgq.tick
             where tick_queue = i_queue_id
               and tick_id > i_prev_tick_id
-              and (i_min_count is null or (tick_event_seq - i_prev_tick_seq) >= i_min_count)
-              and (i_min_interval is null or (tick_time - i_prev_tick_time) >= i_min_interval)
+              and ((i_min_count is not null and (tick_event_seq - i_prev_tick_seq) >= i_min_count)
+                  or
+                   (i_min_interval is not null and (tick_time - i_prev_tick_time) >= i_min_interval))
             order by tick_queue asc, tick_id asc
             limit 1;
+        can_set := true;
     end if;
-    next_tick_id := t.tick_id;
-    next_tick_time := t.tick_time;
-    next_tick_seq := t.tick_event_seq;
+    if can_set then
+        next_tick_id := t.tick_id;
+        next_tick_time := t.tick_time;
+        next_tick_seq := t.tick_event_seq;
+    end if;
     return;
 end;
 $$ language plpgsql stable;
