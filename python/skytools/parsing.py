@@ -8,7 +8,8 @@ from skytools.sqltools import dbdict
 
 __all__ = [
     "parse_pgarray", "parse_logtriga_sql", "parse_tabbed_table",
-    "parse_statements", 'sql_tokenizer', 'parse_sqltriga_sql']
+    "parse_statements", 'sql_tokenizer', 'parse_sqltriga_sql',
+    "parse_acl"]
 
 _rc_listelem = re.compile(r'( [^,"}]+ | ["] ( [^"\\]+ | [\\]. )* ["] )', re.X)
 
@@ -330,6 +331,49 @@ def parse_statements(sql, standard_quoting = False):
         yield ("".join(tokens))
     if pcount != 0:
         raise Exception("syntax error - unbalanced parenthesis")
+
+_acl_name = r'(?: [0-9a-z_]+ | " (?: [^"]+ | "" )* " )'
+_acl_re = r'''
+    \s* (?: group \s+ | user \s+ )?
+    (?P<tgt> %s )?
+    (?P<perm> = [a-z*]*  )?
+    (?P<owner> / %s )?
+    \s* $
+    ''' % (_acl_name, _acl_name)
+_acl_rc = None
+
+def parse_acl(acl):
+    """Parse ACL entry.
+
+    >>> parse_acl('user=rwx/owner')
+    ('user', 'rwx', 'owner')
+    >>> parse_acl('" ""user"=rwx/" ""owner"')
+    (' "user', 'rwx', ' "owner')
+    >>> parse_acl('user=rwx')
+    ('user', 'rwx', None)
+    >>> parse_acl('=/f')
+    (None, '', 'f')
+    """
+    global _acl_rc
+    if not _acl_rc:
+        _acl_rc = re.compile(_acl_re, re.I | re.X)
+
+    m = _acl_rc.match(acl)
+    if not m:
+        return None
+
+    target = m.group('tgt')
+    perm = m.group('perm')
+    owner = m.group('owner')
+
+    if target:
+        target = unquote_ident(target)
+    if perm:
+        perm = perm[1:]
+    if owner:
+        owner = unquote_ident(owner[1:])
+
+    return (target, perm, owner)
 
 if __name__ == '__main__':
     import doctest
