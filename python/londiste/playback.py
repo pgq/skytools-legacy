@@ -240,9 +240,6 @@ class TableState(object):
         if self.last_snapshot_tick < prev_tick:
             self.change_snapshot(None)
 
-    def process_data_event(self, ev, sql_queue_func, batch_info):
-        self.plugin.process_event(ev, sql_queue_func)
-
     def get_plugin(self):
         return self.plugin
 
