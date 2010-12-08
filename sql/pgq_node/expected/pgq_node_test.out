@@ -309,7 +309,7 @@ select * from pgq_node.unregister_consumer('bqueue', 'random_consumer2');
 select * from pgq_node.get_consumer_state('bqueue', 'random_consumer2');
  ret_code |                 ret_note                  | node_type | node_name | completed_tick | provider_node | provider_location | paused | uptodate | cur_error 
 ----------+-------------------------------------------+-----------+-----------+----------------+---------------+-------------------+--------+----------+-----------
-      404 | Unknown consumer: bqueue/random_consumer2 |           |           |                |               |                   |        |          | 
+      404 | Unknown consumer: bqueue/random_consumer2 | branch    | node2     |                |               |                   |        |          | 
 (1 row)
 
 select * from pgq_node.get_node_info('bqueue');

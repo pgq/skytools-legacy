@@ -42,6 +42,7 @@ begin
     if not found then
         select 404, 'Unknown queue: ' || i_queue_name
           into ret_code, ret_note;
+        return;
     end if;
     select s.last_tick_id, s.provider_node, s.paused, s.uptodate, s.cur_error
       into completed_tick, provider_node, paused, uptodate, cur_error
@@ -51,6 +52,7 @@ begin
     if not found then
         select 404, 'Unknown consumer: ' || i_queue_name || '/' || i_consumer_name
           into ret_code, ret_note;
+        return;
     end if;
     select 100, 'Ok', p.node_location
       into ret_code, ret_note, provider_location
@@ -60,6 +62,7 @@ begin
     if not found then
         select 404, 'Unknown provider node: ' || i_queue_name || '/' || provider_node
           into ret_code, ret_note;
+        return;
     end if;
     return;
 end;
