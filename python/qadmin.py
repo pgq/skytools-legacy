@@ -864,7 +864,6 @@ class AdminConsole:
             try:
                 ln = self.line_input()
                 self.exec_string(ln)
-                raise Exception('exctest')
             except KeyboardInterrupt:
                 print
             except EOFError:
