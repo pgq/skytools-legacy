@@ -4,7 +4,9 @@
 import re
 
 from skytools.sqltools import fq_name_parts, get_table_oid
-from skytools.quoting import quote_ident, quote_fqident, quote_literal, unquote_fqident
+from skytools.quoting import quote_ident, quote_fqident, quote_literal
+from skytools.quoting import unquote_ident, unquote_fqident
+from skytools.parsing import parse_pgarray, parse_acl
 
 __all__ = ['TableStruct', 'SeqStruct',
     'T_TABLE', 'T_CONSTRAINT', 'T_INDEX', 'T_TRIGGER',
@@ -291,13 +293,12 @@ class TGrant(TElem):
         """Parse ACL to tuple of (user, acl, who)"""
         if relacl is None:
             return []
-        if len(relacl) > 0 and relacl[0] == '{' and relacl[-1] == '}':
-            relacl = relacl[1:-1]
         tup_list = []
-        for f in relacl.split(','):
-            user, tmp = f.strip('"').split('=')
-            acl, who = tmp.split('/')
-            tup_list.append((user, acl, who))
+        for sacl in parse_pgarray(relacl):
+            acl = parse_acl(sacl)
+            if not acl:
+                continue
+            tup_list.append(acl)
         return tup_list
 
     def __init__(self, table_name, row, new_name = None):
