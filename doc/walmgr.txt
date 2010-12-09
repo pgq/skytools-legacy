@@ -209,6 +209,9 @@ synchronizing scripts, config files etc.
 How ofter to run periodic command script. In seconds, and only evaluated
 at log switch times.
 
+==== hot_standby ===
+Boolean. If set to true, walmgr setup will set wal_level to hot_standby (9.0 and newer).
+
 === Sample master.ini ===
 
   [wal-master]
