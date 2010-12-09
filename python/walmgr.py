@@ -1210,6 +1210,13 @@ STOP TIME: %(stop_time)s
         srcfile = os.path.join(srcdir, srcname)
         partfile = os.path.join(partdir, srcname)
 
+        # if we are using streaming replication, exit immediately 
+        # if the srcfile is not here yet
+        primary_conninfo = self.cf.get("primary_conninfo", "")
+        if primary_conninfo and not os.path.isfile(srcfile):
+            self.log.info("%s: not found (ignored)" % srcname)
+            sys.exit(1)
+  
         # assume that postgres has processed the WAL file and is 
         # asking for next - hence work not in progress anymore
         if os.path.isfile(prgrfile):
@@ -1449,13 +1456,14 @@ STOP TIME: %(stop_time)s
                 self.log.debug('using pg_controldata to determine restart points')
             restore_command = 'xrestore %f "%p"'
 
-        conf = """
-restore_command = '%s %s %s'
-#recovery_target_time=
-#recovery_target_xid=
-#recovery_target_inclusive=true
-#recovery_target_timeline=
-""" % (self.script, cf_file, restore_command)
+        conf = "restore_command = '%s %s %s'\n" % (self.script, cf_file, restore_command)
+
+        # do we have streaming replication (hot standby)
+        primary_conninfo = self.cf.get("primary_conninfo", "")
+        if primary_conninfo:
+            conf += "standby_mode = 'on'\n"
+            conf += "trigger_file = '%s'\n" % os.path.join(self.cf.get("completed_wals"), "STOP")
+            conf += "primary_conninfo = '%s'\n" % primary_conninfo
 
         self.log.info("Write %s" % rconf)
         if self.not_really:
@@ -1467,8 +1475,7 @@ restore_command = '%s %s %s'
 
         # remove stopfile on slave
         if self.wtype == SLAVE:
-            srcdir = self.cf.get("completed_wals")
-            stopfile = os.path.join(srcdir, "STOP")
+            stopfile = os.path.join(self.cf.get("completed_wals"), "STOP")
             if os.path.isfile(stopfile):
                 self.log.info("Removing stopfile: "+stopfile)
                 if not self.not_really:
