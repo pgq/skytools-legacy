@@ -57,7 +57,7 @@ begin
             and st_from.queue_name = i_queue_name;
         if not found then
             continue;
-        end if
+        end if;
         perform 1
            from londiste.table_info st_to
           where st_to.table_name = fkeys.to_table
@@ -66,7 +66,7 @@ begin
             and st_to.queue_name = i_queue_name;
         if not found then
             continue;
-        end if
+        end if;
         return next fkeys;
     end loop;
     
