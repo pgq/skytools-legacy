@@ -47,14 +47,26 @@ begin
     for fkeys in
         select pf.*
         from londiste.pending_fkeys pf
-             left join londiste.table_info st_from on (st_from.table_name = pf.from_table)
-             left join londiste.table_info st_to on (st_to.table_name = pf.to_table)
-        where st_from.merge_state = 'ok' and st_from.custom_snapshot is null
-          and st_to.merge_state = 'ok' and st_to.custom_snapshot is null
-          and st_from.queue_name = i_queue_name
-          and st_to.queue_name = i_queue_name
         order by 1, 2, 3
     loop
+        perform 1
+           from londiste.table_info st_from
+          where st_from.table_name = fkeys.from_table
+            and st_from.merge_state = 'ok'
+            and st_from.custom_snapshot is null
+            and st_from.queue_name = i_queue_name;
+        if not found then
+            continue;
+        end if
+        perform 1
+           from londiste.table_info st_to
+          where st_to.table_name = fkeys.to_table
+            and st_to.merge_state = 'ok'
+            and st_to.custom_snapshot is null
+            and st_to.queue_name = i_queue_name;
+        if not found then
+            continue;
+        end if
         return next fkeys;
     end loop;
     
