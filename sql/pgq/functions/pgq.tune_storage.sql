@@ -38,7 +38,7 @@ begin
         if pgver < 80400 then
             tbloid := tbl::regclass::oid;
             delete from pg_catalog.pg_autovacuum where vacrelid = tbloid;
-            insert into pg_catalog.pg_autovacuum values (tbloid, false, 0,0,0,0,0,0,0,0);
+            insert into pg_catalog.pg_autovacuum values (tbloid, false, -1,-1,-1,-1,-1,-1,-1,-1);
         end if;
     end loop;
 
