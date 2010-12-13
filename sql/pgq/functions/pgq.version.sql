@@ -7,7 +7,7 @@ returns text as $$
 --      that is only bumped when PGQ database code changes.
 -- ----------------------------------------------------------------------
 begin
-    return '3.0.0.3';
+    return '3.0.0.4';
 end;
 $$ language plpgsql;
 
