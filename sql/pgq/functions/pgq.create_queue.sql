@@ -32,10 +32,10 @@ begin
 
     -- insert event
     id := nextval('pgq.queue_queue_id_seq');
-    tblpfx := 'pgq.event_' || id;
-    idxpfx := 'event_' || id;
-    tick_seq := 'pgq.event_' || id || '_tick_seq';
-    ev_seq := 'pgq.event_' || id || '_id_seq';
+    tblpfx := 'pgq.event_' || id::text;
+    idxpfx := 'event_' || id::text;
+    tick_seq := 'pgq.event_' || id::text || '_tick_seq';
+    ev_seq := 'pgq.event_' || id::text || '_id_seq';
     insert into pgq.queue (queue_id, queue_name,
             queue_data_pfx, queue_event_seq, queue_tick_seq)
         values (id, i_queue_name, tblpfx, ev_seq, tick_seq);
@@ -51,8 +51,8 @@ begin
     execute 'CREATE TABLE ' || tblpfx || ' () '
             || ' INHERITS (pgq.event_template)';
     for i in 0 .. (n_tables - 1) loop
-        tblname := tblpfx || '_' || i;
-        idxname := idxpfx || '_' || i;
+        tblname := tblpfx || '_' || i::text;
+        idxname := idxpfx || '_' || i::text;
         execute 'CREATE TABLE ' || tblname || ' () '
                 || ' INHERITS (' || tblpfx || ')';
         execute 'ALTER TABLE ' || tblname || ' ALTER COLUMN ev_id '

@@ -79,9 +79,9 @@ begin
             batch.tx_start := rec.id1;
         else
             if arr = '' then
-                arr := rec.id1;
+                arr := rec.id1::text;
             else
-                arr := arr || ',' || rec.id1;
+                arr := arr || ',' || rec.id1::text;
             end if;
         end if;
     end loop;
@@ -90,7 +90,7 @@ begin
     select_fields := 'select ev_id, ev_time, ev_txid, ev_retry, ev_type,'
         || ' ev_data, ev_extra1, ev_extra2, ev_extra3, ev_extra4';
     retry_expr :=  ' and (ev_owner is null or ev_owner = '
-        || batch.sub_id || ')';
+        || batch.sub_id::text || ')';
 
     -- now generate query that goes over all potential tables
     sql := '';
@@ -101,12 +101,12 @@ begin
         -- this gets newer queries that definitely are not in prev_snapshot
         part := select_fields
             || ' from pgq.tick cur, pgq.tick last, ' || tbl || ' ev '
-            || ' where cur.tick_id = ' || batch.sub_next_tick
-            || ' and cur.tick_queue = ' || batch.sub_queue
-            || ' and last.tick_id = ' || batch.sub_last_tick
-            || ' and last.tick_queue = ' || batch.sub_queue
-            || ' and ev.ev_txid >= ' || batch.tx_start
-            || ' and ev.ev_txid <= ' || batch.tx_end
+            || ' where cur.tick_id = ' || batch.sub_next_tick::text
+            || ' and cur.tick_queue = ' || batch.sub_queue::text
+            || ' and last.tick_id = ' || batch.sub_last_tick::text
+            || ' and last.tick_queue = ' || batch.sub_queue::text
+            || ' and ev.ev_txid >= ' || batch.tx_start::text
+            || ' and ev.ev_txid <= ' || batch.tx_end::text
             || ' and txid_visible_in_snapshot(ev.ev_txid, cur.tick_snapshot)'
             || ' and not txid_visible_in_snapshot(ev.ev_txid, last.tick_snapshot)'
             || retry_expr;

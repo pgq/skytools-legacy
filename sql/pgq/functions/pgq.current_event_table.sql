@@ -20,7 +20,7 @@ declare
     res text;
     disabled boolean;
 begin
-    select queue_data_pfx || '_' || queue_cur_table,
+    select queue_data_pfx || '_' || queue_cur_table::text,
            queue_disable_insert
         into res, disabled
         from pgq.queue where queue_name = x_queue_name;

@@ -22,7 +22,7 @@ begin
     end if;
 
     for i in 0 .. (q.queue_ntables - 1) loop
-        tbl := q.queue_data_pfx || '_' || i;
+        tbl := q.queue_data_pfx || '_' || i::text;
 
         -- set fillfactor
         sql := 'alter table ' || tbl || ' set (fillfactor = 100';

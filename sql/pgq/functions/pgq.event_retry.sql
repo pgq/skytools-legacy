@@ -61,7 +61,7 @@ returns integer as $$
 declare
     new_retry  timestamptz;
 begin
-    new_retry := current_timestamp + ((x_retry_seconds || ' seconds')::interval);
+    new_retry := current_timestamp + ((x_retry_seconds::text || ' seconds')::interval);
     return pgq.event_retry(x_batch_id, x_event_id, new_retry);
 end;
 $$ language plpgsql security definer;

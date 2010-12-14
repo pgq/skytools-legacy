@@ -48,7 +48,7 @@ begin
     -- real event tables
     for i in 0 .. q.queue_ntables - 1 loop
         execute 'grant ' || tbl_perms
-            || ' on ' || q.queue_data_pfx || '_' || i
+            || ' on ' || q.queue_data_pfx || '_' || i::text
             || ' to public';
     end loop;
 

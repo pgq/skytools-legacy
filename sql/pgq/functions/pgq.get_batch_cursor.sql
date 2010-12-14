@@ -46,7 +46,7 @@ begin
     -- return first block of events
     for ev_id, ev_time, ev_txid, ev_retry, ev_type, ev_data,
         ev_extra1, ev_extra2, ev_extra3, ev_extra4
-        in execute 'fetch ' || i_quick_limit || ' from ' || _cname
+        in execute 'fetch ' || i_quick_limit::text || ' from ' || _cname
     loop
         return next;
     end loop;

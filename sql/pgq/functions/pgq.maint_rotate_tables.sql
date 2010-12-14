@@ -57,7 +57,7 @@ begin
     if nr = cf.queue_ntables then
         nr := 0;
     end if;
-    tbl := cf.queue_data_pfx || '_' || nr;
+    tbl := cf.queue_data_pfx || '_' || nr::text;
 
     -- there may be long lock on the table from pg_dump,
     -- detect it and skip rotate then

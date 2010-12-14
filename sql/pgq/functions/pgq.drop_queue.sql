@@ -36,7 +36,7 @@ begin
 
     -- drop data tables
     for i in 0 .. (q.queue_ntables - 1) loop
-        tblname := q.queue_data_pfx || '_' || i;
+        tblname := q.queue_data_pfx || '_' || i::text;
         execute 'DROP TABLE ' || tblname;
     end loop;
     execute 'DROP TABLE ' || q.queue_data_pfx;

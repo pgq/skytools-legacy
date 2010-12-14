@@ -51,12 +51,12 @@ begin
         if nr < 0 then
             nr := batch.queue_ntables - 1;
         end if;
-        tbl := batch.queue_data_pfx || '_' || nr;
+        tbl := batch.queue_data_pfx || '_' || nr::text;
         return next tbl;
     end if;
 
     if use_next then
-        tbl := batch.queue_data_pfx || '_' || batch.queue_cur_table;
+        tbl := batch.queue_data_pfx || '_' || batch.queue_cur_table::text;
         return next tbl;
     end if;
 

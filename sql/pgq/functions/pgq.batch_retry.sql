@@ -19,7 +19,7 @@ declare
     _cnt   integer;
     _s     record;
 begin
-    _retry := current_timestamp + ((i_retry_seconds || ' seconds')::interval);
+    _retry := current_timestamp + ((i_retry_seconds::text || ' seconds')::interval);
 
     select * into _s from pgq.subscription where sub_batch = i_batch_id;
     if not found then
