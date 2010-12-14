@@ -129,6 +129,7 @@ class LondisteSetup(CascadeAdmin):
             "full": skytools.T_ALL,
             "pkey": skytools.T_PKEY,
         }
+        create_flags = 0
         if create:
             create_flags = skytools.T_TABLE
             for f in create.split(','):
