@@ -70,7 +70,7 @@ begin
             and t.tick_queue = q.queue_id
             and t.tick_id = _wm;
         if not found then
-            select 200, 'Skipping global watermark update to ' || _wm
+            select 200, 'Skipping global watermark update to ' || _wm::text
                 into ret_code, ret_note;
             return;
         end if;
@@ -83,7 +83,7 @@ begin
         return;
     end if;
 
-    select 200, 'Global watermark set to ' || _wm
+    select 200, 'Global watermark set to ' || _wm::text
         into ret_code, ret_note;
     return;
 end;

@@ -45,7 +45,7 @@ begin
 
     perform pgq.register_consumer_at(i_queue_name, wm_name, i_watermark);
 
-    select 200, wm_name || ' set to ' || i_watermark
+    select 200, wm_name || ' set to ' || i_watermark::text
         into ret_code, ret_note;
     return;
 end;
