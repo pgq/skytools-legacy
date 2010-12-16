@@ -119,7 +119,7 @@ def unquote_any(typ, s):
         ps = [skytools.unquote_ident(p) for p in s.split('.')]
         s = '.'.join(ps)
     elif typ == 'str' or typ == 'dolq':
-        s = skytools.unquote_literal(s, stdstr = True)
+        s = skytools.unquote_literal(s, True)
     return s
 
 def normalize_any(typ, s):
