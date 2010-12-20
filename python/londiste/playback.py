@@ -256,6 +256,9 @@ class Replicator(CascadedWorker):
         # how many tables can be copied in parallel
         #parallel_copies = 1
 
+        # accept only events for locally present tables
+        #local_only = true
+
         ## compare/repair
         # max amount of time table can be locked
         #lock_timeout = 10
@@ -349,7 +352,10 @@ class Replicator(CascadedWorker):
         # finalize table changes
         self.save_table_state(dst_curs)
         if self.local_only:
-            self.consumer_filter = self.table_map.keys()
+            self.consumer_filter = """
+((ev_type like 'pgq%%' or ev_type like 'londiste%%')
+or (ev_extra1 in (%s)))
+""" % ','.join(map(lambda x: "'%s'" % x, self.table_map.keys()))
 
     def sync_tables(self, src_db, dst_db):
         """Table sync loop.

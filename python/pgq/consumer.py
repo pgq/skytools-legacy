@@ -275,11 +275,8 @@ class Consumer(skytools.DBScript):
         # load events
         sql = "select * from pgq.get_batch_events(%d)" % batch_id
         if self.consumer_filter is not None:
-            sql += """
-where ((ev_type like 'pgq%%' or ev_type like 'londiste%%')
-or (ev_extra1 = ANY(%s)))
-"""
-        curs.execute(sql, [self.consumer_filter])
+            sql += " where %s" % self.consumer_filter
+        curs.execute(sql)
         rows = curs.dictfetchall()
 
         # map them to python objects
