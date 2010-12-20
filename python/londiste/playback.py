@@ -285,6 +285,9 @@ class Replicator(CascadedWorker):
         if self.parallel_copies < 1:
             raise Exception('Bad value for parallel_copies: %d' % self.parallel_copies)
 
+        self.local_only = self.cf.getboolean('local_only', False)
+        self.consumer_filter = None
+
         load_handlers(self.cf)
 
     def connection_hook(self, dbname, db):
@@ -326,7 +329,6 @@ class Replicator(CascadedWorker):
         if not self.copy_thread:
             self.restore_fkeys(dst_db)
 
-
         for p in self.used_plugins.values():
             p.reset()
         self.used_plugins = {}
@@ -346,6 +348,8 @@ class Replicator(CascadedWorker):
 
         # finalize table changes
         self.save_table_state(dst_curs)
+        if self.local_only:
+            self.consumer_filter = self.table_map.keys()
 
     def sync_tables(self, src_db, dst_db):
         """Table sync loop.
