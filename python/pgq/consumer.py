@@ -143,6 +143,8 @@ class Consumer(skytools.DBScript):
 
     batch_info = None
 
+    consumer_filter = None
+
     def __init__(self, service_name, db_name, args):
         """Initialize new consumer.
         
@@ -272,6 +274,8 @@ class Consumer(skytools.DBScript):
 
         # load events
         sql = "select * from pgq.get_batch_events(%d)" % batch_id
+        if self.consumer_filter is not None:
+            sql += " where %s" % self.consumer_filter
         curs.execute(sql)
         rows = curs.dictfetchall()
 

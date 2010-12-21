@@ -256,6 +256,9 @@ class Replicator(CascadedWorker):
         # how many tables can be copied in parallel
         #parallel_copies = 1
 
+        # accept only events for locally present tables
+        #local_only = true
+
         ## compare/repair
         # max amount of time table can be locked
         #lock_timeout = 10
@@ -284,6 +287,9 @@ class Replicator(CascadedWorker):
         self.parallel_copies = self.cf.getint('parallel_copies', 1)
         if self.parallel_copies < 1:
             raise Exception('Bad value for parallel_copies: %d' % self.parallel_copies)
+
+        self.local_only = self.cf.getboolean('local_only', False)
+        self.consumer_filter = None
 
         load_handlers(self.cf)
 
@@ -326,7 +332,6 @@ class Replicator(CascadedWorker):
         if not self.copy_thread:
             self.restore_fkeys(dst_db)
 
-
         for p in self.used_plugins.values():
             p.reset()
         self.used_plugins = {}
@@ -346,6 +351,11 @@ class Replicator(CascadedWorker):
 
         # finalize table changes
         self.save_table_state(dst_curs)
+        if self.local_only:
+            self.consumer_filter = """
+((ev_type like 'pgq%%' or ev_type like 'londiste%%')
+or (ev_extra1 in (%s)))
+""" % ','.join(map(skytools.quote_literal, self.table_map.keys()))
 
     def sync_tables(self, src_db, dst_db):
         """Table sync loop.
