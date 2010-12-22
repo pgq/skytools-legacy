@@ -288,7 +288,6 @@ class Replicator(CascadedWorker):
         if self.parallel_copies < 1:
             raise Exception('Bad value for parallel_copies: %d' % self.parallel_copies)
 
-        self.local_only = self.cf.getboolean('local_only', False)
         self.consumer_filter = None
 
         load_handlers(self.cf)
@@ -351,11 +350,19 @@ class Replicator(CascadedWorker):
 
         # finalize table changes
         self.save_table_state(dst_curs)
-        if self.local_only:
+
+        # store event filter
+        if self.cf.getboolean('local_only', False):
+            if self.copy_thread:
+                _filterlist = skytools.quote_literal(self.copy_table_name)
+            else:
+                _filterlist = ','.join(map(skytools.quote_literal, self.table_map.keys()))
             self.consumer_filter = """
 ((ev_type like 'pgq%%' or ev_type like 'londiste%%')
 or (ev_extra1 in (%s)))
-""" % ','.join(map(skytools.quote_literal, self.table_map.keys()))
+""" % _filterlist
+        else:
+            self.consumer_filter = None
 
     def sync_tables(self, src_db, dst_db):
         """Table sync loop.
