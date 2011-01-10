@@ -154,7 +154,7 @@ class CascadedWorker(CascadedConsumer):
             if not self.looping:
                 sys.exit(0)
 
-    def is_batch_done(self, state, batch_info):
+    def is_batch_done(self, state, batch_info, dst_db):
         wst = self._worker_state
 
         # on combined-branch the target can get several batches ahead
@@ -164,7 +164,31 @@ class CascadedWorker(CascadedConsumer):
             if cur_tick < dst_tick:
                 return True
 
-        return CascadedConsumer.is_batch_done(self, state, batch_info)
+        # check if events have processed
+        done = CascadedConsumer.is_batch_done(self, state, batch_info, dst_db)
+        if not done:
+            return False
+
+        # check if tick is done - it happens in separate tx
+
+        # fetch last tick from target queue
+        q = "select t.tick_id from pgq.tick t, pgq.queue q"\
+            " where t.tick_queue = q.queue_id and q.queue_name = %s"
+        curs = dst_db.cursor()
+        curs.execute(q, [self.queue_name])
+        last_tick = curs.fetchone()['tick_id']
+        dst_db.commit()
+
+        # insert tick if missing
+        cur_tick = batch_info['tick_id']
+        if last_tick != cur_tick:
+            prev_tick = batch_info['prev_tick_id']
+            tick_time = batch_info['batch_end']
+            if last_tick != prev_tick:
+                raise Exception('is_batch_done: last branch tick = %d, expected %d or %d' % (
+                                last_tick, prev_tick, cur_tick))
+            self.create_branch_tick(dst_db, cur_tick, tick_time)
+        return True
 
     def publish_local_wm(self, src_db):
         """Send local watermark to provider.
@@ -245,14 +269,24 @@ class CascadedWorker(CascadedConsumer):
             if st.send_tick_event:
                 q = "select pgq.insert_event(%s, 'pgq.tick-id', %s, %s, null, null, null)"
                 dst_curs.execute(q, [st.target_queue, str(tick_id), self.pgq_queue_name])
+
+        CascadedConsumer.finish_remote_batch(self, src_db, dst_db, tick_id)
+
+        if self.main_worker:
             if st.create_tick:
                 # create actual tick
                 tick_id = self.batch_info['tick_id']
                 tick_time = self.batch_info['batch_end']
-                q = "select pgq.ticker(%s, %s, %s, %s)"
-                dst_curs.execute(q, [self.pgq_queue_name, tick_id, tick_time, self.cur_max_id])
+                self.create_branch_tick(dst_db, tick_id, tick_time)
 
-        CascadedConsumer.finish_remote_batch(self, src_db, dst_db, tick_id)
+    def create_branch_tick(self, dst_db, tick_id, tick_time):
+        q = "select pgq.ticker(%s, %s, %s, %s)"
+        # execute it in autocommit mode
+        ilev = dst_db.isolation_level
+        dst_db.set_isolation_level(0)
+        dst_curs = dst_db.cursor()
+        dst_curs.execute(q, [self.pgq_queue_name, tick_id, tick_time, self.cur_max_id])
+        dst_db.set_isolation_level(ilev)
 
     def copy_event(self, dst_curs, ev, filtered_copy):
         """Add event to copy buffer.

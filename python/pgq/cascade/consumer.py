@@ -157,10 +157,11 @@ class CascadedConsumer(Consumer):
     def process_batch(self, src_db, batch_id, event_list):
         state = self._consumer_state
 
-        if self.is_batch_done(state, self.batch_info):
+        dst_db = self.get_database(self.target_db)
+
+        if self.is_batch_done(state, self.batch_info, dst_db):
             return
 
-        dst_db = self.get_database(self.target_db)
         tick_id = self.batch_info['tick_id']
         self.process_remote_batch(src_db, tick_id, event_list, dst_db)
 
@@ -224,7 +225,7 @@ class CascadedConsumer(Consumer):
 
         return state
 
-    def is_batch_done(self, state, batch_info):
+    def is_batch_done(self, state, batch_info, dst_db):
         cur_tick = batch_info['tick_id']
         prev_tick = batch_info['prev_tick_id']
         dst_tick = state['completed_tick']
