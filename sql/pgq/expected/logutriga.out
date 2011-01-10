@@ -166,3 +166,9 @@ insert into deny_test values ('1', '2');
 ERROR:  Table 'public.deny_test' to queue 'noqueue': change not allowed (I)
 truncate deny_test;
 ERROR:  Table 'public.deny_test' to queue 'noqueue': change not allowed (R)
+-- test pk update
+insert into udata (id, txt) values (1, 'txt');
+NOTICE:  insert_event(udata_que, I:id, id=1&txt=txt, public.udata)
+CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, $5, $6, $7)"
+update udata set id = 2;
+ERROR:  primary key update not allowed

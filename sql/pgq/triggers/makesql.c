@@ -206,6 +206,9 @@ static int process_update(PgqTriggerEvent *ev, StringInfo sql)
 			}
 		}
 
+		if (pgqtriga_is_pkey(ev, i, attkind_idx))
+			elog(ERROR, "primary key update not allowed");
+
 		if (pgqtriga_skip_col(ev, i, attkind_idx)) {
 			/* this change should be ignored */
 			ignore_count++;

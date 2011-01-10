@@ -109,3 +109,8 @@ delete from custom_expr;
 create trigger customtrc_triga after truncate on custom_expr
 for each statement execute procedure pgq.sqltriga('que3');
 truncate custom_expr;
+
+-- test pk update
+insert into rtest values (1, 'value1');
+update rtest set id = 2;
+

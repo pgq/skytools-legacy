@@ -126,3 +126,6 @@ for each statement execute procedure pgq.logutriga('noqueue', 'deny');
 insert into deny_test values ('1', '2');
 truncate deny_test;
 
+-- test pk update
+insert into udata (id, txt) values (1, 'txt');
+update udata set id = 2;

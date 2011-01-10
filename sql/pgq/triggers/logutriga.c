@@ -40,16 +40,13 @@ static int is_interesting_change(PgqTriggerEvent *ev, TriggerData *tg)
 	Datum new_value;
 	bool old_isnull;
 	bool new_isnull;
+	bool is_pk;
 
 	int i, attkind_idx = -1;
 	int ignore_count = 0;
 
 	/* only UPDATE may need to be ignored */
 	if (!TRIGGER_FIRED_BY_UPDATE(tg->tg_event))
-		return 1;
-
-	/* if no columns are ignored, all events are interesting */
-	if (ev->tgargs->ignore_list == NULL)
 		return 1;
 
 	for (i = 0; i < tupdesc->natts; i++) {
@@ -59,6 +56,10 @@ static int is_interesting_change(PgqTriggerEvent *ev, TriggerData *tg)
 		if (tupdesc->attrs[i]->attisdropped)
 			continue;
 		attkind_idx++;
+
+		is_pk = pgqtriga_is_pkey(ev, i, attkind_idx);
+		if (!is_pk && ev->tgargs->ignore_list == NULL)
+			continue;
 
 		old_value = SPI_getbinval(old_row, tupdesc, i + 1, &old_isnull);
 		new_value = SPI_getbinval(new_row, tupdesc, i + 1, &new_isnull);
@@ -107,6 +108,9 @@ static int is_interesting_change(PgqTriggerEvent *ev, TriggerData *tg)
 					continue;
 			}
 		}
+
+		if (is_pk)
+			elog(ERROR, "primary key update not allowed");
 
 		if (pgqtriga_skip_col(ev, i, attkind_idx)) {
 			/* this change should be ignored */
