@@ -2,7 +2,7 @@
 
 . ../testlib.sh
 
-./zstop.sh
+../zstop.sh
 
 v='-q'
 
@@ -29,6 +29,16 @@ cat > conf/londiste_$db.ini <<EOF
 job_name = londiste_$db
 db = dbname=$db
 queue_name = replika
+logfile = log/%(job_name)s.log
+pidfile = pid/%(job_name)s.pid
+EOF
+done
+
+for n in 1 2 3; do
+cat > conf/gen$n.ini <<EOF
+[loadgen]
+job_name = loadgen
+db = dbname=db$n
 logfile = log/%(job_name)s.log
 pidfile = pid/%(job_name)s.pid
 EOF
@@ -70,16 +80,22 @@ for db in $db_list; do
 done
 
 msg "Create table on root node and fill couple of rows"
-run psql -d db1 -c "create table mytable (id int4 primary key, data text)"
+run psql -d db1 -c "create table mytable (id serial primary key, data text)"
 for n in 1 2 3 4; do
-  run psql -d db1 -c "insert into mytable values ($n, 'row$n')"
+  run psql -d db1 -c "insert into mytable (data) values ('row$n')"
 done
+
+msg "Run loadgen on table"
+run ./loadgen.py -d conf/gen1.ini
 
 msg "Register table on root node"
 run londiste3 $v conf/londiste_db1.ini add-table mytable
+run londiste3 $v conf/londiste_db1.ini add-seq mytable_id_seq
 
 msg "Register table on other node with creation"
 for db in db2 db3 db4 db5; do
+  run psql -d $db -c "create sequence mytable_id_seq"
+  run londiste3 $v conf/londiste_db1.ini add-seq mytable_id_seq
   run londiste3 $v conf/londiste_$db.ini add-table mytable --create
 done
 
@@ -107,14 +123,14 @@ while test $cnt -ne 1; do
   echo "cnt=$cnt"
 done
 
-if false; then
+if true; then
 
 msg "Add column on root"
 run cat ddl.sql
 run londiste3 $v conf/londiste_db1.ini execute ddl.sql
 msg "Insert data into new column"
 for n in 5 6 7 8; do
-  run psql -d db1 -c "insert into mytable values ($n, 'row$n', 'data2')"
+  run psql -d db1 -c "insert into mytable (data, data2) values ('row$n', 'data2')"
 done
 msg "Wait a bit"
 run sleep 20
@@ -125,8 +141,8 @@ run sleep 10
 ../zcheck.sh
 fi
 
-echo early quit
-exit 0
+#echo early quit
+#exit 0
 
 msg "Change provider"
 run londiste3 $v conf/londiste_db4.ini status
@@ -142,6 +158,10 @@ run londiste3 $v conf/londiste_db2.ini status
 run londiste3 $v conf/londiste_db2.ini takeover node1
 run londiste3 $v conf/londiste_db2.ini status
 
+msg "Restart loadgen"
+run ./loadgen.py -s conf/gen1.ini
+run ./loadgen.py -d conf/gen2.ini
+
 run sleep 10
 ../zcheck.sh
 
@@ -155,6 +175,11 @@ run londiste3 $v conf/londiste_db1.ini status --dead=node2
 run londiste3 $v conf/londiste_db3.ini takeover db2 --dead-root || true
 run londiste3 $v conf/londiste_db3.ini takeover node2 --dead-root
 run londiste3 $v conf/londiste_db1.ini status --dead=node2
+
+msg "Restart loadgen"
+run ./loadgen.py -s conf/gen2.ini
+run ./loadgen.py -d conf/gen3.ini
+
 
 run sleep 10
 ../zcheck.sh
