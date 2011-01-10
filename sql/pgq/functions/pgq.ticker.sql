@@ -54,6 +54,7 @@ declare
     q record;
     state record;
     last2 record;
+    xmax2 int8;
 begin
     select queue_id, queue_tick_seq, queue_external_ticker,
             queue_ticker_max_count, queue_ticker_max_lag,
@@ -85,10 +86,12 @@ begin
         limit 1;
 
     if found then
-        if state.new_events < 0 or
-           state.sxmax > txid_snapshot_xmax(txid_current_snapshot())
-        then
-            raise exception 'Invalid PgQ state, event seq or txids backwards';
+        if state.new_events < 0 then
+            raise warning 'new_events < 0?';
+        end if;
+        xmax2 := txid_snapshot_xmax(txid_current_snapshot());
+        if state.sxmax > xmax2 then
+            raise exception 'Invalid PgQ state: old xmax=%, cur xmax=%', state.sxmax, xmax2;
         end if;
 
         if state.new_events > 0 then
