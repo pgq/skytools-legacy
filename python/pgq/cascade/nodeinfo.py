@@ -110,6 +110,10 @@ class NodeInfo:
         for cname, row in self.cascaded_consumer_map.items():
             err = row['cur_error']
             if err:
+                # show only first line
+                pos = err.find('\n')
+                if pos > 0:
+                    err = err[:pos]
                 lst.append("ERR: %s: %s" % (cname, err))
         return lst
     
