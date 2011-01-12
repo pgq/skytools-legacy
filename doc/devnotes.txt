@@ -56,14 +56,14 @@ or with plain `diff`:
 libusual is used as git subproject, so after inital clone
 submodule update should be done:
 
-  $ git clone git://github.com/markokr/skytools-dev.git
-  $ cd skytools-dev
+  $ git clone git://github.com/markokr/skytools.git
+  $ cd skytools
   $ git submodule init
   $ git submodule update
 
 === Repos ===
 
-Master Skytools repository: `git://github.com/markokr/skytools-dev.git`
+Master Skytools repository: `git://github.com/markokr/skytools.git`
 Master libusual repository: `git://github.com/markokr/libusual.git
 
 Currently known developer repos are on github.com:
@@ -139,8 +139,8 @@ First, do the initial cloning as described above.
 
 Add your own writable repo, named 'self':
 
-  $ cd skytools-dev
-  $ git remote add self git@github.com:${username}/skytools-dev.git
+  $ cd skytools
+  $ git remote add self git@github.com:${username}/skytools.git
 
 Push initial contents into it:
 
