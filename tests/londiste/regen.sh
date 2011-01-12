@@ -63,7 +63,7 @@ msg "Install londiste3 and initialize nodes"
 run londiste3 $v conf/londiste_db1.ini create-root node1 'dbname=db1'
 run londiste3 $v conf/londiste_db2.ini create-branch node2 'dbname=db2' --provider='dbname=db1'
 run londiste3 $v conf/londiste_db3.ini create-branch node3 'dbname=db3' --provider='dbname=db1'
-run londiste3 $v conf/londiste_db4.ini create-leaf node4 'dbname=db4' --provider='dbname=db2'
+run londiste3 $v conf/londiste_db4.ini create-branch node4 'dbname=db4' --provider='dbname=db2'
 run londiste3 $v conf/londiste_db5.ini create-branch node5 'dbname=db5' --provider='dbname=db3'
 
 msg "Run ticker"
@@ -111,7 +111,7 @@ cnt=0
 while test $cnt -ne 2; do
   sleep 5
   cnt=`psql -A -t -d db5 -c "select count(*) from londiste.table_info where merge_state = 'ok'"`
-  echo "cnt=$cnt"
+  echo "  cnt=$cnt"
 done
 
 msg "Unregister table2 from root"
@@ -120,8 +120,58 @@ msg "Wait until unregister reaches db5"
 while test $cnt -ne 1; do
   sleep 5
   cnt=`psql -A -t -d db5 -c "select count(*) from londiste.table_info where merge_state = 'ok'"`
-  echo "cnt=$cnt"
+  echo "  cnt=$cnt"
 done
+
+##
+## basic setup done
+##
+
+# test lagged takeover
+if true; then
+
+msg "Force lag on db2"
+run londiste3 $v conf/londiste_db2.ini worker -s
+run sleep 20
+
+msg "Kill old root"
+ps aux | grep 'postgres[:].* db1 ' | awk '{print $2}' | xargs -r kill
+sleep 3
+ps aux | grep 'postgres[:].* db1 ' | awk '{print $2}' | xargs -r kill -9
+sleep 3
+run psql -d db2 -c 'drop database db1'
+run psql -d db2 -c 'create database db1'
+run londiste3 $v conf/londiste_db2.ini status --dead=node1
+
+msg "Change db2 to read from db3"
+run londiste3 $v conf/londiste_db2.ini worker -d
+run londiste3 $v conf/londiste_db2.ini change-provider --provider=node3 --dead=node1
+
+msg "Wait until catchup"
+top=$(psql -A -t -d db3 -c "select max(tick_id) from pgq.queue join pgq.tick on (tick_queue = queue_id) where queue_name = 'replika'")
+echo "  top=$top"
+while test $cnt -ne 2; do
+  cur=$(psql -A -t -d db2 -c "select max(tick_id) from pgq.queue join pgq.tick on (tick_queue = queue_id) where queue_name = 'replika'")
+  echo "  cur=$cur"
+  if test "$cur" = "$top"; then
+    break
+  fi
+  sleep 5
+done
+msg "Promoting db2 to root"
+run londiste3 $v conf/londiste_db2.ini takeover node1 --dead-root
+run londiste3 $v conf/londiste_db2.ini status --dead=node1
+
+run sleep 5
+
+msg "Done"
+
+run ../zcheck.sh
+
+exit 0
+fi
+
+
 
 if true; then
 
