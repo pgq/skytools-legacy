@@ -40,6 +40,9 @@ Switches:
 import os, sys, re, signal, time, traceback
 import errno, glob, ConfigParser, shutil, subprocess
 
+import pkgloader
+pkgloader.require('skytools', '3.0')
+
 import skytools
 
 MASTER = 1
@@ -561,26 +564,24 @@ class WalMgr(skytools.DBScript):
 
         else:
             # disable archiving
+            cf_params = dict()
 
-            cf_params = {
-                "archive_mode": "off",
-                "wal_level": "minimal",
-                "archive_command": ""
-            }
+            if can_restart:
+                # can restart, disable archive mode and set wal_level to minimal
 
-            if curr_archive_mode is None:
-                self.log.info("archive_mode not set")
-                del(cf_params['archive_mode'])
+                cf_params['archive_command'] = ''
 
-            if curr_wal_level is None:
-                self.log.info("wal_level not set")
-                del(cf_params['wal_level'])
-
-            if not can_restart:
+                if curr_archive_mode:
+                    cf_params['archive_mode'] = 'off'
+                if curr_wal_level:
+                    cf_params['wal_level'] = 'minimal'
+                    cf_params['max_wal_senders'] = '0'
+            else:
                 # not possible to change archive_mode or wal_level (requires restart),
                 # so we just set the archive_command to /bin/true to avoid WAL pileup.
                 self.log.warning("database must be restarted to disable archiving")
                 self.log.info("Setting archive_command to /bin/true to avoid WAL pileup")
+
                 cf_params['archive_command'] = '/bin/true'
 
         self.log.debug("modifying configuration: %s" % cf_params)
@@ -1207,6 +1208,13 @@ STOP TIME: %(stop_time)s
         srcfile = os.path.join(srcdir, srcname)
         partfile = os.path.join(partdir, srcname)
 
+        # if we are using streaming replication, exit immediately 
+        # if the srcfile is not here yet
+        primary_conninfo = self.cf.get("primary_conninfo", "")
+        if primary_conninfo and not os.path.isfile(srcfile):
+            self.log.info("%s: not found (ignored)" % srcname)
+            sys.exit(1)
+  
         # assume that postgres has processed the WAL file and is 
         # asking for next - hence work not in progress anymore
         if os.path.isfile(prgrfile):
@@ -1446,13 +1454,14 @@ STOP TIME: %(stop_time)s
                 self.log.debug('using pg_controldata to determine restart points')
             restore_command = 'xrestore %f "%p"'
 
-        conf = """
-restore_command = '%s %s %s'
-#recovery_target_time=
-#recovery_target_xid=
-#recovery_target_inclusive=true
-#recovery_target_timeline=
-""" % (self.script, cf_file, restore_command)
+        conf = "restore_command = '%s %s %s'\n" % (self.script, cf_file, restore_command)
+
+        # do we have streaming replication (hot standby)
+        primary_conninfo = self.cf.get("primary_conninfo", "")
+        if primary_conninfo:
+            conf += "standby_mode = 'on'\n"
+            conf += "trigger_file = '%s'\n" % os.path.join(self.cf.get("completed_wals"), "STOP")
+            conf += "primary_conninfo = '%s'\n" % primary_conninfo
 
         self.log.info("Write %s" % rconf)
         if self.not_really:
@@ -1464,8 +1473,7 @@ restore_command = '%s %s %s'
 
         # remove stopfile on slave
         if self.wtype == SLAVE:
-            srcdir = self.cf.get("completed_wals")
-            stopfile = os.path.join(srcdir, "STOP")
+            stopfile = os.path.join(self.cf.get("completed_wals"), "STOP")
             if os.path.isfile(stopfile):
                 self.log.info("Removing stopfile: "+stopfile)
                 if not self.not_really:
