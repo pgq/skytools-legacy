@@ -207,29 +207,40 @@ class PostgresConfiguration:
             return "off"
         return None
 
+    def wal_level(self):
+        """Return value for specified parameter"""
+        # see if explicitly set
+        m = re.search("^\s*wal_level\s*=\s*'?([a-z_]+)'?\s*#?.*$", self.cf_buf, re.M | re.I)
+        if m:
+            return m.group(1)
+        # also, it could be commented out as initdb leaves it
+        # it'd probably be best to check from the database ...
+        m = re.search("^#wal_level\s*=.*$", self.cf_buf, re.M | re.I)
+        if m:
+            return "minimal"
+        return None
+
     def modify(self, cf_params):
         """Change the configuration parameters supplied in cf_params"""
 
         for (param, value) in cf_params.iteritems():
-            r_active = re.compile("^[ ]*%s[ ]*=[ ]*'(.*)'.*$" % param, re.M)
-            r_disabled = re.compile("^.*%s.*$" % param, re.M)
+            r_active = re.compile("^\s*%s\s*=\s*([^\s#]*).*$" % param, re.M)
+            r_disabled = re.compile("^\s*#\s*%s\s*=.*$" % param, re.M)
 
             cf_full = "%s = '%s'" % (param, value)
 
             m = r_active.search(self.cf_buf)
             if m:
                 old_val = m.group(1)
-                if old_val == value:
-                    self.log.debug("parameter %s already set to '%s'" % (param, value))
-                else:
-                    self.log.debug("found parameter %s with value '%s'" % (param, old_val))
-                    self.cf_buf = "%s%s%s" % (self.cf_buf[:m.start()], cf_full, self.cf_buf[m.end():])
+                self.log.debug("found parameter %s with value '%s'" % (param, old_val))
+                self.cf_buf = "%s%s%s" % (self.cf_buf[:m.start()], cf_full, self.cf_buf[m.end():])
             else:
                 m = r_disabled.search(self.cf_buf)
                 if m:
                     self.log.debug("found disabled parameter %s" % param)
                     self.cf_buf = "%s\n%s%s" % (self.cf_buf[:m.end()], cf_full, self.cf_buf[m.end():])
                 else:
+                    # not found, append to the end
                     self.log.debug("found no value")
                     self.cf_buf = "%s\n%s\n\n" % (self.cf_buf, cf_full)
 
@@ -519,38 +530,59 @@ class WalMgr(skytools.DBScript):
         """Turn the archiving on or off"""
 
         cf = PostgresConfiguration(self, self.cf.get("master_config"))
-        archive_mode = cf.archive_mode()
+        curr_archive_mode = cf.archive_mode()
+        curr_wal_level = cf.wal_level()
+        need_restart_warning = False
 
         if enable_archiving:
             # enable archiving
             cf_file = os.path.abspath(self.cf.filename)
+
             xarchive = "%s %s %s" % (self.script, cf_file, "xarchive %p %f")
             cf_params = { "archive_command": xarchive }
 
-            if archive_mode:
+            if curr_archive_mode is not None:
                 # archive mode specified in config, turn it on
                 self.log.debug("found 'archive_mode' in config -- enabling it")
                 cf_params["archive_mode"] = "on"
 
-                if archive_mode.lower() not in ('1', 'on', 'true') and not can_restart:
-                    self.log.warning("database must be restarted to enable archiving")
-            else:
-                self.log.debug("seems that archive_mode is not set, ignoring it.")
+                if curr_archive_mode.lower() not in ('1', 'on', 'true') and not can_restart:
+                    need_restart_warning = True
+
+            if curr_wal_level is not None and curr_wal_level != 'hot_standby':
+                # wal level set in config, enable it
+                wal_level = self.cf.getboolean("hot_standby", False) and "hot_standby" or "archive"
+
+                self.log.debug("found 'wal_level' in config -- setting to '%s'" % wal_level)
+                cf_params["wal_level"] = wal_level
+
+                if curr_wal_level not in ("archive", "hot_standby") and not can_restart:
+                    need_restart_warning = True
+
+            if need_restart_warning:
+                self.log.warning("database must be restarted to enable archiving")
 
         else:
             # disable archiving
-            if not archive_mode:
-                # archive_mode not set, just reset archive_command and its done
-                self.log.debug("archive_mode not set in config, leaving as is")
-                cf_params = { "archive_command": "" }
-            elif can_restart:
-                # restart possible, turn off archiving, reset archive_command
-                cf_params = { "archive_mode": "off", "archive_command": "" }
+            cf_params = dict()
+
+            if can_restart:
+                # can restart, disable archive mode and set wal_level to minimal
+
+                cf_params['archive_command'] = ''
+
+                if curr_archive_mode:
+                    cf_params['archive_mode'] = 'off'
+                if curr_wal_level:
+                    cf_params['wal_level'] = 'minimal'
+                    cf_params['max_wal_senders'] = '0'
             else:
-                # not possible to change archive_mode (requires restart), so we
-                # just set the archive_command to /bin/true to avoid WAL pileup.
-                self.log.debug("master_restart_cmd not specified, leaving archive_mode as is")
-                cf_params = { "archive_command": "/bin/true" }
+                # not possible to change archive_mode or wal_level (requires restart),
+                # so we just set the archive_command to /bin/true to avoid WAL pileup.
+                self.log.warning("database must be restarted to disable archiving")
+                self.log.info("Setting archive_command to /bin/true to avoid WAL pileup")
+
+                cf_params['archive_command'] = '/bin/true'
 
         self.log.debug("modifying configuration: %s" % cf_params)
 
@@ -1176,6 +1208,13 @@ STOP TIME: %(stop_time)s
         srcfile = os.path.join(srcdir, srcname)
         partfile = os.path.join(partdir, srcname)
 
+        # if we are using streaming replication, exit immediately 
+        # if the srcfile is not here yet
+        primary_conninfo = self.cf.get("primary_conninfo", "")
+        if primary_conninfo and not os.path.isfile(srcfile):
+            self.log.info("%s: not found (ignored)" % srcname)
+            sys.exit(1)
+  
         # assume that postgres has processed the WAL file and is 
         # asking for next - hence work not in progress anymore
         if os.path.isfile(prgrfile):
@@ -1415,13 +1454,14 @@ STOP TIME: %(stop_time)s
                 self.log.debug('using pg_controldata to determine restart points')
             restore_command = 'xrestore %f "%p"'
 
-        conf = """
-restore_command = '%s %s %s'
-#recovery_target_time=
-#recovery_target_xid=
-#recovery_target_inclusive=true
-#recovery_target_timeline=
-""" % (self.script, cf_file, restore_command)
+        conf = "restore_command = '%s %s %s'\n" % (self.script, cf_file, restore_command)
+
+        # do we have streaming replication (hot standby)
+        primary_conninfo = self.cf.get("primary_conninfo", "")
+        if primary_conninfo:
+            conf += "standby_mode = 'on'\n"
+            conf += "trigger_file = '%s'\n" % os.path.join(self.cf.get("completed_wals"), "STOP")
+            conf += "primary_conninfo = '%s'\n" % primary_conninfo
 
         self.log.info("Write %s" % rconf)
         if self.not_really:
@@ -1433,8 +1473,7 @@ restore_command = '%s %s %s'
 
         # remove stopfile on slave
         if self.wtype == SLAVE:
-            srcdir = self.cf.get("completed_wals")
-            stopfile = os.path.join(srcdir, "STOP")
+            stopfile = os.path.join(self.cf.get("completed_wals"), "STOP")
             if os.path.isfile(stopfile):
                 self.log.info("Removing stopfile: "+stopfile)
                 if not self.not_really:
