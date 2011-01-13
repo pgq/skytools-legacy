@@ -564,26 +564,24 @@ class WalMgr(skytools.DBScript):
 
         else:
             # disable archiving
+            cf_params = dict()
 
-            cf_params = {
-                "archive_mode": "off",
-                "wal_level": "minimal",
-                "archive_command": ""
-            }
+            if can_restart:
+                # can restart, disable archive mode and set wal_level to minimal
 
-            if curr_archive_mode is None:
-                self.log.info("archive_mode not set")
-                del(cf_params['archive_mode'])
+                cf_params['archive_command'] = ''
 
-            if curr_wal_level is None:
-                self.log.info("wal_level not set")
-                del(cf_params['wal_level'])
-
-            if not can_restart:
+                if curr_archive_mode:
+                    cf_params['archive_mode'] = 'off'
+                if curr_wal_level:
+                    cf_params['wal_level'] = 'minimal'
+                    cf_params['max_wal_senders'] = '0'
+            else:
                 # not possible to change archive_mode or wal_level (requires restart),
                 # so we just set the archive_command to /bin/true to avoid WAL pileup.
                 self.log.warning("database must be restarted to disable archiving")
                 self.log.info("Setting archive_command to /bin/true to avoid WAL pileup")
+
                 cf_params['archive_command'] = '/bin/true'
 
         self.log.debug("modifying configuration: %s" % cf_params)
