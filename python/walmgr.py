@@ -40,9 +40,6 @@ Switches:
 import os, sys, re, signal, time, traceback
 import errno, glob, ConfigParser, shutil, subprocess
 
-import pkgloader
-pkgloader.require('skytools', '3.0')
-
 import skytools
 
 MASTER = 1
