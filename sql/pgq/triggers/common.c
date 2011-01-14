@@ -171,22 +171,22 @@ void pgq_insert_tg_event(PgqTriggerEvent *ev)
 
 static char *find_table_name(Relation rel)
 {
-	NameData tname = rel->rd_rel->relname;
 	Oid nsoid = rel->rd_rel->relnamespace;
 	char namebuf[NAMEDATALEN * 2 + 3];
 	HeapTuple ns_tup;
 	Form_pg_namespace ns_struct;
-	NameData nspname;
+	const char *tname = NameStr(rel->rd_rel->relname);
+	const char *nspname;
 
 	/* find namespace info */
 	ns_tup = SearchSysCache(NAMESPACEOID, ObjectIdGetDatum(nsoid), 0, 0, 0);
 	if (!HeapTupleIsValid(ns_tup))
 		elog(ERROR, "Cannot find namespace %u", nsoid);
 	ns_struct = (Form_pg_namespace) GETSTRUCT(ns_tup);
-	nspname = ns_struct->nspname;
+	nspname = NameStr(ns_struct->nspname);
 
 	/* fill name */
-	snprintf(namebuf, sizeof(namebuf), "%s.%s", NameStr(nspname), NameStr(tname));
+	snprintf(namebuf, sizeof(namebuf), "%s.%s", nspname, tname);
 
 	ReleaseSysCache(ns_tup);
 	return pstrdup(namebuf);
@@ -226,21 +226,6 @@ static void init_cache(void)
 	tbl_cache_map = hash_create("pgq_triggers pkey cache", max_tables, &ctl, flags);
 }
 
-static void clean_htab(void)
-{
-	HASH_SEQ_STATUS seq;
-	struct PgqTableInfo *entry;
-	struct PgqTriggerInfo *tg;
-	hash_seq_init(&seq, tbl_cache_map);
-	while (1) {
-		entry = hash_seq_search(&seq);
-		if (!entry)
-			break;
-		for (tg = entry->tg_cache; tg; tg = tg->next) {
-		}
-	}
-}
-
 /*
  * Prepare utility plans and plan cache.
  */
@@ -252,10 +237,8 @@ static void init_module(void)
 	if (tbl_cache_invalid) {
 		if (tbl_cache_map)
 			hash_destroy(tbl_cache_map);
-		if (tbl_cache_ctx) {
-			clean_htab();
+		if (tbl_cache_ctx)
 			MemoryContextDelete(tbl_cache_ctx);
-		}
 		tbl_cache_map = NULL;
 		tbl_cache_ctx = NULL;
 		tbl_cache_invalid = false;
@@ -328,8 +311,17 @@ static void fill_tbl_info(Relation rel, struct PgqTableInfo *info)
 static void free_info(struct PgqTableInfo *info)
 {
 	struct PgqTriggerInfo *tg, *tmp = info->tg_cache;
+	int i;
 	for (tg = info->tg_cache; tg; ) {
 		tmp = tg->next;
+		if (tg->ignore_list)
+			pfree((void *)tg->ignore_list);
+		if (tg->pkey_list)
+			pfree((void *)tg->pkey_list);
+		for (i = 0; i < EV_NFIELDS; i++) {
+			if (tg->query[i])
+				qb_free(tg->query[i]);
+		}
 		pfree(tg);
 		tg = tmp;
 	}
