@@ -756,6 +756,7 @@ class WalMgr(skytools.DBScript):
                     "--exclude", "pg_xlog",
                     "--exclude", "pg_tblspc",
                     "--exclude", "pg_log",
+                    "--exclude", "base/pgsql_tmp",
                     "--copy-unsafe-links",
                     ".", dst_loc]
             self.exec_big_rsync(cmdline)
