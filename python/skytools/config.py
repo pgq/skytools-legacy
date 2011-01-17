@@ -13,7 +13,7 @@ class Config(object):
      - Acceps defaults in get() functions.
      - List value support.
     """
-    def __init__(self, main_section, filename, sane_config = 1, user_defs = {}):
+    def __init__(self, main_section, filename, sane_config = 1, user_defs = {}, override = {}):
         """Initialize Config and read from file.
 
         @param sane_config:  chooses between ConfigParser/SafeConfigParser.
@@ -35,6 +35,7 @@ class Config(object):
         self.main_section = main_section
         self.filename = filename
         self.sane_config = sane_config
+        self.override = override
         if sane_config:
             self.cf = ConfigParser.SafeConfigParser()
         else:
@@ -53,8 +54,15 @@ class Config(object):
             self.cf.read(self.filename)
         if not self.cf.has_section(self.main_section):
             raise Exception("Wrong config file, no section '%s'" % self.main_section)
+
+        # apply default if key not set
         for k, v in self.defs.items():
             if not self.cf.has_option(self.main_section, k):
+                self.cf.set(self.main_section, k, v)
+
+        # apply overrides
+        if self.override:
+            for k, v in self.override.items():
                 self.cf.set(self.main_section, k, v)
 
     def get(self, key, default=None):
