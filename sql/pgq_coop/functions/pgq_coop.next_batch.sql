@@ -15,6 +15,36 @@ returns bigint as $$
 --	i_consumer_name		- Name of the consumer
 --	i_subconsumer_name	- Name of the subconsumer
 -- ----------------------------------------------------------------------
+begin
+    return pgq_coop.next_batch_custom(i_queue_name, i_consumer_name, i_subconsumer_name, NULL, NULL, NULL);
+end;
+$$ language plpgsql;
+
+create or replace function pgq_coop.next_batch_custom(
+    i_queue_name text,
+    i_consumer_name text,
+    i_subconsumer_name text,
+    i_min_lag interval,
+    i_min_count int4,
+    i_min_interval interval)
+returns bigint as $$
+-- ----------------------------------------------------------------------
+-- Function: pgq_coop.next_batch_custom(6)
+--
+--      Makes next block of events active.  Block size can be tuned
+--      with i_min_count, i_min_interval parameters.  Events age can
+--      be tuned with i_min_lag.
+--
+--	NULL means nothing to work with, for a moment
+--
+-- Parameters:
+--	i_queue_name		- Name of the queue
+--	i_consumer_name		- Name of the consumer
+--	i_subconsumer_name	- Name of the subconsumer
+--      i_min_lag           - Consumer wants events older than that
+--      i_min_count         - Consumer wants batch to contain at least this many events
+--      i_min_interval      - Consumer wants batch to cover at least this much time
+-- ----------------------------------------------------------------------
 declare
     _queue_id integer;
     _consumer_id integer;
@@ -58,7 +88,7 @@ begin
     -- get a new batch for the main consumer
     select batch_id, cur_tick_id, prev_tick_id
         into _batch_id, _cur_tick, _prev_tick
-        from pgq.next_batch_info(i_queue_name, i_consumer_name);
+        from pgq.next_batch_custom(i_queue_name, i_consumer_name, i_min_lag, i_min_count, i_min_interval);
     if _batch_id is null then
         return null;
     end if;
