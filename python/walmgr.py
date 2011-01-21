@@ -17,6 +17,7 @@ Slave commands:
   continue           Start playing WAL-s again
 
 Common commands:
+  init               Create configuration files, set up ssh keys.
   listbackups        List backups.
   backup             Copies all master data to slave. Will keep backup history
                      if slave keep_backups is set. EXPERIMENTAL: If run on slave,
@@ -45,8 +46,7 @@ pkgloader.require('skytools', '3.0')
 
 import skytools
 
-MASTER = 1
-SLAVE = 0
+DEFAULT_PG_VERSION = "8.3"
 
 XLOG_SEGMENT_SIZE = 16 * 1024**2
 
@@ -268,42 +268,122 @@ class WalMgr(skytools.DBScript):
         p.set_usage(__doc__.strip())
         p.add_option("-n", "--not-really", action="store_true", dest="not_really",
                      help = "Don't actually do anything.", default=False)
+        p.add_option("", "--init-master", action="store_true", dest="init_master",
+                     help = "Initialize master walmgr.", default=False)
+        p.add_option("", "--slave", action="store", type="string", dest="slave",
+                     help = "Slave host name.", default="")
+        p.add_option("", "--pgdata", action="store", type="string", dest="pgdata",
+                     help = "Postgres data directory.", default="")
+        p.add_option("", "--config-dir", action="store", type="string", dest="config_dir",
+                     help = "Configuration file location for --init-X commands.", default="~/conf")
+        p.add_option("", "--ssh-keygen", action="store_true", dest="ssh_keygen",
+                     help = "master: generate SSH key pair if needed", default=False)
+        p.add_option("", "--ssh-add-key", action="store", dest="ssh_add_key",
+                     help = "slave: add public key to authorized_hosts", default=False)
+        p.add_option("", "--init-slave", action="store_true", dest="init_slave",
+                     help = "Initialize slave walmgr.", default=False)
         return p
 
-    def __init__(self, args):
+    def load_config(self):
+        """override config load to allow operation without a config file"""
 
-        if len(args) == 1 and args[0] == '--version':
-           skytools.DBScript.__init__(self, 'wal-master', args)
+        if len(self.args) < 1:
+            # no config file, generate default
 
-        if len(args) < 2:
-            # need at least config file and command
-            usage(1)
+            # guess the job name from cmdline options
+            if self.options.init_master:
+                job_name = 'wal-master'
+            elif self.options.init_slave:
+                job_name = 'wal-slave'
+            else:
+                job_name = 'walmgr'
 
-        # determine the role of the node from provided configuration
-        cf = ConfigParser.ConfigParser()
-        cf.read(args[0])
-        for (self.wtype, self.service_name) in [ (MASTER, "wal-master"), (SLAVE, "wal-slave") ]:
-            if cf.has_section(self.service_name):
-                break
+            # common config settings
+            opt_dict = {
+                'use_skylog':       '0',
+                'job_name':         job_name,
+            }
+
+            # master configuration settings
+            master_opt_dict = {
+                'master_db':        'dbname=template1',
+                'slave_config':     '/var/lib/postgresql/conf/wal-slave.ini',
+                'completed_wals':   '%%(slave)s:%(walmgr_data)s/logs.complete',
+                'partial_wals':     '%%(slave)s:%(walmgr_data)s/logs.partial',
+                'full_backup':      '%%(slave)s:%(walmgr_data)s/data.master',
+                'config_backup':    '%%(slave)s:%(walmgr_data)s/config.backup',
+                'keep_symlinks':    '1',
+                'walmgr_data':      '~/walshipping',
+                'logfile':          '~/log/%(job_name)s.log',
+                'pidfile':          '~/pid/%(job_name)s.pid',
+                'use_skylog':       '1',
+            }
+
+            # slave configuration settings
+            slave_opt_dict = {
+                'slave_stop_cmd':   '/etc/init.d/postgresql-%s stop' % DEFAULT_PG_VERSION,
+                'slave_start_cmd':  '/etc/init.d/postgresql-%s start' % DEFAULT_PG_VERSION,
+                'slave_config_dir': '/etc/postgresql/%s/main' % DEFAULT_PG_VERSION,
+                'completed_wals':   '%(walmgr_data)s/logs.complete',
+                'partial_wals':     '%(walmgr_data)s/logs.partial',
+                'full_backup':      '%(walmgr_data)s/data.master',
+                'config_backup':    '%(walmgr_data)s/config.backup',
+                'walmgr_data':      '~/walshipping',
+                'logfile':          '~/log/%(job_name)s.log',
+                'pidfile':          '~/pid/%(job_name)s.pid',
+                'use_skylog':       '1',
+            }
+
+            if self.options.init_master:
+                opt_dict.update(master_opt_dict)
+            elif self.options.init_slave:
+                opt_dict.update(slave_opt_dict)
+
+            self.is_master = self.options.init_master
+
+            config = skytools.Config(self.service_name, None,
+                user_defs = opt_dict, override = self.cf_operride)
         else:
-            print >> sys.stderr, "Invalid config file: %s" % args[0]
-            sys.exit(1)
+            # default to regular config handling
+            config = skytools.DBScript.load_config(self)
 
-        skytools.DBScript.__init__(self, self.service_name, args)
+            self.is_master = config.has_option('master_data')
+
+        return config
+
+    def __init__(self, args):
+        skytools.DBScript.__init__(self, 'walmgr', args)
         self.set_single_loop(1)
 
         self.not_really = self.options.not_really
         self.pg_backup = 0
         self.walchunk = None
-
-        if len(self.args) < 2:
-            usage(1)
-        self.cfgfile = self.args[0]
-        self.cmd = self.args[1]
-        self.args = self.args[2:]
         self.script = os.path.abspath(sys.argv[0])
 
+        if len(self.args) > 1:
+            # normal operations, cfgfile and command
+            self.cfgfile = self.args[0]
+            self.cmd = self.args[1]
+            self.args = self.args[2:]
+        else:
+            if self.options.init_master:
+                self.cmd = 'init_master'
+            elif self.options.init_slave:
+                self.cmd = 'init_slave'
+            else:
+                usage(1)
+
+            self.cfgfile = None
+            self.args = []
+
+        if self.cmd not in ('sync', 'syncdaemon'):
+            # don't let pidfile interfere with normal operations, but 
+            # disallow concurrent syncing
+            self.pidfile = None
+
         cmdtab = {
+            'init_master':  self.walmgr_init_master,
+            'init_slave':   self.walmgr_init_slave,
             'setup':        self.walmgr_setup,
             'stop':         self.master_stop,
             'backup':       self.run_backup,
@@ -324,17 +404,12 @@ class WalMgr(skytools.DBScript):
             'xpartialsync': self.slave_append_partial,
         }
 
-        if self.cmd not in ('sync', 'syncdaemon'):
-            # don't let pidfile interfere with normal operations, but 
-            # disallow concurrent syncing
-            self.pidfile = None
-
         if not cmdtab.has_key(self.cmd):
             usage(1)
         self.work = cmdtab[self.cmd]
 
-    def assert_valid_role(self,role):
-        if self.wtype != role:
+    def assert_is_master(self, master_required):
+        if self.is_master != master_required:
             self.log.warning("Action not available on current node.")
             sys.exit(1)
 
@@ -431,7 +506,8 @@ class WalMgr(skytools.DBScript):
                 link = os.path.join(os.getcwd(), link)
             link_target = os.path.join(link, "")
 
-            remote_target = "%s:%s" % (self.slave_host(), link_target)
+            slave_host = self.cf.get("slave")
+            remote_target = "%s:%s" % (slave_host, link_target)
             options = [ "--include=archive_status", "--exclude=/**" ]
             if self.exec_rsync( options + [ link_target, remote_target ]):
                 # unable to create the link target, just convert the links
@@ -477,7 +553,7 @@ class WalMgr(skytools.DBScript):
     def get_last_complete(self):
         """Get the name of last xarchived segment."""
 
-        data_dir = self.cf.get("master_data")
+        data_dir = self.cf.getfile("master_data")
         fn = os.path.join(data_dir, ".walshipping.last")
         try:
             last = open(fn, "r").read().strip()
@@ -489,7 +565,7 @@ class WalMgr(skytools.DBScript):
     def set_last_complete(self, last):
         """Set the name of last xarchived segment."""
 
-        data_dir = self.cf.get("master_data")
+        data_dir = self.cf.getfile("master_data")
         fn = os.path.join(data_dir, ".walshipping.last")
         fn_tmp = fn + ".new"
         try:
@@ -503,10 +579,10 @@ class WalMgr(skytools.DBScript):
 
     def master_stop(self):
         """Deconfigure archiving, attempt to stop syncdaemon"""
-        data_dir = self.cf.get("master_data")
-        restart_cmd = self.cf.get("master_restart_cmd", "")
+        data_dir = self.cf.getfile("master_data")
+        restart_cmd = self.cf.getfile("master_restart_cmd", "")
 
-        self.assert_valid_role(MASTER)
+        self.assert_is_master(True)
         self.log.info("Disabling WAL archiving")
 
         self.master_configure_archiving(False, restart_cmd)
@@ -520,7 +596,7 @@ class WalMgr(skytools.DBScript):
             self.signal_postmaster(data_dir, signal.SIGHUP)
 
         # stop any running syncdaemons
-        pidfile = self.cf.get("pidfile", "")
+        pidfile = self.cf.getfile("pidfile", "")
         if os.path.exists(pidfile):
             self.log.info('Pidfile %s exists, attempting to stop syncdaemon.' % pidfile)
             self.exec_cmd([self.script, self.cfgfile, "syncdaemon", "-s"])
@@ -529,7 +605,7 @@ class WalMgr(skytools.DBScript):
     def master_configure_archiving(self, enable_archiving, can_restart):
         """Turn the archiving on or off"""
 
-        cf = PostgresConfiguration(self, self.cf.get("master_config"))
+        cf = PostgresConfiguration(self, self.cf.getfile("master_config"))
         curr_archive_mode = cf.archive_mode()
         curr_wal_level = cf.wal_level()
         need_restart_warning = False
@@ -615,15 +691,6 @@ class WalMgr(skytools.DBScript):
             cmdline = ["ssh", "-nT", host, "mkdir", "-p", path]
             self.exec_cmd(cmdline)
 
-    def slave_host(self):
-        """Extract the slave hostname"""
-        try:
-            slave = self.cf.get("slave")
-            host, path = slave.split(":", 1)
-        except:
-            raise Exception("invalid value for 'slave' in %s" % self.cfgfile)
-        return host
-
     def remote_walmgr(self, command, stdin_disabled = True):
         """Pass a command to slave WalManager"""
 
@@ -631,29 +698,208 @@ class WalMgr(skytools.DBScript):
         if stdin_disabled:
             sshopt += "n"
 
-        slave_config = self.cf.get("slave_config")
+        slave_config = self.cf.getfile("slave_config")
         if not slave_config:
             raise Exception("slave_config not specified in %s" % self.cfgfile)
 
-        try:
-            slave = self.cf.get("slave")
-            host, path = slave.split(":", 1)
-        except:
-            raise Exception("invalid value for 'slave' in %s" % self.cfgfile)
-
-        cmdline = [ "ssh", sshopt, host, self.script, slave_config, command ]
+        slave_host = self.cf.get("slave")
+        cmdline = [ "ssh", sshopt, slave_host, self.script, slave_config, command ]
 
         if self.not_really:
             self.log.info("remote_walmgr: %s" % command)
         else:
             self.exec_cmd(cmdline)
 
+    def override_cf_option(self, option, value):
+        """Set a configuration option, if it is unset"""
+        if not self.cf.has_option(option):
+            self.cf.cf.set('walmgr', option, value)
+
+    def guess_locations(self):
+        """
+        Guess PGDATA and configuration file locations.
+        """
+
+        # find the PGDATA directory
+        if self.options.pgdata:
+            self.pgdata = self.options.pgdata
+        elif 'PGDATA' in os.environ:
+            self.pgdata = os.environ['PGDATA']
+        else:
+            self.pgdata = "~/%s/main" % DEFAULT_PG_VERSION
+
+        self.pgdata = os.path.expanduser(self.pgdata)
+        if not os.path.isdir(self.pgdata):
+            die(1, 'Postgres data directory not found: %s' % self.pgdata)
+
+        postmaster_opts = os.path.join(self.pgdata, 'postmaster.opts')
+        self.postgres_bin = ""
+        self.postgres_conf = ""
+
+        if os.path.exists(postmaster_opts):
+            # postmaster_opts exists, attempt to guess various paths
+
+            # get unquoted args from opts file
+            cmdline = [ k.strip('"') for k in open(postmaster_opts).read().split() ]
+
+            if cmdline:
+                self.postgres_bin = os.path.dirname(cmdline[0])
+                cmdline = cmdline[1:]
+
+            for item in cmdline:
+                if item.startswith("config_file="):
+                    self.postgres_conf = item.split("=")[1]
+
+            if not self.postgres_conf:
+                self.postgres_conf = os.path.join(self.pgdata, "postgresql.conf")
+
+        else:
+            # no postmaster opts, resort to guessing
+
+            self.log.info('postmaster.opts not found, resorting to guesses')
+
+            self.postgres_bin = "/usr/lib/postgresql/%s/bin" % DEFAULT_PG_VERSION
+            self.postgres_conf = "/etc/postgresql/%s/main/postgresql.conf" % DEFAULT_PG_VERSION
+
+        if not os.path.isdir(self.postgres_bin):
+            die(1, "Postgres bin directory not found.")
+
+        if not os.path.isfile(self.postgres_conf):
+            die(1, "Configuration file not found: %s" % self.postgres_conf)
+
+    def write_walmgr_config(self, config_data):
+        cf_name = os.path.join(os.path.expanduser(self.options.config_dir),
+                    self.cf.get("job_name") + ".ini")
+        self.log.info('Writing configuration file: %s' % cf_name)
+        self.log.debug("config data:\n%s" % config_data)
+        if not self.not_really:
+            cf = open(cf_name, "w")
+            cf.write(config_data)
+            cf.close()
+
+    def walmgr_init_master(self):
+        """
+        Initialize configuration file, generate SSH key pair if needed.
+        """
+
+        self.guess_locations()
+
+        if not self.options.slave:
+            die(1, 'Specify slave host name with "--slave" option.')
+
+        self.override_cf_option('master_bin', self.postgres_bin)
+        self.override_cf_option('master_config', self.postgres_conf)
+        self.override_cf_option('master_data', self.pgdata)
+
+        master_config = """[walmgr]
+job_name            = %(job_name)s
+logfile             = %(logfile)s
+pidfile             = %(pidfile)s
+use_skylog          = 1
+
+master_db           = %(master_db)s
+master_data         = %(master_data)s
+master_config       = %(master_config)s
+master_bin          = %(master_bin)s
+
+slave               = %(slave)s
+slave_config        = %(slave_config)s
+
+walmgr_data         = %(walmgr_data)s
+completed_wals      = %(completed_wals)s
+partial_wals        = %(partial_wals)s
+full_backup         = %(full_backup)s
+config_backup       = %(config_backup)s
+
+keep_symlinks       = %(keep_symlinks)s
+"""
+
+        try:
+            opt_dict = dict([(k, self.cf.get(k)) for k in self.cf.options()])
+            opt_dict['slave'] = self.options.slave
+            master_config = master_config % opt_dict
+        except KeyError, e:
+            die(1, 'Required setting missing: %s' % e)
+
+        self.write_walmgr_config(master_config)
+
+        if self.options.ssh_keygen:
+            keyfile = os.path.expanduser("~/.ssh/id_dsa")
+            if os.path.isfile(keyfile):
+                self.log.info("SSH key %s already exists, skipping" % keyfile)
+            else:
+                self.log.info("Generating ssh key: %s" % keyfile)
+                cmdline = ["ssh-keygen", "-t", "dsa", "-N", "", "-q", "-f", keyfile ]
+                self.log.debug(' '.join(cmdline))
+                if not self.not_really:
+                    subprocess.call(cmdline)
+                key = open(keyfile + ".pub").read().strip()
+                self.log.info("public key: %s" % key)
+
+    def walmgr_init_slave(self):
+        """
+        Initialize configuration file, move SSH pubkey into place.
+        """
+        self.guess_locations()
+
+        self.override_cf_option('slave_bin', self.postgres_bin)
+        self.override_cf_option('slave_data', self.pgdata)
+
+        slave_config = """[walmgr]
+job_name             = %(job_name)s
+logfile              = %(logfile)s
+use_skylog           = %(use_skylog)s
+
+slave_data           = %(slave_data)s
+slave_bin            = %(slave_bin)s
+slave_stop_cmd       = %(slave_stop_cmd)s
+slave_start_cmd      = %(slave_start_cmd)s
+slave_config_dir     = %(slave_config_dir)s
+
+walmgr_data          = %(walmgr_data)s
+completed_wals       = %(completed_wals)s
+partial_wals         = %(partial_wals)s
+full_backup          = %(full_backup)s
+config_backup        = %(config_backup)s
+"""
+        try:
+            opt_dict = dict([(k, self.cf.get(k)) for k in self.cf.options()])
+            slave_config = slave_config % opt_dict
+        except KeyError, e:
+            die(1, 'Required setting missing: %s' % e)
+
+        self.write_walmgr_config(slave_config)
+
+        if self.options.ssh_add_key:
+            # add the named public key to authorized hosts
+            ssh_dir = os.path.expanduser("~/.ssh")
+            auth_file = os.path.join(ssh_dir, "authorized_keys")
+
+            if not os.path.isdir(ssh_dir):
+                self.log.info("Creating directory: %s" % ssh_dir)
+                if not self.not_really:
+                    os.path.mkdir(ssh_dir)
+
+            self.log.debug("Reading public key from %s" % self.options.ssh_add_key)
+            master_pubkey = open(self.options.ssh_add_key).read()
+
+            for key in open(auth_file):
+                if key == master_pubkey:
+                    self.log.info("Key already present in %s, skipping" % auth_file)
+                    break
+            else:
+                self.log.info("Adding %s to %s" % (self.options.ssh_add_key, auth_file))
+                if not self.not_really:
+                    af = open(auth_file, "a")
+                    af.write(master_pubkey)
+                    af.close()
+
     def walmgr_setup(self):
-        if self.wtype == MASTER:
+        if self.is_master:
             self.log.info("Configuring WAL archiving")
 
-            data_dir = self.cf.get("master_data")
-            restart_cmd = self.cf.get("master_restart_cmd", "")
+            data_dir = self.cf.getfile("master_data")
+            restart_cmd = self.cf.getfile("master_restart_cmd", "")
 
             self.master_configure_archiving(True, restart_cmd)
 
@@ -670,19 +916,18 @@ class WalMgr(skytools.DBScript):
             self.log.info("Done")
         else:
             # create slave directory structure
-            def mkdir(dir):
+            def mkdirs(dir):
                 if not os.path.exists(dir):
                     self.log.debug("Creating directory %s" % dir)
-                    os.mkdir(dir)
-            mkdir(self.cf.get("slave"))
-            mkdir(self.cf.get("completed_wals"))
-            mkdir(self.cf.get("partial_wals"))
-            mkdir(self.cf.get("full_backup"))
+                    os.makedirs(dir)
 
-            cf_backup = self.cf.get("config_backup", "")
+            mkdirs(self.cf.getfile("completed_wals"))
+            mkdirs(self.cf.getfile("partial_wals"))
+            mkdirs(self.cf.getfile("full_backup"))
+
+            cf_backup = self.cf.getfile("config_backup", "")
             if cf_backup:
-                mkdir(cf_backup)
-
+                mkdirs(cf_backup)
 
     def master_periodic(self):
         """
@@ -692,14 +937,14 @@ class WalMgr(skytools.DBScript):
         set_last_complete()
         """
 
-        self.assert_valid_role(MASTER)
+        self.assert_is_master(True)
 
         try:
             command_interval = self.cf.getint("command_interval", 0)
             periodic_command = self.cf.get("periodic_command", "")
 
             if periodic_command:
-                check_file = os.path.join(self.cf.get("master_data"), ".walshipping.periodic")
+                check_file = os.path.join(self.cf.getfile("master_data"), ".walshipping.periodic")
 
                 elapsed = 0
                 if os.path.isfile(check_file):
@@ -737,8 +982,8 @@ class WalMgr(skytools.DBScript):
             self.pg_start_backup("FullBackup")
             self.remote_walmgr("xrotate")
 
-            data_dir = self.cf.get("master_data")
-            dst_loc = self.cf.get("full_backup")
+            data_dir = self.cf.getfile("master_data")
+            dst_loc = self.cf.getfile("full_backup")
             if dst_loc[-1] != "/":
                 dst_loc += "/"
 
@@ -792,9 +1037,9 @@ class WalMgr(skytools.DBScript):
             self.rsync_log_directory(os.path.join(data_dir, "pg_xlog"), dst_loc)
 
             # copy config files
-            conf_dst_loc = self.cf.get("config_backup", "")
+            conf_dst_loc = self.cf.getfile("config_backup", "")
             if conf_dst_loc:
-                master_conf_dir = os.path.dirname(self.cf.get("master_config"))
+                master_conf_dir = os.path.dirname(self.cf.getfile("master_config"))
                 self.log.info("Backup conf files from %s" % master_conf_dir)
                 self.chdir(master_conf_dir)
                 cmdline = [
@@ -837,7 +1082,7 @@ class WalMgr(skytools.DBScript):
         8. Resume WAL apply
         9. Release backup lock
         """
-        self.assert_valid_role(SLAVE)
+        self.assert_is_master(False)
         if self.slave_lock_backups() != 0:
             self.log.error("Cannot obtain backup lock.")
             sys.exit(1)
@@ -847,8 +1092,8 @@ class WalMgr(skytools.DBScript):
 
             try:
                 self.slave_rotate_backups()
-                src = self.cf.get("slave_data")
-                dst = self.cf.get("full_backup")
+                src = self.cf.getfile("slave_data")
+                dst = self.cf.getfile("full_backup")
 
                 start_time = time.localtime()
                 cmdline = ["cp", "-a", src, dst ]
@@ -858,7 +1103,7 @@ class WalMgr(skytools.DBScript):
                 stop_time = time.localtime()
 
                 # Obtain the last restart point information
-                ctl = PgControlData(self.cf.get("slave_bin", ""), dst, False)
+                ctl = PgControlData(self.cf.getfile("slave_bin", ""), dst, False)
 
                 # TODO: The newly created backup directory probably still contains
                 # backup_label.old and recovery.conf files. Remove these.
@@ -902,7 +1147,7 @@ STOP TIME: %(stop_time)s
 
                     # Now the history
                     histfile = "%s.%08X.backup" % (ctl.wal_name, ctl.xrecoff % ctl.wal_size)
-                    completed_wals = self.cf.get("completed_wals")
+                    completed_wals = self.cf.getfile("completed_wals")
                     filename = os.path.join(completed_wals, histfile)
                     if os.path.exists(filename):
                         self.log.warning("%s: already exists, refusing to overwrite." % filename)
@@ -921,7 +1166,7 @@ STOP TIME: %(stop_time)s
             self.slave_resume_backups()
     
     def run_backup(self):
-        if self.wtype == MASTER:
+        if self.is_master:
             self.master_backup()
         else:
             self.slave_backup()
@@ -929,7 +1174,7 @@ STOP TIME: %(stop_time)s
     def master_xarchive(self):
         """Copy a complete WAL segment to slave."""
 
-        self.assert_valid_role(MASTER)
+        self.assert_is_master(True)
 
         if len(self.args) < 2:
             die(1, "usage: xarchive srcpath srcname")
@@ -942,7 +1187,7 @@ STOP TIME: %(stop_time)s
         self.master_periodic()
         self.set_last_complete(srcname)
         
-        dst_loc = self.cf.get("completed_wals")
+        dst_loc = self.cf.getfile("completed_wals")
         if dst_loc[-1] != "/":
             dst_loc += "/"
 
@@ -969,7 +1214,7 @@ STOP TIME: %(stop_time)s
             self.log.error("Slave: %s: %s" % (filename, message))
             sys.exit(1)
 
-        self.assert_valid_role(SLAVE)
+        self.assert_is_master(False)
         if len(self.args) < 3:
             die(1, "usage: xpartialsync <filename> <offset> <bytes>")
 
@@ -984,7 +1229,7 @@ STOP TIME: %(stop_time)s
         chunk = WalChunk(filename, offset, bytes)
         self.log.debug("Slave: adding to %s" % chunk)
 
-        name = os.path.join(self.cf.get("partial_wals"), filename)
+        name = os.path.join(self.cf.getfile("partial_wals"), filename)
         try:
             xlog = open(name, (offset == 0) and "w+" or "r+")
         except:
@@ -1040,7 +1285,7 @@ STOP TIME: %(stop_time)s
             time.sleep(5)
 
     def master_syncdaemon(self):
-        self.assert_valid_role(MASTER)
+        self.assert_is_master(True)
         self.set_single_loop(0)
         self.master_sync(True)
 
@@ -1055,14 +1300,14 @@ STOP TIME: %(stop_time)s
         file based shipping.
         """
 
-        self.assert_valid_role(MASTER)
+        self.assert_is_master(True)
 
         use_xlog_functions = self.cf.getint("use_xlog_functions", False)
-        data_dir = self.cf.get("master_data")
+        data_dir = self.cf.getfile("master_data")
         xlog_dir = os.path.join(data_dir, "pg_xlog")
-        master_bin = self.cf.get("master_bin", "")
+        master_bin = self.cf.getfile("master_bin", "")
 
-        dst_loc = os.path.join(self.cf.get("partial_wals"), "")
+        dst_loc = os.path.join(self.cf.getfile("partial_wals"), "")
 
         db = None
         if use_xlog_functions:
@@ -1158,7 +1403,7 @@ STOP TIME: %(stop_time)s
         lstname = None
         if len(self.args) > 2:
             lstname = self.args[2]
-        if self.wtype == MASTER:
+        if self.is_master:
             self.master_xrestore(srcname, dstpath)
         else:
             self.slave_xrestore_unsafe(srcname, dstpath, os.getppid(), lstname)
@@ -1185,7 +1430,7 @@ STOP TIME: %(stop_time)s
         """
         Restore the xlog file from slave.
         """
-        paths = [ self.cf.get("completed_wals"), self.cf.get("partial_wals") ]
+        paths = [ self.cf.getfile("completed_wals"), self.cf.getfile("partial_wals") ]
         
         self.log.info("Restore %s to %s" % (srcname, dstpath))
         for src in paths:
@@ -1201,8 +1446,8 @@ STOP TIME: %(stop_time)s
         return True
 
     def slave_xrestore_unsafe(self, srcname, dstpath, parent_pid, lstname = None):
-        srcdir = self.cf.get("completed_wals")
-        partdir = self.cf.get("partial_wals")
+        srcdir = self.cf.getfile("completed_wals")
+        partdir = self.cf.getfile("partial_wals")
         pausefile = os.path.join(srcdir, "PAUSE")
         stopfile = os.path.join(srcdir, "STOP")
         prgrfile = os.path.join(srcdir, "PROGRESS")
@@ -1294,10 +1539,10 @@ STOP TIME: %(stop_time)s
         setname = len(self.args) > 0 and self.args[0] or None
         altdst  = len(self.args) > 1 and self.args[1] or None
 
-        if self.wtype == SLAVE:
-            data_dir = self.cf.get("slave_data")
-            stop_cmd = self.cf.get("slave_stop_cmd", "")
-            start_cmd = self.cf.get("slave_start_cmd")
+        if not self.is_master:
+            data_dir = self.cf.getfile("slave_data")
+            stop_cmd = self.cf.getfile("slave_stop_cmd", "")
+            start_cmd = self.cf.getfile("slave_start_cmd")
             pidfile = os.path.join(data_dir, "postmaster.pid")
         else:
             if not setname or not altdst:
@@ -1307,9 +1552,9 @@ STOP TIME: %(stop_time)s
             pidfile = None
 
         if setname:
-            full_dir = os.path.join(self.cf.get("slave"), setname)
+            full_dir = os.path.join(self.cf.getfile("walmgr_data"), setname)
         else:
-            full_dir = self.cf.get("full_backup")
+            full_dir = self.cf.getfile("full_backup")
 
         # stop postmaster if ordered
         if stop_cmd and os.path.isfile(pidfile):
@@ -1332,12 +1577,12 @@ STOP TIME: %(stop_time)s
                 break
             i += 1
 
-        if self.wtype == MASTER:
+        if self.is_master:
             print >>sys.stderr, "About to restore to directory %s. The postgres cluster should be shut down." % data_dir
             if not yesno("Is postgres shut down on %s ?" % data_dir):
                 die(1, "Shut it down and try again.")
 
-        if self.wtype == SLAVE:
+        if not self.is_master:
             createbackup = True
         elif os.path.isdir(data_dir):
             createbackup = yesno("Create backup of %s?" % data_dir)
@@ -1366,7 +1611,7 @@ STOP TIME: %(stop_time)s
         # move new data, copy if setname specified
         self.log.info("%s %s to %s" % (setname and "Copy" or "Move", full_dir, data_dir))
 
-        if self.cf.get('slave_pg_xlog', ''):
+        if self.cf.getfile('slave_pg_xlog', ''):
             link_xlog_dir = True
             exclude_pg_xlog = '--exclude=pg_xlog'
         else:
@@ -1385,9 +1630,9 @@ STOP TIME: %(stop_time)s
                 self.exec_rsync(rsync_args, True)
 
                 if link_xlog_dir:
-                   os.symlink(self.cf.get('slave_pg_xlog'), "%s/pg_xlog" % data_dir)
+                   os.symlink(self.cf.getfile('slave_pg_xlog'), "%s/pg_xlog" % data_dir)
 
-                if (self.wtype == MASTER and createbackup and os.path.isdir(bak)):
+                if (self.is_master and createbackup and os.path.isdir(bak)):
                     # restore original xlog files to data_dir/pg_xlog   
                     # symlinked directories are dereferenced
                     self.exec_cmd(["cp", "-rL", "%s/pg_xlog/" % full_dir, "%s/pg_xlog" % data_dir ])
@@ -1444,7 +1689,7 @@ STOP TIME: %(stop_time)s
         cf_file = os.path.abspath(self.cf.filename)
 
         # determine if we can use %r in restore_command
-        ctl = PgControlData(self.cf.get("slave_bin", ""), data_dir, True)
+        ctl = PgControlData(self.cf.getfile("slave_bin", ""), data_dir, True)
         if ctl.pg_version > 830:
             self.log.debug('pg_version is %s, adding %%r to restore command' % ctl.pg_version)
             restore_command = 'xrestore %f "%p" %r'
@@ -1461,7 +1706,7 @@ STOP TIME: %(stop_time)s
         primary_conninfo = self.cf.get("primary_conninfo", "")
         if primary_conninfo:
             conf += "standby_mode = 'on'\n"
-            conf += "trigger_file = '%s'\n" % os.path.join(self.cf.get("completed_wals"), "STOP")
+            conf += "trigger_file = '%s'\n" % os.path.join(self.cf.getfile("completed_wals"), "STOP")
             conf += "primary_conninfo = '%s'\n" % primary_conninfo
 
         self.log.info("Write %s" % rconf)
@@ -1473,8 +1718,8 @@ STOP TIME: %(stop_time)s
             f.close()
 
         # remove stopfile on slave
-        if self.wtype == SLAVE:
-            stopfile = os.path.join(self.cf.get("completed_wals"), "STOP")
+        if not self.is_master:
+            stopfile = os.path.join(self.cf.getfile("completed_wals"), "STOP")
             if os.path.isfile(stopfile):
                 self.log.info("Removing stopfile: "+stopfile)
                 if not self.not_really:
@@ -1494,10 +1739,10 @@ STOP TIME: %(stop_time)s
 
     def slave_restore_config(self):
         """Restore the configuration files if target directory specified."""
-        self.assert_valid_role(SLAVE)
+        self.assert_is_master(False)
 
-        cf_source_dir = self.cf.get("config_backup", "")
-        cf_target_dir = self.cf.get("slave_config_dir", "")
+        cf_source_dir = self.cf.getfile("config_backup", "")
+        cf_target_dir = self.cf.getfile("slave_config_dir", "")
 
         if not cf_source_dir:
             self.log.info("Configuration backup location not specified.")
@@ -1527,10 +1772,10 @@ STOP TIME: %(stop_time)s
                     self.slave_deconfigure_archiving(cfdst)
           
     def slave_boot(self):
-        self.assert_valid_role(SLAVE)
+        self.assert_is_master(False)
 
-        srcdir = self.cf.get("completed_wals")
-        datadir = self.cf.get("slave_data")
+        srcdir = self.cf.getfile("completed_wals")
+        datadir = self.cf.getfile("slave_data")
         stopfile = os.path.join(srcdir, "STOP")
 
         if self.not_really:
@@ -1542,8 +1787,8 @@ STOP TIME: %(stop_time)s
 
     def slave_pause(self, waitcomplete=0):
         """Pause the WAL apply, wait until last file applied if needed"""
-        self.assert_valid_role(SLAVE)
-        srcdir = self.cf.get("completed_wals")
+        self.assert_is_master(False)
+        srcdir = self.cf.getfile("completed_wals")
         pausefile = os.path.join(srcdir, "PAUSE")
         if not self.not_really:
             open(pausefile, "w").write("1")
@@ -1565,8 +1810,8 @@ STOP TIME: %(stop_time)s
                 time.sleep(1)
 
     def slave_continue(self):
-        self.assert_valid_role(SLAVE)
-        srcdir = self.cf.get("completed_wals")
+        self.assert_is_master(False)
+        srcdir = self.cf.getfile("completed_wals")
         pausefile = os.path.join(srcdir, "PAUSE")
         if os.path.isfile(pausefile):
             if not self.not_really:
@@ -1577,12 +1822,12 @@ STOP TIME: %(stop_time)s
 
     def slave_lock_backups_exit(self):
         """Exit with lock acquired status"""
-        self.assert_valid_role(SLAVE)
+        self.assert_is_master(False)
         sys.exit(self.slave_lock_backups())
 
     def slave_lock_backups(self):
         """Create lock file to deny other concurrent backups"""
-        srcdir = self.cf.get("completed_wals")
+        srcdir = self.cf.getfile("completed_wals")
         lockfile = os.path.join(srcdir, "BACKUPLOCK")
         if os.path.isfile(lockfile):
             self.log.warning("Somebody already has the backup lock.")
@@ -1595,8 +1840,8 @@ STOP TIME: %(stop_time)s
 
     def slave_resume_backups(self):
         """Remove backup lock file, allow other backups to run"""
-        self.assert_valid_role(SLAVE)
-        srcdir = self.cf.get("completed_wals")
+        self.assert_is_master(False)
+        srcdir = self.cf.getfile("completed_wals")
         lockfile = os.path.join(srcdir, "BACKUPLOCK")
         if os.path.isfile(lockfile):
             if not self.not_really:
@@ -1607,10 +1852,10 @@ STOP TIME: %(stop_time)s
 
     def list_backups(self):
         """List available backups. On master this just calls slave listbackups via SSH"""
-        if self.wtype == MASTER:
+        if self.is_master:
             self.remote_walmgr("listbackups")
         else:
-            backups = self.get_backup_list(self.cf.get("full_backup"))
+            backups = self.get_backup_list(self.cf.getfile("full_backup"))
             if backups:
                 print "\nList of backups:\n"
                 print "%-15s %-24s %-11s %-24s" % \
@@ -1639,7 +1884,7 @@ STOP TIME: %(stop_time)s
         For 8.3 this could be done with %r parameter to restore_command, for 8.2
         we need to consult control file (parse pg_controldata output).
         """
-        slave_data = self.cf.get("slave_data")
+        slave_data = self.cf.getfile("slave_data")
         backup_label = os.path.join(slave_data, "backup_label")
         if os.path.exists(backup_label):
             # Label file still exists, use it for determining the restart point
@@ -1647,7 +1892,7 @@ STOP TIME: %(stop_time)s
             self.log.debug("Last restart point from backup_label: %s" % lbl.first_wal)
             return lbl.first_wal
 
-        ctl = PgControlData(self.cf.get("slave_bin", ""), ".", True)
+        ctl = PgControlData(self.cf.getfile("slave_bin", ""), ".", True)
         if not ctl.is_valid:
             # No restart point information, use the given wal name
             self.log.warning("Unable to determine last restart point")
@@ -1681,8 +1926,8 @@ STOP TIME: %(stop_time)s
         """
         Remove WAL files not needed for recovery
         """
-        self.assert_valid_role(SLAVE)
-        backups = self.get_backup_list(self.cf.get("full_backup"))
+        self.assert_is_master(False)
+        backups = self.get_backup_list(self.cf.getfile("full_backup"))
         if backups:
             lastwal = self.get_first_walname(backups[-1])
             if lastwal:
@@ -1699,8 +1944,8 @@ STOP TIME: %(stop_time)s
 
         Unneeded WAL files are not removed here, handled by xpurgewals command instead.
         """
-        self.assert_valid_role(SLAVE)
-        dst_loc = self.cf.get("full_backup")
+        self.assert_is_master(False)
+        dst_loc = self.cf.getfile("full_backup")
         maxbackups = self.cf.getint("keep_backups", 0)
         archive_command = self.cf.get("archive_command", "")
 
@@ -1744,8 +1989,8 @@ STOP TIME: %(stop_time)s
                 os.rename(dir, "%s.%s" % (name,index))
 
     def slave_cleanup(self, last_applied):
-        completed_wals = self.cf.get("completed_wals")
-        partial_wals = self.cf.get("partial_wals")
+        completed_wals = self.cf.getfile("completed_wals")
+        partial_wals = self.cf.getfile("partial_wals")
 
         self.log.debug("cleaning completed wals before %s" % last_applied)
         self.del_wals(completed_wals, last_applied)
