@@ -307,11 +307,10 @@ class WalMgr(skytools.DBScript):
             # master configuration settings
             master_opt_dict = {
                 'master_db':        'dbname=template1',
-                'slave_config':     '/var/lib/postgresql/conf/wal-slave.ini',
-                'completed_wals':   '%%(slave)s:%(walmgr_data)s/logs.complete',
-                'partial_wals':     '%%(slave)s:%(walmgr_data)s/logs.partial',
-                'full_backup':      '%%(slave)s:%(walmgr_data)s/data.master',
-                'config_backup':    '%%(slave)s:%(walmgr_data)s/config.backup',
+                'completed_wals':   '%%(slave)s:%%(walmgr_data)s/logs.complete',
+                'partial_wals':     '%%(slave)s:%%(walmgr_data)s/logs.partial',
+                'full_backup':      '%%(slave)s:%%(walmgr_data)s/data.master',
+                'config_backup':    '%%(slave)s:%%(walmgr_data)s/config.backup',
                 'keep_symlinks':    '1',
                 'walmgr_data':      '~/walshipping',
                 'logfile':          '~/log/%(job_name)s.log',
@@ -323,11 +322,10 @@ class WalMgr(skytools.DBScript):
             slave_opt_dict = {
                 'slave_stop_cmd':   '/etc/init.d/postgresql-%s stop' % DEFAULT_PG_VERSION,
                 'slave_start_cmd':  '/etc/init.d/postgresql-%s start' % DEFAULT_PG_VERSION,
-                'slave_config_dir': '/etc/postgresql/%s/main' % DEFAULT_PG_VERSION,
-                'completed_wals':   '%(walmgr_data)s/logs.complete',
-                'partial_wals':     '%(walmgr_data)s/logs.partial',
-                'full_backup':      '%(walmgr_data)s/data.master',
-                'config_backup':    '%(walmgr_data)s/config.backup',
+                'completed_wals':   '%%(walmgr_data)s/logs.complete',
+                'partial_wals':     '%%(walmgr_data)s/logs.partial',
+                'full_backup':      '%%(walmgr_data)s/data.master',
+                'config_backup':    '%%(walmgr_data)s/config.backup',
                 'walmgr_data':      '~/walshipping',
                 'logfile':          '~/log/%(job_name)s.log',
                 'pidfile':          '~/pid/%(job_name)s.pid',
@@ -758,14 +756,30 @@ class WalMgr(skytools.DBScript):
 
             self.log.info('postmaster.opts not found, resorting to guesses')
 
-            self.postgres_bin = "/usr/lib/postgresql/%s/bin" % DEFAULT_PG_VERSION
-            self.postgres_conf = "/etc/postgresql/%s/main/postgresql.conf" % DEFAULT_PG_VERSION
+            # use the directory of first postgres executable from path
+            for path in os.environ['PATH'].split(os.pathsep):
+                path = os.path.expanduser(path)
+                exe = os.path.join(path, "postgres")
+                print "checking",exe
+                if os.path.isfile(exe):
+                    self.postgres_bin = path
+                    break
+            else:
+                # not found, use Debian default
+                self.postgres_bin = "/usr/lib/postgresql/%s/bin" % DEFAULT_PG_VERSION
+
+            if os.path.exists(self.pgdata):
+                self.postgres_conf = os.path.join(self.pgdata, "postgresql.conf")
+            else:
+                self.postgres_conf = "/etc/postgresql/%s/main/postgresql.conf" % DEFAULT_PG_VERSION
 
         if not os.path.isdir(self.postgres_bin):
             die(1, "Postgres bin directory not found.")
 
         if not os.path.isfile(self.postgres_conf):
-            die(1, "Configuration file not found: %s" % self.postgres_conf)
+            if not self.options.init_slave:
+                # postgres_conf is required for master
+                die(1, "Configuration file not found: %s" % self.postgres_conf)
 
     def write_walmgr_config(self, config_data):
         cf_name = os.path.join(os.path.expanduser(self.options.config_dir),
@@ -790,6 +804,11 @@ class WalMgr(skytools.DBScript):
         self.override_cf_option('master_bin', self.postgres_bin)
         self.override_cf_option('master_config', self.postgres_conf)
         self.override_cf_option('master_data', self.pgdata)
+
+        # assume that slave config is in the same location as master's
+        # can override with --set slave_config=
+        slave_walmgr_dir = os.path.abspath(os.path.expanduser(self.options.config_dir))
+        self.override_cf_option('slave_config', os.path.join(slave_walmgr_dir, "wal-slave.ini"))
 
         master_config = """[walmgr]
 job_name            = %(job_name)s
@@ -844,6 +863,7 @@ keep_symlinks       = %(keep_symlinks)s
 
         self.override_cf_option('slave_bin', self.postgres_bin)
         self.override_cf_option('slave_data', self.pgdata)
+        self.override_cf_option('slave_config_dir', os.path.dirname(self.postgres_conf))
 
         slave_config = """[walmgr]
 job_name             = %(job_name)s
