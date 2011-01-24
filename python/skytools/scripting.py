@@ -612,6 +612,7 @@ class DBScript(object):
         else:
             if not connstr:
                 connstr = self.cf.get(dbname)
+            self.log.debug("Connect '%s' to '%s'" % (cache, connstr))
             dbc = DBCachedConn(cache, connstr, max_age, setup_func = self.connection_hook)
             self.db_cache[cache] = dbc
 
