@@ -38,7 +38,7 @@ begin
        and node_name = i_node_name;
     if found then
         update pgq_node.node_location
-           set node_location = i_node_location,
+           set node_location = coalesce(i_node_location, node_location),
                dead = i_dead
          where queue_name = i_queue_name
            and node_name = i_node_name;
