@@ -642,7 +642,11 @@ class CascadeAdmin(skytools.AdminScript):
     def cmd_tag_dead(self, node_name):
         # todo: write to db
         self.log.info("Tagging node '%s' as dead" % node_name)
+        self.load_local_info()
         self.queue_info.tag_dead(node_name)
+        q = "select * from pgq_node.register_location(%s, %s, null, true)"
+        self.node_cmd(self.local_node, q, [self.queue_name, node_name])
+        # fixme: root?
 
     def cmd_pause(self):
         """Pause a node"""
@@ -658,8 +662,9 @@ class CascadeAdmin(skytools.AdminScript):
 
     def cmd_members(self):
         """Show member list."""
+        self.load_local_info()
         db = self.get_database(self.initial_db_name)
-        desc = 'Member info on %s:' % self.local_node
+        desc = 'Member info on %s@%s:' % (self.local_node, self.queue_name)
         q = "select node_name, dead, node_location"\
             " from pgq_node.get_queue_locations(%s) order by 1"
         self.display_table(db, desc, q, [self.queue_name])

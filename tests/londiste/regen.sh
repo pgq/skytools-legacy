@@ -160,7 +160,8 @@ while test $cnt -ne 2; do
 done
 msg "Promoting db2 to root"
 run londiste3 $v conf/londiste_db2.ini takeover node1 --dead-root
-run londiste3 $v conf/londiste_db2.ini status --dead=node1
+run londiste3 $v conf/londiste_db2.ini tag-dead node1
+run londiste3 $v conf/londiste_db2.ini status
 
 run sleep 5
 
@@ -224,7 +225,7 @@ run psql -d db1 -c 'alter database db2 rename to db2x'
 run londiste3 $v conf/londiste_db1.ini status --dead=node2
 run londiste3 $v conf/londiste_db3.ini takeover db2 --dead-root || true
 run londiste3 $v conf/londiste_db3.ini takeover node2 --dead-root
-run londiste3 $v conf/londiste_db1.ini status --dead=node2
+run londiste3 $v conf/londiste_db1.ini status
 
 msg "Restart loadgen"
 run ./loadgen.py -s conf/gen2.ini
