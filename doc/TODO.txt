@@ -102,8 +102,6 @@ who already is handling it.
  - check what modules are installed
  - check if replay is running (lag?)
  - check if copy is running (lag?)
- - count of tables done, count of unsynced
- - table in the middle of copy
 
 * We need own async conn-to-conn copy loop in Python/PythonC.
   Currently we simply pipe one copy_to() to another copy_from()
