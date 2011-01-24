@@ -53,9 +53,9 @@ class LondisteSetup(CascadeAdmin):
         p.add_option("--all", action="store_true",
                     help="include all tables", default=False)
         p.add_option("--create", action="store_true",
-                    help="include all tables", default=False)
-        p.add_option("--create-only",
-                    help="pkey,fkeys,indexes")
+                    help="create, minimal", default=False)
+        p.add_option("--create-full", action="store_true",
+                    help="create, full")
         p.add_option("--trigger-flags",
                     help="Set trigger flags (BAIUDLQ)")
         p.add_option("--trigger-arg", action="append",
@@ -121,21 +121,12 @@ class LondisteSetup(CascadeAdmin):
             sys.exit(1)
 
         # pick proper create flags
-        create = self.options.create_only
-        if not create and self.options.create:
-            create = 'full'
-
-        fmap = {
-            "full": skytools.T_ALL,
-            "pkey": skytools.T_PKEY,
-        }
-        create_flags = 0
-        if create:
-            create_flags = skytools.T_TABLE
-            for f in create.split(','):
-                if f not in fmap:
-                    raise Exception("bad --create-only flag: " + f)
-                create_flags |= fmap[f]
+        if self.options.create_full:
+            create_flags = skytools.T_ALL
+        elif self.options.create:
+            create_flags = skytools.T_TABLE | skytools.T_PKEY
+        else:
+            create_flags = 0
 
         # seems ok
         for tbl in args:
@@ -244,19 +235,12 @@ class LondisteSetup(CascadeAdmin):
         args = self.expand_arg_list(dst_db, 'S', False, args)
 
         # pick proper create flags
-        create = self.options.create_only
-        if not create and self.options.create:
-            create = 'full'
-
-        fmap = {
-            "full": skytools.T_SEQUENCE,
-        }
-        create_flags = 0
-        if create:
-            for f in create.split(','):
-                if f not in fmap:
-                    raise Exception("bad --create-only flag: " + f)
-                create_flags += fmap[f]
+        if self.options.create_full:
+            create_flags = skytools.T_SEQUENCE
+        elif self.options.create:
+            create_flags = skytools.T_SEQUENCE
+        else:
+            create_flags = 0
 
         # seems ok
         for seq in args:

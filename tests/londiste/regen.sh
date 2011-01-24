@@ -96,14 +96,14 @@ msg "Register table on other node with creation"
 for db in db2 db3 db4 db5; do
   run psql -d $db -c "create sequence mytable_id_seq"
   run londiste3 $v conf/londiste_db1.ini add-seq mytable_id_seq
-  run londiste3 $v conf/londiste_$db.ini add-table mytable --create
+  run londiste3 $v conf/londiste_$db.ini add-table mytable --create-full
 done
 
 msg "Register another table to test unregistration"
 run psql -d db1 -c "create table mytable2 (id int4 primary key, data text)"
 run londiste3 $v conf/londiste_db1.ini add-table mytable2
 for db in db2 db3 db4 db5; do
-  run londiste3 $v conf/londiste_$db.ini add-table mytable2 --create-only=pkey
+  run londiste3 $v conf/londiste_$db.ini add-table mytable2 --create
 done
 
 msg "Wait until tables are in sync on db5"

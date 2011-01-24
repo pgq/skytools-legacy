@@ -113,9 +113,9 @@ class Londiste(skytools.DBScript):
         g.add_option("--skip-truncate", action="store_true", dest="skip_truncate",
                 help = "add: keep old data", default=False)
         g.add_option("--create", action="store_true",
-                help = "add: create table/seq if not exist")
-        g.add_option("--create-only",
-                help = "add: create table/seq if not exist (seq,pkey,full,indexes,fkeys)")
+                help = "add: create table/seq if not exist, with minimal schema")
+        g.add_option("--create-full", action="store_true",
+                help = "add: create table/seq if not exist, with full schema")
         g.add_option("--trigger-flags",
                 help="add: Set trigger flags (BAIUDLQ)")
         g.add_option("--trigger-arg", action="append",
