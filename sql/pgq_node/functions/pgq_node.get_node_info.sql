@@ -76,6 +76,16 @@ begin
     else
         local_watermark := worker_last_tick;
     end if;
+
+    if node_type = 'root' then
+        select tick_id from pgq.tick t, pgq.queue q
+         where q.queue_name = i_queue_name
+           and t.tick_queue = q.queue_id
+         order by t.tick_queue desc, t.tick_id desc
+         limit 1
+         into worker_last_tick;
+    end if;
+
     return;
 end;
 $$ language plpgsql security definer;
