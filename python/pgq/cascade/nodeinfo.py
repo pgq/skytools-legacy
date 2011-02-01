@@ -17,6 +17,19 @@ class MemberInfo:
         self.location = row['node_location']
         self.dead = row['dead']
 
+def ival2str(iv):
+    res = ""
+    tmp, secs = divmod(iv.seconds, 60)
+    hrs, mins = divmod(tmp, 60)
+    if iv.days:
+        res += "%dd" % iv.days
+    if hrs:
+        res += "%dh" % hrs
+    if mins:
+        res += "%dm" % mins
+    res += "%ds" % secs
+    return res
+
 class NodeInfo:
     """Detailed info about set node."""
 
@@ -33,6 +46,7 @@ class NodeInfo:
     uptodate = True
     combined_queue = None
     combined_type = None
+    last_tick = None
 
     def __init__(self, queue_name, row, main_worker = True, node_name = None):
         self.queue_name = queue_name
@@ -65,6 +79,7 @@ class NodeInfo:
         self.uptodate = row['worker_uptodate']
         self.combined_queue = row['combined_queue']
         self.combined_type = row['combined_type']
+        self.last_tick = row['worker_last_tick']
 
     def __get_target_queue(self):
         qname = None
@@ -85,6 +100,7 @@ class NodeInfo:
     def get_infolines(self):
         lst = self._info_lines
 
+        lag = None
         if self.parent:
             root = self.parent
             while root.parent:
@@ -94,13 +110,12 @@ class NodeInfo:
                 tick_time = cinfo['tick_time']
                 root_time = root.queue_info['now']
                 lag = root_time - tick_time
-            else:
-                lag = "(n/a?)"
         elif self.queue_info:
             lag = self.queue_info['ticker_lag']
-        else:
-            lag = "(n/a)"
-        txt = "Lag: %s" % lag
+
+        txt = "Lag: %s" % (lag and ival2str(lag) or "(n/a)")
+        if self.last_tick:
+            txt += ", Tick: %s" % self.last_tick
         if self.paused:
             txt += ", PAUSED"
         if not self.uptodate:
@@ -185,6 +200,9 @@ class QueueInfo:
     def print_tree(self):
         """Print ascii-tree for set.
         Expects that data for all nodes is filled in."""
+
+        print('Queue: %s   Local node: %s' % (self.queue_name, self.local_node.name))
+        print('')
 
         root_list = self._prepare_tree()
         for root in root_list:
