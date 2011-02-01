@@ -55,7 +55,7 @@ Plain .fetchall() / .fetchone() give exact same result.
 """
 
 # no exports
-__all__ = ['connect_database', 'set_tcp_keepalive']
+__all__ = ['connect_database', 'set_tcp_keepalive', 'DBError']
 
 ##from psycopg2.psycopg1 import connect as _pgconnect
 # psycopg2.psycopg1.cursor is too backwards compatible,
@@ -65,6 +65,7 @@ __all__ = ['connect_database', 'set_tcp_keepalive']
 import sys, socket
 import psycopg2.extensions, psycopg2.extras
 from skytools.sqltools import dbdict
+from psycopg2 import Error as DBError
 
 class _CompatRow(psycopg2.extras.DictRow):
     """Make DictRow more dict-like."""
