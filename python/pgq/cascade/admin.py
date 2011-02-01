@@ -11,7 +11,7 @@ setadm.py INI pause NODE [CONS]
 
 """
 
-import sys, time, optparse, skytools
+import sys, time, optparse, skytools, psycopg2
 
 from skytools import UsageError
 from pgq.cascade.nodeinfo import *
@@ -332,13 +332,19 @@ class CascadeAdmin(skytools.AdminScript):
                 node = NodeInfo(self.queue_name, None, node_name = mname)
                 self.queue_info.add_node(node)
                 continue
-            db = self.get_database('look_db', connstr = minf.location, autocommit = 1)
-            curs = db.cursor()
-            curs.execute("select * from pgq_node.get_node_info(%s)", [self.queue_name])
-            node = NodeInfo(self.queue_name, curs.fetchone())
-            node.load_status(curs)
-            self.load_extra_status(curs, node)
-            self.queue_info.add_node(node)
+            try:
+                db = self.get_database('look_db', connstr = minf.location, autocommit = 1)
+                curs = db.cursor()
+                curs.execute("select * from pgq_node.get_node_info(%s)", [self.queue_name])
+                node = NodeInfo(self.queue_name, curs.fetchone())
+                node.load_status(curs)
+                self.load_extra_status(curs, node)
+                self.queue_info.add_node(node)
+            except psycopg2.Error, d:
+                msg = str(d).strip().split('\n', 1)[0]
+                print('Node mname failure: %s' % msg)
+                node = NodeInfo(self.queue_name, None, node_name = mname)
+                self.queue_info.add_node(node)
             self.close_database('look_db')
 
         self.queue_info.print_tree()
