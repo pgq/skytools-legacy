@@ -169,6 +169,8 @@ class CascadedWorker(CascadedConsumer):
 
         # check if events have processed
         done = CascadedConsumer.is_batch_done(self, state, batch_info, dst_db)
+        if not wst.create_tick:
+            return done
         if not done:
             return False
 
@@ -176,7 +178,9 @@ class CascadedWorker(CascadedConsumer):
 
         # fetch last tick from target queue
         q = "select t.tick_id from pgq.tick t, pgq.queue q"\
-            " where t.tick_queue = q.queue_id and q.queue_name = %s"
+            " where t.tick_queue = q.queue_id and q.queue_name = %s"\
+            " order by t.tick_queue desc, t.tick_id desc"\
+            " limit 1"
         curs = dst_db.cursor()
         curs.execute(q, [self.queue_name])
         last_tick = curs.fetchone()['tick_id']
