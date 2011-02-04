@@ -105,11 +105,6 @@ insert into custom_expr values ('foo', '2');
 update custom_expr set dat3 = 'bat';
 delete from custom_expr;
 
--- test truncate
-create trigger customtrc_triga after truncate on custom_expr
-for each statement execute procedure pgq.sqltriga('que3');
-truncate custom_expr;
-
 -- test pk update
 insert into rtest values (1, 'value1');
 update rtest set id = 2;

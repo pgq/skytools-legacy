@@ -146,12 +146,6 @@ select * from when_test;
  foo  |    2 | 
 (1 row)
 
--- test truncate
-create trigger trunc_triga after truncate on when_test
-for each statement execute procedure pgq.logutriga('que3');
-truncate when_test;
-NOTICE:  insert_event(que3, R, , public.when_test)
-CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, $5, $6, $7)"
 -- test deny
 create table deny_test (
     dat1 text not null primary key,
@@ -160,12 +154,8 @@ create table deny_test (
 NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "deny_test_pkey" for table "deny_test"
 create trigger deny_triga after insert or update or delete on deny_test
 for each row execute procedure pgq.logutriga('noqueue', 'deny');
-create trigger deny_triga2 after truncate on deny_test
-for each statement execute procedure pgq.logutriga('noqueue', 'deny');
 insert into deny_test values ('1', '2');
 ERROR:  Table 'public.deny_test' to queue 'noqueue': change not allowed (I)
-truncate deny_test;
-ERROR:  Table 'public.deny_test' to queue 'noqueue': change not allowed (R)
 -- test pk update
 insert into udata (id, txt) values (1, 'txt');
 NOTICE:  insert_event(udata_que, I:id, id=1&txt=txt, public.udata)

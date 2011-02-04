@@ -109,11 +109,6 @@ for each row execute procedure pgq.logutriga('que3', 'when=current_user=''random
 insert into when_test values ('foo', '2');
 select * from when_test;
 
--- test truncate
-create trigger trunc_triga after truncate on when_test
-for each statement execute procedure pgq.logutriga('que3');
-truncate when_test;
-
 -- test deny
 create table deny_test (
     dat1 text not null primary key,
@@ -121,10 +116,7 @@ create table deny_test (
 );
 create trigger deny_triga after insert or update or delete on deny_test
 for each row execute procedure pgq.logutriga('noqueue', 'deny');
-create trigger deny_triga2 after truncate on deny_test
-for each statement execute procedure pgq.logutriga('noqueue', 'deny');
 insert into deny_test values ('1', '2');
-truncate deny_test;
 
 -- test pk update
 insert into udata (id, txt) values (1, 'txt');

@@ -1,0 +1,29 @@
+-- test sqltriga truncate
+create table trunctrg1 (
+    dat1 text not null primary key,
+    dat2 int2 not null,
+    dat3 text
+);
+NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "trunctrg1_pkey" for table "trunctrg1"
+create trigger trunc1_trig after truncate on trunctrg1
+for each statement execute procedure pgq.sqltriga('que3');
+truncate trunctrg1;
+NOTICE:  insert_event(que3, R, , public.trunctrg1)
+CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, $5, $6, $7)"
+-- test logutriga truncate
+create table trunctrg2 (
+    dat1 text not null primary key,
+    dat2 int2 not null,
+    dat3 text
+);
+NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "trunctrg2_pkey" for table "trunctrg2"
+create trigger trunc2_trig after truncate on trunctrg2
+for each statement execute procedure pgq.logutriga('que3');
+truncate trunctrg2;
+NOTICE:  insert_event(que3, R, , public.trunctrg2)
+CONTEXT:  SQL statement "select pgq.insert_event($1, $2, $3, $4, $5, $6, $7)"
+-- test deny
+create trigger deny_triga2 after truncate on trunctrg2
+for each statement execute procedure pgq.logutriga('noqueue', 'deny');
+truncate trunctrg2;
+ERROR:  Table 'public.trunctrg2' to queue 'noqueue': change not allowed (R)

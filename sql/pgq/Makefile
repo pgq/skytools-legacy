@@ -9,7 +9,7 @@ FUNCS = $(shell sed -e 's/^[^\\].*//' -e 's/\\i //' $(LDRS))
 SRCS = structure/tables.sql structure/grants.sql structure/install.sql \
        structure/uninstall_pgq.sql $(FUNCS)
 
-REGRESS = pgq_init pgq_core logutriga sqltriga
+REGRESS = pgq_init pgq_core logutriga sqltriga trunctrg
 REGRESS_OPTS = --load-language=plpgsql
 
 include ../../config.mak
