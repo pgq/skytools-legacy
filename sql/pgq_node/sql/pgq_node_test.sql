@@ -27,6 +27,8 @@ select * from pgq_node.get_consumer_info('aqueue');
 select * from pgq_node.unregister_subscriber('aqueue', 'node3');
 select queue_name, consumer_name, last_tick from pgq.get_consumer_info();
 
+select * from pgq_node.get_worker_state('aqueue');
+
 update pgq.queue set queue_ticker_max_lag = '0', queue_ticker_idle_period = '0';
 select * from pgq.ticker('aqueue');
 select * from pgq.ticker('aqueue');
@@ -52,6 +54,9 @@ select * from pgq_node.get_node_info('aqueue');
 select * from pgq_node.get_node_info('bqueue');
 select * from pgq_node.get_node_info('cqueue');
 
+select * from pgq_node.get_worker_state('aqueue');
+select * from pgq_node.get_worker_state('bqueue');
+select * from pgq_node.get_worker_state('cqueue');
 
 select * from pgq_node.is_root_node('aqueue');
 select * from pgq_node.is_root_node('bqueue');
@@ -85,6 +90,13 @@ select * from pgq_node.demote_root('aqueue', 2, 'node3');
 select * from pgq_node.demote_root('aqueue', 2, 'node3');
 select * from pgq_node.demote_root('aqueue', 3, 'node3');
 select * from pgq_node.demote_root('aqueue', 3, 'node3');
+
+-- leaf node
+select * from pgq_node.register_location('mqueue', 'node1', 'dbname=node1', false);
+select * from pgq_node.register_location('mqueue', 'node2', 'dbname=node2', false);
+select * from pgq_node.register_location('mqueue', 'node3', 'dbname=node3', false);
+select * from pgq_node.create_node('mqueue', 'leaf', 'node2', 'node2_worker', 'node1', 13, 'aqueue');
+select * from pgq_node.get_worker_state('mqueue');
 
 \q
 

@@ -26,6 +26,7 @@
 \i   functions/pgq_node.set_subscriber_watermark.sql
 
 -- Group: Subscriber side operations - worker
+\i   functions/pgq_node.get_worker_state.sql
 \i   functions/pgq_node.set_global_watermark.sql
 \i   functions/pgq_node.set_partition_watermark.sql
 
