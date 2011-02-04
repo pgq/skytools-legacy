@@ -71,7 +71,6 @@ class SerialConsumer(Consumer):
         Consumer.__init__(self, service_name, db_name, args)
         self.remote_db = remote_db
         self.dst_schema = "pgq_ext"
-        self.cur_batch_info = None
 
     def startup(self):
         if self.options.rewind:
@@ -97,8 +96,6 @@ class SerialConsumer(Consumer):
         dst_db = self.get_database(self.remote_db)
         curs = dst_db.cursor()
 
-        self.cur_batch_info = self.get_batch_info(batch_id)
-
         # check if done
         if self.is_batch_done(curs):
             return
@@ -115,8 +112,8 @@ class SerialConsumer(Consumer):
         in external database.
         """
 
-        cur_tick = self.cur_batch_info['tick_id']
-        prev_tick = self.cur_batch_info['prev_tick_id']
+        cur_tick = self.batch_info['tick_id']
+        prev_tick = self.batch_info['prev_tick_id']
 
         dst_tick = self.get_last_tick(dst_curs)
         if not dst_tick:
