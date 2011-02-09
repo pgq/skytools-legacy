@@ -816,7 +816,7 @@ class DBScript(object):
                 self.log.warning("%s" % (msg,))
             else:
                 self.log.error("%s" % (msg,))
-                self.log.error("Query was: %s" % quote_statement(sql, args))
+                self.log.debug("Query was: %s" % quote_statement(sql, args))
                 ok = False
         return (ok, rows)
 
@@ -847,7 +847,10 @@ class DBScript(object):
         else:
             if db:
                 db.rollback()
-            raise Exception("db error")
+            if self.options.verbose:
+                raise Exception("db error")
+            # error is already logged
+            sys.exit(1)
 
     def exec_cmd_many(self, db_or_curs, sql, baseargs, extra_list, commit = True, quiet = False):
         """Run SQL on db multiple times."""
@@ -865,7 +868,11 @@ class DBScript(object):
         else:
             if db:
                 db.rollback()
-            raise Exception("db error")
+            if self.options.verbose:
+                raise Exception("db error")
+            # error is already logged
+            sys.exit(1)
+
 
     def listen(self, dbname, channel):
         """Make connection listen for specific event channel.
