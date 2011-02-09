@@ -708,7 +708,8 @@ class WalMgr(skytools.DBScript):
             raise Exception("slave_config not specified in %s" % self.cfgfile)
 
         slave_host = self.cf.get("slave")
-        cmdline = [ "ssh", sshopt, slave_host, self.script, slave_config, command ]
+        cmdline = [ "ssh", sshopt, "-o", "Batchmode=yes", "-o", "StrictHostKeyChecking=no",
+                    slave_host, self.script, slave_config, command ]
 
         if self.not_really:
             self.log.info("remote_walmgr: %s" % command)
