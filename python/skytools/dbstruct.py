@@ -3,7 +3,7 @@
 
 import re
 
-from skytools.sqltools import fq_name_parts, get_table_oid
+from skytools.sqltools import fq_name_parts, get_table_oid, exists_table
 from skytools.quoting import quote_ident, quote_fqident, quote_literal
 from skytools.quoting import unquote_ident, unquote_fqident
 from skytools.parsing import parse_pgarray, parse_acl
@@ -383,12 +383,28 @@ class TColumn(TElem):
         if row['seqname']:
             self.seqname = unquote_fqident(row['seqname'])
 
+
+class TGPDistKey(TElem):
+    """Info about GreenPlum table distribution keys"""
+    SQL = """
+        select a.attname as name
+          from pg_attribute a, gp_distribution_policy p
+        where p.localoid = %(oid)s
+          and a.attrelid = %(oid)s
+          and a.attnum = any(p.attrnums)
+        order by a.attnum;
+        """
+    def __init__(self, table_name, row):
+        self.name = row['name']
+
+
 class TTable(TElem):
     """Info about table only (columns)."""
     type = T_TABLE
-    def __init__(self, table_name, col_list):
+    def __init__(self, table_name, col_list, dist_key_list = None):
         self.name = table_name
         self.col_list = col_list
+        self.dist_key_list = dist_key_list
 
     def get_create_sql(self, curs, new_name = None):
         """Generate creation SQL."""
@@ -399,11 +415,20 @@ class TTable(TElem):
         for c in self.col_list:
             sql += sep + c.column_def
             sep = ",\n    "
-        sql += "\n);"
+        sql += "\n)"
+        if self.dist_key_list is not None:
+            if self.dist_key_list != []:
+                sql += "\ndistributed by(%s)" % ','.join(c.name for c
+                                                         in self.dist_key_list)
+            else:
+                sql += '\ndistributed randomly'
+
+        sql += ";"
         return sql
 
     def get_drop_sql(self, curs):
         return "DROP TABLE %s;" % quote_fqident(self.name)
+
 
 class TSeq(TElem):
     """Info about sequence."""
@@ -549,7 +574,14 @@ class TableStruct(BaseStruct):
 
         # load table struct
         self.col_list = self._load_elem(curs, self.name, args, TColumn)
-        self.object_list = [ TTable(table_name, self.col_list) ]
+        # if db is GP then read also table distribution keys
+        if exists_table(curs, "pg_catalog.gp_distribution_policy"):
+            self.dist_key_list = self._load_elem(curs, self.name, args,
+                                                 TGPDistKey)
+        else:
+            self.dist_key_list = None
+        self.object_list = [ TTable(table_name, self.col_list,
+                                    self.dist_key_list) ]
         self.seq_list = []
 
         # load seqs
