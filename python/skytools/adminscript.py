@@ -68,7 +68,8 @@ class AdminScript(DBScript):
             res = [r[keycol] for r in rows]
         return res
 
-    def display_table(self, db, desc, sql, args = [], fields = []):
+    def display_table(self, db, desc, sql, args = [], fields = [],
+                      fieldfmt = {}):
         """Display multirow query as a table."""
 
         self.log.debug("display_table: %s" % quote_statement(sql, args))
@@ -96,9 +97,14 @@ class AdminScript(DBScript):
         print(fmt % tuple(fields))
         print(fmt % tuple([ '-' * (w - 2) for w in widths ]))
         #print(fmt % tuple(['-'*15] * len(fields)))
-
         for row in rows:
-            print(fmt % tuple([row[k] for k in fields]))
+            vals = []
+            for field in fields:
+                val = row[field]
+                if field in fieldfmt:
+                    val = fieldfmt[field](val)
+                vals.append(val)
+            print(fmt % tuple(vals))
         print('\n')
         return 1
 
