@@ -53,7 +53,6 @@ sql/txid/txid.sql.in
 tests/londiste/conf
 tests/merge/conf
 
-sql/*/*.sql
 tmp_files.lst
 sql/ticker/pgqd.ini.h
 
