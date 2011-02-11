@@ -175,8 +175,9 @@ class TableState(object):
         if row['merge_state'] == "?":
             self.changed = 1
 
-        hstr = self.table_attrs.get('handlers', '')
-        self.plugin = parse_handler(self.name, hstr, self.log)
+        hstr = self.table_attrs.get('handlers', '') # compat
+        hstr = self.table_attrs.get('handler', hstr)
+        self.plugin = build_handler(self.name, hstr, self.log)
 
     def interesting(self, ev, tick_id, copy_thread):
         """Check if table wants this event."""
@@ -290,7 +291,7 @@ class Replicator(CascadedWorker):
 
         self.consumer_filter = None
 
-        load_handlers(self.cf)
+        load_handler_modules(self.cf)
 
     def connection_hook(self, dbname, db):
         if dbname == 'db' and db.server_version >= 80300:

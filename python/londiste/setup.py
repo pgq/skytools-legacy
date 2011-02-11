@@ -36,7 +36,7 @@ class LondisteSetup(CascadeAdmin):
 
         self.set_name = self.queue_name
 
-        londiste.handler.load_handlers(self.cf)
+        londiste.handler.load_handler_modules(self.cf)
 
     def init_optparse(self, parser=None):
         """Add londiste switches to cascadeadmin ones."""
@@ -62,8 +62,10 @@ class LondisteSetup(CascadeAdmin):
                     help="Custom trigger arg")
         p.add_option("--no-triggers", action="store_true",
                     help="Custom trigger arg")
-        p.add_option("--handler", action="append",
-                    help="add: Custom handler for table")
+        p.add_option("--handler", action="store",
+                help="add: Custom handler for table")
+        p.add_option("--handler-arg", action="append",
+                    help="add: Argument to custom handler")
         return p
 
     def extra_init(self, node_type, node_db, provider_db):
@@ -166,10 +168,11 @@ class LondisteSetup(CascadeAdmin):
             tgargs.append('no_triggers')
 
         attrs = {}
-        hlist = self.options.handler
-        if hlist:
-            p = londiste.handler.build_handler(tbl, hlist, self.log)
-            attrs['handlers'] = ":".join(hlist)
+        if self.options.handler:
+            hstr = londiste.handler.create_handler_string(
+                            self.options.handler, self.options.handler_arg)
+            p = londiste.handler.build_handler(tbl, hstr, self.log)
+            attrs['handler'] = hstr
             p.add(tgargs)
 
         # actual table registration
@@ -310,9 +313,12 @@ class LondisteSetup(CascadeAdmin):
 
     def cmd_tables(self):
         """Show attached tables."""
-        q = "select table_name, merge_state from londiste.get_table_list(%s) where local"
+        q = """select table_name, merge_state, table_attrs
+        from londiste.get_table_list(%s) where local"""
         db = self.get_database('db')
-        self.display_table(db, "Tables on node", q, [self.set_name])
+        self.display_table(db, "Tables on node", q, [self.set_name],
+                           fieldfmt = {'table_attrs': lambda f: '' if f is None
+                                       else skytools.db_urldecode(f)})
 
     def cmd_seqs(self):
         """Show attached seqs."""

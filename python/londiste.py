@@ -122,8 +122,10 @@ class Londiste(skytools.DBScript):
                 help="add: Custom trigger arg (can be specified multiply times)")
         g.add_option("--no-triggers", action="store_true",
                 help="add: Dont put triggers on table (makes sense on leaf)")
-        g.add_option("--handler", action="append",
+        g.add_option("--handler", action="store",
                 help="add: Custom handler for table")
+        g.add_option("--handler-arg", action="append",
+                    help="add: Argument to custom handler")
         g.add_option("--copy-condition", dest="copy_condition",
                 help = "add: set WHERE expression for copy")
         p.add_option_group(g)
