@@ -136,7 +136,7 @@ class SerialConsumer(Consumer):
         """Helper function to set last successful batch
         in external database.
         """
-        tick_id = self.cur_batch_info['tick_id']
+        tick_id = self.batch_info['tick_id']
         self.set_last_tick(dst_curs, tick_id)
 
     def register_consumer(self):
