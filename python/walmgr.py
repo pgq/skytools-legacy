@@ -347,6 +347,13 @@ class WalMgr(skytools.DBScript):
 
             self.is_master = config.has_option('master_data')
 
+        # create the log and pid files if needed
+        for cfk in [ "logfile", "pidfile" ]:
+            if config.has_option(cfk):
+                dirname = os.path.dirname(config.getfile(cfk))
+                if not os.path.isdir(dirname):
+                    os.makedirs(dirname)
+
         return config
 
     def __init__(self, args):
@@ -701,7 +708,8 @@ class WalMgr(skytools.DBScript):
             raise Exception("slave_config not specified in %s" % self.cfgfile)
 
         slave_host = self.cf.get("slave")
-        cmdline = [ "ssh", sshopt, slave_host, self.script, slave_config, command ]
+        cmdline = [ "ssh", sshopt, "-o", "Batchmode=yes", "-o", "StrictHostKeyChecking=no",
+                    slave_host, self.script, slave_config, command ]
 
         if self.not_really:
             self.log.info("remote_walmgr: %s" % command)
@@ -784,6 +792,12 @@ class WalMgr(skytools.DBScript):
     def write_walmgr_config(self, config_data):
         cf_name = os.path.join(os.path.expanduser(self.options.config_dir),
                     self.cf.get("job_name") + ".ini")
+
+        dirname = os.path.dirname(cf_name)
+        if not os.path.isdir(dirname):
+            self.log.info('Creating config directory: %s' % dirname)
+            os.makedirs(dirname)
+
         self.log.info('Writing configuration file: %s' % cf_name)
         self.log.debug("config data:\n%s" % config_data)
         if not self.not_really:
@@ -842,6 +856,7 @@ keep_symlinks       = %(keep_symlinks)s
 
         self.write_walmgr_config(master_config)
 
+        # generate SSH key pair if requested
         if self.options.ssh_keygen:
             keyfile = os.path.expanduser("~/.ssh/id_dsa")
             if os.path.isfile(keyfile):
