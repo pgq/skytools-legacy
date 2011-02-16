@@ -116,12 +116,12 @@ select pgq_coop.finish_batch(2);
             1
 (1 row)
 
-select pgq_coop.unregister_subconsumer('testqueue', 'maincons', 'subcons1', 0);
-ERROR:  subconsumer has active batch
-select pgq_coop.unregister_subconsumer('testqueue', 'maincons', 'subcons1', 1);
- unregister_subconsumer 
-------------------------
-                      1
+-- test takeover
+update pgq.subscription set sub_active = '2005-01-01' where sub_batch is not null;
+select pgq_coop.next_batch('testqueue', 'maincons', 'subcons2', '1 hour');
+ next_batch 
+------------
+          1
 (1 row)
 
 select pgq_coop.unregister_subconsumer('testqueue', 'maincons', 'subcons1', 0);
@@ -131,8 +131,16 @@ select pgq_coop.unregister_subconsumer('testqueue', 'maincons', 'subcons1', 0);
 (1 row)
 
 select pgq_coop.unregister_subconsumer('testqueue', 'maincons', 'subcons2', 0);
+ERROR:  subconsumer has active batch
+select pgq_coop.unregister_subconsumer('testqueue', 'maincons', 'subcons2', 1);
  unregister_subconsumer 
 ------------------------
                       1
+(1 row)
+
+select pgq_coop.unregister_subconsumer('testqueue', 'maincons', 'subcons2', 0);
+ unregister_subconsumer 
+------------------------
+                      0
 (1 row)
 

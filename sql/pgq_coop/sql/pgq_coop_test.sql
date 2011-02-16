@@ -34,9 +34,12 @@ select pgq_coop.next_batch('testqueue', 'maincons', 'subcons2');
 
 select pgq_coop.finish_batch(2);
 
+-- test takeover
+update pgq.subscription set sub_active = '2005-01-01' where sub_batch is not null;
+select pgq_coop.next_batch('testqueue', 'maincons', 'subcons2', '1 hour');
 
 select pgq_coop.unregister_subconsumer('testqueue', 'maincons', 'subcons1', 0);
-select pgq_coop.unregister_subconsumer('testqueue', 'maincons', 'subcons1', 1);
-select pgq_coop.unregister_subconsumer('testqueue', 'maincons', 'subcons1', 0);
+select pgq_coop.unregister_subconsumer('testqueue', 'maincons', 'subcons2', 0);
+select pgq_coop.unregister_subconsumer('testqueue', 'maincons', 'subcons2', 1);
 select pgq_coop.unregister_subconsumer('testqueue', 'maincons', 'subcons2', 0);
 

@@ -8,7 +8,7 @@ returns bigint as $$
 --
 --	Makes next block of events active
 --
---	NULL means nothing to work with, for a moment
+--	Result NULL means nothing to work with, for a moment
 --
 -- Parameters:
 --	i_queue_name		- Name of the queue
@@ -16,7 +16,35 @@ returns bigint as $$
 --	i_subconsumer_name	- Name of the subconsumer
 -- ----------------------------------------------------------------------
 begin
-    return pgq_coop.next_batch_custom(i_queue_name, i_consumer_name, i_subconsumer_name, NULL, NULL, NULL);
+    return pgq_coop.next_batch_custom(i_queue_name, i_consumer_name, i_subconsumer_name, NULL, NULL, NULL, NULL);
+end;
+$$ language plpgsql;
+
+create or replace function pgq_coop.next_batch(
+    i_queue_name text,
+    i_consumer_name text,
+    i_subconsumer_name text,
+    i_dead_interval interval)
+returns bigint as $$
+-- ----------------------------------------------------------------------
+-- Function: pgq_coop.next_batch(4)
+--
+--	Makes next block of events active
+--
+--      If i_dead_interval is set, other subconsumers are checked for
+--      inactivity.  If some subconsumer has active batch, but has
+--      been inactive more than i_dead_interval, the batch is taken over.
+--
+--	Result NULL means nothing to work with, for a moment
+--
+-- Parameters:
+--	i_queue_name		- Name of the queue
+--	i_consumer_name		- Name of the consumer
+--	i_subconsumer_name	- Name of the subconsumer
+--      i_dead_interval         - Take over other subconsumer batch if inactive
+-- ----------------------------------------------------------------------
+begin
+    return pgq_coop.next_batch_custom(i_queue_name, i_consumer_name, i_subconsumer_name, NULL, NULL, NULL, i_dead_interval);
 end;
 $$ language plpgsql;
 
@@ -35,7 +63,7 @@ returns bigint as $$
 --      with i_min_count, i_min_interval parameters.  Events age can
 --      be tuned with i_min_lag.
 --
---	NULL means nothing to work with, for a moment
+--	Result NULL means nothing to work with, for a moment
 --
 -- Parameters:
 --	i_queue_name		- Name of the queue
@@ -45,6 +73,43 @@ returns bigint as $$
 --      i_min_count         - Consumer wants batch to contain at least this many events
 --      i_min_interval      - Consumer wants batch to cover at least this much time
 -- ----------------------------------------------------------------------
+begin
+    return pgq_coop.next_batch_custom(i_queue_name, i_consumer_name, i_subconsumer_name,
+                                      i_min_lag, i_min_count, i_min_interval, NULL);
+end;
+$$ language plpgsql;
+
+create or replace function pgq_coop.next_batch_custom(
+    i_queue_name text,
+    i_consumer_name text,
+    i_subconsumer_name text,
+    i_min_lag interval,
+    i_min_count int4,
+    i_min_interval interval,
+    i_dead_interval interval)
+returns bigint as $$
+-- ----------------------------------------------------------------------
+-- Function: pgq_coop.next_batch_custom(7)
+--
+--      Makes next block of events active.  Block size can be tuned
+--      with i_min_count, i_min_interval parameters.  Events age can
+--      be tuned with i_min_lag.
+--
+--      If i_dead_interval is set, other subconsumers are checked for
+--      inactivity.  If some subconsumer has active batch, but has
+--      been inactive more than i_dead_interval, the batch is taken over.
+--
+--	Result NULL means nothing to work with, for a moment
+--
+-- Parameters:
+--	i_queue_name		- Name of the queue
+--	i_consumer_name		- Name of the consumer
+--	i_subconsumer_name	- Name of the subconsumer
+--      i_min_lag           - Consumer wants events older than that
+--      i_min_count         - Consumer wants batch to contain at least this many events
+--      i_min_interval      - Consumer wants batch to cover at least this much time
+--      i_dead_interval     - Take over other subconsumer batch if inactive
+-- ----------------------------------------------------------------------
 declare
     _queue_id integer;
     _consumer_id integer;
@@ -52,6 +117,8 @@ declare
     _batch_id bigint;
     _prev_tick bigint;
     _cur_tick bigint;
+    _sub_id integer;
+    _dead record;
 begin
     -- fetch master consumer details, lock the row
     select q.queue_id, c.co_id, s.sub_next_tick
@@ -70,8 +137,8 @@ begin
     end if;
 
     -- fetch subconsumer details
-    select s.sub_batch, sc.co_id
-        into _batch_id, _subcon_id
+    select s.sub_batch, sc.co_id, s.sub_id
+        into _batch_id, _subcon_id, _sub_id
         from pgq.subscription s, pgq.consumer sc
         where sub_queue = _queue_id
           and sub_consumer = sc.co_id
@@ -82,7 +149,43 @@ begin
 
     -- is there a batch already active
     if _batch_id is not null then
+        update pgq.subscription set sub_active = now()
+            where sub_queue = _queue_id
+              and sub_consumer = _subcon_id;
         return _batch_id;
+    end if;
+
+    -- help dead comrade
+    if i_dead_interval is not null then
+
+        -- check if some other subconsumer has died
+        select s.sub_batch, s.sub_consumer, s.sub_last_tick, s.sub_next_tick
+            into _dead
+            from pgq.subscription s
+            where s.sub_queue = _queue_id
+              and s.sub_id = _sub_id
+              and s.sub_consumer <> _subcon_id
+              and s.sub_batch is not null
+              and sub_active < now() - i_dead_interval
+            limit 1;
+
+        if found then
+            -- unregister old consumer
+            delete from pgq.subscription
+                where sub_queue = _queue_id
+                  and sub_consumer = _dead.sub_consumer;
+
+            -- copy batch over
+            update pgq.subscription
+                set sub_batch = _dead.sub_batch,
+                    sub_last_tick = _dead.sub_last_tick,
+                    sub_next_tick = _dead.sub_next_tick,
+                    sub_active = now()
+                where sub_queue = _queue_id
+                  and sub_consumer = _subcon_id;
+
+            return _dead.sub_batch;
+        end if;
     end if;
 
     -- get a new batch for the main consumer
