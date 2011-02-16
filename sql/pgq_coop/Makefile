@@ -33,7 +33,7 @@ pgq_coop.upgrade.sql: $(SRCS)
 dox: cleandox $(SRCS)
 	mkdir -p docs/html
 	mkdir -p docs/sql
-	$(CATSQL) structure/functions.sql > docs/sql/functions.sql
+	$(CATSQL) --ndoc structure/functions.sql > docs/sql/functions.sql
 	$(NDOC) $(NDOCARGS)
 
 cleandox:

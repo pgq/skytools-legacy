@@ -8,3 +8,6 @@
 \i functions/pgq_coop.next_batch.sql
 \i functions/pgq_coop.finish_batch.sql
 
+-- Group: General Info
+\i functions/pgq_coop.version.sql
+
