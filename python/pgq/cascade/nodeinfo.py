@@ -5,6 +5,8 @@
 
 __all__ = ['MemberInfo', 'NodeInfo', 'QueueInfo']
 
+import datetime
+
 # node types
 ROOT = 'root'
 BRANCH = 'branch'
@@ -109,7 +111,12 @@ class NodeInfo:
             if cinfo and root.queue_info:
                 tick_time = cinfo['tick_time']
                 root_time = root.queue_info['now']
-                lag = root_time - tick_time
+                if root_time < tick_time:
+                    # ignore negative lag - probably due to info gathering
+                    # taking long time
+                    lag = datetime.timedelta(0)
+                else:
+                    lag = root_time - tick_time
         elif self.queue_info:
             lag = self.queue_info['ticker_lag']
 
@@ -268,5 +275,5 @@ def _setpfx(pfx, sfx):
     return pfx
 
 def _node_key(n):
-    return (n.levels, n.total_childs)
+    return (n.levels, n.total_childs, n.name)
 
