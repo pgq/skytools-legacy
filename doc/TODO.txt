@@ -1,257 +1,112 @@
 
 = Skytools ToDo list =
 
-In angular brackets after item is assumed complexity [easy, moderate, complex],
-wheter it is good to have it in 3.0, and maybe also developer name
-who already is handling it.
+Gut feeling about priorities:
 
+High::
+  Needer for wider deployment / 3.0-final.
+Medium::
+  Good if done, but can be postponed.
+Low::
+  Interesting idea, but OK if not done.
 
-== Required for 3.0-final ==
+== High Priority ==
 
-* More handlers work:
-  - convert cube/table disaptcher to handler
-  - make is support pooler target (cross-mover)
+* qadmin: register/unregister subconsumer - add syntax, call db-functions.
 
-* takeover testing
+* londiste takeover: check if all tables exist and are in sync.
+  Inform user.  Should the takeover stop if problems?
+  How can such state be checked on-the-fly?
+  Perhaps `londiste missing` should show in-copy tables.
 
-* qadmin
-  - make usable as python module
-  - merge cascade commands
+* docs:
+  - londiste manpage
+  - qadmin manpage
+  - pgqd manpage
 
-* some documentation
-  - qadmin as main admin tool ?
-  - londiste
-  - pgqd
+* cascade: merge leaf creation should check if target queue exists -
+  `pgq_node.create_node()` should return error if not.
 
-== Good to have changes ==
+* cascade takeover: wal failover queue sync.  WAL-failover can be
+  behind/ahead from regular replication with partial batch.  Need
+  to look up-batched events in wal-slave and full-batches on branches
+  and sync them together.  this should also make non-wal branch takeover
+  with branch thats behind the others work - it needs to catch up with
+  recent events.
+  . Load top-ticks from branches
+  . Load top-tick from new master, if ahead from branches all ok
+  . Load non-batched events from queue (ev_txid not in tick_snapshot)
+  . Load partial batch from branch
+  . Replay events that do not exists
+  . Replay rest of batches fully
+  . Promote to root
 
-* tests for coopconsumer
-* londiste: check transactional UI
+* tests: takeover testing
+  - wal behind
+  - wal ahead
+  - branch behind
+
+== Medium Priority ==
+
+* Split package (`pgq-modules-X.Y`, `pgqd`, `skytools`) [dimitri]
+
+* tests for things that have not their own regtests
+  or are not tested enough during other tests:
+  - pgq.RemoteConsumer
+  - pgq.CoopConsumer
+  - skytools.DBStruct
+  - londiste handlers
+
+* cascade watermark limit nodes.  A way to avoid affecting root
+  with lagging downstream nodes.
+
+* automatic sql upgrade mechanism - check version in db, apply .sql
+  if contains newer version.
+
+* integrate skytools.checker.  It is generic 'check/repair' script
+  that can also automatically apply fixes.  Should rebase londiste
+  check/repair on that.
+
+* londiste: automatic serial handling, --noserial switch?
+
+* pgqd: rip out compat code for pre-pgq.maint_operations() schemas.
+  All the maintenance logic is in DB now.
+
+* qadmin: merge cascade commands (medium) - may need api redesign
+  to avoid duplicating pgq.cascade code?
+
 * dbscript: configurable error timeout (20s)
-* automatic serial handling, --noserial switch?
-* londiste:
-  - execute --wait [moderate]
 
-=== sql/pgq ===
+* dbscript: `exec_cmd()` needs better name.
 
-* pgq_node.is_root_event() rettype [easy, but hard to decide]
+* londiste replay: when buffering queries, check their size.
 
-=== python/skytools ===
+* cascade status: parallel info gathering
 
-* New DB API command `DBScript.exec_cmd()` needs better name. [3.0, hard to decide]
+* developer docs for:
+  - DBScript, pgq.Consumer, pgq.CascadedConsumer?
+  - Update pgq/sql docs for current pgq.
 
-=== python/pgq ===
+== Low Priority ==
 
-* Expose commands for node connstr change, pgq_node.drop_node(). [easy]
-
-=== python/pgq/cascade ===
-
-* Advanced admin commands.
-  - node-status
-  - set-status
-  - on root switch/failover check if all tables are present
-  [moderate]
-
-=== python/londiste ===
-
-* 'Q' event type for londiste, (queue_splitter event), for event
-  that needs to be inserted into queue.  Also trigger flag to
-  create such event.
-  - better to be done as "redirect" - allow events for a table
-    to be redirected to another table or queue.
-  [moderate]
-
-* --wait/--nowait switch for execute, to wait until script is applied
-  to everywhere.
-  [3.0, moderate]
-
-* Decide if/how topology change or EXECUTE needs to take account
-  tables in copy. [needs decision]
-  - Proceed, let the admin check out details later.
-  - Wait until COPY finishes.
-  - Do not allow?
-
-=== sql/londiste ===
-
-
-== Doc improvements ==
-
-* pgq_node and londiste have moved some user interaction messages
-  into database, but their loglevels need review.
-  This means executing various commands and seeing if output is sensible.
-  [easy?]
-
-* Python modules need docstring review. [easy?]
-
-* dbscript: document self.args [east]
-
-* replace "raise Exception" with "raise UsageError" , where we just
-  want to inform user and so traceback is not needed. [easy]
-
-== Low-priority ==
-
-=== Larger things ===
-
-* skylog: publish sample logdb schema, with some tools. [moderate]
-* londiste: support creating slave from master by pg_dump / PITR. [hard]
-* pgq/cascade: rename node [hard]
-
-=== Smaller things ===
-
-* londiste: londiste status cmd [moderate]
- - check what modules are installed
- - check if replay is running (lag?)
- - check if copy is running (lag?)
-
-* We need own async conn-to-conn copy loop in Python/PythonC.
-  Currently we simply pipe one copy_to() to another copy_from()
-  in blocked manner with large buffer,
-  but that likely halves the potential throughput. [hard]
-* skytools: switch (-q) for silence for cron/init scripts.
+* dbscript: switch (-q) for silence for cron/init scripts.
   Dunno if we can override loggers loaded from skylog.ini.
   Simply redirecting fds 0,1,2 to /dev/null should be enough then.
-  [easy]
-* Londiste: when buffering queries, check their size. [easy]
-* automatic "repair" - after reaching sync point, the "replay"
-  must be killed/paused, then fixes can be applied. [moderate]
 
-== Just ideas ==
+* londiste add/copy: merge copy without combined queue?
 
-* skytools: config from database
-* skytools: config-less operation?
-* londiste: somehow automatic sync of table structure/functions/...?
+* londiste: support creating slave from master by pg_dump / PITR. [hannu?]
 
+* londiste copy: async conn-to-conn copy loop in Python/PythonC.
+  Currently we simply pipe one copy_to() to another copy_from()
+  in blocked manner with large buffer,
+  but that likely halves the potential throughput.
 
-== QAdmin todo list ==
+* qadmin: multi-line commands.  The problem is whether we can
+  use python's readline in a psql-like way.
 
-=== Goal ===
-
-Easy to use admin console to examine and administer PgQ queues.
-Main feature is psql like tab-completion for everything (queue/consumer names).
-
-=== Current direction ===
-
-* Cmdline switches similar to psql.
-* No config file. (?)
-* SQL-like syntax (potential to accept full SQL).
-* Target is console usage, not scripts.
-* Info about both plain and cascaded queues.
-* Administer only plain queues.
-
-=== Potential future directions ===
-
- * SQL Scripts.
-  - Full SQL
-  - Variables?
-  - Logic?
- * Admin scripts for cascaded queues.  Eg. implement current "switchover", "change-provider"
-   commands with it.
-  - Needs variables and multi-node support (execute on this node).
-    Maybe look at the paralled exec features of psql.
- * Admin scripts for something else.
-  - data maintainer?
-  - release_script?
-
-=== Command line ===
-
-
-  -Q:: queue name
-  -U:: username
-  -h:: host
-  -p:: port
-  -d:: database
- 
-  --help:: help
-  --version:: version
-
-=== Internal language ===
-
-All the commands assume they are connected to a database.
-
-Raw connect, maybe set default queue:
-
-  CONNECT dbname=.. host=.. port=.. user=.. password=.. queue=..;
-
-Set default queue:
-
-  CONNECT queue=..;
-
-Connect to node on default queue:
-
-  CONNECT node=..;
-
-Plain queue modification:
-
-  CREATE QUEUE <qname> [params?];
-  REGISTER CONSUMER <cons>;
-  UNREGISTER CONSUMER <cons>;
-  DROP QUEUE <qname>;
-
-  ALTER QUEUE <qname> SET ..;
-
-Install code:
-
-  INSTALL pgq;      -- txid, pgq, pgq_ext, pgq_node
-  INSTALL londiste; -- all of above + londiste
-
-Information:
-
-  SHOW QUEUE (<qname> | *);
-  SHOW CONSUMER (<cons> | *) [ ON <qname | * ];
-  SHOW BATCH INFO (<id> | <consumer>) [ON <queue>?];
-  SHOW BATCH EVENTS (<id> | <consumer>) [ON <queue>?];
-
-=== Smaller Open Questions ===
-
-* What arguments should qadmin accept from command line?
-
-  psql-style: qadmin [switches] [dbname [username]]
-  ssh-style:  qadmin [switches] [command [args]]
-
-* Command style and syntax.
-
-* Multi-word vs. long words:
- - SHOW BATCH EVENTS <id>;
- - SHOW_BATCH_EVENTS <id>;
-
-* Default queue vs. queue name in commands.
-
-=== ToDo ===
-
-* General:
-  - Lots of useful commands.
-
-* Parsing:
-
-  - Node naming is not consistent, as it has grown, not designed.
-    Suggestions: (Word -> Ident, WList->TokenList?/NodeList?,
-    DynList->DynIdent?, SWord->Param?) Also: get_next() -> parse()
-  - Quoted idents/strings not supported.  Fix: nodes should unquote early.
-    IIRC libpq connect string generation in "connect" code assumes already
-    quoted values, quoting needs to be added there.
-  - Tab-completion of uppercase keywords.
-  - Disable lowercasing of quoted indents. (?)
-  - Tab-completion of quoted idents. (?)
-  - Multi-line commands. (?)
-
-* Cascading: It would be useful to also have cascading commands available in qadmin.
-   ( SWITCHOVER / CREATE NODE / PAUSE NODE / CHANGE PROVIDER ).
-   But currently they are implemented using DBScript framework.  And
-   we don't want to have several implementations of the commands.
-   There seems to be 2 ways forward:
-   - Convert qadmin to DBScript.  It is possible to make config-less DBScript.
-   - Implement command under qadmin in non-DBScript way and make
-     CascadeAdmin call qadmin implementation.
-
-* Londiste: It seems to be good idea to make Londiste management also available in qadmin.
-  - LONDISTE ADD|REMOVE TABLE <tbl>
-  - LONDISTE ADD|REMOVE SEQUENCE <seq>
-  - LONDISTE SHOW TABLES / SHOW LONDISTE TABLES / SHOW TABLES ?
-  - SHOW MISSING TABLES?
-
-* random other ideas:
-  - queue rename.  (on remote side too?)
-  - copy consumer pos
-  - rename consumer
-  - event del?
+* qadmin: recursive parser.  Current non-recursive parser
+  cannot express complex grammar (SQL).  If we want
+  SQL auto-completion, recursive grammar is needed.
+  This would also simplify current grammar.
 
