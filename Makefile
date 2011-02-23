@@ -21,6 +21,12 @@ SCRIPT_SUFFIX = $(SUFFIX)
 
 SQLDIR = $(prefix)/share/skytools$(SUFFIX)
 
+# modules that use doctest for regtests
+DOCTESTMODS = skytools.quoting skytools.parsing skytools.timeutil \
+	   skytools.sqltools skytools.querybuilder
+
+
+
 all: python-all sub-all config.mak
 
 install: sub-install python-install
@@ -154,5 +160,11 @@ debfix:
 	&& echo BROKEN_PYTHON=--install-layout=deb || echo 'WORKING_PYTHON=found'
 
 .PHONY: all clean distclean install deb debclean tgz tags
-.PHONY: python-all python-clean python-install check
+.PHONY: python-all python-clean python-install check test
+
+test:
+	@cd python; for m in $(DOCTESTMODS); do \
+		printf "%-22s ... " $$m; \
+		$(PYTHON) -m $$m && echo "ok" || { echo "FAIL"; exit 1; }; \
+	done
 
