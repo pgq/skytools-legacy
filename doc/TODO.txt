@@ -12,7 +12,9 @@ Low::
 
 == High Priority ==
 
-* qadmin: register/unregister subconsumer - add syntax, call db-functions.
+* qadmin: register/unregister subconsumer
+  . add syntax
+  . call db-functions.
 
 * londiste takeover: check if all tables exist and are in sync.
   Inform user.  Should the takeover stop if problems?
@@ -58,7 +60,8 @@ Low::
   - londiste handlers
 
 * cascade watermark limit nodes.  A way to avoid affecting root
-  with lagging downstream nodes.
+  with lagging downstream nodes.  Need to tag some nodes to coordinate
+  watermark with each other and not send it upstream to root.
 
 * automatic sql upgrade mechanism - check version in db, apply .sql
   if contains newer version.
@@ -67,7 +70,11 @@ Low::
   that can also automatically apply fixes.  Should rebase londiste
   check/repair on that.
 
-* londiste: automatic serial handling, --noserial switch?
+* londiste add-table: automatic serial handling, --noserial switch?  Currently,
+  `--create-full` does not create sequence on target, even if source
+  table was created with `serial` column.  It does associate column
+  with sequence if that exists, but it requires that it was created
+  previously.
 
 * pgqd: rip out compat code for pre-pgq.maint_operations() schemas.
   All the maintenance logic is in DB now.
@@ -75,13 +82,20 @@ Low::
 * qadmin: merge cascade commands (medium) - may need api redesign
   to avoid duplicating pgq.cascade code?
 
-* dbscript: configurable error timeout (20s)
+* dbscript: configurable error timeout (currently it's hardwired to 20s)
 
 * dbscript: `exec_cmd()` needs better name.
 
-* londiste replay: when buffering queries, check their size.
+* londiste replay: when buffering queries, check their size.  Current
+  buffering is by count - flushed if 200 events have been collected.
+  That does not take account that some rows can be very large.
+  So separate counter for len(ev_data) needs to be added, that flushes
+  if buffer would go over some specified amount of memory.
 
-* cascade status: parallel info gathering
+* cascade status: parallel info gathering.  Sequential for-loop over
+  nodes can be slow if there are many nodes or some of them are
+  generally slow  (GP, bad network, etc).  Perhaps we can use
+  psycopg2 async mode for that.  Or threading.
 
 * developer docs for:
   - DBScript, pgq.Consumer, pgq.CascadedConsumer?
@@ -93,9 +107,26 @@ Low::
   Dunno if we can override loggers loaded from skylog.ini.
   Simply redirecting fds 0,1,2 to /dev/null should be enough then.
 
-* londiste add/copy: merge copy without combined queue?
+* londiste add/copy: merge copy without combined queue?  If several
+  partitions need to write data to single place, there are 2 variants:
+  1. Use `--skip-truncate` when adding table in partitons.
+     Problem: it repeatedly drops/creates indexes.
+  2. Use `merge-leaf`->`combined-root` cascading logic, for which
+     Londiste has optimized copy without repeated index dropping+creation.
+     Problem: it expects target combined queue where to copy
+     events and which also triggers the additional copy logic.
 
-* londiste: support creating slave from master by pg_dump / PITR. [hannu?]
+  Should there also be 3) - optimized copy without combined queue?
+  Problem: the additional logic needs to checks tables from all the other
+  nodes, all the time, because it has no clear flag that merging
+  needs to happen.  Seems it's better to avoid that.
+
+* londiste: support creating slave from master by pg_dump / PITR.
+  Take full dump from root or failover-branch and turn it into
+  another branch.
+  . Rename node
+  . Check for correct epoch, fix if possible (only for pg_dump)
+  . Sync batches (wal-failover should have it)
 
 * londiste copy: async conn-to-conn copy loop in Python/PythonC.
   Currently we simply pipe one copy_to() to another copy_from()
@@ -109,4 +140,6 @@ Low::
   cannot express complex grammar (SQL).  If we want
   SQL auto-completion, recursive grammar is needed.
   This would also simplify current grammar.
+  1. On rule reference, push state to stack
+  2. On rule end, pop state from stack.  If empty then done.
 
