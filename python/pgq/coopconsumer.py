@@ -10,6 +10,16 @@ class CoopConsumer(Consumer):
     """Cooperative Consumer base class.
 
     There will be one dbscript process per subconsumer.
+
+    Config params::
+        ## pgq.CoopConsumer
+
+        # name for subconsumer
+        subconsumer_name =
+
+        # pgsql interval when to consider parallel subconsumers dead,
+        # and take over their unfinished batch
+        #subconsumer_timeout = 1 hour
     """
 
     def __init__(self, service_name, db_name, args):
@@ -23,6 +33,7 @@ class CoopConsumer(Consumer):
         Consumer.__init__(self, service_name, db_name, args)
 
         self.subconsumer_name = self.cf.get("subconsumer_name")
+        self.subconsumer_timeout = self.cf.get("subconsumer_timeout")
 
     def register_consumer(self):
         """Registration for subconsumer."""
@@ -51,8 +62,12 @@ class CoopConsumer(Consumer):
     def _load_next_batch(self, curs):
         """Allocate next batch. (internal)"""
 
-        q = "select pgq_coop.next_batch(%s, %s, %s)"
-        curs.execute(q, [self.queue_name, self.consumer_name, self.subconsumer_name])
+        if self.subconsumer_timeout:
+            q = "select pgq_coop.next_batch(%s, %s, %s, %s)"
+            curs.execute(q, [self.queue_name, self.consumer_name, self.subconsumer_name, self.subconsumer_timeout])
+        else:
+            q = "select pgq_coop.next_batch(%s, %s, %s)"
+            curs.execute(q, [self.queue_name, self.consumer_name, self.subconsumer_name])
         return curs.fetchone()[0]
 
     def _finish_batch(self, curs, batch_id, list):
