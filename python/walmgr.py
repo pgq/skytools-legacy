@@ -808,11 +808,11 @@ class WalMgr(skytools.DBScript):
         except Exception, e:
             self.log.error(e)
             errors = True
-
-        try:
-            self.pg_stop_backup()
-        except:
-            pass
+        finally:
+            try:
+                self.pg_stop_backup()
+            except:
+                pass
 
         try:
             self.remote_walmgr("xrelease")
