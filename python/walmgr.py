@@ -25,6 +25,7 @@ Common commands:
   restore [set][dst] Stop postmaster, move new data dir to right location and start 
                      postmaster in playback mode. Optionally use [set] as the backupset
                      name to restore. In this case the directory is copied, not moved.
+  cleanup            Cleanup any walmgr files after stop.
 
 Internal commands:
   xarchive           archive one WAL file (master)
@@ -280,6 +281,8 @@ class WalMgr(skytools.DBScript):
                      help = "master: generate SSH key pair if needed", default=False)
         p.add_option("", "--ssh-add-key", action="store", dest="ssh_add_key",
                      help = "slave: add public key to authorized_hosts", default=False)
+        p.add_option("", "--ssh-remove-key", action="store", dest="ssh_remove_key",
+                     help = "slave: remove master key from authorized_hosts", default=False)
         p.add_option("", "--init-slave", action="store_true", dest="init_slave",
                      help = "Initialize slave walmgr.", default=False)
         return p
@@ -400,6 +403,7 @@ class WalMgr(skytools.DBScript):
             'pause':        self.slave_pause,
             'continue':     self.slave_continue,
             'boot':         self.slave_boot,
+            'cleanup':      self.walmgr_cleanup,
             'xlock':        self.slave_lock_backups_exit,
             'xrelease':     self.slave_resume_backups,
             'xrotate':      self.slave_rotate_backups,
@@ -605,7 +609,54 @@ class WalMgr(skytools.DBScript):
         if os.path.exists(pidfile):
             self.log.info('Pidfile %s exists, attempting to stop syncdaemon.' % pidfile)
             self.exec_cmd([self.script, self.cfgfile, "syncdaemon", "-s"])
+
         self.log.info("Done")
+    
+    def walmgr_cleanup(self):
+        """
+        Clean up any walmgr files on slave and master.
+        """
+
+        if not self.is_master:
+            # remove walshipping directory
+            dirname = self.cf.getfile("walmgr_data")
+            self.log.info("Removing walmgr data directory: %s" % dirname)
+            if not self.not_really:
+                shutil.rmtree(dirname)
+
+            # remove backup 8.3/main.X directories
+            backups = glob.glob(self.cf.getfile("slave_data") + ".[0-9]")
+            for dirname in backups:
+                self.log.info("Removing backup main directory: %s" % dirname)
+                if not self.not_really:
+                    shutil.rmtree(dirname)
+
+            if self.options.ssh_remove_key:
+                # remove master key from ssh authorized keys, simple substring match should do
+                ssh_dir = os.path.expanduser("~/.ssh")
+                auth_file = os.path.join(ssh_dir, "authorized_keys")
+                keys = ""
+                for key in open(auth_file):
+                    if not self.options.ssh_remove_key in key:
+                        keys += key
+                    else:
+                        self.log.info("Removed %s from %s" % (self.options.ssh_remove_key, auth_file))
+
+                self.log.info("Overwriting authorized_keys file")
+
+                if not self.not_really:
+                    tmpfile = auth_file + ".walmgr.tmp"
+                    f = open(tmpfile, "w")
+                    f.write(keys)
+                    f.close()
+                    os.rename(tmpfile, auth_file)
+                else:
+                    self.log.debug("authorized_keys:\n%s" % keys)
+
+        # get rid of the configuration file, both master and slave
+        self.log.info("Removing config file: %s" % self.cfgfile)
+        if not self.not_really:
+            os.remove(self.cfgfile)
 
     def master_configure_archiving(self, enable_archiving, can_restart):
         """Turn the archiving on or off"""
@@ -712,9 +763,9 @@ class WalMgr(skytools.DBScript):
                     slave_host, self.script, slave_config, command ]
 
         if self.not_really:
-            self.log.info("remote_walmgr: %s" % command)
-        else:
-            self.exec_cmd(cmdline)
+            cmdline += ["--not-really"]
+
+        self.exec_cmd(cmdline)
 
     def override_cf_option(self, option, value):
         """Set a configuration option, if it is unset"""
@@ -954,7 +1005,8 @@ config_backup        = %(config_backup)s
             def mkdirs(dir):
                 if not os.path.exists(dir):
                     self.log.debug("Creating directory %s" % dir)
-                    os.makedirs(dir)
+                    if not self.not_really:
+                        os.makedirs(dir)
 
             mkdirs(self.cf.getfile("completed_wals"))
             mkdirs(self.cf.getfile("partial_wals"))
@@ -1265,6 +1317,11 @@ STOP TIME: %(stop_time)s
         self.log.debug("Slave: adding to %s" % chunk)
 
         name = os.path.join(self.cf.getfile("partial_wals"), filename)
+
+        if self.not_really:
+            self.log.info("Adding to partial: %s" % name)
+            return
+
         try:
             xlog = open(name, (offset == 0) and "w+" or "r+")
         except:
