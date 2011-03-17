@@ -185,6 +185,8 @@ def build_handler(tblname, hstr, log):
 
     hstr is result of create_handler_string()."""
     hname, args = _parse_handler(hstr)
+    # when no handler specified, use londiste
+    hname = hname or 'londiste'
     klass = _handler_map[hname]
     return klass(tblname, args, log)
 
