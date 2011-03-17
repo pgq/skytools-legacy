@@ -531,15 +531,14 @@ class WalMgr(skytools.DBScript):
 
         self.exec_big_rsync(cmdline + [ source_dir, dst_loc ])
 
-
-    def exec_cmd(self, cmdline,allow_error=False):
+    def exec_cmd(self, cmdline, allow_error=False):
         cmd = "' '".join(cmdline)
         self.log.debug("Execute cmd: '%s'" % (cmd))
         if self.not_really:
             return
-        #res = os.spawnvp(os.P_WAIT, cmdline[0], cmdline)
+
         process = subprocess.Popen(cmdline,stdout=subprocess.PIPE)
-        output=process.communicate()
+        output = process.communicate()
         res = process.returncode
         
         if res != 0 and not allow_error:
@@ -752,7 +751,7 @@ class WalMgr(skytools.DBScript):
             cmdline = ["ssh", "-nT", host, "mkdir", "-p", path]
             self.exec_cmd(cmdline)
 
-    def remote_walmgr(self, command, stdin_disabled = True,allow_error=False):
+    def remote_walmgr(self, command, stdin_disabled = True, allow_error=False):
         """Pass a command to slave WalManager"""
 
         sshopt = "-T"
@@ -770,7 +769,33 @@ class WalMgr(skytools.DBScript):
         if self.not_really:
             cmdline += ["--not-really"]
 
-        self.exec_cmd(cmdline)
+        return self.exec_cmd(cmdline, allow_error)
+
+    def remote_xlock(self):
+        """
+        Obtain the backup lock to ensure that several backups are not
+        run in parralel. If someone already has the lock we check if
+        this is from a previous (failed) backup. If that is the case,
+        the lock is released and re-obtained.
+        """
+        xlock_cmd = "xlock %d" % os.getpid()
+        ret = self.remote_walmgr(xlock_cmd, allow_error=True)
+        if ret[0] != 0:
+            # lock failed.
+            try:
+                lock_pid = int(ret[1])
+            except ValueError:
+                self.log.fatal("Invalid pid in backup lock")
+                sys.exit(1)
+
+            try:
+                os.kill(lock_pid, 0)
+                self.log.fatal("Backup lock already taken")
+                sys.exit(1)
+            except OSError:
+                # no process, carry on
+                self.remote_walmgr("xrelease")
+                self.remote_walmgr(xlock_cmd)
 
     def override_cf_option(self, option, value):
         """Set a configuration option, if it is unset"""
@@ -1932,7 +1957,7 @@ STOP TIME: %(stop_time)s
             pidstring = lockfilehandle.read();
             try:
                 pid = int(pidstring)
-                print("%d",pid)
+                print("%d" % pid)
             except ValueError:
                 self.log.error("lock file does not contain a pid:" + pidstring)
             return 1
@@ -2131,22 +2156,6 @@ STOP TIME: %(stop_time)s
                     os.remove(full)
             cur_last = fname
         return cur_last
-    def remote_xlock(self):
-        ret = self.remote_walmgr("xlock " + str(os.getpid()),allow_error=True)
-        if ret[0] != 0:
-            # lock failed.
-            try:
-                lock_pid = int(ret[1])
-                if os.kill(lock_pid,0):
-                    #process exists.
-                    self.log.error("lock already obtained")
-                else:
-                    self.remote_walmgr("xrelease")
-                    ret = self.remote_walmgr("xlock " + pid(),allow_error=True)
-                    if ret[0] != 0:
-                        self.log.error("unable to obtain lock")
-            except ValueError:
-                self.log.error("error obtaining lock")
 
 if __name__ == "__main__":
     script = WalMgr(sys.argv[1:])
