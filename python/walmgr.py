@@ -476,7 +476,7 @@ class WalMgr(skytools.DBScript):
         self.log.debug("Execute rsync cmd: '%s'" % (cmd))
         if self.not_really:
             return 0
-        res = os.spawnvp(os.P_WAIT, cmdline[0], cmdline)
+        res = os.spawnvp(os.P_WAIT, cmdline[0], cmdline)       
         if res == 24:
             self.log.info("Some files vanished, but thats OK")
             res = 0
@@ -532,15 +532,20 @@ class WalMgr(skytools.DBScript):
         self.exec_big_rsync(cmdline + [ source_dir, dst_loc ])
 
 
-    def exec_cmd(self, cmdline):
+    def exec_cmd(self, cmdline,allow_error=False):
         cmd = "' '".join(cmdline)
         self.log.debug("Execute cmd: '%s'" % (cmd))
         if self.not_really:
             return
-        res = os.spawnvp(os.P_WAIT, cmdline[0], cmdline)
-        if res != 0:
+        #res = os.spawnvp(os.P_WAIT, cmdline[0], cmdline)
+        process = subprocess.Popen(cmdline,stdout=subprocess.PIPE)
+        output=process.communicate()
+        res = process.returncode
+        
+        if res != 0 and not allow_error:
             self.log.fatal("exec failed, res=%d (%s)" % (res, repr(cmdline)))
             sys.exit(1)
+        return (res,output[0])
 
     def exec_system(self, cmdline):
         self.log.debug("Execute cmd: '%s'" % (cmdline))
@@ -747,7 +752,7 @@ class WalMgr(skytools.DBScript):
             cmdline = ["ssh", "-nT", host, "mkdir", "-p", path]
             self.exec_cmd(cmdline)
 
-    def remote_walmgr(self, command, stdin_disabled = True):
+    def remote_walmgr(self, command, stdin_disabled = True,allow_error=False):
         """Pass a command to slave WalManager"""
 
         sshopt = "-T"
@@ -1062,7 +1067,7 @@ config_backup        = %(config_backup)s
         5. Release backup lock
         """
 
-        self.remote_walmgr("xlock")
+        self.remote_xlock()
         errors = False
 
         try:
@@ -1923,10 +1928,17 @@ STOP TIME: %(stop_time)s
         lockfile = os.path.join(srcdir, "BACKUPLOCK")
         if os.path.isfile(lockfile):
             self.log.warning("Somebody already has the backup lock.")
+            lockfilehandle = open(lockfile,"r")
+            pidstring = lockfilehandle.read();
+            try:
+                pid = int(pidstring)
+                print("%d",pid)
+            except ValueError:
+                self.log.error("lock file does not contain a pid:" + pidstring)
             return 1
 
         if not self.not_really:
-            open(lockfile, "w").write("1")
+            open(lockfile, "w").write(self.args[0])
         self.log.info("Backup lock obtained.")
         return 0
 
@@ -2119,6 +2131,22 @@ STOP TIME: %(stop_time)s
                     os.remove(full)
             cur_last = fname
         return cur_last
+    def remote_xlock(self):
+        ret = self.remote_walmgr("xlock " + str(os.getpid()),allow_error=True)
+        if ret[0] != 0:
+            # lock failed.
+            try:
+                lock_pid = int(ret[1])
+                if os.kill(lock_pid,0):
+                    #process exists.
+                    self.log.error("lock already obtained")
+                else:
+                    self.remote_walmgr("xrelease")
+                    ret = self.remote_walmgr("xlock " + pid(),allow_error=True)
+                    if ret[0] != 0:
+                        self.log.error("unable to obtain lock")
+            except ValueError:
+                self.log.error("error obtaining lock")
 
 if __name__ == "__main__":
     script = WalMgr(sys.argv[1:])
