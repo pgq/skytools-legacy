@@ -999,11 +999,14 @@ config_backup        = %(config_backup)s
             self.log.debug("Reading public key from %s" % self.options.ssh_add_key)
             master_pubkey = open(self.options.ssh_add_key).read()
 
-            for key in open(auth_file):
-                if key == master_pubkey:
-                    self.log.info("Key already present in %s, skipping" % auth_file)
-                    break
-            else:
+            key_present = False
+            if os.path.isfile(auth_file):
+                for key in open(auth_file):
+                    if key == master_pubkey:
+                        self.log.info("Key already present in %s, skipping" % auth_file)
+                        key_present = True
+
+            if not key_present:
                 self.log.info("Adding %s to %s" % (self.options.ssh_add_key, auth_file))
                 if not self.not_really:
                     af = open(auth_file, "a")
