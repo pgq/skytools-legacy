@@ -838,7 +838,7 @@ MODE = { 'event': { 'part_mode': 'event_time' },
          'time': { 'part_mode': 'current_time' },
 }
 BASE = { 'table_mode': 'part',
-         'row_mode': 'plain',
+         'row_mode': 'keep_latest',
 }
 
 # build set of handlers with different default values for easier use
