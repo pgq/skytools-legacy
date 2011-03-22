@@ -798,8 +798,8 @@ __londiste_handlers__ = [Dispatcher]
 # helper function for creating dispachers with different default values
 def handler(name):
     def wrapper(func):
-        def _init_override(self, table_name, next, args, log):
-            Dispatcher.__init__(self, table_name, next, func(args.copy()), log)
+        def _init_override(self, table_name, args, log):
+            Dispatcher.__init__(self, table_name, func(args.copy()), log)
         dct = {'__init__': _init_override, 'handler_name': name}
         clsname = 'Dispatcher_%s' % name.replace('.','_')
         cls = new.classobj(clsname, (Dispatcher,), dct)
