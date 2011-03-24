@@ -1966,7 +1966,10 @@ STOP TIME: %(stop_time)s
             return 1
 
         if not self.not_really:
-            open(lockfile, "w").write(self.args[0])
+            f = open(lockfile, "w")
+            if len(self.args) > 0:
+                f.write(self.args[0])
+            f.close()
         self.log.info("Backup lock obtained.")
         return 0
 
