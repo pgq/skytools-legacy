@@ -73,8 +73,6 @@ def require(pkg, reqver):
     ver_str = ver_str.split('-', 1)[0]
     full_ver = tuple([int(x) for x in ver_str.split('.')])
     if full_ver[0] != reqval[0] or reqval > full_ver:
-        raise ImportError("Request for Skytools ver '%s', got '%s'" % (
-                        reqver, '.'.join(full_ver)))
         raise ImportError("Request for package '%s' ver '%s', have '%s'" % (
                           pkg, reqver, '.'.join(full_ver)))
     inst_ver = full_ver
@@ -83,5 +81,4 @@ def require(pkg, reqver):
     _import_cache[pkg] = inst_ver
 
     return mod
-
 
