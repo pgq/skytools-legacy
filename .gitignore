@@ -1,3 +1,4 @@
+*~
 *.pyc
 *.pyo
 *.[oas]
@@ -9,6 +10,7 @@
 *.html
 *.xml
 .deps
+.DS_Store
 config.mak
 config.log
 config.status
