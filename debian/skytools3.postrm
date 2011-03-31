@@ -1,0 +1,23 @@
+# Automatically added by dh_installinit
+if [ "$1" = "purge" ] ; then
+	update-rc.d skytools3 remove >/dev/null
+fi
+# End automatically added section
+
+
+# scripts alternatives
+for f in /usr/bin/londiste3 /usr/bin/scriptmgr3 \
+    /usr/bin/queue_mover3 /usr/bin/queue_splitter3
+do
+    name=`basename $f |cut -d3 -f1`
+    update-alternatives --remove $name $f
+done
+
+# man pages alternatives
+for m in /usr/share/man/man1/scriptmgr3.1.gz \
+    /usr/share/man/man1/pgqadm3.1.gz /usr/share/man/man1/londiste3.1.gz \
+    /usr/share/man/man1/queue_mover3.1.gz /usr/share/man/man1/queue_splitter3.1.gz
+do
+    name=`basename $m 3.1.gz`
+    update-alternatives --remove $link "$name.1.gz"
+done

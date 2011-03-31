@@ -15,7 +15,7 @@ mandir = @mandir@
 bindir = @bindir@
 
 PYTHON = @PYTHON@
-override PG_CONFIG = @PG_CONFIG@
+PG_CONFIG = @PG_CONFIG@
 
 # additional CPPFLAGS to pgxs modules
 PG_CPPFLAGS = $(filter -DHAVE%, @DEFS@)

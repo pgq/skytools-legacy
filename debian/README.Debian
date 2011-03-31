@@ -1,0 +1,19 @@
+skytools-3.0 for Debian
+-----------------------
+
+The skytools package for 3.0 has been reworked and split into a number of
+packages:
+
+skytools3              Skytool's replication and queuing
+python-pgq3            Skytool's PGQ python library
+python-skytools3       python scripts framework for skytools
+skytools-ticker3       PGQ ticker daemon service
+skytools-walmgr3       high-availability archive and restore commands
+postgresql-8.4-pgq3    PGQ server-side code (C module for PostgreSQL)
+postgresql-9.0-pgq3    PGQ server-side code (C module for PostgreSQL)
+
+You can install your script in /etc/skytools/*.ini and the skytools package
+will try to start them automatically, using scriptmgr.  Of course you still
+need to install pgq for ticker services and londiste for replication.
+
+ -- Dimitri Fontaine <dfontaine@hi-media-techno.com>, Wed,  6 Apr 2011 17:07:35 +0200

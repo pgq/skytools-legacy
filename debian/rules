@@ -1,0 +1,53 @@
+#!/usr/bin/make -f
+# -*- makefile -*-
+# Sample debian/rules that uses debhelper.
+#
+# This file was originally written by Joey Hess and Craig Small.
+# As a special exception, when this file is copied by dh-make into a
+# dh-make output file, you may use that output file without restriction.
+# This special exception was added by Craig Small in version 0.37 of dh-make.
+#
+# Modified to make a template file for a multi-binary package with separated
+# build-arch and build-indep targets  by Bill Allombert 2001
+
+# Uncomment this to turn on verbose mode.
+#export DH_VERBOSE=1
+
+# This has to be exported to make some magic below work.
+export DH_OPTIONS
+
+# The build system is averse to VPATH building, so we can't use postgresql-server-dev-all
+PG_CONFIG_84=/usr/lib/postgresql/8.4/bin/pg_config
+PG_CONFIG_90=/usr/lib/postgresql/9.0/bin/pg_config
+
+config.mak:
+	autoreconf -I lib/m4
+	./configure --prefix=/usr --with-asciidoc
+
+override_dh_auto_configure:
+
+override_dh_auto_clean: config.mak
+	make -C lib distclean
+	dh_auto_clean -- distclean
+	rm -rf $(SRCDIR)/debian
+
+override_dh_auto_build: config.mak lib/build
+	dh_auto_build -- SQLDIR=/usr/share/skytools3 PG_CONFIG=$(PG_CONFIG_90)
+
+# upstream build system will build fine for one given PostgreSQL version,
+# then we build the PostgreSQL module and files for yet another version of
+# it so that we have binary packages for postgresql-8.4-pgq3 and 9.0.
+override_dh_auto_install: 
+	dh_auto_install
+	for d in sql/pgq sql/pgq_node sql/pgq_ext sql/pgq_coop sql/txid sql/londiste; do \
+		make PG_CONFIG=$(PG_CONFIG_84) \
+                     DESTDIR=$(CURDIR)/debian/tmp \
+                     -C $$d clean install \
+                || exit 1 ;\
+	done
+
+lib/build:
+	chmod +x lib/find_modules.sh
+
+%:
+	dh $@

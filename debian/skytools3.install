@@ -1,0 +1,20 @@
+usr/bin/qadmin
+usr/bin/londiste3
+usr/bin/scriptmgr3
+usr/bin/queue_mover3
+usr/bin/queue_splitter3
+debian/skytools.ini /etc
+usr/lib/python*/site-packages/skytools-3.0/londiste
+usr/share/postgresql/9.0/contrib/pgq.upgrade.sql	 /usr/share/skytools3
+usr/share/postgresql/9.0/contrib/txid.sql                /usr/share/skytools3
+usr/share/postgresql/9.0/contrib/pgq_triggers.sql	 /usr/share/skytools3
+usr/share/postgresql/9.0/contrib/pgq_lowlevel.sql	 /usr/share/skytools3
+usr/share/postgresql/9.0/contrib/pgq_node.sql		 /usr/share/skytools3
+usr/share/postgresql/9.0/contrib/pgq_coop.upgrade.sql    /usr/share/skytools3
+usr/share/postgresql/9.0/contrib/pgq_ext.sql		 /usr/share/skytools3
+usr/share/postgresql/9.0/contrib/londiste.sql		 /usr/share/skytools3
+usr/share/postgresql/9.0/contrib/pgq_node.upgrade.sql    /usr/share/skytools3
+usr/share/postgresql/9.0/contrib/pgq.sql		 /usr/share/skytools3
+usr/share/postgresql/9.0/contrib/pgq_coop.sql		 /usr/share/skytools3
+usr/share/postgresql/9.0/contrib/londiste.upgrade.sql    /usr/share/skytools3
+usr/share/postgresql/9.0/contrib/uninstall_pgq.sql       /usr/share/skytools3

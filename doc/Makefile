@@ -18,7 +18,7 @@ SCRIPT_HTMLS = $(SCRIPT_TXTS:.txt=.html)
 MAN5 = 
 MAN1_SFX = londiste.1 pgqadm.1 scriptmgr.1 skytools_upgrade.1 walmgr.1 \
 	   queue_splitter.1 queue_mover.1
-MAN1 = qadmin.1
+MAN1 = qadmin.1 pgqd.1
 
 FQHTML = $(addprefix html/, $(HTMLS))
 FQMAN1 = $(addprefix man/, $(MAN1))

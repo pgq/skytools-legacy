@@ -1,0 +1,15 @@
+usr/lib/postgresql/9.0/lib/pgq_triggers.so
+usr/lib/postgresql/9.0/lib/pgq_lowlevel.so
+usr/share/postgresql/9.0/contrib/pgq.upgrade.sql
+usr/share/postgresql/9.0/contrib/txid.sql
+usr/share/postgresql/9.0/contrib/pgq_triggers.sql
+usr/share/postgresql/9.0/contrib/pgq_lowlevel.sql
+usr/share/postgresql/9.0/contrib/pgq_node.sql
+usr/share/postgresql/9.0/contrib/pgq_coop.upgrade.sql
+usr/share/postgresql/9.0/contrib/pgq_ext.sql
+usr/share/postgresql/9.0/contrib/londiste.sql
+usr/share/postgresql/9.0/contrib/pgq_node.upgrade.sql
+usr/share/postgresql/9.0/contrib/pgq.sql
+usr/share/postgresql/9.0/contrib/pgq_coop.sql
+usr/share/postgresql/9.0/contrib/londiste.upgrade.sql
+usr/share/postgresql/9.0/contrib/uninstall_pgq.sql

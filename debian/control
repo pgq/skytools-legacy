@@ -1,0 +1,64 @@
+Source: skytools3
+Section: database
+Priority: extra
+Maintainer: Dimitri Fontaine <dim@tapoueh.org>
+Build-Depends: debhelper (>= 7.0.50~), autotools-dev, autoconf (>= 2.65), libevent-dev, python-all-dev, python-support, python-psycopg2, xmlto, asciidoc, libpq-dev, postgresql-server-dev-8.4, postgresql-server-dev-9.0
+Standards-Version: 3.9.1
+Homepage: http://wiki.postgresql.org/wiki/Skytools
+Vcs-Git: http://github.com/markokr/skytools.git
+Vcs-Browser: https://github.com/markokr/skytools
+
+Package: skytools3
+Architecture: any
+Depends: ${misc:Depends}, ${python:Depends}, python-pgq3, adduser
+Description: Skype tools for PostgreSQL replication, londiste and PGQ
+ This is a package of tools in use in Skype for replication and failover. It
+ contains the Londiste and PGQ services and scripts to run.
+
+Package: python-pgq3
+Architecture: any
+Section: python
+Depends: ${misc:Depends}, ${python:Depends}, python-skytools3
+Description: python framework for Skype tools for PostgreSQL replication
+ This is a package of tools in use in Skype for replication and failover.
+ It includes a generic queuing mechanism PgQ and utility library for Python
+ scripts.
+
+Package: python-skytools3
+Architecture: any
+Section: python
+Depends: ${shlibs:Depends}, ${misc:Depends}, ${python:Depends}
+Description: python framework for Skype tools for PostgreSQL replication
+ This is a package of tools in use in Skype for replication and failover.
+ It contains the Skytools' python framework for scripting against a
+ PostgreSQL database, which is used by londiste, walmgr and PGQ.
+
+Package: skytools3-walmgr
+Architecture: any
+Depends: ${misc:Depends}, ${python:Depends}, python-skytools3, postgresql-8.4 | postgresql-9.0
+Description: Skype tools for PostgreSQL replication and failover
+ This is a package of tools in use in Skype for replication and failover.
+ It's the WAL Shipping part of it (binary cluster-wide replication).
+
+Package: skytools3-ticker
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Skype tools for PostgreSQL replication, londiste and PGQ
+ This is the PGQ ticker used by Skype replication, londiste. It consists of
+ PL/pgsql, and C code in database, with Python framework on top of it.  It
+ is based on snapshot based event handling ideas from Slony-I, written for
+ general usage.
+
+Package: postgresql-8.4-pgq3
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, postgresql-8.4
+Description: Skype tools for PostgreSQL replication, londiste and PGQ
+ This is the PGQ extension used by Skype replication, londiste. It consists
+ of PL/pgsql, and C code in database.
+
+Package: postgresql-9.0-pgq3
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, postgresql-9.0
+Description: Skype tools for PostgreSQL replication, londiste and PGQ
+ This is the PGQ extension used by Skype replication, londiste. It consists
+ of PL/pgsql, and C code in database.

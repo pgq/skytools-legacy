@@ -1,0 +1,77 @@
+= pgqq(1) =
+
+== NAME ==
+
+pgqd - PGQ ticker daemon
+
+== SYNOPSIS ==
+
+  pgqd [ options ... ] config.file
+
+== DESCRIPTION ==
+
+The goal is to be psql-like console for queue administration.
+
+== GENERAL OPTIONS ==
+
+Switches:
+
+  -v::        Increase verbosity
+
+  -q::        No output to console
+
+  -d::        Daemonize
+
+  -h::        Show help
+
+  -V::        Show version
+
+ --ini::      Show sample config file
+
+  -s::        Stop - send SIGINT to running process
+
+  -k::        Kill - send SIGTERM to running process
+
+  -r::        Reload - send SIGHUP to running process
+
+== CONFIG FILE
+
+=== Sample configuration file
+
+  [pgqd]
+  
+  # where to log
+  logfile = ~/log/pgqd.log
+  
+  # pidfile
+  pidfile = ~/pid/pgqd.pid
+  
+  ## optional parameters ##
+  
+  # libpq connect string without dbname=
+  #base_connstr =
+  
+  # startup db to query other databases
+  #initial_database = template1
+  
+  # limit ticker to specific databases
+  #database_list =
+  
+  # log into syslog
+  #syslog = 1
+  #syslog_ident = pgqd
+  
+  ## optional timeouts ##
+  
+  # how often to check for new databases
+  #check_period = 60
+  
+  # how often to flush retry queue
+  #retry_period = 30
+  
+  # how often to do maintentance
+  #maint_period = 120
+  
+  # how often to run ticker
+  #ticker_period = 1
+

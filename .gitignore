@@ -30,11 +30,18 @@ zconf*
 
 debian/*-stamp
 debian/*tmp*
-debian/rules
 debian/packages
 debian/files
-debian/control
-debian/substvars
+debian/*substvars
+debian/*debhelper
+debian/patches
+debian/python-pgq3/*
+debian/python-skytools3/*
+debian/postgresql-8.4-pgq3/*
+debian/postgresql-9.0-pgq3/*
+debian/skytools3*/*
+debian/skytools-pgq*/*
+debian/skytools-londiste*/*
 
 python/skytools/installer_config.py
 sql/txid/txid.sql
@@ -64,3 +71,5 @@ doc/man
 reconfigure.sh
 *.orig
 *.rej
+
+.pc
