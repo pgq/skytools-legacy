@@ -635,10 +635,11 @@ class WalMgr(skytools.DBScript):
                 if not self.not_really:
                     shutil.rmtree(dirname)
 
-            if self.options.ssh_remove_key:
+            ssh_dir = os.path.expanduser("~/.ssh")
+            auth_file = os.path.join(ssh_dir, "authorized_keys")
+
+            if self.options.ssh_remove_key and os.path.isfile(auth_file):
                 # remove master key from ssh authorized keys, simple substring match should do
-                ssh_dir = os.path.expanduser("~/.ssh")
-                auth_file = os.path.join(ssh_dir, "authorized_keys")
                 keys = ""
                 for key in open(auth_file):
                     if not self.options.ssh_remove_key in key:
