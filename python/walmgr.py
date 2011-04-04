@@ -315,6 +315,7 @@ class WalMgr(skytools.DBScript):
                 'full_backup':      '%%(slave)s:%%(walmgr_data)s/data.master',
                 'config_backup':    '%%(slave)s:%%(walmgr_data)s/config.backup',
                 'keep_symlinks':    '1',
+                'compression':      '0',
                 'walmgr_data':      '~/walshipping',
                 'logfile':          '~/log/%(job_name)s.log',
                 'pidfile':          '~/pid/%(job_name)s.pid',
@@ -927,6 +928,7 @@ full_backup         = %(full_backup)s
 config_backup       = %(config_backup)s
 
 keep_symlinks       = %(keep_symlinks)s
+compression         = %(compression)s
 """
 
         try:
