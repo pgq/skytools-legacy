@@ -12,8 +12,7 @@ See L{plpy_exec} for examples.
 
 """
 
-from skytools.sqltools import dbdict
-from skytools.quoting import quote_literal
+import skytools
 
 __all__ = [ 
     'QueryBuilder', 'PLPyQueryBuilder', 'PLPyQuery', 'plpy_exec',
@@ -45,7 +44,7 @@ class QArg:
         self.conf = conf
     def __str__(self):
         if self.conf.param_type == PARAM_INLINE:
-            return quote_literal(self.value)
+            return skytools.quote_literal(self.value)
         elif self.conf.param_type == PARAM_DBAPI:
             return "%s"
         elif self.conf.param_type == PARAM_PLPY:
@@ -294,7 +293,7 @@ class PLPyQueryBuilder(QueryBuilder):
             sql = self.get_sql(PARAM_INLINE)
             res = plpy.execute(sql)
         if res:
-            res = [dbdict(r) for r in res]
+            res = [skytools.dbdict(r) for r in res]
         return res
 
 
@@ -371,7 +370,7 @@ def run_query(cur, sql, params = None, **kwargs):
     rows = cur.fetchall()
     # convert result rows to dbdict
     if rows:
-        rows = [dbdict(r) for r in rows]
+        rows = [skytools.dbdict(r) for r in rows]
     return rows
 
 def run_query_row(cur, sql, params = None, **kwargs):

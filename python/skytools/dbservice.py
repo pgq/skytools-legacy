@@ -5,12 +5,8 @@
 
 import re, skytools
 
-from skytools import quote_ident, quote_fqident
-from skytools import db_urldecode, db_urlencode
-from skytools import parse_pgarray
-from skytools.sqltools import dbdict
-from skytools.querybuilder import PLPyQueryBuilder
-        
+from skytools import dbdict
+
 __all__ = ['DBService',  'dbdict',
     'get_record', 'get_record_list',
     'make_record', 'make_record_array', 'log_result', 'transform_fields',
@@ -204,7 +200,7 @@ class DBService:
         """ Returns initialized querybuilder object for building complex dynamic queries
         """
         params = params or kvargs
-        return PLPyQueryBuilder(sql, params, self.global_dict, self.sqls )
+        return skytools.PLPyQueryBuilder(sql, params, self.global_dict, self.sqls )
                             
     def run_query(self, sql, params = None, **kvargs):
         """ Helper function if everything you need is just paramertisized execute
@@ -294,7 +290,7 @@ class DBService:
                 res_rows = make_record_array(rows)
                 results.append([res_name, res_count, res_rows])
         if service_name:
-            sql = "select * from %s( {i_context}, {i_params} );" % quote_fqident(service_name)
+            sql = "select * from %s( {i_context}, {i_params} );" % skytools.quote_fqident(service_name)
             par = dbdict( i_context = self._context, i_params = make_record(params) )
             res = self.run_query( sql, par )
             for r in res:
@@ -344,9 +340,9 @@ class TableAPI:
             Tablename should be in format schema.tablename
         """
         self._ctx = ctx
-        self._table = quote_fqident(table)
+        self._table = skytools.quote_fqident(table)
         self._id = "id_" + skytools.fq_name_parts(table)[1]
-        self._where = quote_ident(self._id) + " = {" + self._id + "}"
+        self._where = skytools.quote_ident(self._id) + " = {" + self._id + "}"
         self._logging = create_log
 
     def _log(self, result, original = None):
@@ -380,7 +376,7 @@ class TableAPI:
         values = []
         for key in data.keys():
             if data[key] is not None:       # ignore empty
-                fields.append(quote_ident(key))
+                fields.append(skytools.quote_ident(key))
                 values.append("{" + key + "}")
         sql = "insert into %s (%s) values (%s) returning *;" % ( self._table, ",".join(fields), ",".join(values))
         result = self._ctx.run_query_row( sql, data )
@@ -548,7 +544,7 @@ class ServiceContext(DBService):
             For example to return data after doing save
         """
         self.raise_if_errors()
-        service_sql = "select * from %s( {i_context}, {i_params} );" % quote_fqident(service_name)
+        service_sql = "select * from %s( {i_context}, {i_params} );" % skytools.quote_fqident(service_name)
         service_params = { "i_context": ctx, "i_params": self.make_record(params) }
         results = self.run_query( service_sql, service_params )
         retval = self.retval()

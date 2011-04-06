@@ -64,8 +64,8 @@ __all__ = ['connect_database', 'set_tcp_keepalive', 'DBError']
 
 import sys, socket
 import psycopg2.extensions, psycopg2.extras
-from skytools.sqltools import dbdict
 from psycopg2 import Error as DBError
+import skytools
 
 class _CompatRow(psycopg2.extras.DictRow):
     """Make DictRow more dict-like."""
@@ -77,7 +77,7 @@ class _CompatRow(psycopg2.extras.DictRow):
 
     def copy(self):
         """Return regular dict."""
-        return dbdict(self.iteritems())
+        return skytools.dbdict(self.iteritems())
     
     def iterkeys(self):
         return self._index.iterkeys()

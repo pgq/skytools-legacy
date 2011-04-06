@@ -3,7 +3,7 @@
 
 import os
 from cStringIO import StringIO
-from skytools.quoting import quote_copy, quote_literal, quote_ident, quote_fqident
+import skytools
 import skytools.installer_config
 try:
     import plpy
@@ -231,14 +231,14 @@ def _gen_dict_copy(tbl, row, fields, qfields):
     tmp = []
     for f in fields:
         v = row.get(f)
-        tmp.append(quote_copy(v))
+        tmp.append(skytools.quote_copy(v))
     return "\t".join(tmp)
 
 def _gen_dict_insert(tbl, row, fields, qfields):
     tmp = []
     for f in fields:
         v = row.get(f)
-        tmp.append(quote_literal(v))
+        tmp.append(skytools.quote_literal(v))
     fmt = "insert into %s (%s) values (%s);"
     return fmt % (tbl, ",".join(qfields), ",".join(tmp))
 
@@ -249,7 +249,7 @@ def _gen_list_copy(tbl, row, fields, qfields):
             v = row[i]
         except IndexError:
             v = None
-        tmp.append(quote_copy(v))
+        tmp.append(skytools.quote_copy(v))
     return "\t".join(tmp)
 
 def _gen_list_insert(tbl, row, fields, qfields):
@@ -259,7 +259,7 @@ def _gen_list_insert(tbl, row, fields, qfields):
             v = row[i]
         except IndexError:
             v = None
-        tmp.append(quote_literal(v))
+        tmp.append(skytools.quote_literal(v))
     fmt = "insert into %s (%s) values (%s);"
     return fmt % (tbl, ",".join(qfields), ",".join(tmp))
 
@@ -293,11 +293,11 @@ def magic_insert(curs, tablename, data, fields = None, use_insert = 0, quoted_ta
         else:
             row_func = _gen_list_copy
 
-    qfields = [quote_ident(f) for f in fields]
+    qfields = [skytools.quote_ident(f) for f in fields]
     if quoted_table:
         qtablename = tablename
     else:
-        qtablename = quote_fqident(tablename)
+        qtablename = skytools.quote_fqident(tablename)
 
     # init processing
     buf = StringIO()
@@ -380,9 +380,9 @@ class CopyPipe(object):
 def full_copy(tablename, src_curs, dst_curs, column_list = [], condition = None):
     """COPY table from one db to another."""
 
-    qtable = quote_fqident(tablename)
+    qtable = skytools.quote_fqident(tablename)
     if column_list:
-        qfields = ",".join([quote_ident(f) for f in column_list])
+        qfields = ",".join([skytools.quote_ident(f) for f in column_list])
         src = dst = "%s (%s)" % (qtable, qfields)
     else:
         qfields = '*'
@@ -527,16 +527,16 @@ def mk_insert_sql(row, tbl, pkey_list = None, field_map = None):
     val_list = []
     if field_map:
         for src, dst in field_map.iteritems():
-            col_list.append(quote_ident(dst))
-            val_list.append(quote_literal(row[src]))
+            col_list.append(skytools.quote_ident(dst))
+            val_list.append(skytools.quote_literal(row[src]))
     else:
         for c, v in row.iteritems():
-            col_list.append(quote_ident(c))
-            val_list.append(quote_literal(v))
+            col_list.append(skytools.quote_ident(c))
+            val_list.append(skytools.quote_literal(v))
     col_str = ", ".join(col_list)
     val_str = ", ".join(val_list)
     return "insert into %s (%s) values (%s);" % (
-                    quote_fqident(tbl), col_str, val_str)
+                    skytools.quote_fqident(tbl), col_str, val_str)
 
 def mk_update_sql(row, tbl, pkey_list, field_map = None):
     r"""Generate UPDATE statement from dict data.
@@ -553,23 +553,23 @@ def mk_update_sql(row, tbl, pkey_list, field_map = None):
     for k in pkey_list:
         pkmap[k] = 1
         new_k = field_map and field_map[k] or k
-        col = quote_ident(new_k)
-        val = quote_literal(row[k])
+        col = skytools.quote_ident(new_k)
+        val = skytools.quote_literal(row[k])
         whe_list.append("%s = %s" % (col, val))
 
     if field_map:
         for src, dst in field_map.iteritems():
             if src not in pkmap:
-                col = quote_ident(dst)
-                val = quote_literal(row[src])
+                col = skytools.quote_ident(dst)
+                val = skytools.quote_literal(row[src])
                 set_list.append("%s = %s" % (col, val))
     else:
         for col, val in row.iteritems():
             if col not in pkmap:
-                col = quote_ident(col)
-                val = quote_literal(val)
+                col = skytools.quote_ident(col)
+                val = skytools.quote_literal(val)
                 set_list.append("%s = %s" % (col, val))
-    return "update only %s set %s where %s;" % (quote_fqident(tbl),
+    return "update only %s set %s where %s;" % (skytools.quote_fqident(tbl),
             ", ".join(set_list), " and ".join(whe_list))
 
 def mk_delete_sql(row, tbl, pkey_list, field_map = None):
@@ -580,11 +580,11 @@ def mk_delete_sql(row, tbl, pkey_list, field_map = None):
     whe_list = []
     for k in pkey_list:
         new_k = field_map and field_map[k] or k
-        col = quote_ident(new_k)
-        val = quote_literal(row[k])
+        col = skytools.quote_ident(new_k)
+        val = skytools.quote_literal(row[k])
         whe_list.append("%s = %s" % (col, val))
     whe_str = " and ".join(whe_list) 
-    return "delete from only %s where %s;" % (quote_fqident(tbl), whe_str)
+    return "delete from only %s where %s;" % (skytools.quote_fqident(tbl), whe_str)
 
 if __name__ == '__main__':
     import doctest

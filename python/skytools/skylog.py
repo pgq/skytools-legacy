@@ -4,8 +4,7 @@
 import os, time, socket
 import logging, logging.handlers
 
-from skytools.psycopgwrapper import connect_database
-from skytools.quoting import quote_json
+import skytools
 
 _service_name = 'unknown_svc'
 def set_service_name(service_name):
@@ -61,7 +60,7 @@ class UdpLogServerHandler(logging.handlers.DatagramHandler):
             hostaddr = "0.0.0.0"
         jobname = record.name
         svcname = _service_name
-        pkt = self._log_template % (time.time()*1000, txt_level, quote_json(msg),
+        pkt = self._log_template % (time.time()*1000, txt_level, skytools.quote_json(msg),
                 jobname, svcname, hostname, hostaddr)
         return pkt
 
@@ -115,7 +114,7 @@ class LogDBHandler(logging.handlers.SocketHandler):
         """Create server connection.
         In this case its not socket but database connection."""
 
-        db = connect_database(self.connect_string)
+        db = skytools.connect_database(self.connect_string)
         db.set_isolation_level(0) # autocommit
         return db
 

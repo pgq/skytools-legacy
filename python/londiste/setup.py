@@ -6,7 +6,6 @@
 import sys, os, re, skytools
 
 from pgq.cascade.admin import CascadeAdmin
-from skytools.scripting import UsageError
 
 import londiste.handler
 
@@ -448,7 +447,7 @@ class LondisteSetup(CascadeAdmin):
                     self.log.warning("%s not available" % a)
                     err = 1
         if err:
-            raise UsageError("Cannot proceed")
+            raise skytools.UsageError("Cannot proceed")
         return res_list
 
     def load_extra_status(self, curs, node):

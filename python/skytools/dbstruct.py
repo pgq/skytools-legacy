@@ -3,10 +3,9 @@
 
 import re
 
-from skytools.sqltools import fq_name_parts, get_table_oid, exists_table
-from skytools.quoting import quote_ident, quote_fqident, quote_literal
-from skytools.quoting import unquote_ident, unquote_fqident
-from skytools.parsing import parse_pgarray, parse_acl
+import skytools
+
+from skytools import quote_ident, quote_fqident
 
 __all__ = ['TableStruct', 'SeqStruct',
     'T_TABLE', 'T_CONSTRAINT', 'T_INDEX', 'T_TRIGGER',
@@ -294,8 +293,8 @@ class TGrant(TElem):
         if relacl is None:
             return []
         tup_list = []
-        for sacl in parse_pgarray(relacl):
-            acl = parse_acl(sacl)
+        for sacl in skytools.parse_pgarray(relacl):
+            acl = skytools.parse_acl(sacl)
             if not acl:
                 continue
             tup_list.append(acl)
@@ -381,7 +380,7 @@ class TColumn(TElem):
 
         self.sequence = None
         if row['seqname']:
-            self.seqname = unquote_fqident(row['seqname'])
+            self.seqname = skytools.unquote_fqident(row['seqname'])
 
 
 class TGPDistKey(TElem):
@@ -562,20 +561,20 @@ class TableStruct(BaseStruct):
         self.table_name = table_name
 
         # fill args
-        schema, name = fq_name_parts(table_name)
+        schema, name = skytools.fq_name_parts(table_name)
         args = {
             'schema': schema,
             'table': name,
             'fqname': self.fqname,
-            'fq2name': quote_literal(self.fqname),
-            'oid': get_table_oid(curs, table_name),
-            'pg_class_oid': get_table_oid(curs, 'pg_catalog.pg_class'),
+            'fq2name': skytools.quote_literal(self.fqname),
+            'oid': skytools.get_table_oid(curs, table_name),
+            'pg_class_oid': skytools.get_table_oid(curs, 'pg_catalog.pg_class'),
         }
 
         # load table struct
         self.col_list = self._load_elem(curs, self.name, args, TColumn)
         # if db is GP then read also table distribution keys
-        if exists_table(curs, "pg_catalog.gp_distribution_policy"):
+        if skytools.exists_table(curs, "pg_catalog.gp_distribution_policy"):
             self.dist_key_list = self._load_elem(curs, self.name, args,
                                                  TGPDistKey)
         else:
@@ -588,7 +587,7 @@ class TableStruct(BaseStruct):
         for col in self.col_list:
             if col.seqname:
                 owner = self.fqname + '.' + quote_ident(col.name)
-                seq_args = { 'fqname': col.seqname, 'owner': quote_literal(owner) }
+                seq_args = { 'fqname': col.seqname, 'owner': skytools.quote_literal(owner) }
                 self.seq_list += self._load_elem(curs, col.seqname, seq_args, TSeq)
         self.object_list += self.seq_list
 

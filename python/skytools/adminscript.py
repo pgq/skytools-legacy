@@ -5,12 +5,11 @@
 
 import sys, inspect
 
-from skytools.scripting import DBScript
-from skytools.quoting import quote_statement
+import skytools
 
 __all__ = ['AdminScript']
 
-class AdminScript(DBScript):
+class AdminScript(skytools.DBScript):
     """Contains common admin script tools.
 
     Second argument (first is .ini file) is takes as command
@@ -19,7 +18,7 @@ class AdminScript(DBScript):
     """
     def __init__(self, service_name, args):
         """AdminScript init."""
-        DBScript.__init__(self, service_name, args)
+        skytools.DBScript.__init__(self, service_name, args)
         if self.pidfile:
             self.pidfile = self.pidfile + ".admin"
 
@@ -72,7 +71,7 @@ class AdminScript(DBScript):
                       fieldfmt = {}):
         """Display multirow query as a table."""
 
-        self.log.debug("display_table: %s" % quote_statement(sql, args))
+        self.log.debug("display_table: %s" % skytools.quote_statement(sql, args))
         curs = db.cursor()
         curs.execute(sql, args)
         rows = curs.fetchall()
@@ -111,14 +110,14 @@ class AdminScript(DBScript):
 
     def exec_stmt(self, db, sql, args):
         """Run regular non-query SQL on db."""
-        self.log.debug("exec_stmt: %s" % quote_statement(sql, args))
+        self.log.debug("exec_stmt: %s" % skytools.quote_statement(sql, args))
         curs = db.cursor()
         curs.execute(sql, args)
         db.commit()
 
     def exec_query(self, db, sql, args):
         """Run regular query SQL on db."""
-        self.log.debug("exec_query: %s" % quote_statement(sql, args))
+        self.log.debug("exec_query: %s" % skytools.quote_statement(sql, args))
         curs = db.cursor()
         curs.execute(sql, args)
         res = curs.fetchall()

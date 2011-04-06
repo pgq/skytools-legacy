@@ -2,9 +2,7 @@
 """Various parsers for Postgres-specific data formats."""
 
 import re
-
-from skytools.quoting import unescape, unquote_literal, unquote_ident
-from skytools.sqltools import dbdict
+import skytools
 
 __all__ = [
     "parse_pgarray", "parse_logtriga_sql", "parse_tabbed_table",
@@ -46,7 +44,7 @@ def parse_pgarray(array):
         else:
             if len(item) > 0 and item[0] == '"':
                 item = item[1:-1]
-            val = unescape(item)
+            val = skytools.unescape(item)
         res.append(val)
 
         pos = pos2 + 1
@@ -156,9 +154,9 @@ class _logtriga_parser:
             # last sanity check
             if len(fields) == 0 or len(fields) != len(values):
                 raise Exception("syntax error, fields do not match values")
-        fields = [unquote_ident(f) for f in fields]
-        values = [unquote_literal(f) for f in values]
-        return dbdict(zip(fields, values))
+        fields = [skytools.unquote_ident(f) for f in fields]
+        values = [skytools.unquote_literal(f) for f in values]
+        return skytools.dbdict(zip(fields, values))
 
 def parse_logtriga_sql(op, sql):
     return parse_sqltriga_sql(op, sql)
@@ -367,11 +365,11 @@ def parse_acl(acl):
     owner = m.group('owner')
 
     if target:
-        target = unquote_ident(target)
+        target = skytools.unquote_ident(target)
     if perm:
         perm = perm[1:]
     if owner:
-        owner = unquote_ident(owner[1:])
+        owner = skytools.unquote_ident(owner[1:])
 
     return (target, perm, owner)
 

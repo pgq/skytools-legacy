@@ -6,10 +6,8 @@
 import sys, os, signal, optparse, time, errno, select
 import logging, logging.handlers, logging.config
 
-from skytools.config import *
-from skytools.psycopgwrapper import connect_database
-from skytools.quoting import quote_statement
-import skytools.skylog, psycopg2
+import skytools
+import skytools.skylog
 
 try:
     import skytools.installer_config
@@ -232,7 +230,7 @@ class DBCachedConn(object):
         # new conn?
         if not self.conn:
             self.isolation_level = isolation_level
-            self.conn = connect_database(self.loc)
+            self.conn = skytools.connect_database(self.loc)
             self.conn.my_name = self.name
 
             self.conn.set_isolation_level(isolation_level)
@@ -458,7 +456,7 @@ class DBScript(object):
             print("need config file, use --help for help.")
             sys.exit(1)
         conf_file = self.args[0]
-        return Config(self.service_name, conf_file, override = self.cf_operride)
+        return skytools.Config(self.service_name, conf_file, override = self.cf_operride)
 
     def init_optparse(self, parser = None):
         """Initialize a OptionParser() instance that will be used to 
@@ -704,7 +702,7 @@ class DBScript(object):
                 self.log.info("got KeyboardInterrupt, exiting")
             self.reset()
             sys.exit(1)
-        except psycopg2.Error, d:
+        except skytools.DBError, d:
             self.send_stats()
             if d.cursor and d.cursor.connection:
                 cname = d.cursor.connection.my_name
@@ -791,7 +789,7 @@ class DBScript(object):
 
     def _exec_cmd(self, curs, sql, args, quiet = False):
         """Internal tool: Run SQL on cursor."""
-        self.log.debug("exec_cmd: %s" % quote_statement(sql, args))
+        self.log.debug("exec_cmd: %s" % skytools.quote_statement(sql, args))
         curs.execute(sql, args)
         ok = True
         rows = curs.fetchall()
@@ -801,7 +799,7 @@ class DBScript(object):
                 msg = row['ret_note']
             except KeyError:
                 self.log.error("Query does not conform to exec_cmd API:")
-                self.log.error("SQL: %s" % quote_statement(sql, args))
+                self.log.error("SQL: %s" % skytools.quote_statement(sql, args))
                 self.log.error("Row: %s" % repr(row.copy()))
                 sys.exit(1)
             level = code / 100
@@ -816,7 +814,7 @@ class DBScript(object):
                 self.log.warning("%s" % (msg,))
             else:
                 self.log.error("%s" % (msg,))
-                self.log.debug("Query was: %s" % quote_statement(sql, args))
+                self.log.debug("Query was: %s" % skytools.quote_statement(sql, args))
                 ok = False
         return (ok, rows)
 
