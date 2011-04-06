@@ -316,9 +316,12 @@ class LondisteSetup(CascadeAdmin):
         q = """select table_name, merge_state, table_attrs
         from londiste.get_table_list(%s) where local"""
         db = self.get_database('db')
+        def show_attr(a):
+            if a:
+                return skytools.db_urldecode(a)
+            return ''
         self.display_table(db, "Tables on node", q, [self.set_name],
-                           fieldfmt = {'table_attrs': lambda f: '' if f is None
-                                       else skytools.db_urldecode(f)})
+                           fieldfmt = {'table_attrs': show_attr})
 
     def cmd_seqs(self):
         """Show attached seqs."""
