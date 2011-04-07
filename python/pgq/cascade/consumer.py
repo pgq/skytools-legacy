@@ -274,7 +274,7 @@ class CascadedConsumer(Consumer):
         q = "select * from pgq_node.set_consumer_completed(%s, %s, %s)"
         self.exec_cmd(dst_db, q, [ self.queue_name, self.consumer_name, tick_id ])
 
-    def exception_hook(self, det, emsg, cname):
+    def exception_hook(self, det, emsg):
         try:
             dst_db = self.get_database(self.target_db)
             q = "select * from pgq_node.set_consumer_error(%s, %s, %s)"
@@ -282,4 +282,5 @@ class CascadedConsumer(Consumer):
         except:
             self.log.warning("Failure to call pgq_node.set_consumer_error()")
         self.reset()
+        Consumer.exception_hook(self, det, emsg)
 

@@ -17,22 +17,8 @@ except ImportError:
 
 __pychecker__ = 'no-badexcept'
 
-#: how old connections need to be closed
-DEF_CONN_AGE = 20*60  # 20 min
-
-#: isolation level not set
-I_DEFAULT = -1
-
-#: isolation level constant for AUTOCOMMIT
-I_AUTOCOMMIT = 0
-#: isolation level constant for READ COMMITTED
-I_READ_COMMITTED = 1
-#: isolation level constant for SERIALIZABLE
-I_SERIALIZABLE = 2
-
-__all__ = ['DBScript', 'I_AUTOCOMMIT', 'I_READ_COMMITTED', 'I_SERIALIZABLE',
-           'signal_pidfile', 'UsageError']
-#__all__ += ['daemonize', 'run_single_process']
+__all__ = ['BaseScript', 'signal_pidfile', 'UsageError', 'daemonize',
+            'DBScript', 'I_AUTOCOMMIT', 'I_READ_COMMITTED', 'I_SERIALIZABLE']
 
 class UsageError(Exception):
     """User induced error."""
@@ -197,97 +183,10 @@ def _init_log(job_name, service_name, cf, log_level, is_daemon):
 
     return log
 
-class DBCachedConn(object):
-    """Cache a db connection."""
-    def __init__(self, name, loc, max_age = DEF_CONN_AGE, verbose = False, setup_func=None, channels=[]):
-        self.name = name
-        self.loc = loc
-        self.conn = None
-        self.conn_time = 0
-        self.max_age = max_age
-        self.autocommit = -1
-        self.isolation_level = I_DEFAULT
-        self.verbose = verbose
-        self.setup_func = setup_func
-        self.listen_channel_list = []
 
-    def fileno(self):
-        if not self.conn:
-            return None
-        return self.conn.cursor().fileno()
 
-    def get_connection(self, autocommit = 0, isolation_level = I_DEFAULT, listen_channel_list = []):
-        # autocommit overrider isolation_level
-        if autocommit:
-            if isolation_level == I_SERIALIZABLE:
-                raise Exception('autocommit is not compatible with I_SERIALIZABLE')
-            isolation_level = I_AUTOCOMMIT
-
-        # default isolation_level is READ COMMITTED
-        if isolation_level < 0:
-            isolation_level = I_READ_COMMITTED
-
-        # new conn?
-        if not self.conn:
-            self.isolation_level = isolation_level
-            self.conn = skytools.connect_database(self.loc)
-            self.conn.my_name = self.name
-
-            self.conn.set_isolation_level(isolation_level)
-            self.conn_time = time.time()
-            if self.setup_func:
-                self.setup_func(self.name, self.conn)
-        else:
-            if self.isolation_level != isolation_level:
-                raise Exception("Conflict in isolation_level")
-
-        self._sync_listen(listen_channel_list)
-
-        # done
-        return self.conn
-
-    def _sync_listen(self, new_clist):
-        if not new_clist and not self.listen_channel_list:
-            return
-        curs = self.conn.cursor()
-        for ch in self.listen_channel_list:
-            if ch not in new_clist:
-                curs.execute("UNLISTEN %s" % skytools.quote_ident(ch))
-        for ch in new_clist:
-            if ch not in self.listen_channel_list:
-                curs.execute("LISTEN %s" % skytools.quote_ident(ch))
-        if self.isolation_level != I_AUTOCOMMIT:
-            self.conn.commit()
-        self.listen_channel_list = new_clist[:]
-
-    def refresh(self):
-        if not self.conn:
-            return
-        #for row in self.conn.notifies():
-        #    if row[0].lower() == "reload":
-        #        self.reset()
-        #        return
-        if not self.max_age:
-            return
-        if time.time() - self.conn_time >= self.max_age:
-            self.reset()
-
-    def reset(self):
-        if not self.conn:
-            return
-
-        # drop reference
-        conn = self.conn
-        self.conn = None
-        self.listen_channel_list = []
-
-        # close
-        try:
-            conn.close()
-        except: pass
-
-class DBScript(object):
-    """Base class for database scripts.
+class BaseScript(object):
+    """Base class for service scripts.
 
     Handles logging, daemonizing, config, errors.
 
@@ -314,9 +213,6 @@ class DBScript(object):
         #   1 - enabled, unless non-daemon on console (os.isatty())
         #   2 - always enabled
         #use_skylog = 0
-
-        # default lifetime for database connections (in seconds)
-        #connection_lifetime = 1200
     """
     service_name = None
     job_name = None
@@ -353,12 +249,10 @@ class DBScript(object):
         @param args: cmdline args (sys.argv[1:]), but can be overrided
         """
         self.service_name = service_name
-        self.db_cache = {}
         self.go_daemon = 0
         self.need_reload = 0
         self.stat_dict = {}
         self.log_level = logging.INFO
-        self._listen_map = {} # dbname: channel_list
 
         # parse command line
         parser = self.init_optparse()
@@ -591,6 +485,168 @@ class DBScript(object):
         self.log.info(logmsg)
         self.stat_dict = {}
 
+    def reset(self):
+        "Something bad happened, reset all state."
+        pass
+
+    def run(self):
+        "Thread main loop."
+
+        # run startup, safely
+        self.run_func_safely(self.startup)
+
+        while 1:
+            # reload config, if needed
+            if self.need_reload:
+                self.reload()
+                self.need_reload = 0
+
+            # do some work
+            work = self.run_once()
+
+            if not self.looping or self.loop_delay < 0:
+                break
+
+            # remember work state
+            self.work_state = work
+            # should sleep?
+            if not work:
+                if self.loop_delay > 0:
+                    self.sleep(self.loop_delay)
+                    if not self.looping:
+                        break
+                else:
+                    break
+
+    def run_once(self):
+        state = self.run_func_safely(self.work, True)
+
+        # send stats that was added
+        self.send_stats()
+
+        return state
+
+    def run_func_safely(self, func, prefer_looping = False):
+        "Run users work function, safely."
+        cname = None
+        emsg = None
+        try:
+            return func()
+        except UsageError, d:
+            self.log.error(str(d))
+            sys.exit(1)
+        except MemoryError, d:
+            try: # complex logging may not succeed
+                self.log.exception("Job %s out of memory, exiting" % self.job_name)
+            except MemoryError:
+                self.log.fatal("Out of memory")
+            sys.exit(1)
+        except SystemExit, d:
+            self.send_stats()
+            if prefer_looping and self.looping and self.loop_delay > 0:
+                self.log.info("got SystemExit(%s), exiting" % str(d))
+            self.reset()
+            raise d
+        except KeyboardInterrupt, d:
+            self.send_stats()
+            if prefer_looping and self.looping and self.loop_delay > 0:
+                self.log.info("got KeyboardInterrupt, exiting")
+            self.reset()
+            sys.exit(1)
+        except Exception, d:
+            self.send_stats()
+            emsg = str(d).rstrip()
+            self.reset()
+            self.exception_hook(d, emsg)
+        # reset and sleep
+        self.reset()
+        if prefer_looping and self.looping and self.loop_delay > 0:
+            self.sleep(20)
+            return -1
+        sys.exit(1)
+
+    def sleep(self, secs):
+        """Make script sleep for some amount of time."""
+        time.sleep(secs)
+
+    def exception_hook(self, det, emsg):
+        """Called on after exception processing.
+
+        Can do additional logging.
+
+        @param det: exception details
+        @param emsg: exception msg
+        """
+        self.log.exception("Job %s crashed: %s" % (
+                   self.job_name, emsg))
+
+    def work(self):
+        """Here should user's processing happen.
+
+        Return value is taken as boolean - if true, the next loop
+        starts immediately.  If false, DBScript sleeps for a loop_delay.
+        """
+        raise Exception("Nothing implemented?")
+
+    def startup(self):
+        """Will be called just before entering main loop.
+
+        In case of daemon, if will be called in same process as work(),
+        unlike __init__().
+        """
+
+        # set signals
+        signal.signal(signal.SIGHUP, self.hook_sighup)
+        signal.signal(signal.SIGINT, self.hook_sigint)
+
+##
+##  DBScript
+##
+
+#: how old connections need to be closed
+DEF_CONN_AGE = 20*60  # 20 min
+
+#: isolation level not set
+I_DEFAULT = -1
+
+#: isolation level constant for AUTOCOMMIT
+I_AUTOCOMMIT = 0
+#: isolation level constant for READ COMMITTED
+I_READ_COMMITTED = 1
+#: isolation level constant for SERIALIZABLE
+I_SERIALIZABLE = 2
+
+
+class DBScript(BaseScript):
+    """Base class for database scripts.
+
+    Handles database connection state.
+
+    Config template::
+
+        ## Parameters for skytools.DBScript ##
+
+        # default lifetime for database connections (in seconds)
+        #connection_lifetime = 1200
+    """
+
+    def __init__(self, service_name, args):
+        """Script setup.
+
+        User class should override work() and optionally __init__(), startup(),
+        reload(), reset() and init_optparse().
+
+        NB: in case of daemon, the __init__() and startup()/work() will be
+        run in different processes.  So nothing fancy should be done in __init__().
+        
+        @param service_name: unique name for script.
+            It will be also default job_name, if not specified in config.
+        @param args: cmdline args (sys.argv[1:]), but can be overrided
+        """
+        self.db_cache = {}
+        self._listen_map = {} # dbname: channel_list
+        BaseScript.__init__(self, service_name, args)
+
     def connection_hook(self, dbname, conn):
         pass
 
@@ -635,102 +691,34 @@ class DBScript(object):
         for dbc in self.db_cache.values():
             dbc.reset()
         self.db_cache = {}
-
-    def run(self):
-        "Thread main loop."
-
-        # run startup, safely
-        self.run_func_safely(self.startup)
-
-        while 1:
-            # reload config, if needed
-            if self.need_reload:
-                self.reload()
-                self.need_reload = 0
-
-            # do some work
-            work = self.run_once()
-
-            # send stats that was added
-            self.send_stats()
-
-            # reconnect if needed
-            for dbc in self.db_cache.values():
-                dbc.refresh()
-
-            if not self.looping or self.loop_delay < 0:
-                break
-
-            # remember work state
-            self.work_state = work
-            # should sleep?
-            if not work:
-                if self.loop_delay > 0:
-                    self.sleep(self.loop_delay)
-                    if not self.looping:
-                        break
-                else:
-                    break
+        BaseScript.reset(self)
 
     def run_once(self):
-        return self.run_func_safely(self.work, True)
+        state = BaseScript.run_once(self)
 
-    def run_func_safely(self, func, prefer_looping = False):
-        "Run users work function, safely."
-        cname = None
-        emsg = None
-        try:
-            return func()
-        except UsageError, d:
-            self.log.error(str(d))
-            sys.exit(1)
-        except MemoryError, d:
-            try: # complex logging may not succeed
-                self.log.exception("Job %s out of memory, exiting" % self.job_name)
-            except MemoryError:
-                self.log.fatal("Out of memory")
-            sys.exit(1)
-        except SystemExit, d:
-            self.send_stats()
-            if prefer_looping and self.looping and self.loop_delay > 0:
-                self.log.info("got SystemExit(%s), exiting" % str(d))
-            self.reset()
-            raise d
-        except KeyboardInterrupt, d:
-            self.send_stats()
-            if prefer_looping and self.looping and self.loop_delay > 0:
-                self.log.info("got KeyboardInterrupt, exiting")
-            self.reset()
-            sys.exit(1)
-        except skytools.DBError, d:
-            self.send_stats()
-            if d.cursor and d.cursor.connection:
-                cname = d.cursor.connection.my_name
-                dsn = d.cursor.connection.dsn
-                sql = d.cursor.query
-                if len(sql) > 200: # avoid logging londiste huge batched queries 
-                    sql = sql[:60] + " ..."
-                emsg = str(d).strip()
-                self.log.exception("Job %s got error on connection '%s': %s.   Query: %s" % (
-                    self.job_name, cname, emsg, sql))
-            else:
-                n = "psycopg2.%s" % d.__class__.__name__
-                emsg = str(d).rstrip()
-                self.log.exception("Job %s crashed: %s: %s" % (
-                       self.job_name, n, emsg))
-        except Exception, d:
-            self.send_stats()
-            emsg = str(d).rstrip()
-            self.log.exception("Job %s crashed: %s" % (
-                       self.job_name, emsg))
+        # reconnect if needed
+        for dbc in self.db_cache.values():
+            dbc.refresh()
 
-        # reset and sleep
-        self.reset()
-        self.exception_hook(d, emsg, cname)
-        if prefer_looping and self.looping and self.loop_delay > 0:
-            self.sleep(20)
-            return -1
-        sys.exit(1)
+        return state
+
+    def exception_hook(self, d, emsg):
+        """Log database and query details from exception."""
+        curs = getattr(d, 'cursor', None)
+        conn = getattr(curs, 'connection', None)
+        cname = getattr(conn, 'my_name', None)
+        if cname:
+            # Properly named connection
+            cname = d.cursor.connection.my_name
+            dsn = getattr(conn, 'dsn', '?')
+            sql = getattr(curs, 'query', '?')
+            if len(sql) > 200: # avoid logging londiste huge batched queries 
+                sql = sql[:60] + " ..."
+            emsg = str(d).strip()
+            self.log.exception("Job %s got error on connection '%s': %s.   Query: %s" % (
+                self.job_name, cname, emsg, sql))
+        else:
+            BaseScript.exception_hook(self, d, emsg)
 
     def sleep(self, secs):
         """Make script sleep for some amount of time."""
@@ -744,7 +732,7 @@ class DBScript(object):
             fdlist.append(fd)
 
         if not fdlist:
-            return time.sleep(secs)
+            return BaseScript.sleep(self, secs)
 
         try:
             if hasattr(select, 'poll'):
@@ -756,36 +744,6 @@ class DBScript(object):
                 select.select(fdlist, [], [], secs)
         except select.error, d:
             self.log.info('wait canceled')
-
-    def exception_hook(self, det, emsg, cname):
-        """Called on after exception processing.
-
-        Can do additional logging.
-
-        @param det: exception details
-        @param emsg: exception msg
-        @param cname: connection name or None
-        """
-        pass
-
-    def work(self):
-        """Here should user's processing happen.
-
-        Return value is taken as boolean - if true, the next loop
-        starts immediately.  If false, DBScript sleeps for a loop_delay.
-        """
-        raise Exception("Nothing implemented?")
-
-    def startup(self):
-        """Will be called just before entering main loop.
-
-        In case of daemon, if will be called in same process as work(),
-        unlike __init__().
-        """
-
-        # set signals
-        signal.signal(signal.SIGHUP, self.hook_sighup)
-        signal.signal(signal.SIGINT, self.hook_sigint)
 
     def _exec_cmd(self, curs, sql, args, quiet = False):
         """Internal tool: Run SQL on cursor."""
@@ -902,4 +860,96 @@ class DBScript(object):
             clist.remove(channel)
         except ValueError:
             pass
+
+class DBCachedConn(object):
+    """Cache a db connection."""
+    def __init__(self, name, loc, max_age = DEF_CONN_AGE, verbose = False, setup_func=None, channels=[]):
+        self.name = name
+        self.loc = loc
+        self.conn = None
+        self.conn_time = 0
+        self.max_age = max_age
+        self.autocommit = -1
+        self.isolation_level = I_DEFAULT
+        self.verbose = verbose
+        self.setup_func = setup_func
+        self.listen_channel_list = []
+
+    def fileno(self):
+        if not self.conn:
+            return None
+        return self.conn.cursor().fileno()
+
+    def get_connection(self, autocommit = 0, isolation_level = I_DEFAULT, listen_channel_list = []):
+        # autocommit overrider isolation_level
+        if autocommit:
+            if isolation_level == I_SERIALIZABLE:
+                raise Exception('autocommit is not compatible with I_SERIALIZABLE')
+            isolation_level = I_AUTOCOMMIT
+
+        # default isolation_level is READ COMMITTED
+        if isolation_level < 0:
+            isolation_level = I_READ_COMMITTED
+
+        # new conn?
+        if not self.conn:
+            self.isolation_level = isolation_level
+            self.conn = skytools.connect_database(self.loc)
+            self.conn.my_name = self.name
+
+            self.conn.set_isolation_level(isolation_level)
+            self.conn_time = time.time()
+            if self.setup_func:
+                self.setup_func(self.name, self.conn)
+        else:
+            if self.isolation_level != isolation_level:
+                raise Exception("Conflict in isolation_level")
+
+        self._sync_listen(listen_channel_list)
+
+        # done
+        return self.conn
+
+    def _sync_listen(self, new_clist):
+        if not new_clist and not self.listen_channel_list:
+            return
+        curs = self.conn.cursor()
+        for ch in self.listen_channel_list:
+            if ch not in new_clist:
+                curs.execute("UNLISTEN %s" % skytools.quote_ident(ch))
+        for ch in new_clist:
+            if ch not in self.listen_channel_list:
+                curs.execute("LISTEN %s" % skytools.quote_ident(ch))
+        if self.isolation_level != I_AUTOCOMMIT:
+            self.conn.commit()
+        self.listen_channel_list = new_clist[:]
+
+    def refresh(self):
+        if not self.conn:
+            return
+        #for row in self.conn.notifies():
+        #    if row[0].lower() == "reload":
+        #        self.reset()
+        #        return
+        if not self.max_age:
+            return
+        if time.time() - self.conn_time >= self.max_age:
+            self.reset()
+
+    def reset(self):
+        if not self.conn:
+            return
+
+        # drop reference
+        conn = self.conn
+        self.conn = None
+        self.listen_channel_list = []
+
+        # close
+        try:
+            conn.close()
+        except: pass
+
+
+
 
