@@ -155,13 +155,13 @@ done
 
 msg "Create table and register it in full nodes"
 for db in full2; do
-  run londiste3 $v conf/londiste_$db.ini add-table mydata --create-only=pkey
+  run londiste3 $v conf/londiste_$db.ini add-table mydata --create
   for src in $part_list; do
     run londiste3 $v conf/londiste_${src}_${db}.ini add-table mydata
   done
 done
 for db in full3 full4; do
-  run londiste3 $v conf/londiste_$db.ini add-table mydata --create-only=pkey
+  run londiste3 $v conf/londiste_$db.ini add-table mydata --create
 done
 
 msg "Sleep a bit"
