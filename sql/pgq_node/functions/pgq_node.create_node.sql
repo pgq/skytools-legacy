@@ -72,6 +72,14 @@ begin
         _global_wm := i_global_watermark;
     elsif i_node_type = 'leaf' then
         _global_wm := i_global_watermark;
+        if i_combined_queue is not null then
+            perform 1 from pgq.get_queue_info(i_combined_queue);
+            if not found then
+                select 401, 'non-existing queue on leaf side: '||i_combined_queue
+                into ret_code, ret_note;
+                return;
+            end if;
+        end if;
     else
         select 401, 'bad node type: '||i_node_type
           into ret_code, ret_note;
