@@ -33,7 +33,7 @@ class CoopConsumer(Consumer):
         Consumer.__init__(self, service_name, db_name, args)
 
         self.subconsumer_name = self.cf.get("subconsumer_name")
-        self.subconsumer_timeout = self.cf.get("subconsumer_timeout")
+        self.subconsumer_timeout = self.cf.get("subconsumer_timeout", "")
 
     def register_consumer(self):
         """Registration for subconsumer."""
