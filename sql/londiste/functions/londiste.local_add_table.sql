@@ -61,6 +61,9 @@ declare
     _node record;
     _tbloid oid;
     _extra_args text;
+    _skip_prefix text := 'zzzkip';
+    _skip_trg_count integer;
+    _skip_trg_name text;
 begin
     _extra_args := '';
     fq_table_name := londiste.make_fqname(i_table_name);
@@ -195,7 +198,31 @@ begin
                         lg_event := lg_event || ' or delete';
                     end if;
                     if position('S' in arg) > 0 then
-                        lg_args := lg_args || ', ' || quote_literal('SKIP');
+                        -- get count and name of existing skip triggers
+                        select count(*), min(t.tgname)
+                        into _skip_trg_count, _skip_trg_name
+                        from pg_catalog.pg_trigger t
+                        where t.tgrelid = londiste.find_table_oid(fq_table_name)
+                            and position(E'\\000skip\\000' in lower(tgargs::text)) > 0;
+                        -- if no previous skip triggers, prefix name and add SKIP to args
+                        if _skip_trg_count = 0 then
+                            lg_name := _skip_prefix || lg_name;
+                            lg_args := lg_args || ', ' || quote_literal('SKIP');
+                        -- if one previous skip trigger, check it's prefix and
+                        -- do not use SKIP on current trigger
+                        elif _skip_trg_count = 1 then
+                            -- if not prefixed then rename
+                            if position(_skip_prefix in _skip_trg_name) != 1 then
+                                sql := 'alter trigger ' || _skip_trg_name
+                                    || ' on ' || londiste.quote_fqname(fq_table_name)
+                                    || ' rename to ' || _skip_prefix || _skip_trg_name;
+                                execute sql;
+                            end if;
+                        else
+                            select 405, 'Multiple SKIP triggers in table: ' || fq_table_name
+                            into ret_code, ret_note;
+                            return;
+                        end if;
                     end if;
                 elsif arg = 'expect_sync' then
                     -- already handled
