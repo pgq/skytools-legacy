@@ -210,7 +210,7 @@ begin
                             lg_args := lg_args || ', ' || quote_literal('SKIP');
                         -- if one previous skip trigger, check it's prefix and
                         -- do not use SKIP on current trigger
-                        elif _skip_trg_count = 1 then
+                        elsif _skip_trg_count = 1 then
                             -- if not prefixed then rename
                             if position(_skip_prefix in _skip_trg_name) != 1 then
                                 sql := 'alter trigger ' || _skip_trg_name
