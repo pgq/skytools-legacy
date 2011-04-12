@@ -2,7 +2,7 @@
 
 . ../testlib.sh
 
-title "NoMerge"
+title "NoQueue Merge"
 
 part_list="part1 part2 part3 part4"
 full_list="full1 full2"

@@ -139,11 +139,12 @@ done
 msg "Create table and register it in merge nodes"
 run_sql full1 "create table mydata (id int4 primary key, data text)"
 run londiste3 $v conf/londiste_full1.ini add-table mydata
-for db in full1; do
-  for src in $part_list; do
-    run londiste3 $v conf/londiste_${src}_${db}.ini add-table mydata
-  done
-done
+run londiste3 $v conf/londiste_part1_full1.ini add-table mydata --merge-all
+#for db in full1; do
+#  for src in $part_list; do
+#    run londiste3 $v conf/londiste_${src}_${db}.ini add-table mydata
+#  done
+#done
 
 msg "Wait until table is in sync on combined-root"
 cnt=0

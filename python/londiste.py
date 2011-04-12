@@ -125,9 +125,12 @@ class Londiste(skytools.DBScript):
         g.add_option("--handler", action="store",
                 help="add: Custom handler for table")
         g.add_option("--handler-arg", action="append",
-                    help="add: Argument to custom handler")
+                help="add: Argument to custom handler")
         g.add_option("--copy-condition", dest="copy_condition",
                 help = "add: set WHERE expression for copy")
+        g.add_option("--merge-all", action="store_true",
+                help="merge tables from all source queues", default=False)
+
         p.add_option_group(g)
 
         return p

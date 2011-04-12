@@ -65,6 +65,8 @@ class LondisteSetup(CascadeAdmin):
                 help="add: Custom handler for table")
         p.add_option("--handler-arg", action="append",
                     help="add: Argument to custom handler")
+        p.add_option("--merge-all", action="store_true",
+                    help="merge tables from all source queues", default=False)
         return p
 
     def extra_init(self, node_type, node_db, provider_db):
@@ -165,6 +167,8 @@ class LondisteSetup(CascadeAdmin):
             tgargs.append('tgflags='+tgflags)
         if self.options.no_triggers:
             tgargs.append('no_triggers')
+        if self.options.merge_all:
+            tgargs.append('merge_all')
 
         attrs = {}
         if self.options.handler:
