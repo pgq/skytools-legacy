@@ -96,40 +96,7 @@ distclean: sub-distclean
 	rm -rf dist build
 	rm -rf autom4te.cache config.log config.status config.mak
 
-deb80:
-	./configure --with-pgconfig=/usr/lib/postgresql/8.0/bin/pg_config --with-python=$(PYTHON)
-	sed -e s/PGVER/8.0/g -e s/PYVER/$(pyver)/g < debian/packages.in > debian/packages
-	yada rebuild
-	debuild -uc -us -b
-
-deb81:
-	./configure --with-pgconfig=/usr/lib/postgresql/8.1/bin/pg_config --with-python=$(PYTHON)
-	sed -e s/PGVER/8.1/g -e s/PYVER/$(pyver)/g < debian/packages.in > debian/packages
-	yada rebuild
-	debuild -uc -us -b
-
-deb82:
-	./configure --with-pgconfig=/usr/lib/postgresql/8.2/bin/pg_config --with-python=$(PYTHON)
-	sed -e s/PGVER/8.2/g -e s/PYVER/$(pyver)/g < debian/packages.in > debian/packages
-	yada rebuild
-	debuild -uc -us -b
-
-deb83:
-	./configure --with-pgconfig=/usr/lib/postgresql/8.3/bin/pg_config --with-python=$(PYTHON)
-	sed -e s/PGVER/8.3/g -e s/PYVER/$(pyver)/g < debian/packages.in > debian/packages
-	yada rebuild
-	debuild -uc -us -b
-
-deb84:
-	./configure --with-pgconfig=/usr/lib/postgresql/8.4/bin/pg_config --with-python=$(PYTHON)
-	sed -e s/PGVER/8.4/g -e s/PYVER/$(pyver)/g < debian/packages.in > debian/packages
-	yada rebuild
-	debuild -uc -us -b
-
-deb90:
-	./configure --with-pgconfig=/usr/lib/postgresql/9.0/bin/pg_config --with-python=$(PYTHON)
-	sed -e s/PGVER/9.0/g -e s/PYVER/$(pyver)/g < debian/packages.in > debian/packages
-	yada rebuild
+deb:
 	debuild -uc -us -b
 
 tgz: config.mak clean
