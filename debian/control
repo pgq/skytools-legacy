@@ -2,7 +2,7 @@ Source: skytools3
 Section: database
 Priority: extra
 Maintainer: Dimitri Fontaine <dim@tapoueh.org>
-Build-Depends: debhelper (>= 7.0.50~), autotools-dev, autoconf (>= 2.65), libevent-dev, python-all-dev, python-support, python-psycopg2, xmlto, asciidoc, libpq-dev, postgresql-server-dev-8.4, postgresql-server-dev-9.0
+Build-Depends: debhelper (>= 7.0.50~), autotools-dev, autoconf (>= 2.65), python-all-dev, python-support, xmlto, asciidoc, libpq-dev, postgresql-server-dev-8.4, postgresql-server-dev-9.0
 Standards-Version: 3.9.1
 Homepage: http://wiki.postgresql.org/wiki/Skytools
 Vcs-Git: http://github.com/markokr/skytools.git
@@ -18,7 +18,7 @@ Description: Skype tools for PostgreSQL replication, londiste and PGQ
 Package: python-pgq3
 Architecture: any
 Section: python
-Depends: ${misc:Depends}, ${python:Depends}, python-skytools3
+Depends: ${misc:Depends}, ${python:Depends}, python-skytools3, python-psycopg2
 Description: python framework for Skype tools for PostgreSQL replication
  This is a package of tools in use in Skype for replication and failover.
  It includes a generic queuing mechanism PgQ and utility library for Python
@@ -28,6 +28,7 @@ Package: python-skytools3
 Architecture: any
 Section: python
 Depends: ${shlibs:Depends}, ${misc:Depends}, ${python:Depends}
+Suggests: python-psycopg2
 Description: python framework for Skype tools for PostgreSQL replication
  This is a package of tools in use in Skype for replication and failover.
  It contains the Skytools' python framework for scripting against a
@@ -35,7 +36,8 @@ Description: python framework for Skype tools for PostgreSQL replication
 
 Package: skytools3-walmgr
 Architecture: any
-Depends: ${misc:Depends}, ${python:Depends}, python-skytools3, postgresql-8.4 | postgresql-9.0
+Depends: ${misc:Depends}, ${python:Depends}, python-skytools3, python-psycopg2
+Enhances: postgresql-8.4, postgresql-9.0
 Description: Skype tools for PostgreSQL replication and failover
  This is a package of tools in use in Skype for replication and failover.
  It's the WAL Shipping part of it (binary cluster-wide replication).
