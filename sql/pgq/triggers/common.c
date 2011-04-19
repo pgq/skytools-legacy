@@ -275,9 +275,6 @@ static void fill_tbl_info(Relation rel, struct PgqTableInfo *info)
 	bool isnull;
 	int res, i, attno;
 
-	/* allow reset ASAP, but ignore it in this call */
-	info->invalid = false;
-
 	/* load pkeys */
 	values[0] = ObjectIdGetDatum(rel->rd_id);
 	res = SPI_execute_plan(pkey_plan, values, NULL, false, 0);
@@ -308,10 +305,14 @@ static void fill_tbl_info(Relation rel, struct PgqTableInfo *info)
 	info->tg_cache = NULL;
 }
 
-static void free_info(struct PgqTableInfo *info)
+static void clean_info(struct PgqTableInfo *info, bool found)
 {
 	struct PgqTriggerInfo *tg, *tmp = info->tg_cache;
 	int i;
+
+	if (!found)
+		goto uninitialized;
+
 	for (tg = info->tg_cache; tg; ) {
 		tmp = tg->next;
 		if (tg->ignore_list)
@@ -325,9 +326,20 @@ static void free_info(struct PgqTableInfo *info)
 		pfree(tg);
 		tg = tmp;
 	}
-	pfree(info->table_name);
-	pfree(info->pkey_attno);
-	pfree((void *)info->pkey_list);
+	if (info->table_name)
+		pfree(info->table_name);
+	if (info->pkey_attno)
+		pfree(info->pkey_attno);
+	if (info->pkey_list)
+		pfree((void *)info->pkey_list);
+
+uninitialized:
+	info->tg_cache = NULL;
+	info->table_name = NULL;
+	info->pkey_attno = NULL;
+	info->pkey_list = NULL;
+	info->n_pkeys = 0;
+	info->invalid = true;
 }
 
 /*
@@ -358,9 +370,26 @@ static struct PgqTableInfo *find_table_info(Relation rel)
 
 	entry = hash_search(tbl_cache_map, &rel->rd_id, HASH_ENTER, &found);
 	if (!found || entry->invalid) {
-		if (found)
-			free_info(entry);
+		clean_info(entry, found);
+
+		/*
+		 * During fill_tbl_info() 2 events can happen:
+		 * - table info reset
+		 * - exception
+		 * To survive both, always clean struct and tag
+		 * as invalid but differently from reset.
+		 */
+		entry->invalid = 2;
+
+		/* find info */
 		fill_tbl_info(rel, entry);
+
+		/*
+		 * If no reset happened, it's valid.  Actual reset
+		 * is postponed to next call.
+		 */
+		if (entry->invalid == 2)
+			entry->invalid = false;
 	}
 
 	return entry;
