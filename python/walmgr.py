@@ -1517,7 +1517,8 @@ STOP TIME: %(stop_time)s
                 # got interesting WAL
                 xlog = os.path.join(xlog_dir, fn)
                 # copy data
-                if self.exec_rsync([xlog, dst_loc]) != 0:
+                self.log.info('Syncing %s' % xlog)
+                if self.exec_rsync([xlog, dst_loc], not daemon_mode) != 0:
                     self.log.error('Cannot sync %s' % xlog)
                     break
             else:
