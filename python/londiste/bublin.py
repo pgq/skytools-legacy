@@ -48,16 +48,17 @@ class Bublin(BaseHandler):
                 return
         BaseHandler.process_event(self, ev, sql_queue_func, arg)
 
-    def prepare_copy(self, expr_list, dst_curs):
+    def real_copy(self, tablename, src_curs, dst_curs, column_list, cond_list):
         """Copy only slots needed locally."""
         self.load_bubbles(dst_curs)
 
         slist = self.bubbles_local_slots.keys()
         fn = 'hashtext(%s)' % skytools.quote_ident(self.key)
         w = "(((%s) & %d) in (%s))" % (fn, self.bubbles_max_slot, slist)
-        expr_list.append(w)
+        cond_list.append(w)
 
-        BaseHandler.prepare_copy(self, expr_list, dst_curs)
+        return BaseHandler.real_copy(self, tablename, src_curs, dst_curs,
+                                     column_list, cond_list)
 
     def load_bubbles(self, curs):
         """Load slot info from database."""

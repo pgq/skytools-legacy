@@ -72,16 +72,19 @@ done
 
 msg "Create table on root node and fill couple of rows"
 run_sql hsrc "create table mytable (id int4 primary key, data text, tstamp timestamptz default now())"
-for n in 1 2 3 4; do
+for n in 1 2 3; do
   run_sql hsrc "insert into mytable values ($n, 'row$n')"
 done
 
+msg "Insert row with encoding error"
+run_sql hsrc "insert into mytable values(4, E'row\xab4')"
+
 msg "Register table on root node"
-run londiste3 $v conf/londiste_hsrc.ini add-table mytable --handler="bulk(method=$meth)"
+run londiste3 $v conf/londiste_hsrc.ini add-table mytable
 
 msg "Register table on other node with creation"
 for db in hdst; do
-  run londiste3 $v conf/londiste_$db.ini add-table mytable --create-only=pkey --handler="bulk(method=$meth)"
+  run londiste3 $v conf/londiste_$db.ini add-table mytable --create --handler=bulk_direct --handler-arg="method=$meth" --handler-arg="encoding=utf8"
 done
 
 msg "Wait until table is in sync"
@@ -105,6 +108,9 @@ run_sql hsrc "delete from mytable where id = 7"
 
 run_sql hsrc "delete from mytable where id = 1"
 run_sql hsrc "update mytable set data = 'row2x' where id = 2"
+
+# row with error
+run_sql hsrc "insert into mytable values(8, E'row8\xaf')"
 
 run sleep 5
 

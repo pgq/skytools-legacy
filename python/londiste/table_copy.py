@@ -205,9 +205,7 @@ class CopyTable(Replicator):
         cond = tbl_stat.table_attrs.get('copy_condition')
         if cond:
             cond_list.append(cond)
-        p.prepare_copy(cond_list, dstcurs)
-        w_cond = ' and '.join(cond_list)
-        stats = skytools.full_copy(tablename, srccurs, dstcurs, col_list, w_cond)
+        stats = p.real_copy(tablename, srccurs, dstcurs, col_list, cond_list)
         if stats:
             self.log.info("%s: copy finished: %d bytes, %d rows" % (
                           tablename, stats[0], stats[1]))

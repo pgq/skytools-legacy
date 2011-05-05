@@ -2,14 +2,13 @@
 
 . ../env.sh
 
-lst="hsrc hdst"
-
-for db in $lst; do
+for db in hsrc hdst; do
   echo dropdb $db
   dropdb $db
 done
-for db in $lst; do
-  echo createdb $db
-  createdb $db
-done
 
+echo createdb hsrc
+createdb hsrc --encoding=sql_ascii --template=template0
+
+echo createdb hdst
+createdb hdst --encoding=utf-8 --template=template0

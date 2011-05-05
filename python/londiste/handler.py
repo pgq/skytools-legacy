@@ -99,12 +99,13 @@ class BaseHandler:
         """Called when batch finishes."""
         pass
 
-    def prepare_copy(self, expr_list, dst_curs):
-        """Can change COPY behaviour.
-
-        Returns new expr.
+    def real_copy(self, tablename, src_curs, dst_curs, column_list, cond_list):
+        """do actual table copy and return tuple with number of bytes and rows
+        copyed
         """
-        pass
+        condition = ' and '.join(cond_list)
+        return skytools.full_copy(tablename, src_curs, dst_curs, column_list,
+                                  condition)
 
 class TableHandler(BaseHandler):
     """Default Londiste handler, inserts events into tables with plain SQL."""

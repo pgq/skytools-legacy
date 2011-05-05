@@ -123,13 +123,18 @@ for n in 1 2 3 4; do
   run_sql part$n "insert into mydata values ($n, 'part$n')"
 done
 
+msg "Sleep a bit"
+run sleep 10
+
 msg "Create table and register it in full nodes"
 for db in $full_list; do
     job=l3_part1_q_${db}
-    run londiste3 $v conf/$job.ini add-table mydata --create
-    for src in $part_list; do
-        run londiste3 $v conf/l3_${src}_q_${db}.ini add-table mydata
-    done
+    run_sql $db "select * from londiste.table_info order by queue_name"
+    run londiste3 $v conf/$job.ini add-table mydata --create --merge-all
+    run_sql $db "select * from londiste.table_info order by queue_name"
+    #for src in $part_list; do
+    #    run londiste3 $v conf/l3_${src}_q_${db}.ini add-table mydata
+    #done
 done
 
 msg "Sleep a bit"

@@ -34,6 +34,7 @@
 * bulk_yearly_batch
 * bulk_yearly_field
 * bulk_yearly_time
+* bulk_direct - functionally identical to bulk
 
 == HANDLER ARGUMENTS ==
 
@@ -130,6 +131,10 @@ post_part:
     sql statement(s) to execute after creating partition table. Usable
     variables are the same as in part_template
 
+encoding:
+    name of destination encoding. handler replaces all invalid encoding symbols
+    and logs them as warnings
+
 NB! londiste3 does not currently support table renaming and field mapping when
 creating or coping initial data to destination table.  --expect-sync and
 --skip-truncate should be used and --create switch is to be avoided.
@@ -138,6 +143,7 @@ creating or coping initial data to destination table.  --expect-sync and
 import sys
 import datetime
 import new
+import codecs
 import skytools
 from londiste.handler import BaseHandler
 from skytools import quote_ident, quote_fqident, UsageError
@@ -172,9 +178,10 @@ PART_FUNC_CALL = 'select %s(%s)' % (PART_FUNC,
         ', '.join('%%(%s)s' % arg for arg in PART_FUNC_ARGS))
 
 
-#----------------------------------------
+
+#------------------------------------------------------------------------------
 # LOADERS
-#----------------------------------------
+#------------------------------------------------------------------------------
 
 
 class BaseLoader:
@@ -449,7 +456,7 @@ class BulkLoader(BaseBulkTempLoader):
             else:
                 # fscking problems with long-lived temp tables
                 self.drop(curs)
-                
+
     def create_temp(self, curs):
         """ check if temp table exists. Returns False if using existing temp
         table and True if creating new
@@ -463,7 +470,7 @@ class BulkLoader(BaseBulkTempLoader):
         return True
 
     def bulk_insert(self, curs, data, table = None):
-        """Copy data to table. If table not provided, use temp table. 
+        """Copy data to table. If table not provided, use temp table.
         When re-using existing temp table, it is always truncated first and
         analyzed after copy.
         """
@@ -472,10 +479,10 @@ class BulkLoader(BaseBulkTempLoader):
         _use_temp = table is None
         # if table not specified use temp
         if _use_temp:
-            table = self.temp            
+            table = self.temp
             # truncate when re-using existing table
             if not self.create_temp(curs):
-                self.truncate(curs)        
+                self.truncate(curs)
         self.log.debug("bulk: COPY %d rows into %s" % (len(data), table))
         skytools.magic_insert(curs, table, data, self.fields,
                               quoted_table = True)
@@ -505,9 +512,10 @@ class BulkLoader(BaseBulkTempLoader):
 LOADERS = {'direct': DirectLoader, 'bulk': BulkLoader}
 
 
-#----------------------------------------
+
+#------------------------------------------------------------------------------
 # ROW HANDLERS
-#----------------------------------------
+#------------------------------------------------------------------------------
 
 
 class RowHandler:
@@ -562,16 +570,61 @@ ROW_HANDLERS = {'plain': RowHandler,
                 'keep_latest': KeepLatestRowHandler}
 
 
-#----------------------------------------
-# DISPATCHER
-#----------------------------------------
 
-class AttrDict(dict):
-    """Dict with values accessible with attributes"""
-    def __getattr__(self, name):
-        return self[name]
-    def __setattr__(self, name, value):
-        self[name] = value
+#------------------------------------------------------------------------------
+# ENCODING VALIDATOR
+#------------------------------------------------------------------------------
+
+
+class EncodingValidator:
+    def __init__(self, log, encoding = 'utf-8', replacement = u'\ufffd'):
+        self.log = log
+        self.encoding = encoding
+        self.replacement = replacement
+        self.columns = None
+        self.error_count = 0
+        codecs.register_error("error_handler", self._error_handler)
+
+    def _error_handler(self, exc):
+        # process only UnicodeDecodeError
+        if not isinstance(exc, UnicodeDecodeError):
+            raise exc
+        # find starting position of line with error and log warning
+        _line_start = exc.object.rfind('\n', 0, exc.start) + 1
+        _col = self.columns[exc.object.count('\t', _line_start, exc.start)]
+        _msg = "replacing invalid %s sequence %r in column %s"%\
+               (self.encoding, exc.object[exc.start:exc.end], _col)
+        self.log.warning(_msg)
+        # increase error count
+        self.error_count += 1
+        # return replacement char and position to continue from
+        # NB! doesn't replace multiple symbols, so it's harder to break file
+        # structure like replace \t or \n
+        return self.replacement, exc.start + 1
+
+    def validate(self, data, columns):
+        self.columns = columns
+        self.error_count = 0
+        _unicode = data.decode(self.encoding, "error_handler")
+        # when no erros then return input data as is, else re-encode fixed data
+        if self.error_count == 0:
+            return data
+        else:
+            return _unicode.encode(self.encoding)
+
+    def validate_dict(self, data):
+        _cols, _vals = zip(*data.items())
+        _fixed = self.validate('\t'.join(_vals), _cols)
+        if self.error_count == 0:
+            return data
+        else:
+            return dict(zip(_cols, _fixed.split('\t')))
+
+
+
+#------------------------------------------------------------------------------
+# DISPATCHER
+#------------------------------------------------------------------------------
 
 
 class Dispatcher(BaseHandler):
@@ -596,10 +649,15 @@ class Dispatcher(BaseHandler):
         self.conf = self.get_config()
         hdlr_cls = ROW_HANDLERS[self.conf.row_mode]
         self.row_handler = hdlr_cls(self.log)
+        if self.conf.encoding:
+            self.encoding_validator = EncodingValidator(self.log,
+                                                        self.conf.encoding)
+        else:
+            self.encoding_validator = None
 
     def get_config(self):
         """Processes args dict"""
-        conf = AttrDict()
+        conf = skytools.dbdict()
         # set table mode
         conf.table_mode = self.get_arg('table_mode', TABLE_MODES)
         if conf.table_mode == 'part':
@@ -641,6 +699,8 @@ class Dispatcher(BaseHandler):
                     conf.field_map[tmp[0]] = tmp[0]
                 else:
                     conf.field_map[tmp[0]] = tmp[1]
+        # encoding validator
+        conf.encoding = self.args.get('encoding')
         return conf
 
     def get_arg(self, name, value_list, default = None):
@@ -718,6 +778,8 @@ class Dispatcher(BaseHandler):
         if dst not in self.row_handler.table_map:
             self.row_handler.add_table(dst, LOADERS[self.conf.load_mode],
                                     self.pkeys, self.conf)
+        if self.encoding_validator:
+            data = self.encoding_validator.validate_dict(data)
         self.row_handler.process(dst, op, data)
         #BaseHandler.process_event(self, ev, sql_queue_func, arg)
 
@@ -800,11 +862,47 @@ class Dispatcher(BaseHandler):
         exec_with_vals(self.conf.post_part)
         self.log.info("Created table: %s" % dst)
 
+    def real_copy(self, tablename, src_curs, dst_curs, column_list, cond_list):
+        """do actual table copy and return tuple with number of bytes and rows
+        copyed
+        """
+        _src_cols = _dst_cols = column_list
+        _write_hook = None
+        condition = ' and '.join(cond_list)
 
+        if self.conf.skip_fields:
+            _src_cols = [col for col in column_list
+                         if col not in self.conf.skip_fields]
+            _dst_cols = _src_cols
+
+        if self.conf.field_map:
+            _src_cols = [col for col in _src_cols if col in self.conf.field_map]
+            _dst_cols = [self.conf.field_map[col] for col in _src_cols]
+
+        if self.encoding_validator:
+            def _write_hook(obj, data):
+                return self.encoding_validator.validate(data, _src_cols)
+
+        return skytools.full_copy(tablename, src_curs, dst_curs, _src_cols,
+                                  condition, self.table_name, _dst_cols,
+                                  write_hook = _write_hook)
+
+
+
+#------------------------------------------------------------------------------
 # register handler class
+#------------------------------------------------------------------------------
+
+
 __londiste_handlers__ = [Dispatcher]
 
+
+
+#------------------------------------------------------------------------------
 # helper function for creating dispachers with different default values
+#------------------------------------------------------------------------------
+
+
 def handler(name):
     def wrapper(func):
         def _init_override(self, table_name, args, log):
@@ -818,11 +916,19 @@ def handler(name):
         return func
     return wrapper
 
-def dupd(*p):
+
+def update(*p):
     """ Update dicts given in params with its precessor param dict
     in reverse order """
     return reduce(lambda x, y: x.update(y) or x,
             (p[i] for i in range(len(p)-1,-1,-1)), {})
+
+
+
+#------------------------------------------------------------------------------
+# build set of handlers with different default values for easier use
+#------------------------------------------------------------------------------
+
 
 LOAD = { '': { 'load_mode': 'direct' },
          'bulk': { 'load_mode': 'bulk' }
@@ -841,17 +947,19 @@ BASE = { 'table_mode': 'part',
          'row_mode': 'keep_latest',
 }
 
-# build set of handlers with different default values for easier use
 for load, load_dict in LOAD.items():
     for period, period_dict in PERIOD.items():
         for mode, mode_dict in MODE.items():
             # define creator func to keep default dicts in separate context
             def create_handler():
                 handler_name = '_'.join(p for p in (load, period, mode) if p)
-                default = dupd(mode_dict, period_dict, load_dict, BASE)
+                default = update(mode_dict, period_dict, load_dict, BASE)
                 @handler(handler_name)
                 def handler_func(args):
-                    return dupd(args, default)
+                    return update(args, default)
             create_handler()
 
-# TODO: bulk & ignore handlers
+
+@handler('bulk_direct')
+def bulk_direct_handler(args):
+    return update(args, {'load_mode': 'bulk', 'table_mode': 'direct'})
