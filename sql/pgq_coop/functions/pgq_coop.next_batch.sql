@@ -165,7 +165,6 @@ begin
             where s.sub_queue = _queue_id
               and s.sub_id = _sub_id
               and s.sub_consumer <> _subcon_id
-              and s.sub_batch is not null
               and sub_active < now() - i_dead_interval
             limit 1;
 
@@ -175,16 +174,18 @@ begin
                 where sub_queue = _queue_id
                   and sub_consumer = _dead.sub_consumer;
 
-            -- copy batch over
-            update pgq.subscription
-                set sub_batch = _dead.sub_batch,
-                    sub_last_tick = _dead.sub_last_tick,
-                    sub_next_tick = _dead.sub_next_tick,
-                    sub_active = now()
-                where sub_queue = _queue_id
-                  and sub_consumer = _subcon_id;
+            -- if dead consumer had batch, copy it over and return
+            if _dead.sub_batch is not null then
+                update pgq.subscription
+                    set sub_batch = _dead.sub_batch,
+                        sub_last_tick = _dead.sub_last_tick,
+                        sub_next_tick = _dead.sub_next_tick,
+                        sub_active = now()
+                    where sub_queue = _queue_id
+                      and sub_consumer = _subcon_id;
 
-            return _dead.sub_batch;
+                return _dead.sub_batch;
+            end if;
         end if;
     end if;
 
