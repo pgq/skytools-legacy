@@ -13,8 +13,12 @@
     show table <tbl>;
     show sequence <seq>;
 
-    register consumer foo [on <qname> | at <tick_id> | copy <consumer> ]* ;
-    unregister consumer foo [from <qname>];
+    register consumer <consumer> [on <qname> | at <tick_id> | copy <consumer> ]* ;
+    unregister consumer <consumer | *> [from <qname>];
+
+    register subconsumer <subconsumer> for <consumer> [on <qname>];
+    unregister subconsumer <subconsumer | *> for <consumer> [from <qname>] [close [batch]];
+
     show consumer [ <cname | *> [on <qname>] ];
 
 Following commands expect default queue:
@@ -164,7 +168,7 @@ def display_result(curs, desc, fields = []):
 
 class Token:
     """Base class for tokens.
-    
+
     The optional 'param' kwarg will set corresponding key in
     'params' dict to final token value.
     """
@@ -283,6 +287,9 @@ class XSymbol(Symbol):
     """Symbol that is not shown in completion."""
     def get_wlist(self):
         return []
+
+class SubConsumerName(Token):
+    tk_type = ("str", "num", "ident")
 
 # data-dependant completions
 
@@ -478,12 +485,41 @@ w_cons_on_queue = Word('consumer',
         Consumer(w_reg_target, name = 'consumer'),
         name = 'cmd2')
 
-# unregister
-w_from_queue = Word('from', Queue(w_done, name = 'queue'))
+w_sub_reg_target = List()
+w_sub_reg_target.add(
+        Word('on', Queue(w_sub_reg_target, name = 'queue')),
+        Word('for', Consumer(w_sub_reg_target, name = 'consumer')),
+        w_done)
 
-w_cons_from_queue = Word('consumer',
-        Consumer(List(w_done, w_from_queue), name = 'consumer'),
+w_subcons_on_queue = Word('subconsumer',
+        SubConsumerName(w_sub_reg_target, name = 'subconsumer'),
         name = 'cmd2')
+
+w_register = List(w_cons_on_queue,
+                  w_subcons_on_queue)
+
+# unregister
+
+w_from_queue = List(w_done, Word('from', Queue(w_done, name = 'queue')))
+w_cons_from_queue = Word('consumer',
+        List( Symbol('*', w_from_queue, name = 'consumer'),
+              Consumer(w_from_queue, name = 'consumer')
+            ),
+        name = 'cmd2')
+
+w_done_close = List(w_done,
+            Word('close', List(w_done, Word('batch', w_done)), name = 'close'))
+w_from_queue_close = List(w_done_close,
+                          Word('from', Queue(w_done_close, name = 'queue')))
+w_con_from_queue = Consumer(w_from_queue_close, name = 'consumer')
+w_subcons_from_queue = Word('subconsumer',
+    List( Symbol('*', Word('for', w_con_from_queue), name = 'subconsumer'),
+          SubConsumerName(Word('for', w_con_from_queue), name = 'subconsumer')
+        ),
+    name = 'cmd2')
+
+w_unregister = List(w_cons_from_queue,
+                    w_subcons_from_queue)
 
 # londiste add table
 w_table_with2 = List()
@@ -566,8 +602,8 @@ top_level.add(
     Word('create', w_create),
     Word('drop', w_drop),
     Word('install', w_install),
-    Word('register', w_cons_on_queue),
-    Word('unregister', w_cons_from_queue),
+    Word('register', w_register),
+    Word('unregister', w_unregister),
     Word('show', w_show),
     Word('exit', w_done),
     Word('londiste', w_londiste),
@@ -1209,6 +1245,30 @@ class AdminConsole:
             curs.execute(q, [queue, consumer])
         print "REGISTER"
 
+    def cmd_register_subconsumer(self, params):
+        queue = params.get("queue", self.cur_queue)
+        if not queue:
+            print 'No queue specified'
+            return
+        subconsumer = params['subconsumer']
+        consumer = params.get("consumer")
+        if not consumer:
+            print 'No consumer specified'
+            return
+        curs = self.db.cursor()
+
+        _subcon_name = '%s.%s' % (consumer, subconsumer)
+
+        q = "select * from pgq.get_consumer_info(%s, %s)"
+        curs.execute(q, [queue, _subcon_name])
+        if curs.fetchone():
+            print 'Subconsumer already registered'
+            return
+
+        q = "select * from pgq_coop.register_subconsumer(%s, %s, %s)"
+        curs.execute(q, [queue, consumer, subconsumer])
+        print "REGISTER"
+
     def cmd_unregister_consumer(self, params):
         queue = params.get("queue", self.cur_queue)
         if not queue:
@@ -1216,8 +1276,37 @@ class AdminConsole:
             return
         consumer = params['consumer']
         curs = self.db.cursor()
+        if consumer == '*':
+            q = 'select consumer_name from pgq.get_consumer_info(%s)'
+            curs.execute(q, [queue])
+            consumers = [row['consumer_name'] for row in curs.fetchall()]
+        else:
+            consumers = [consumer]
         q = "select * from pgq.unregister_consumer(%s, %s)"
-        curs.execute(q, [queue, consumer])
+        for consumer in consumers:
+            curs.execute(q, [queue, consumer])
+        print "UNREGISTER"
+
+    def cmd_unregister_subconsumer(self, params):
+        queue = params.get("queue", self.cur_queue)
+        if not queue:
+            print 'No queue specified'
+            return
+        subconsumer = params["subconsumer"]
+        consumer = params['consumer']
+        batch_handling = int(params.get('close') is not None)
+        curs = self.db.cursor()
+        if subconsumer == '*':
+            q = 'select consumer_name from pgq.get_consumer_info(%s)'
+            curs.execute(q, [queue])
+            subconsumers = [row['consumer_name'].split('.')[1]
+                           for row in curs.fetchall()
+                           if row['consumer_name'].startswith('%s.' % consumer)]
+        else:
+            subconsumers = [subconsumer]
+        q = "select * from pgq_coop.unregister_subconsumer(%s, %s, %s, %s)"
+        for subconsumer in subconsumers:
+            curs.execute(q, [queue, consumer, subconsumer, batch_handling])
         print "UNREGISTER"
 
     def cmd_create_queue(self, params):
