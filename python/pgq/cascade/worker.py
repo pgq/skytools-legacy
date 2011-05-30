@@ -234,7 +234,7 @@ class CascadedWorker(CascadedConsumer):
         if ev.ev_extra1 != self.pgq_queue_name and t != "pgq.tick-id":
             raise Exception("bad event in queue: "+str(ev))
 
-        self.log.info("got cascade event: %s" % t)
+        self.log.debug("got cascade event: %s(%s)" % (t, ev.ev_data))
         st = self._worker_state
         if t == "pgq.location-info":
             node = ev.ev_data
