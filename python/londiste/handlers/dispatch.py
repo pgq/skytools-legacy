@@ -963,3 +963,7 @@ for load, load_dict in LOAD.items():
 @handler('bulk_direct')
 def bulk_direct_handler(args):
     return update(args, {'load_mode': 'bulk', 'table_mode': 'direct'})
+
+@handler('direct')
+def bulk_direct_handler(args):
+    return update(args, {'load_mode': 'direct', 'table_mode': 'direct'})
