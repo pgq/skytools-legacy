@@ -13,7 +13,7 @@ class Config(object):
      - Acceps defaults in get() functions.
      - List value support.
     """
-    def __init__(self, main_section, filename, sane_config = 1, user_defs = {}, override = {}):
+    def __init__(self, main_section, filename, sane_config = 1, user_defs = {}, override = {}, ignore_defs = False):
         """Initialize Config and read from file.
 
         @param sane_config:  chooses between ConfigParser/SafeConfigParser.
@@ -25,12 +25,15 @@ class Config(object):
             job_name = main_section
 
         # initialize defaults, make them usable in config file
-        self.defs = {
-            'job_name': job_name,
-            'service_name': main_section,
-            'host_name': socket.gethostname(),
-        }
-        self.defs.update(user_defs)
+        if ignore_defs:
+            self.defs = {}
+        else:
+            self.defs = {
+                'job_name': job_name,
+                'service_name': main_section,
+                'host_name': socket.gethostname(),
+            }
+            self.defs.update(user_defs)
 
         self.main_section = main_section
         self.filename = filename
