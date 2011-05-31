@@ -613,12 +613,12 @@ class EncodingValidator:
             return _unicode.encode(self.encoding)
 
     def validate_dict(self, data):
-        _cols, _vals = zip(*data.items())
-        _fixed = self.validate('\t'.join(_vals), _cols)
-        if self.error_count == 0:
-            return data
-        else:
-            return dict(zip(_cols, _fixed.split('\t')))
+        for _key, _val in data.items():
+            if _val:
+                _fixed = self.validate(_val, [_key])
+                if self.error_count != 0:
+                    data[_key] = _fixed
+        return data
 
 
 
