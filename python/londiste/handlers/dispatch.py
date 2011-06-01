@@ -591,7 +591,10 @@ class EncodingValidator:
             raise exc
         # find starting position of line with error and log warning
         _line_start = exc.object.rfind('\n', 0, exc.start) + 1
-        _col = self.columns[exc.object.count('\t', _line_start, exc.start)]
+        try:
+            _col = self.columns[exc.object.count('\t', _line_start, exc.start)]
+        except IndexError:
+            _col = '<unknown>'
         _msg = "replacing invalid %s sequence %r in column %s"%\
                (self.encoding, exc.object[exc.start:exc.end], _col)
         self.log.warning(_msg)
