@@ -155,9 +155,6 @@ class LondisteSetup(CascadeAdmin):
                 s = skytools.TableStruct(src_curs, tbl)
                 src_db.commit()
                 s.create(dst_curs, create_flags, log = self.log)
-        elif not tbl_exists:
-            self.log.warning('Table "%s" missing on subscriber, use --create if necessary' % tbl)
-            return
 
         tgargs = []
         if self.options.trigger_arg:

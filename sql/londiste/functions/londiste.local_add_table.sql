@@ -23,6 +23,10 @@ as $$
 --      skip_truncate   - set 'skip_truncate' table attribute
 --      expect_sync     - set table state to 'ok'
 --      tgflags=X       - trigger creation flags
+--      merge_all       - merge table from all sources. required for 
+--                        multi-source table
+--      skip            - create skip trigger. same as S flag
+--      virtual_table   - skips structure check and trigger creation
 --
 -- Trigger creation flags (default: AIUDL):
 --      I - ON INSERT
@@ -32,6 +36,7 @@ as $$
 --      L - use pgq.logutriga() as trigger function
 --      B - BEFORE
 --      A - AFTER
+--      S - SKIP
 --
 -- Example:
 --      > londiste.local_add_table('q', 'tbl', array['tgflags=BI', 'SKIP', 'pkey=col1,col2'])
@@ -40,12 +45,11 @@ as $$
 --      200 - Ok
 --      301 - Warning, trigger exists that will fire before londiste one
 --      400 - No such set
--- ----------------------------------------------------------------------
+------------------------------------------------------------------------
 declare
     col_types text;
     fq_table_name text;
     new_state text;
-
     trunctrg_name text;
     pgversion int;
     logtrg_previous text;
@@ -54,48 +58,101 @@ declare
     lg_pos text;
     lg_event text;
     lg_args text;
+    _extra_args text;
     tbl record;
     i integer;
+    j integer;
     sql text;
     arg text;
     _node record;
     _tbloid oid;
-    _extra_args text;
+    -- skip trigger
     _skip_prefix text := 'zzz_';
     _skip_trg_count integer;
     _skip_trg_name text;
+    -- check local tables from all sources
+    _queue_name text;
+    _local boolean;
+    -- array with all tgflags values
+    _check_flags char[] := array['B','A','Q','L','I','U','D','S'];
+    -- given tgflags array
+    _tgflags char[];
+    -- ordinary argument array
+    _args text[];
+    -- argument flags
+    _expect_sync boolean := false;
     _merge_all boolean := false;
     _skip_truncate boolean := false;
     _no_triggers boolean := false;
     _skip boolean := false;
-    _queue_name text;
-    _local boolean;
+    _virtual_table boolean := false;
 begin
-    _extra_args := '';
-    fq_table_name := londiste.make_fqname(i_table_name);
-    _tbloid := londiste.find_table_oid(fq_table_name);
-    if _tbloid is null then
-        select 404, 'Table does not exist: ' || fq_table_name into ret_code, ret_note;
-        return;
+
+    -------- i_trg_args ARGUMENTS PARSING
+
+    if array_lower(i_trg_args, 1) is not null then
+        for i in array_lower(i_trg_args, 1) .. array_upper(i_trg_args, 1) loop
+            arg := i_trg_args[i];
+            if arg like 'tgflags=%' then
+                -- special flag handling
+                arg := upper(substr(arg, 9));
+                for j in array_lower(_check_flags, 1) .. array_upper(_check_flags, 1) loop
+                    if position(_check_flags[j] in arg) > 0 then
+                        _tgflags := array_append(_tgflags, _check_flags[j]);
+                    end if;
+                end loop;
+            elsif arg = 'expect_sync' then
+                _expect_sync := true;
+            elsif arg = 'skip_truncate' then
+                _skip_truncate := true;
+            elsif arg = 'no_triggers' then
+                _no_triggers := true;
+            elsif arg = 'merge_all' then
+                _merge_all = true;
+            elsif lower(arg) = 'skip' then
+                _skip := true;
+            elsif arg = 'virtual_table' then
+                _virtual_table := true;
+                _expect_sync := true;   -- do not copy
+                _no_triggers := true;   -- do not create triggers
+            else
+                -- ordinary arg
+                _args = array_append(_args, quote_literal(arg));
+            end if;
+        end loop;
     end if;
-    col_types := londiste.find_column_types(fq_table_name);
-    if position('k' in col_types) < 1 then
-        -- allow missing primary key in case of combined table where
-        -- pkey was removed by londiste
-        perform 1 from londiste.table_info t,
-            pgq_node.node_info n_this,
-            pgq_node.node_info n_other
-          where n_this.queue_name = i_queue_name
-            and n_other.combined_queue = n_this.combined_queue
-            and n_other.queue_name <> n_this.queue_name
-            and t.queue_name = n_other.queue_name
-            and t.table_name = fq_table_name
-            and t.dropped_ddl is not null;
-        if not found then
-            select 400, 'Primary key missing on table: ' || fq_table_name into ret_code, ret_note;
+
+    fq_table_name := londiste.make_fqname(i_table_name);
+
+    -------- TABLE STRUCTURE CHECK
+
+    if not _virtual_table then
+        _tbloid := londiste.find_table_oid(fq_table_name);
+        if _tbloid is null then
+            select 404, 'Table does not exist: ' || fq_table_name into ret_code, ret_note;
             return;
         end if;
+        col_types := londiste.find_column_types(fq_table_name);
+        if position('k' in col_types) < 1 then
+            -- allow missing primary key in case of combined table where
+            -- pkey was removed by londiste
+            perform 1 from londiste.table_info t,
+                pgq_node.node_info n_this,
+                pgq_node.node_info n_other
+              where n_this.queue_name = i_queue_name
+                and n_other.combined_queue = n_this.combined_queue
+                and n_other.queue_name <> n_this.queue_name
+                and t.queue_name = n_other.queue_name
+                and t.table_name = fq_table_name
+                and t.dropped_ddl is not null;
+            if not found then
+                select 400, 'Primary key missing on table: ' || fq_table_name into ret_code, ret_note;
+                return;
+            end if;
+        end if;
     end if;
+
+    -------- TABLE REGISTRATION LOGIC
 
     select * from pgq_node.get_node_info(i_queue_name) into _node;
     if not found or _node.ret_code >= 400 then
@@ -136,7 +193,7 @@ begin
         perform londiste.root_notify_change(i_queue_name, 'londiste.add-table', fq_table_name);
     elsif _node.node_type = 'leaf' and _node.combined_type = 'branch' then
         new_state := 'ok';
-    elsif 'expect_sync' = any (i_trg_args) then
+    elsif _expect_sync then
         new_state := 'ok';
     else
         new_state := NULL;
@@ -150,61 +207,6 @@ begin
         raise exception 'lost table: %', fq_table_name;
     end if;
 
-    -- new trigger
-    lg_name := '_londiste_' || i_queue_name;
-    lg_func := 'pgq.logutriga';
-    lg_event := '';
-    lg_args := quote_literal(i_queue_name);
-    lg_pos := 'after';
-
-    -- parse extra args
-    if array_lower(i_trg_args, 1) is not null then
-        for i in array_lower(i_trg_args, 1) .. array_upper(i_trg_args, 1) loop
-            arg := i_trg_args[i];
-            if arg like 'tgflags=%' then
-                -- special flag handling
-                arg := upper(substr(arg, 9));
-                if position('B' in arg) > 0 then
-                    lg_pos := 'before';
-                end if;
-                if position('A' in arg) > 0 then
-                    lg_pos := 'after';
-                end if;
-                if position('Q' in arg) > 0 then
-                    lg_func := 'pgq.sqltriga';
-                end if;
-                if position('L' in arg) > 0 then
-                    lg_func := 'pgq.logutriga';
-                end if;
-                if position('I' in arg) > 0 then
-                    lg_event := lg_event || ' or insert';
-                end if;
-                if position('U' in arg) > 0 then
-                    lg_event := lg_event || ' or update';
-                end if;
-                if position('D' in arg) > 0 then
-                    lg_event := lg_event || ' or delete';
-                end if;
-                if position('S' in arg) > 0 then
-                    _skip := true;
-                end if;
-            elsif arg = 'expect_sync' then
-                -- already handled
-            elsif arg = 'skip_truncate' then
-                _skip_truncate := true;
-            elsif arg = 'no_triggers' then
-                _no_triggers := true;
-            elsif arg = 'merge_all' then
-                _merge_all = true;
-            elsif lower(arg) = 'skip' then
-                _skip := true;
-            else
-                -- ordinary arg
-                lg_args := lg_args || ', ' || quote_literal(arg);
-            end if;
-        end loop;
-    end if;
-
     -- merge all table sources on leaf
     if _node.node_type = 'leaf' then
         for _queue_name, _local in
@@ -216,7 +218,6 @@ begin
             left join londiste.table_info t2 on (t2.table_name = t.table_name and t2.queue_name = n2.queue_name)
             where t.queue_name = i_queue_name
               and t.table_name = fq_table_name
-              -- and t2.local = false
               and t2.queue_name != i_queue_name -- skip self
         loop
             -- if table from some other source is already marked as local,
@@ -247,7 +248,55 @@ begin
                 raise exception 'lost table: %', fq_table_name;
             end if;
         end loop;
+    end if;
 
+    if _skip_truncate then
+        perform 1
+        from londiste.local_set_table_attrs(i_queue_name,
+                                            fq_table_name,
+                                            'skip_truncate=1');
+    end if;
+
+    -------- TRIGGER LOGIC
+
+    -- new trigger
+    _extra_args := '';
+    lg_name := '_londiste_' || i_queue_name;
+    lg_func := 'pgq.logutriga';
+    lg_event := '';
+    lg_args := quote_literal(i_queue_name);
+    lg_pos := 'after';
+
+    if array_lower(_args, 1) is not null then
+        lg_args := lg_args || ', ' || array_to_string(_args, ', ');
+    end if;
+
+    if 'B' = any(_tgflags) then
+        lg_pos := 'before';
+    end if;
+    if 'A' = any(_tgflags)  then
+        lg_pos := 'after';
+    end if;
+    if 'Q' = any(_tgflags) then
+        lg_func := 'pgq.sqltriga';
+    end if;
+    if 'L' = any(_tgflags) then
+        lg_func := 'pgq.logutriga';
+    end if;
+    if 'I' = any(_tgflags) then
+        lg_event := lg_event || ' or insert';
+    end if;
+    if 'U' = any(_tgflags) then
+        lg_event := lg_event || ' or update';
+    end if;
+    if 'D' = any(_tgflags) then
+        lg_event := lg_event || ' or delete';
+    end if;
+    if 'S' = any(_tgflags) then
+        _skip := true;
+    end if;
+
+    if _node.node_type = 'leaf' then
         -- on weird leafs the trigger funcs may not exist
         perform 1 from pg_proc p join pg_namespace n on (n.oid = p.pronamespace)
             where n.nspname = 'pgq' and p.proname in ('logutriga', 'sqltriga');
@@ -259,7 +308,7 @@ begin
         _extra_args := ', ' || quote_literal('deny');
     end if;
 
-    -- if skip param given
+    -- if skip param given, rename previous skip triggers and prefix current
     if _skip then
         -- get count and name of existing skip triggers
         select count(*), min(t.tgname)
@@ -293,17 +342,11 @@ begin
         where tgrelid = londiste.find_table_oid(fq_table_name)
             and tgname = lg_name;
     if not found then
+
         if _no_triggers then
             select 200, 'Table added with no triggers: ' || fq_table_name
             into ret_code, ret_note;
             return;
-        end if;
-
-        if _skip_truncate then
-            perform 1
-            from londiste.local_set_table_attrs(i_queue_name,
-                                                fq_table_name,
-                                                'skip_truncate=1');
         end if;
 
         -- finalize event
@@ -321,7 +364,7 @@ begin
         execute sql;
     end if;
 
-    -- create tRuncate trigger if it does not exists already
+    -- create truncate trigger if it does not exists already
     show server_version_num into pgversion;
     if pgversion >= 80400 then
         trunctrg_name  := '_londiste_' || i_queue_name || '_truncate';
