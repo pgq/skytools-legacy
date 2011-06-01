@@ -968,5 +968,5 @@ def bulk_direct_handler(args):
     return update(args, {'load_mode': 'bulk', 'table_mode': 'direct'})
 
 @handler('direct')
-def bulk_direct_handler(args):
+def direct_handler(args):
     return update(args, {'load_mode': 'direct', 'table_mode': 'direct'})
