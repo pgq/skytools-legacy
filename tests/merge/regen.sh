@@ -130,6 +130,16 @@ for db in $part_list; do
   run londiste3 $v conf/londiste_$db.ini add-table mydata
 done
 
+msg "Wait until add-table events are distributed to leafs"
+parts=$(echo "$part_list"|wc -w)
+for db in full1 full2; do
+cnt=0
+while test $cnt -ne $parts; do
+ sleep 5
+ cnt=`psql ${db} -Atc "select count(*) from londiste.table_info"`
+ echo "$db cnt=$cnt"
+done
+done
 
 msg "Insert few rows"
 for n in 1 2 3 4; do
@@ -140,11 +150,6 @@ msg "Create table and register it in merge nodes"
 run_sql full1 "create table mydata (id int4 primary key, data text)"
 run londiste3 $v conf/londiste_full1.ini add-table mydata
 run londiste3 $v conf/londiste_part1_full1.ini add-table mydata --merge-all
-#for db in full1; do
-#  for src in $part_list; do
-#    run londiste3 $v conf/londiste_${src}_${db}.ini add-table mydata
-#  done
-#done
 
 msg "Wait until table is in sync on combined-root"
 cnt=0
@@ -157,9 +162,7 @@ done
 msg "Create table and register it in full nodes"
 for db in full2; do
   run londiste3 $v conf/londiste_$db.ini add-table mydata --create
-  for src in $part_list; do
-    run londiste3 $v conf/londiste_${src}_${db}.ini add-table mydata
-  done
+  run londiste3 $v conf/londiste_part1_${db}.ini add-table mydata --merge-all
 done
 for db in full3 full4; do
   run londiste3 $v conf/londiste_$db.ini add-table mydata --create
