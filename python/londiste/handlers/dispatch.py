@@ -578,37 +578,22 @@ ROW_HANDLERS = {'plain': RowHandler,
 
 class EncodingValidator:
     def __init__(self, log, encoding = 'utf-8', replacement = u'\ufffd'):
+        """validates the correctness of given encoding. when data contains 
+        illegal symbols, replaces them with <replacement> and logs the
+        incident"""
         self.log = log
         self.encoding = encoding
         self.replacement = replacement
         self.columns = None
         self.error_count = 0
-        codecs.register_error("error_handler", self._error_handler)
-
-    def _error_handler(self, exc):
-        # process only UnicodeDecodeError
-        if not isinstance(exc, UnicodeDecodeError):
-            raise exc
-        # find starting position of line with error and log warning
-        _line_start = exc.object.rfind('\n', 0, exc.start) + 1
-        try:
-            _col = self.columns[exc.object.count('\t', _line_start, exc.start)]
-        except IndexError:
-            _col = '<unknown>'
-        _msg = "replacing invalid %s sequence %r in column %s"%\
-               (self.encoding, exc.object[exc.start:exc.end], _col)
-        self.log.warning(_msg)
-        # increase error count
-        self.error_count += 1
-        # return replacement char and position to continue from
-        # NB! doesn't replace multiple symbols, so it's harder to break file
-        # structure like replace \t or \n
-        return self.replacement, exc.start + 1
 
     def validate(self, data, columns):
+        """sets self to global FIXENC_DATA object and calls decode with
+        registered error handler"""
         self.columns = columns
         self.error_count = 0
-        _unicode = data.decode(self.encoding, "error_handler")
+        globals()['FIXENC_DATA'] = self
+        _unicode = data.decode(self.encoding, "fixenc_error_handler")
         # when no erros then return input data as is, else re-encode fixed data
         if self.error_count == 0:
             return data
@@ -616,6 +601,7 @@ class EncodingValidator:
             return _unicode.encode(self.encoding)
 
     def validate_dict(self, data):
+        """validates data in dict"""
         for _key, _val in data.items():
             if _val:
                 _fixed = self.validate(_val, [_key])
@@ -623,6 +609,32 @@ class EncodingValidator:
                     data[_key] = _fixed
         return data
 
+
+def fixenc_error_handler(exc):
+    """when error occurs in decoding, replaces char causing it, logs errors
+    together with column name containing invalid data"""
+    # process only UnicodeDecodeError
+    if not isinstance(exc, UnicodeDecodeError):
+        raise exc
+    # find starting position of line with error and log warning
+    _line_start = exc.object.rfind('\n', 0, exc.start) + 1
+    try:
+        _col = FIXENC_DATA.columns[exc.object.count('\t', _line_start, exc.start)]
+    except Exception, e:
+        FIXENC_DATA.log.warning('Error when detecting column: %s' % e)
+        _col = '<unknown>'
+    _msg = "replacing invalid %s sequence %r in column %s"%\
+           (FIXENC_DATA.encoding, exc.object[exc.start:exc.end], _col)
+    FIXENC_DATA.log.warning(_msg)
+    # increase error count
+    FIXENC_DATA.error_count += 1
+    # return replacement char and position to continue from
+    # NB! doesn't replace multiple symbols, so it's harder to break file
+    # structure like replace \t or \n
+    return FIXENC_DATA.replacement, exc.start + 1
+
+
+codecs.register_error("fixenc_error_handler", fixenc_error_handler)
 
 
 #------------------------------------------------------------------------------
