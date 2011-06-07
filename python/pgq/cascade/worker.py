@@ -131,7 +131,7 @@ class CascadedWorker(CascadedConsumer):
         for ev in event_list:
             if st.copy_events:
                 self.copy_event(dst_curs, ev, st.filtered_copy)
-            if ev.ev_type[:4] == "pgq.":
+            if ev.ev_type.split('.', 1)[0] in ("pgq", "londiste"):
                 # process cascade events even on waiting leaf node
                 self.process_remote_event(src_curs, dst_curs, ev)
             else:
@@ -162,10 +162,8 @@ class CascadedWorker(CascadedConsumer):
 
         # on combined-branch the target can get several batches ahead
         if wst.wait_behind:
-            cur_tick = batch_info['tick_id']
-            dst_tick = state['completed_tick']
-            if cur_tick < dst_tick:
-                return True
+            # let the wait-behind logic track ticks
+            return False
 
         # check if events have processed
         done = CascadedConsumer.is_batch_done(self, state, batch_info, dst_db)
