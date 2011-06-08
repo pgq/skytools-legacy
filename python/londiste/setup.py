@@ -314,7 +314,8 @@ class LondisteSetup(CascadeAdmin):
     def cmd_tables(self):
         """Show attached tables."""
         q = """select table_name, merge_state, table_attrs
-        from londiste.get_table_list(%s) where local"""
+        from londiste.get_table_list(%s) where local
+        order by table_name"""
         db = self.get_database('db')
         def show_attr(a):
             if a:
