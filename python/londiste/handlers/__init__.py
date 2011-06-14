@@ -5,5 +5,6 @@ DEFAULT_HANDLERS = [
     'londiste.handlers.qtable',
     'londiste.handlers.dispatch',
     'londiste.handlers.applyfn',
+    'londiste.handlers.part'
 ]
 
