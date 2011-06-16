@@ -176,24 +176,37 @@ class TIndex(TElem):
 class TRule(TElem):
     """Info about rule."""
     type = T_RULE
-    SQL = """
-        SELECT rulename as name, pg_get_ruledef(oid) as def
-          FROM pg_rewrite
-         WHERE ev_class = %(oid)s AND rulename <> '_RETURN'::name
+    SQL = """SELECT rw.*, pg_get_ruledef(rw.oid) as def
+              FROM pg_rewrite rw
+             WHERE rw.ev_class = %(oid)s AND rw.rulename <> '_RETURN'::name
     """
     def __init__(self, table_name, row, new_name = None):
         self.table_name = table_name
-        self.name = row['name']
+        self.name = row['rulename']
         self.defn = row['def']
+        self.enabled = row.get('ev_enabled', 'O')
 
     def get_create_sql(self, curs, new_table_name = None):
         """Generate creation SQL."""
         if not new_table_name:
-            return self.defn
-        # fixme: broken / quoting
-        rx = r"\bTO[ ][a-z0-9._]+[ ]DO[ ]"
-        pnew = "TO %s DO " % new_table_name
-        return rx_replace(rx, self.defn, pnew)
+            sql = self.defn
+            table = self.table_name
+        else:
+            # fixme: broken / quoting
+            rx = r"\bTO[ ][a-z0-9._]+[ ]DO[ ]"
+            pnew = "TO %s DO " % new_table_name
+            sql = rx_replace(rx, self.defn, pnew)
+            table = new_table_name
+        if self.enabled != 'O':
+            # O - rule fires in origin and local modes
+            # D - rule is disabled
+            # R - rule fires in replica mode
+            # A - rule fires always
+            action = {'R': 'ENABLE REPLICA',
+                      'A': 'ENABLE ALWAYS',
+                      'D': 'DISABLE'} [self.enabled]
+            sql += ('\nALTER TABLE %s %s RULE %s;' % (table, action, self.name))
+        return sql
 
     def get_drop_sql(self, curs):
         return 'DROP RULE %s ON %s' % (quote_ident(self.name), quote_fqident(self.table_name))
