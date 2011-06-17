@@ -575,6 +575,8 @@ ROW_HANDLERS = {'plain': RowHandler,
 # ENCODING VALIDATOR
 #------------------------------------------------------------------------------
 
+# stores current EncodingValidator
+FIXENC_DATA = None
 
 class EncodingValidator:
     def __init__(self, log, encoding = 'utf-8', replacement = u'\ufffd'):
@@ -590,9 +592,10 @@ class EncodingValidator:
     def validate(self, data, columns):
         """sets self to global FIXENC_DATA object and calls decode with
         registered error handler"""
+        global FIXENC_DATA
+        FIXENC_DATA = self
         self.columns = columns
         self.error_count = 0
-        globals()['FIXENC_DATA'] = self
         _unicode = data.decode(self.encoding, "fixenc_error_handler")
         # when no erros then return input data as is, else re-encode fixed data
         if self.error_count == 0:
@@ -613,6 +616,9 @@ class EncodingValidator:
 def fixenc_error_handler(exc):
     """when error occurs in decoding, replaces char causing it, logs errors
     together with column name containing invalid data"""
+    global FIXENC_DATA
+    if not FIXENC_DATA:
+        raise exc
     # process only UnicodeDecodeError
     if not isinstance(exc, UnicodeDecodeError):
         raise exc
