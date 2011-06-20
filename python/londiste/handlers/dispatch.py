@@ -774,6 +774,8 @@ class Dispatcher(BaseHandler):
             return
         # get data
         data = skytools.db_urldecode(ev.data)
+        if self.encoding_validator:
+            data = self.encoding_validator.validate_dict(data)
         if len(ev.ev_type) < 2 or ev.ev_type[1] != ':':
             raise Exception('Unsupported event type: %s/extra1=%s/data=%s' % (
                             ev.ev_type, ev.ev_extra1, ev.ev_data))
@@ -799,8 +801,6 @@ class Dispatcher(BaseHandler):
         if dst not in self.row_handler.table_map:
             self.row_handler.add_table(dst, LOADERS[self.conf.load_mode],
                                     self.pkeys, self.conf)
-        if self.encoding_validator:
-            data = self.encoding_validator.validate_dict(data)
         self.row_handler.process(dst, op, data)
         #BaseHandler.process_event(self, ev, sql_queue_func, arg)
 
