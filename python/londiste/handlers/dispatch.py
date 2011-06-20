@@ -144,6 +144,7 @@ import sys
 import datetime
 import new
 import codecs
+import re
 import skytools
 from londiste.handler import BaseHandler
 from skytools import quote_ident, quote_fqident, UsageError
@@ -578,6 +579,12 @@ ROW_HANDLERS = {'plain': RowHandler,
 # stores current EncodingValidator
 FIXENC_DATA = None
 
+# find UTF16 surrogate pairs
+_sgrc = re.compile(u"""
+            [\uD800-\uDBFF] [\uDC00-\uDFFF] ?
+          | [\uDC00-\uDFFF]
+      """, re.X)
+
 class EncodingValidator:
     def __init__(self, log, encoding = 'utf-8', replacement = u'\ufffd'):
         """validates the correctness of given encoding. when data contains 
@@ -597,11 +604,27 @@ class EncodingValidator:
         self.columns = columns
         self.error_count = 0
         _unicode = data.decode(self.encoding, "fixenc_error_handler")
+        # python does not tag surrogate pairs as error, fix them explicitly
+        _unicode = _sgrc.sub(self.sgfix, _unicode)
         # when no erros then return input data as is, else re-encode fixed data
         if self.error_count == 0:
             return data
         else:
             return _unicode.encode(self.encoding)
+
+    def sgfix(self, m):
+        """Fix  UTF16 surrogate pair"""
+        self.error_count += 1
+        val = m.group()
+        if len(val) == 2:
+            self.log.warning('combining utf16 surrogate pair')
+            c1 = ord(val[0])
+            c2 = ord(val[1])
+            c = 0x10000 + ((c1 & 0x3FF) << 10) + (c2 & 0x3FF)
+            return unichr(c)
+        else:
+            self.log.warning('replacing utf16 surrogate code')
+            return self.replacement
 
     def validate_dict(self, data):
         """validates data in dict"""
