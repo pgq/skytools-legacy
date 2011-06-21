@@ -43,6 +43,8 @@ def parse_pgarray(array):
             val = None
         else:
             if len(item) > 0 and item[0] == '"':
+                if len(item) == 1 or item[-1] != '"':
+                    raise Exception("bad array format: broken '\"'")
                 item = item[1:-1]
             val = skytools.unescape(item)
         res.append(val)
@@ -52,6 +54,8 @@ def parse_pgarray(array):
             break
         elif array[pos2] != ",":
             raise Exception("bad array format: expected ,} got " + repr(array[pos2]))
+    if pos < len(array) - 1:
+        raise Exception("bad array format: failed to parse completely (pos=%d len=%d)" % (pos, len(array)))
     return res
 
 #
