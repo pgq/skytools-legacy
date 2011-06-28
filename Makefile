@@ -24,7 +24,7 @@ SQLDIR = $(prefix)/share/skytools$(SUFFIX)
 # modules that use doctest for regtests
 DOCTESTMODS = skytools.quoting skytools.parsing skytools.timeutil \
 	   skytools.sqltools skytools.querybuilder skytools.natsort \
-	   skytools.utf8
+	   skytools.utf8 skytools.sockutil
 
 
 all: python-all sub-all config.mak

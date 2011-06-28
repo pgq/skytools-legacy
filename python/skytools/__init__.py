@@ -60,7 +60,10 @@ _symbols = {
     # skytools.psycopgwrapper
     'connect_database': 'skytools.psycopgwrapper:connect_database',
     'DBError': 'skytools.psycopgwrapper:DBError',
-    'set_tcp_keepalive': 'skytools.psycopgwrapper:set_tcp_keepalive',
+    # skytools.sockutil
+    'set_tcp_keepalive': 'skytools.sockutil:set_tcp_keepalive',
+    'set_cloexec': 'skytools.sockutil:set_cloexec',
+    'set_nonblocking': 'skytools.sockutil:set_nonblocking',
     # skytools.scripting
     'BaseScript': 'skytools.scripting:BaseScript',
     'daemonize': 'skytools.scripting:daemonize',
