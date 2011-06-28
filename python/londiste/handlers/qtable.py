@@ -31,13 +31,17 @@ class QueueTableHandler(BaseHandler):
         """Force copy not to start"""
         return (0,0)
 
-
+    def needs_table(self):
+        return False
 
 class FakeLocalHandler(BaseHandler):
     handler_name = 'fake_local'
 
     def add(self, trigger_arg_list):
         trigger_arg_list.append('virtual_table')
+
+    def needs_table(self):
+        return False
 
 
 
@@ -78,6 +82,9 @@ class QueueSplitterHandler(BaseHandler):
         fields = ['type', 'data',
                   'extra1', 'extra2', 'extra3', 'extra4', 'time']
         pgq.bulk_insert_events(dst_curs, self.rows, fields, self.dst_queue_name)
+
+    def needs_table(self):
+        return False
 
 
 __londiste_handlers__ = [QueueTableHandler, FakeLocalHandler,

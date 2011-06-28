@@ -107,6 +107,10 @@ class BaseHandler:
         return skytools.full_copy(tablename, src_curs, dst_curs, column_list,
                                   condition)
 
+    def needs_table(self):
+        """Does the handler need the table to exist on destination."""
+        return True
+
 class TableHandler(BaseHandler):
     """Default Londiste handler, inserts events into tables with plain SQL."""
     handler_name = 'londiste'

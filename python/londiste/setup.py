@@ -111,7 +111,8 @@ class LondisteSetup(CascadeAdmin):
         self.sync_table_list(dst_curs, src_tbls, dst_tbls)
         dst_db.commit()
 
-        args = self.expand_arg_list(dst_db, 'r', False, args)
+        needs_tbl = self.handler_needs_table()
+        args = self.expand_arg_list(dst_db, 'r', False, args, needs_tbl)
 
         # dont check for exist/not here (root handling)
         problems = False
@@ -192,6 +193,14 @@ class LondisteSetup(CascadeAdmin):
             q = "select * from londiste.local_set_table_attrs(%s, %s, %s)"
             self.exec_cmd(dst_curs, q, [self.set_name, tbl, enc_attrs])
         dst_db.commit()
+
+    def handler_needs_table(self):
+        if self.options.handler:
+            hstr = londiste.handler.create_handler_string(
+                            self.options.handler, self.options.handler_arg)
+            p = londiste.handler.build_handler('unused.string', hstr, self.log)
+            return p.needs_table()
+        return True
 
     def sync_table_list(self, dst_curs, src_tbls, dst_tbls):
         for tbl in src_tbls.keys():
@@ -378,7 +387,7 @@ class LondisteSetup(CascadeAdmin):
         return self.get_database('provider_db', connstr = self.provider_location)
 
 
-    def expand_arg_list(self, db, kind, existing, args):
+    def expand_arg_list(self, db, kind, existing, args, needs_tbl=True):
         curs = db.cursor()
 
         if kind == 'S':
@@ -411,14 +420,16 @@ class LondisteSetup(CascadeAdmin):
             else:
                 return lst_missing
 
+
+        allow_nonexist = not needs_tbl
         if existing:
-            res = self.solve_globbing(args, lst_exists, map_exists, map_missing)
+            res = self.solve_globbing(args, lst_exists, map_exists, map_missing, allow_nonexist)
         else:
-            res = self.solve_globbing(args, lst_missing, map_missing, map_exists)
+            res = self.solve_globbing(args, lst_missing, map_missing, map_exists, allow_nonexist)
         return res
 
 
-    def solve_globbing(self, args, full_list, full_map, reverse_map):
+    def solve_globbing(self, args, full_list, full_map, reverse_map, allow_nonexist):
         def glob2regex(s):
             s = s.replace('.', '[.]').replace('?', '.').replace('*', '.*')
             return '^%s$' % s
@@ -445,12 +456,15 @@ class LondisteSetup(CascadeAdmin):
                     res_map[a] = 1
                 elif a in reverse_map:
                     self.log.info("%s already processed" % a)
+                elif allow_nonexist:
+                    res_list.append(a)
+                    res_map[a] = 1
                 elif self.options.force:
                     self.log.warning("%s not available, but --force is used" % a)
                     res_list.append(a)
                     res_map[a] = 1
                 else:
-                    self.log.error("%s not available" % a)
+                    self.log.warning("%s not available" % a)
                     err = 1
         if err:
             raise skytools.UsageError("Cannot proceed")
