@@ -149,6 +149,7 @@ import skytools
 from londiste.handler import BaseHandler
 from skytools import quote_ident, quote_fqident, UsageError
 from skytools.dbstruct import *
+from skytools.utf8 import safe_utf8_decode
 
 __all__ = ['Dispatcher']
 
@@ -576,94 +577,44 @@ ROW_HANDLERS = {'plain': RowHandler,
 # ENCODING VALIDATOR
 #------------------------------------------------------------------------------
 
-# stores current EncodingValidator
-FIXENC_DATA = None
-
-# find UTF16 surrogate pairs
-_sgrc = re.compile(u"""
-            [\uD800-\uDBFF] [\uDC00-\uDFFF] ?
-          | [\uDC00-\uDFFF]
-      """, re.X)
-
 class EncodingValidator:
     def __init__(self, log, encoding = 'utf-8', replacement = u'\ufffd'):
         """validates the correctness of given encoding. when data contains 
         illegal symbols, replaces them with <replacement> and logs the
         incident"""
         self.log = log
-        self.encoding = encoding
-        self.replacement = replacement
         self.columns = None
         self.error_count = 0
 
-    def validate(self, data, columns):
-        """sets self to global FIXENC_DATA object and calls decode with
-        registered error handler"""
-        global FIXENC_DATA
-        FIXENC_DATA = self
-        self.columns = columns
-        self.error_count = 0
-        _unicode = data.decode(self.encoding, "fixenc_error_handler")
-        # python does not tag surrogate pairs as error, fix them explicitly
-        _unicode = _sgrc.sub(self.sgfix, _unicode)
-        # when no erros then return input data as is, else re-encode fixed data
-        if self.error_count == 0:
-            return data
-        else:
-            return _unicode.encode(self.encoding)
+    def show_error(self, col, val):
+        self.log.error('Invalid UTF8 in column <%s>: %s', col, repr(val))
 
-    def sgfix(self, m):
-        """Fix  UTF16 surrogate pair"""
-        self.error_count += 1
-        val = m.group()
-        if len(val) == 2:
-            self.log.warning('combining utf16 surrogate pair')
-            c1 = ord(val[0])
-            c2 = ord(val[1])
-            c = 0x10000 + ((c1 & 0x3FF) << 10) + (c2 & 0x3FF)
-            return unichr(c)
-        else:
-            self.log.warning('replacing utf16 surrogate code')
-            return self.replacement
+    def validate_copy(self, data, columns):
+        """Validate tab-separated fields"""
+
+        ok, _unicode = safe_utf8_decode(data)
+        if ok:
+            return data
+
+        # log error
+        vals = data.split('\t')
+        for i, v in enumerate(vals):
+            ok, tmp = safe_utf8_decode(v)
+            if not ok:
+                self.show_error(columns[i], v)
+
+        # return safe data
+        return _unicode.encode('utf8')
 
     def validate_dict(self, data):
         """validates data in dict"""
-        for _key, _val in data.items():
-            if _val:
-                _fixed = self.validate(_val, [_key])
-                if self.error_count != 0:
-                    data[_key] = _fixed
+        for k, v in data.items():
+            if v:
+                ok, u = safe_utf8_decode(v)
+                if not ok:
+                    self.show_error(k, v)
+                    data[k] = u.encode('utf8')
         return data
-
-
-def fixenc_error_handler(exc):
-    """when error occurs in decoding, replaces char causing it, logs errors
-    together with column name containing invalid data"""
-    global FIXENC_DATA
-    if not FIXENC_DATA:
-        raise exc
-    # process only UnicodeDecodeError
-    if not isinstance(exc, UnicodeDecodeError):
-        raise exc
-    # find starting position of line with error and log warning
-    _line_start = exc.object.rfind('\n', 0, exc.start) + 1
-    try:
-        _col = FIXENC_DATA.columns[exc.object.count('\t', _line_start, exc.start)]
-    except Exception, e:
-        FIXENC_DATA.log.warning('Error when detecting column: %s' % e)
-        _col = '<unknown>'
-    _msg = "replacing invalid %s sequence %r in column %s"%\
-           (FIXENC_DATA.encoding, exc.object[exc.start:exc.end], _col)
-    FIXENC_DATA.log.warning(_msg)
-    # increase error count
-    FIXENC_DATA.error_count += 1
-    # return replacement char and position to continue from
-    # NB! doesn't replace multiple symbols, so it's harder to break file
-    # structure like replace \t or \n
-    return FIXENC_DATA.replacement, exc.start + 1
-
-
-codecs.register_error("fixenc_error_handler", fixenc_error_handler)
 
 
 #------------------------------------------------------------------------------
@@ -925,7 +876,7 @@ class Dispatcher(BaseHandler):
 
         if self.encoding_validator:
             def _write_hook(obj, data):
-                return self.encoding_validator.validate(data, _src_cols)
+                return self.encoding_validator.validate_copy(data, _src_cols)
 
         return skytools.full_copy(tablename, src_curs, dst_curs, _src_cols,
                                   condition, self.table_name, _dst_cols,

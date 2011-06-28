@@ -104,6 +104,8 @@ _symbols = {
     'run_lookup': 'skytools.querybuilder:run_lookup',
     'run_query': 'skytools.querybuilder:run_query',
     'run_query_row': 'skytools.querybuilder:run_query_row',
+    # skytools.utf8
+    'safe_utf8_decode': 'skytools.utf8:safe_utf8_decode',
 }
 
 __all__ = _symbols.keys()
