@@ -26,7 +26,9 @@ declare
     r record;
 begin
     _subcon_name := i_consumer_name || '.' || i_subconsumer_name;
-    -- er... shouldn't we lock the subscription table?
+
+    -- make sure main consumer exists
+    perform pgq.register_consumer(i_queue_name, i_consumer_name);
 
     -- just go and register the subconsumer as a regular consumer
     _subcon_result := pgq.register_consumer(i_queue_name, _subcon_name);

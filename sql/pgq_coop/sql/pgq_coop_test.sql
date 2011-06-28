@@ -9,7 +9,7 @@ select pgq.create_queue('testqueue');
 update pgq.queue set queue_ticker_max_count = 1 where queue_name = 'testqueue';
 
 -- register
-select pgq.register_consumer('testqueue', 'maincons');
+select pgq_coop.register_subconsumer('testqueue', 'maincons', 'subcons1');
 select pgq_coop.register_subconsumer('testqueue', 'maincons', 'subcons1');
 select pgq_coop.register_subconsumer('testqueue', 'maincons', 'subcons1');
 select pgq_coop.register_subconsumer('testqueue', 'maincons', 'subcons2');
@@ -35,6 +35,7 @@ select pgq_coop.next_batch('testqueue', 'maincons', 'subcons2');
 select pgq_coop.finish_batch(2);
 
 -- test takeover
+select pgq_coop.next_batch('testqueue', 'maincons', 'subcons2', '1 hour');
 update pgq.subscription set sub_active = '2005-01-01' where sub_batch is not null;
 select pgq_coop.next_batch('testqueue', 'maincons', 'subcons2', '1 hour');
 
