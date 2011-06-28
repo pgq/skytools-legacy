@@ -2,7 +2,6 @@
 """Tools for Python database scripts."""
 
 _symbols = {
-    '__version__': 'skytools.installer_config:package_version',
     # skytools.timeutil
     'FixedOffsetTimezone': 'skytools.timeutil:FixedOffsetTimezone',
     'parse_iso_timestamp': 'skytools.timeutil:parse_iso_timestamp',
@@ -106,6 +105,9 @@ _symbols = {
     'run_query': 'skytools.querybuilder:run_query',
     'run_query_row': 'skytools.querybuilder:run_query_row',
 }
+
+__all__ = _symbols.keys()
+_symbols['__version__'] = 'skytools.installer_config:package_version'
 
 if 1:
     import skytools.apipkg as _apipkg
