@@ -445,8 +445,12 @@ class LondisteSetup(CascadeAdmin):
                     res_map[a] = 1
                 elif a in reverse_map:
                     self.log.info("%s already processed" % a)
+                elif self.options.force:
+                    self.log.warning("%s not available, but --force is used" % a)
+                    res_list.append(a)
+                    res_map[a] = 1
                 else:
-                    self.log.warning("%s not available" % a)
+                    self.log.error("%s not available" % a)
                     err = 1
         if err:
             raise skytools.UsageError("Cannot proceed")
