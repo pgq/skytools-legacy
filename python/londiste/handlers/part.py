@@ -66,7 +66,7 @@ class PartHandler(TableHandler):
         curs.execute(q)
         self.local_part, self.max_part = curs.fetchone()
         if self.local_part is None or self.max_part is None:
-            raise Exeption('Error loading part info')
+            raise Exception('Error loading part info')
 
 # register handler class
 __londiste_handlers__ = [PartHandler]

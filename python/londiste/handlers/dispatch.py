@@ -862,7 +862,6 @@ class Dispatcher(BaseHandler):
         copyed
         """
         _src_cols = _dst_cols = column_list
-        _write_hook = None
         condition = ' and '.join(cond_list)
 
         if self.conf.skip_fields:
@@ -877,6 +876,8 @@ class Dispatcher(BaseHandler):
         if self.encoding_validator:
             def _write_hook(obj, data):
                 return self.encoding_validator.validate_copy(data, _src_cols)
+        else:
+            _write_hook = None
 
         return skytools.full_copy(tablename, src_curs, dst_curs, _src_cols,
                                   condition, self.table_name, _dst_cols,

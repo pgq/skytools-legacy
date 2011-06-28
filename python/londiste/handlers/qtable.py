@@ -14,6 +14,8 @@ qsplitter  -  dummy handler to setup queue tables. All events are ignored. Table
 
 from londiste.handler import BaseHandler
 
+import pgq
+
 __all__ = ['QueueTableHandler', 'FakeLocalHandler', 'QueueSplitterHandler']
 
 
