@@ -165,6 +165,7 @@ begin
             where s.sub_queue = _queue_id
               and s.sub_id = _sub_id
               and s.sub_consumer <> _subcon_id
+              and s.sub_consumer <> _consumer_id
               and sub_active < now() - i_dead_interval
             limit 1;
 
