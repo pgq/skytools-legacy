@@ -659,10 +659,15 @@ class DBScript(BaseScript):
         """
 
         max_age = self.cf.getint('connection_lifetime', DEF_CONN_AGE)
+
         if not cache:
             cache = dbname
         if cache in self.db_cache:
+            if connstr is None:
+                connstr = self.cf.get(dbname, '')
             dbc = self.db_cache[cache]
+            if connstr:
+                dbc.check_connstr(connstr)
         else:
             if not connstr:
                 connstr = self.cf.get(dbname)
@@ -949,6 +954,12 @@ class DBCachedConn(object):
         try:
             conn.close()
         except: pass
+
+    def check_connstr(self, connstr):
+        """Drop connection if connect string has changed.
+        """
+        if self.loc != connstr:
+            self.reset()
 
 
 
