@@ -694,6 +694,37 @@ class CascadeAdmin(skytools.AdminScript):
             " from pgq_node.get_queue_locations(%s) order by 1"
         self.display_table(db, desc, q, [self.queue_name])
 
+    def cmd_node_info(self):
+        self.load_local_info()
+
+        q = self.queue_info
+        n = q.local_node
+        m = q.get_member(n.name)
+
+        stlist = []
+        if m.dead:
+            stlist.append('DEAD')
+        if n.paused:
+            stlist.append("PAUSED")
+        if not n.uptodate:
+            stlist.append("NON-UP-TO-DATE")
+        st = ', '.join(stlist)
+        if not st:
+            st = 'OK'
+        print('Node: %s  Type: %s  Queue: %s' % (n.name, n.type, q.queue_name))
+        print('Status: %s' % st)
+        if n.type != 'root':
+            print('Provider: %s' % n.provider_node)
+        else:
+            print('Provider: --')
+        print('Connect strings:')
+        print('  Local   : %s' % self.cf.get('db'))
+        print('  Public  : %s' % m.location)
+        if n.type != 'root':
+            print('  Provider: %s' % n.provider_location)
+        if n.combined_queue:
+            print('Combined Queue: %s  (node type: %s)' % (n.combined_queue, n.combined_type))
+
     #
     # Shortcuts for operating on nodes.
     #
