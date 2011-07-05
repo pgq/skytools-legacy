@@ -13,9 +13,11 @@ talking with other software that uses stricter parsers.
 (False, u'X\ufffdZ')
 >>> safe_utf8_decode('OK')
 (True, u'OK')
+>>> safe_utf8_decode('X\xF1Y')
+(False, u'X\ufffdY')
 """
 
-import re
+import re, codecs
 
 __all__ = ['safe_utf8_decode']
 
@@ -54,6 +56,26 @@ def sanitize_unicode(u):
         u = _urc.sub(_fix_utf8, u)
     return u
 
+def safe_replace(exc):
+    """Replace only one symbol at a time.
+
+    Builtin .decode('xxx', 'replace') replaces several symbols
+    together, which is unsafe.
+    """
+    if not isinstance(exc, UnicodeDecodeError):
+        raise exc
+    c2 = REPLACEMENT_SYMBOL
+
+    # we could assume latin1
+    if 0:
+        c1 = exc.object[exc.start]
+        c2 = unichr(ord(c1))
+
+    return c2, exc.start + 1
+
+# register, it will be globally available
+codecs.register_error("safe_replace", safe_replace)
+
 def safe_utf8_decode(s):
     """Decode UTF-8 safely.
 
@@ -71,7 +93,7 @@ def safe_utf8_decode(s):
         # expect no errors by default
         u = s.decode('utf8')
     except UnicodeDecodeError:
-        u = s.decode('utf8', 'replace')
+        u = s.decode('utf8', 'safe_replace')
         ok = False
     
     u2 = sanitize_unicode(u)
