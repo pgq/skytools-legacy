@@ -54,7 +54,7 @@ class CoopConsumer(Consumer):
         self.log.info("Unregistering consumer from source queue")
         db = self.get_database(self.db_name)
         cx = db.cursor()
-        cx.execute("select pgq_coop.unregister_consumer(%s, %s, %s, 0)",
+        cx.execute("select pgq_coop.unregister_subconsumer(%s, %s, %s, 0)",
                     [self.queue_name, self.consumer_name, self.subconsumer_name])
         db.commit()
 
