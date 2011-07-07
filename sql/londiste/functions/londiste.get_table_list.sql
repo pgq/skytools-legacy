@@ -41,8 +41,9 @@ declare
     q_part1     text;
     n_parts     int4;
     n_done      int4;
+    var_table_name text;
 begin
-    for table_name, local, merge_state, custom_snapshot, table_attrs, dropped_ddl, q_part1, n_parts, n_done in
+    for var_table_name, local, merge_state, custom_snapshot, table_attrs, dropped_ddl, q_part1, n_parts, n_done in
         select t.table_name, t.local, t.merge_state, t.custom_snapshot, t.table_attrs, t.dropped_ddl,
                min(t2.queue_name) as _queue1,
                count(t2.table_name) as _total,
@@ -74,7 +75,7 @@ begin
                     -- has lead already dropped ddl?
                     perform 1 from londiste.table_info t
                         where t.queue_name = q_part1
-                            and t.table_name = get_table_list.table_name
+                            and t.table_name = var_table_name
                             and t.dropped_ddl is not null;
                     if found then
                         copy_role := 'wait-replay';
@@ -89,7 +90,7 @@ begin
                 end if;
             end if;
         end if;
-
+        table_name:=var_table_name;
         return next;
     end loop; 
     return;
