@@ -586,10 +586,13 @@ class EncodingValidator:
         self.columns = None
         self.error_count = 0
 
-    def show_error(self, col, val):
-        self.log.error('Invalid UTF8 in column <%s>: %s', col, repr(val))
+    def show_error(self, col, val, pfx, unew):
+        if pfx:
+            col = pfx + '.' + col
+        self.log.warning('Invalid UTF8 in column <%s>', col)
+        self.log.debug('<%s>: old=%r new=%r', col, val, unew)
 
-    def validate_copy(self, data, columns):
+    def validate_copy(self, data, columns, pfx=""):
         """Validate tab-separated fields"""
 
         ok, _unicode = safe_utf8_decode(data)
@@ -601,18 +604,18 @@ class EncodingValidator:
         for i, v in enumerate(vals):
             ok, tmp = safe_utf8_decode(v)
             if not ok:
-                self.show_error(columns[i], v)
+                self.show_error(columns[i], v, pfx, tmp)
 
         # return safe data
         return _unicode.encode('utf8')
 
-    def validate_dict(self, data):
+    def validate_dict(self, data, pfx=""):
         """validates data in dict"""
         for k, v in data.items():
             if v:
                 ok, u = safe_utf8_decode(v)
                 if not ok:
-                    self.show_error(k, v)
+                    self.show_error(k, v, pfx, u)
                     data[k] = u.encode('utf8')
         return data
 
@@ -749,7 +752,7 @@ class Dispatcher(BaseHandler):
         # get data
         data = skytools.db_urldecode(ev.data)
         if self.encoding_validator:
-            data = self.encoding_validator.validate_dict(data)
+            data = self.encoding_validator.validate_dict(data, self.table_name)
         if len(ev.ev_type) < 2 or ev.ev_type[1] != ':':
             raise Exception('Unsupported event type: %s/extra1=%s/data=%s' % (
                             ev.ev_type, ev.ev_extra1, ev.ev_data))
@@ -875,7 +878,7 @@ class Dispatcher(BaseHandler):
 
         if self.encoding_validator:
             def _write_hook(obj, data):
-                return self.encoding_validator.validate_copy(data, _src_cols)
+                return self.encoding_validator.validate_copy(data, _src_cols, tablename)
         else:
             _write_hook = None
 
