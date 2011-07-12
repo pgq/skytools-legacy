@@ -1,0 +1,5 @@
+
+Merge function to be used with londiste 'applyfn' handler.
+
+londiste3 add-table foo --handler="applyfn(func_name=merge_on_time,func_conf=timefield%3dmodified_date)"
+
