@@ -142,7 +142,6 @@ creating or coping initial data to destination table.  --expect-sync and
 
 import sys
 import datetime
-import new
 import codecs
 import re
 import skytools
@@ -150,6 +149,9 @@ from londiste.handler import BaseHandler
 from skytools import quote_ident, quote_fqident, UsageError
 from skytools.dbstruct import *
 from skytools.utf8 import safe_utf8_decode
+from functools import partial
+from londiste.handlers import handler_args, update
+
 
 __all__ = ['Dispatcher']
 
@@ -896,33 +898,11 @@ class Dispatcher(BaseHandler):
 __londiste_handlers__ = [Dispatcher]
 
 
-
 #------------------------------------------------------------------------------
 # helper function for creating dispachers with different default values
 #------------------------------------------------------------------------------
 
-
-def handler(name):
-    def wrapper(func):
-        def _init_override(self, table_name, args, log):
-            Dispatcher.__init__(self, table_name, func(args.copy()), log)
-        dct = {'__init__': _init_override, 'handler_name': name}
-        clsname = 'Dispatcher_%s' % name.replace('.','_')
-        cls = new.classobj(clsname, (Dispatcher,), dct)
-        setattr(sys.modules[__name__], clsname, cls)
-        __londiste_handlers__.append(cls)
-        __all__.append(clsname)
-        return func
-    return wrapper
-
-
-def update(*p):
-    """ Update dicts given in params with its precessor param dict
-    in reverse order """
-    return reduce(lambda x, y: x.update(y) or x,
-            (p[i] for i in range(len(p)-1,-1,-1)), {})
-
-
+handler_args = partial(handler_args, cls=Dispatcher)
 
 #------------------------------------------------------------------------------
 # build set of handlers with different default values for easier use
@@ -953,16 +933,16 @@ for load, load_dict in LOAD.items():
             def create_handler():
                 handler_name = '_'.join(p for p in (load, period, mode) if p)
                 default = update(mode_dict, period_dict, load_dict, BASE)
-                @handler(handler_name)
+                @handler_args(handler_name)
                 def handler_func(args):
                     return update(args, default)
             create_handler()
 
 
-@handler('bulk_direct')
+@handler_args('bulk_direct')
 def bulk_direct_handler(args):
     return update(args, {'load_mode': 'bulk', 'table_mode': 'direct'})
 
-@handler('direct')
+@handler_args('direct')
 def direct_handler(args):
     return update(args, {'load_mode': 'direct', 'table_mode': 'direct'})

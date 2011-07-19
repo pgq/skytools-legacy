@@ -6,7 +6,7 @@ create table mergetest (
     timecol timestamp
 );
 -- insert to empty
-select merge_on_time('timefield=timecol', 'I:intcol', 'intcol=5&txtcol=v1&timecol=2010-09-09+12:12', 'mergetest', null, null, null);
+select merge_on_time('timefield=timecol', null, null, null, null, null, 'I:intcol', 'intcol=5&txtcol=v1&timecol=2010-09-09+12:12', 'mergetest', null, null, null);
     merge_on_time    
 ---------------------
  data ok, no old row
@@ -19,7 +19,7 @@ select * from mergetest;
 (1 row)
 
 -- insert to with time earlier
-select merge_on_time('timefield=timecol', 'I:intcol', 'intcol=5&txtcol=v2&timecol=2010-09-08+12:12', 'mergetest', null, null, null);
+select merge_on_time('timefield=timecol', null, null, null, null, null, 'I:intcol', 'intcol=5&txtcol=v2&timecol=2010-09-08+12:12', 'mergetest', null, null, null);
                    merge_on_time                   
 ---------------------------------------------------
  IGN:data ok, old row, current row more up-to-date
@@ -32,7 +32,7 @@ select * from mergetest;
 (1 row)
 
 -- insert to with time later
-select merge_on_time('timefield=timecol', 'I:intcol', 'intcol=5&txtcol=v3&timecol=2010-09-10+12:12', 'mergetest', null, null, null);
+select merge_on_time('timefield=timecol', null, null, null, null, null, 'I:intcol', 'intcol=5&txtcol=v3&timecol=2010-09-10+12:12', 'mergetest', null, null, null);
           merge_on_time           
 ----------------------------------
  data ok, old row, new row better

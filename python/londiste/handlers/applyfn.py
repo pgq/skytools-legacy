@@ -29,8 +29,13 @@ class ApplyFuncHandler(BaseHandler):
         qfn = skytools.quote_fqident(fn)
         qargs = [skytools.quote_literal(a) for a in args]
         sql = "select %s(%s);" % (qfn, ', '.join(qargs))
-
+        self.log.debug('applyfn.sql: %s' % sql)
         sql_queue_func(sql, qfunc_arg)
 
+#------------------------------------------------------------------------------
+# register handler class
+#------------------------------------------------------------------------------
+
 __londiste_handlers__ = [ApplyFuncHandler]
+
 
