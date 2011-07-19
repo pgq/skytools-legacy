@@ -180,14 +180,14 @@ class LondisteSetup(CascadeAdmin):
             attrs['handler'] = hstr
             p.add(tgargs)
 
+        if self.options.expect_sync:
+            tgargs.append('expect_sync')
+
         # actual table registration
         q = "select * from londiste.local_add_table(%s, %s, %s)"
         self.exec_cmd(dst_curs, q, [self.set_name, tbl, tgargs])
 
-        if self.options.expect_sync:
-            q = "select * from londiste.local_set_table_state(%s, %s, NULL, 'ok')"
-            self.exec_cmd(dst_curs, q, [self.set_name, tbl])
-        else:
+        if not self.options.expect_sync:
             if self.options.skip_truncate:
                 attrs['skip_truncate'] = 1
             if self.options.copy_condition:
