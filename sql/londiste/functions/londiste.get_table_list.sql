@@ -52,7 +52,8 @@ begin
             join pgq_node.node_info n on (n.queue_name = t.queue_name)
             left join pgq_node.node_info n2 on (n2.combined_queue = n.combined_queue or
                 (n2.combined_queue is null and n.combined_queue is null))
-            left join londiste.table_info t2 on (t2.table_name = t.table_name and t2.queue_name = n2.queue_name)
+            left join londiste.table_info t2 on (t2.table_name = t.table_name and
+                t2.queue_name = n2.queue_name and (t2.merge_state is null or t2.merge_state != 'ok'))
             where t.queue_name = i_queue_name
             group by t.nr, t.table_name, t.local, t.merge_state, t.custom_snapshot, t.table_attrs, t.dropped_ddl
             order by t.nr, t.table_name

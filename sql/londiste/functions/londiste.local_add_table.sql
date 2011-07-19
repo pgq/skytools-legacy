@@ -23,8 +23,9 @@ as $$
 --      skip_truncate   - set 'skip_truncate' table attribute
 --      expect_sync     - set table state to 'ok'
 --      tgflags=X       - trigger creation flags
---      merge_all       - merge table from all sources. required for 
+--      merge_all       - merge table from all sources. required for
 --                        multi-source table
+--      no_merge        - do not merge tables from different sources
 --      skip            - create skip trigger. same as S flag
 --      virtual_table   - skips structure check and trigger creation
 --
@@ -82,6 +83,7 @@ declare
     -- argument flags
     _expect_sync boolean := false;
     _merge_all boolean := false;
+    _no_merge boolean := false;
     _skip_truncate boolean := false;
     _no_triggers boolean := false;
     _skip boolean := false;
@@ -109,6 +111,8 @@ begin
                 _no_triggers := true;
             elsif arg = 'merge_all' then
                 _merge_all = true;
+            elsif arg = 'no_merge' then
+                _no_merge = true;
             elsif lower(arg) = 'skip' then
                 _skip := true;
             elsif arg = 'virtual_table' then
@@ -120,6 +124,12 @@ begin
                 _args = array_append(_args, quote_literal(arg));
             end if;
         end loop;
+    end if;
+
+    if _merge_all and _no_merge then
+        select 405, 'Cannot use merge-all and no-merge together'
+        into ret_code, ret_note;
+        return;
     end if;
 
     fq_table_name := londiste.make_fqname(i_table_name);
@@ -208,7 +218,7 @@ begin
     end if;
 
     -- merge all table sources on leaf
-    if _node.node_type = 'leaf' then
+    if _node.node_type = 'leaf' and not _no_merge then
         for _queue_name, _local in
             select t2.queue_name, t2.local
             from londiste.table_info t
@@ -223,7 +233,7 @@ begin
             -- if table from some other source is already marked as local,
             -- raise error
             if _local then
-                select 406, 'found local table '|| fq_table_name
+                select 405, 'Found local table '|| fq_table_name
                         || ' in queue ' || _queue_name
                         || ', use remove-table first to remove all previous '
                         || 'table subscriptions'
@@ -231,14 +241,14 @@ begin
                 return;
             end if;
 
-            -- when table comes from multiple sources, merge_all switch is
-            -- required
-            if not _merge_all then
-                select 405, 'multiple source tables '|| fq_table_name
-                        || ' found, use merge_all'
-                into ret_code, ret_note;
-                return;
-            end if;
+           -- when table comes from multiple sources, merge_all switch is
+           -- required
+           if not _merge_all then
+               select 405, 'Found multiple sources for table '|| fq_table_name
+                       || ', use merge-all or no-merge to continue'
+               into ret_code, ret_note;
+               return;
+           end if;
 
             update londiste.table_info
                set local = true,

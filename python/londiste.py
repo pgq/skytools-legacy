@@ -130,6 +130,8 @@ class Londiste(skytools.DBScript):
                 help = "add: set WHERE expression for copy")
         g.add_option("--merge-all", action="store_true",
                 help="merge tables from all source queues", default=False)
+        g.add_option("--no-merge", action="store_true",
+                help="don't merge tables from source queues", default=False)
 
         p.add_option_group(g)
 
