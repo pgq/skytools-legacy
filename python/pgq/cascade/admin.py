@@ -145,7 +145,7 @@ class CascadeAdmin(skytools.AdminScript):
         if info['node_type'] is not None:
             self.log.info("Node is already initialized as %s" % info['node_type'])
             return
-        
+
         self.log.info("Initializing node")
 
         worker_name = self.options.worker
@@ -286,7 +286,7 @@ class CascadeAdmin(skytools.AdminScript):
                 state = self.get_node_info(node)
                 consumer = state.worker_name
             return (node, consumer)
-        
+
         # global consumer search
         if self.find_consumer_check(self.local_node, consumer):
             return (self.local_node, consumer)
@@ -298,7 +298,7 @@ class CascadeAdmin(skytools.AdminScript):
                 continue
             if self.find_consumer_check(node, consumer):
                 return (node, consumer)
-        
+
         raise Exception('Consumer not found')
 
     def install_code(self, db):
@@ -478,9 +478,19 @@ class CascadeAdmin(skytools.AdminScript):
             raise Exception('node still has subscribers')
 
         # remove the node from all the databases
-        for n in self.queue_info.member_map.values():
-            q = "select * from pgq_node.drop_node(%s, %s)"
-            self.node_cmd(n.name, q, [self.queue_name, node_name])
+        # for n in self.queue_info.member_map.values():
+        #    q = "select * from pgq_node.drop_node(%s, %s)"
+        #    self.node_cmd(n.name, q, [self.queue_name, node_name])
+
+        # drop node info
+        db = self.get_node_database(node_name)
+        q = "select * from pgq_node.drop_node(%s, %s)"
+        self.exec_cmd(db, q, [self.queue_name, node_name])
+
+        # unregister node location from root node (event will be added to queue)
+        root_db = self.find_root_db()
+        q = "select * from pgq_node.unregister_location(%s, %s)"
+        self.exec_cmd(root_db, q, [self.queue_name, node_name])
 
     def node_depends(self, sub_node, top_node):
         cur_node = sub_node

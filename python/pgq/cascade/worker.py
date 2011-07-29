@@ -240,6 +240,10 @@ class CascadedWorker(CascadedConsumer):
             dead = ev.ev_extra3
             q = "select * from pgq_node.register_location(%s, %s, %s, %s)"
             dst_curs.execute(q, [self.pgq_queue_name, node, loc, dead])
+        elif t == "pgq.unregister-location":
+            node = ev.ev_data
+            q = "select * from pgq_node.unregister_location(%s, %s)"
+            dst_curs.execute(q, [self.pgq_queue_name, node])
         elif t == "pgq.global-watermark":
             if st.process_global_wm:
                 tick_id = int(ev.ev_data)

@@ -45,12 +45,21 @@ begin
     delete from pgq_node.node_location
      where queue_name = i_queue_name
        and node_name = i_node_name;
+
     if found then
         select 200, 'Ok' into ret_code, ret_note;
     else
         select 301, 'Location not found: ' || i_queue_name || '/' || i_node_name
           into ret_code, ret_note;
     end if;
+
+    if node.node_type = 'root' then
+        perform pgq.insert_event(i_queue_name, 'pgq.unregister-location',
+                                 i_node_name, i_queue_name, null, null, null)
+           from pgq_node.node_info n
+         where n.queue_name = i_queue_name;
+    end if;
+
     return;
 end;
 $$ language plpgsql security definer;
