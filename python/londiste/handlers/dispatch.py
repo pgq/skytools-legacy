@@ -591,7 +591,7 @@ class EncodingValidator:
     def show_error(self, col, val, pfx, unew):
         if pfx:
             col = pfx + '.' + col
-        self.log.warning('Invalid UTF8 in column <%s>', col)
+        self.log.info('Fixed invalid UTF8 in column <%s>', col)
         self.log.debug('<%s>: old=%r new=%r', col, val, unew)
 
     def validate_copy(self, data, columns, pfx=""):
