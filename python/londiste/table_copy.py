@@ -56,8 +56,14 @@ class CopyTable(Replicator):
         src_curs = src_db.cursor()
         dst_curs = dst_db.cursor()
 
-        while tbl_stat.copy_role == 'wait-copy':
-            self.log.info('waiting for first partition to initialize copy')
+        while 1:
+            if tbl_stat.copy_role == 'wait-copy':
+                self.log.info('waiting for first partition to initialize copy')
+            elif tbl_stat.max_parallel_copies_reached():
+                self.log.info('number of max parallel copies (%s) reached' %\
+                                tbl_stat.max_parallel_copy)
+            else:
+                break
             time.sleep(10)
             tbl_stat = self.reload_table_stat(dst_curs, tbl_stat.name)
             dst_db.commit()
@@ -70,7 +76,7 @@ class CopyTable(Replicator):
             pt = pmap[tbl_stat.name]
             if pt.state == TABLE_OK:
                 break
-            
+
             self.log.warning("table %s not in sync yet on provider, waiting" % tbl_stat.name)
             time.sleep(10)
 
@@ -98,7 +104,7 @@ class CopyTable(Replicator):
         # find dst struct
         src_struct = TableStruct(src_curs, tbl_stat.name)
         dst_struct = TableStruct(dst_curs, tbl_stat.name)
-        
+
         # take common columns, warn on missing ones
         dlist = dst_struct.get_column_list()
         slist = src_struct.get_column_list()
@@ -154,6 +160,8 @@ class CopyTable(Replicator):
             dst_struct.create(dst_curs, objs, log = self.log)
         elif cmode == 2:
             dst_db.commit()
+            self.change_table_state(dst_db, tbl_stat, TABLE_CATCHING_UP)
+            # start waiting for other copy processes to finish
             while tbl_stat.copy_role == 'lead':
                 self.log.info('waiting for other partitions to finish copy')
                 time.sleep(10)

@@ -69,6 +69,9 @@ class LondisteSetup(CascadeAdmin):
                     help="merge tables from all source queues", default=False)
         p.add_option("--no-merge", action="store_true",
                     help="don't merge tables from source queues", default=False)
+        p.add_option("--max-parallel-copy", type = "int",
+                    help="max number of parallel copy processes")
+
         return p
 
     def extra_init(self, node_type, node_db, provider_db):
@@ -183,19 +186,25 @@ class LondisteSetup(CascadeAdmin):
         if self.options.expect_sync:
             tgargs.append('expect_sync')
 
-        # actual table registration
-        q = "select * from londiste.local_add_table(%s, %s, %s)"
-        self.exec_cmd(dst_curs, q, [self.set_name, tbl, tgargs])
-
         if not self.options.expect_sync:
             if self.options.skip_truncate:
                 attrs['skip_truncate'] = 1
             if self.options.copy_condition:
                 attrs['copy_condition'] = self.options.copy_condition
+
+        if self.options.max_parallel_copy:
+            attrs['max_parallel_copy'] = self.options.max_parallel_copy
+
+        args = [self.set_name, tbl, tgargs]
+
         if attrs:
-            enc_attrs = skytools.db_urlencode(attrs)
-            q = "select * from londiste.local_set_table_attrs(%s, %s, %s)"
-            self.exec_cmd(dst_curs, q, [self.set_name, tbl, enc_attrs])
+            args.append(skytools.db_urlencode(attrs))
+
+        q = "select * from londiste.local_add_table(%s)" %\
+            ','.join(['%s']*len(args))
+
+        # actual table registration
+        self.exec_cmd(dst_curs, q, args)
         dst_db.commit()
 
     def handler_needs_table(self):

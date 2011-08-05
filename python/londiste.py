@@ -132,6 +132,8 @@ class Londiste(skytools.DBScript):
                 help="merge tables from all source queues", default=False)
         g.add_option("--no-merge", action="store_true",
                 help="don't merge tables from source queues", default=False)
+        g.add_option("--max-parallel-copy", type = "int",
+                help="max number of parallel copy processes")
 
         p.add_option_group(g)
 

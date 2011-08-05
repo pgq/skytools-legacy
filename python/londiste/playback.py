@@ -25,6 +25,8 @@ SYNC_OK   = 0  # continue with batch
 SYNC_LOOP = 1  # sleep, try again
 SYNC_EXIT = 2  # nothing to do, exit skript
 
+MAX_PARALLEL_COPY = 8 # default number of allowed max parallel copy processes
+
 class Counter(object):
     """Counts table statuses."""
 
@@ -51,6 +53,7 @@ class Counter(object):
             elif t.state == TABLE_OK:
                 self.ok += 1
 
+
     def get_copy_count(self):
         return self.copy + self.catching_up + self.wanna_sync + self.do_sync
 
@@ -74,6 +77,10 @@ class TableState(object):
         self.plugin = None
         # except this
         self.changed = 0
+        # position in parallel copy work order
+        self.copy_pos = 0
+        # max number of parallel copy processesses allowed
+        self.max_parallel_copy = MAX_PARALLEL_COPY
 
     def forget(self):
         """Reset all info."""
@@ -87,6 +94,8 @@ class TableState(object):
         self.table_attrs = {}
         self.changed = 1
         self.plugin = None
+        self.copy_pos = 0
+        self.max_parallel_copy = MAX_PARALLEL_COPY
 
     def change_snapshot(self, str_snapshot, tag_changed = 1):
         """Set snapshot."""
@@ -175,9 +184,17 @@ class TableState(object):
         if row['merge_state'] == "?":
             self.changed = 1
 
+        self.copy_pos = int(row.get('copy_pos','0'))
+        self.max_parallel_copy = int(self.table_attrs.get('max_parallel_copy',
+                                                        self.max_parallel_copy))
+
         hstr = self.table_attrs.get('handlers', '') # compat
         hstr = self.table_attrs.get('handler', hstr)
         self.plugin = build_handler(self.name, hstr, self.log)
+
+    def max_parallel_copies_reached(self):
+        return self.max_parallel_copy and\
+                    self.copy_pos >= self.max_parallel_copy
 
     def interesting(self, ev, tick_id, copy_thread):
         """Check if table wants this event."""
@@ -210,7 +227,7 @@ class TableState(object):
 
     def gc_snapshot(self, copy_thread, prev_tick, cur_tick, no_lag):
         """Remove attached snapshot if possible.
-        
+
         If the event processing is in current moment. the snapshot
         is not needed beyond next batch.
 
@@ -318,7 +335,7 @@ class Replicator(CascadedWorker):
             self.code_check_done = 1
 
         self.sync_database_encodings(src_db, dst_db)
-        
+
         self.cur_tick = self.batch_info['tick_id']
         self.prev_tick = self.batch_info['prev_tick_id']
 
@@ -367,7 +384,7 @@ or (ev_extra1 in (%s)))
 
     def sync_tables(self, src_db, dst_db):
         """Table sync loop.
-        
+
         Calls appropriate handles, which is expected to
         return one of SYNC_* constants."""
 
@@ -395,7 +412,7 @@ or (ev_extra1 in (%s)))
             dst_db.commit()
             self.load_table_state(dst_db.cursor())
             dst_db.commit()
-    
+
     dsync_backup = None
     def sync_from_main_thread(self, cnt, src_db, dst_db):
         "Main thread sync logic."
@@ -403,7 +420,7 @@ or (ev_extra1 in (%s)))
         # This operates on all table, any amount can be in any state
 
         ret = SYNC_OK
-        
+
         if cnt.do_sync:
             # wait for copy thread to catch up
             ret = SYNC_LOOP
@@ -470,7 +487,7 @@ or (ev_extra1 in (%s)))
                 # there cannot be interesting events in current batch
                 # but maybe there's several tables, lets do them in one go
                 ret = SYNC_LOOP
-        
+
         return ret
 
 
@@ -506,7 +523,7 @@ or (ev_extra1 in (%s)))
         elif t.state == TABLE_CATCHING_UP:
 
             # partition merging
-            if t.copy_role == 'wait-replay':
+            if t.copy_role in ('wait-replay', 'lead'):
                 return SYNC_LOOP
 
             # is there more work?
@@ -566,14 +583,14 @@ or (ev_extra1 in (%s)))
         if not t or not t.interesting(ev, self.cur_tick, self.copy_thread):
             self.stat_increase('ignored_events')
             return
-        
+
         try:
             p = self.used_plugins[ev.extra1]
         except KeyError:
             p = t.get_plugin()
             self.used_plugins[ev.extra1] = p
             p.prepare_batch(self.batch_info, dst_curs)
-     
+
         p.process_event(ev, self.apply_sql, dst_curs)
 
     def handle_truncate_event(self, ev, dst_curs):
@@ -675,7 +692,7 @@ or (ev_extra1 in (%s)))
 
     def load_table_state(self, curs):
         """Load table state from database.
-        
+
         Todo: if all tables are OK, there is no need
         to load state on every batch.
         """
@@ -823,7 +840,7 @@ or (ev_extra1 in (%s)))
             q2 = "select londiste.restore_table_fkey(%(from_table)s, %(fkey_name)s)"
             dst_curs.execute(q2, row)
             dst_db.commit()
-    
+
     def drop_fkeys(self, dst_db, table_name):
         """Drop all foreign keys to and from this table.
 
@@ -839,7 +856,7 @@ or (ev_extra1 in (%s)))
             q2 = "select londiste.drop_table_fkey(%(from_table)s, %(fkey_name)s)"
             dst_curs.execute(q2, row)
             dst_db.commit()
-        
+
     def process_root_node(self, dst_db):
         """On root node send seq changes to queue."""
 

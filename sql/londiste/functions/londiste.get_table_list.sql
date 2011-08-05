@@ -7,8 +7,9 @@ create or replace function londiste.get_table_list(
     out custom_snapshot text,
     out table_attrs text,
     out dropped_ddl text,
-    out copy_role text)
-returns setof record as $$ 
+    out copy_role text,
+    out copy_pos int)
+returns setof record as $$
 -- ----------------------------------------------------------------------
 -- Function: londiste.get_table_list(1)
 --
@@ -25,6 +26,7 @@ returns setof record as $$
 --      table_attrs     - urlencoded dict of table attributes
 --      dropped_ddl     - partition combining: temp place to put DDL
 --      copy_role       - partition combining: how to handle copy
+--      copy_pos        - position in parallel copy working order
 --
 -- copy_role = lead:
 --      on copy start, drop indexes and store in dropped_ddl
@@ -42,12 +44,15 @@ declare
     n_parts     int4;
     n_done      int4;
     var_table_name text;
+    n_combined_queue text;
 begin
-    for var_table_name, local, merge_state, custom_snapshot, table_attrs, dropped_ddl, q_part1, n_parts, n_done in
+    for var_table_name, local, merge_state, custom_snapshot, table_attrs, dropped_ddl, q_part1, n_parts, n_done, n_combined_queue, copy_pos in
         select t.table_name, t.local, t.merge_state, t.custom_snapshot, t.table_attrs, t.dropped_ddl,
-               min(t2.queue_name) as _queue1,
-               count(t2.table_name) as _total,
-               count(nullif(t2.merge_state, 'in-copy')) as _done
+               min(case when t2.local then t2.queue_name else null end) as _queue1,
+               count(case when t2.local then t2.table_name else null end) as _total,
+               count(case when t2.local then nullif(t2.merge_state, 'in-copy') else null end) as _done,
+               min(n.combined_queue) as _combined_queue,
+               count(nullif(t2.queue_name < i_queue_name and t.merge_state = 'in-copy' and t2.merge_state = 'in-copy', false)) as _copy_pos
             from londiste.table_info t
             join pgq_node.node_info n on (n.queue_name = t.queue_name)
             left join pgq_node.node_info n2 on (n2.combined_queue = n.combined_queue or
@@ -61,12 +66,13 @@ begin
         -- if the table is in middle of copy from multiple partitions,
         -- the copy processes need coordination
         copy_role := null;
+
         if q_part1 is not null then
             if i_queue_name = q_part1 then
                 -- lead
-                if merge_state = 'in-copy' then
+                if merge_state in ('in-copy', 'catching-up') then
                     -- show copy_role only if need to wait for others
-                    if n_done < n_parts - 1 then
+                    if n_done < n_parts then
                         copy_role := 'lead';
                     end if;
                 end if;
@@ -93,8 +99,8 @@ begin
         end if;
         table_name:=var_table_name;
         return next;
-    end loop; 
+    end loop;
     return;
-end; 
+end;
 $$ language plpgsql strict stable;
 

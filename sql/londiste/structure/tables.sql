@@ -99,7 +99,7 @@ create table londiste.table_info (
     foreign key (queue_name)
       references pgq_node.node_info (queue_name)
       on delete cascade,
-    check (dropped_ddl is null or merge_state = 'in-copy')
+    check (dropped_ddl is null or merge_state in ('in-copy', 'catching-up'))
 );
 
 

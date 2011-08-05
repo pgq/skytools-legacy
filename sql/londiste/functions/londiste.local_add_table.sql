@@ -2,6 +2,7 @@ create or replace function londiste.local_add_table(
     in i_queue_name     text,
     in i_table_name     text,
     in i_trg_args       text[],
+    in i_table_attrs    text default null,
     out ret_code        int4,
     out ret_note        text)
 as $$
@@ -211,7 +212,8 @@ begin
 
     update londiste.table_info
         set local = true,
-            merge_state = new_state
+            merge_state = new_state,
+            table_attrs = coalesce(i_table_attrs, table_attrs)
         where queue_name = i_queue_name and table_name = fq_table_name;
     if not found then
         raise exception 'lost table: %', fq_table_name;
@@ -252,7 +254,8 @@ begin
 
             update londiste.table_info
                set local = true,
-                   merge_state = new_state
+                   merge_state = new_state,
+                   table_attrs = coalesce(i_table_attrs, table_attrs)
                where queue_name = _queue_name and table_name = fq_table_name;
             if not found then
                 raise exception 'lost table: %', fq_table_name;
@@ -266,7 +269,7 @@ begin
                                             fq_table_name,
                                             'skip_truncate=1');
     end if;
-
+    
     -------- TRIGGER LOGIC
 
     -- new trigger
