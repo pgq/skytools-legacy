@@ -272,11 +272,11 @@ class BaseScript(object):
             self.print_ini()
             sys.exit(0)
 
-        self.cf_operride = {}
+        self.cf_override = {}
         if self.options.set:
             for a in self.options.set:
                 k, v = a.split('=', 1)
-                self.cf_operride[k.strip()] = v.strip()
+                self.cf_override[k.strip()] = v.strip()
 
         # read config file
         self.reload()
@@ -350,7 +350,7 @@ class BaseScript(object):
             print("need config file, use --help for help.")
             sys.exit(1)
         conf_file = self.args[0]
-        return skytools.Config(self.service_name, conf_file, override = self.cf_operride)
+        return skytools.Config(self.service_name, conf_file, override = self.cf_override)
 
     def init_optparse(self, parser = None):
         """Initialize a OptionParser() instance that will be used to 
