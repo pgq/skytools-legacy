@@ -2,10 +2,18 @@
 
 . ../testlib.sh
 
+v=-v
+
 title "NoQueue Merge"
 
 part_list="part1 part2 part3 part4"
 full_list="full1 full2"
+
+pnum=0
+for p in $part_list; do
+  pnum=$(($pnum + 1))
+done
+
 merge_list=""
 for dst in $full_list; do
   for src in $part_list; do
@@ -47,7 +55,7 @@ pidfile = pid/%(job_name)s.pid
 EOF
 
 # londiste on combined nodes
-for dst in full1 full2; do
+for dst in $full_list; do
 full_job=${queue}_$dst
 cat > conf/${full_job}.ini << EOF
 [londiste3]
@@ -100,7 +108,7 @@ for db in $part_list; do
     run londiste3 $v -d conf/${part_job}.ini worker
 
     # londiste on combined nodes
-    for dst in full1 full2; do
+    for dst in $full_list; do
         full_job=${queue}_$dst
         run londiste3 $v -d conf/${full_job}.ini worker
     done
@@ -117,14 +125,21 @@ for db in $part_list; do
     run londiste3 $v conf/${job}.ini add-table mydata
 done
 
-
-msg "Insert few rows"
-for n in 1 2 3 4; do
-  run_sql part$n "insert into mydata values ($n, 'part$n')"
+msg "Wait until register reaches full1"
+cnt=0
+while test $cnt -ne $pnum; do
+  sleep 5
+  cnt=`psql -A -t -d full1 -c "select count(*) from londiste.table_info where merge_state is null"`
+  echo "  cnt_tbl=$cnt"
 done
 
-msg "Sleep a bit"
-run sleep 10
+
+msg "Insert few rows"
+n=0
+for p in $part_list; do
+  n=$(($n + 1))
+  run_sql $p "insert into mydata values ($n, '$p')"
+done
 
 msg "Create table and register it in full nodes"
 for db in $full_list; do
@@ -137,8 +152,14 @@ for db in $full_list; do
     #done
 done
 
-msg "Sleep a bit"
-run sleep 10
+msg "Wait until copy finishes on full1"
+cnt=0
+while test $cnt -ne $pnum; do
+  sleep 5
+  cnt=`psql -A -t -d full1 -c "select count(*) from londiste.table_info where merge_state = 'ok'"`
+  echo "  cnt_ok=$cnt"
+done
+
 
 msg "Insert few rows"
 for n in 1 2 3 4; do
