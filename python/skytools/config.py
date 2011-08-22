@@ -186,10 +186,13 @@ class Config(object):
         """Returns list of sections in config file, excluding DEFAULT."""
         return self.cf.sections()
 
+    def has_section(self, section):
+        """Checks if section is present in config file, excluding DEFAULT."""
+        return self.cf.has_section(section)
+
     def clone(self, main_section):
         """Return new Config() instance with new main section on same config file."""
         return Config(main_section, self.filename, self.sane_config)
-
 
     def options(self):
         """Return list of options in main section."""
@@ -198,3 +201,7 @@ class Config(object):
     def has_option(self, opt):
         """Checks if option exists in main section."""
         return self.cf.has_option(self.main_section, opt)
+
+    def items(self):
+        """Returns list of (name, value) for each option in main section."""
+        return self.cf.items(self.main_section)
