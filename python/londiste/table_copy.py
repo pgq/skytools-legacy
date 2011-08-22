@@ -161,12 +161,14 @@ class CopyTable(Replicator):
                 dst_db.commit()
 
             if tbl_stat.dropped_ddl is not None:
+                self.looping = 0
                 for ddl in skytools.parse_statements(tbl_stat.dropped_ddl):
                     self.log.info(ddl)
                     dst_curs.execute(ddl)
                 q = "select * from londiste.local_set_table_struct(%s, %s, NULL)"
                 self.exec_cmd(dst_curs, q, [self.queue_name, tbl_stat.name])
                 tbl_stat.dropped_ddl = None
+                self.looping = 1
             dst_db.commit()
 
         # set state
