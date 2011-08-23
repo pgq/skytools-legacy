@@ -456,10 +456,6 @@ class BaseScript(object):
             sys.exit(1)
         self.last_sigint = t
 
-    def stat_add(self, key, value):
-        """Old, deprecated function."""
-        self.stat_put(key, value)
-
     def stat_put(self, key, value):
         """Sets a stat value."""
         self.stat_dict[key] = value
@@ -598,6 +594,10 @@ class BaseScript(object):
         # set signals
         signal.signal(signal.SIGHUP, self.hook_sighup)
         signal.signal(signal.SIGINT, self.hook_sigint)
+
+    # define some aliases (short-cuts / backward compatibility cruft)
+    stat_add = stat_put                 # Old, deprecated function.
+    stat_inc = stat_increase
 
 ##
 ##  DBScript
