@@ -58,7 +58,7 @@ def signal_pidfile(pidfile, sig):
 
 def daemonize():
     """Turn the process into daemon.
-    
+
     Goes background and disables all i/o.
     """
 
@@ -243,7 +243,7 @@ class BaseScript(object):
 
         NB: in case of daemon, the __init__() and startup()/work() will be
         run in different processes.  So nothing fancy should be done in __init__().
-        
+
         @param service_name: unique name for script.
             It will be also default job_name, if not specified in config.
         @param args: cmdline args (sys.argv[1:]), but can be overrided
@@ -297,7 +297,7 @@ class BaseScript(object):
 
     def print_ini(self):
         """Prints out ini file from doc string of the script of default for dbscript
-        
+
         Used by --ini option on command line.
         """
 
@@ -353,7 +353,7 @@ class BaseScript(object):
         return skytools.Config(self.service_name, conf_file, override = self.cf_override)
 
     def init_optparse(self, parser = None):
-        """Initialize a OptionParser() instance that will be used to 
+        """Initialize a OptionParser() instance that will be used to
         parse command line arguments.
 
         Note that it can be overrided both directions - either DBScript
@@ -400,11 +400,11 @@ class BaseScript(object):
 
     def send_signal(self, sig):
         if not self.pidfile:
-            self.log.warning("No pidfile in config, nothing todo")
+            self.log.warning("No pidfile in config, nothing to do")
         elif os.path.isfile(self.pidfile):
             alive = signal_pidfile(self.pidfile, sig)
             if not alive:
-                self.log.warning("pidfile exist, but process not running")
+                self.log.warning("pidfile exists, but process not running")
         else:
             self.log.warning("No pidfile, process not running")
         sys.exit(0)
@@ -455,10 +455,6 @@ class BaseScript(object):
             self.log.warning("Double ^C, fast exit")
             sys.exit(1)
         self.last_sigint = t
-
-    def stat_add(self, key, value):
-        """Old, deprecated function."""
-        self.stat_put(key, value)
 
     def stat_put(self, key, value):
         """Sets a stat value."""
@@ -599,6 +595,10 @@ class BaseScript(object):
         signal.signal(signal.SIGHUP, self.hook_sighup)
         signal.signal(signal.SIGINT, self.hook_sigint)
 
+    # define some aliases (short-cuts / backward compatibility cruft)
+    stat_add = stat_put                 # Old, deprecated function.
+    stat_inc = stat_increase
+
 ##
 ##  DBScript
 ##
@@ -638,7 +638,7 @@ class DBScript(BaseScript):
 
         NB: in case of daemon, the __init__() and startup()/work() will be
         run in different processes.  So nothing fancy should be done in __init__().
-        
+
         @param service_name: unique name for script.
             It will be also default job_name, if not specified in config.
         @param args: cmdline args (sys.argv[1:]), but can be overrided
@@ -653,7 +653,7 @@ class DBScript(BaseScript):
     def get_database(self, dbname, autocommit = 0, isolation_level = -1,
                      cache = None, connstr = None):
         """Load cached database connection.
-        
+
         User must not store it permanently somewhere,
         as all connections will be invalidated on reset.
         """
@@ -683,7 +683,7 @@ class DBScript(BaseScript):
 
     def close_database(self, dbname):
         """Explicitly close a cached connection.
-        
+
         Next call to get_database() will reconnect.
         """
         if dbname in self.db_cache:
@@ -717,7 +717,7 @@ class DBScript(BaseScript):
             cname = d.cursor.connection.my_name
             dsn = getattr(conn, 'dsn', '?')
             sql = getattr(curs, 'query', '?')
-            if len(sql) > 200: # avoid logging londiste huge batched queries 
+            if len(sql) > 200: # avoid logging londiste huge batched queries
                 sql = sql[:60] + " ..."
             emsg = str(d).strip()
             self.log.exception("Job %s got error on connection '%s': %s.   Query: %s" % (
@@ -960,7 +960,3 @@ class DBCachedConn(object):
         """
         if self.loc != connstr:
             self.reset()
-
-
-
-

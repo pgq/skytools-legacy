@@ -10,7 +10,7 @@ class Config(object):
 
     Additional features:
      - Remembers section.
-     - Acceps defaults in get() functions.
+     - Accepts defaults in get() functions.
      - List value support.
     """
     def __init__(self, main_section, filename, sane_config = 1, user_defs = {}, override = {}, ignore_defs = False):
@@ -121,9 +121,9 @@ class Config(object):
 
     def getdict(self, key, default=None):
         """Reads key-value dict from parameter.
-        
+
         Key and value are separated with ':'.  If missing,
-        key iself is taken as value.
+        key itself is taken as value.
         """
         try:
             s = self.cf.get(self.main_section, key).strip()
@@ -147,7 +147,7 @@ class Config(object):
 
     def getfile(self, key, default=None):
         """Reads filename from config.
-        
+
         In addition to reading string value, expands ~ to user directory.
         """
         fn = self.get(key, default)
@@ -163,10 +163,10 @@ class Config(object):
 
     def get_wildcard(self, key, values=[], default=None):
         """Reads a wildcard property from conf and returns its string value, if not set then default."""
-        
+
         orig_key = key
         keys = [key]
-        
+
         for wild in values:
             key = key.replace('*', wild, 1)
             keys.append(key)
@@ -181,15 +181,18 @@ class Config(object):
         if default == None:
             raise Exception("Config value not set: " + orig_key)
         return default
-    
+
     def sections(self):
         """Returns list of sections in config file, excluding DEFAULT."""
         return self.cf.sections()
 
+    def has_section(self, section):
+        """Checks if section is present in config file, excluding DEFAULT."""
+        return self.cf.has_section(section)
+
     def clone(self, main_section):
         """Return new Config() instance with new main section on same config file."""
         return Config(main_section, self.filename, self.sane_config)
-
 
     def options(self):
         """Return list of options in main section."""
@@ -199,3 +202,6 @@ class Config(object):
         """Checks if option exists in main section."""
         return self.cf.has_option(self.main_section, opt)
 
+    def items(self):
+        """Returns list of (name, value) for each option in main section."""
+        return self.cf.items(self.main_section)
