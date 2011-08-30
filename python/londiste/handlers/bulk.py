@@ -41,6 +41,8 @@ DEFAULT_METHOD = METH_CORRECT
 AVOID_BIZGRES_BUG = 0
 USE_LONGLIVED_TEMP_TABLES = True
 
+USE_REAL_TABLE = True
+
 class BulkEvent(object):
     """Helper class for BulkLoader to store relevant data."""
     __slots__ = ('op', 'data', 'pk_data')
@@ -191,11 +193,9 @@ class BulkLoader(BaseHandler):
                        ",".join(self.pkey_list), ",".join(self.dist_fields)))
 
         # create temp table
-        temp = self.create_temp_table(curs)
+        temp, qtemp = self.create_temp_table(curs)
         tbl = self.table_name
-
         qtbl = quote_fqident(self.table_name)
-        qtemp = quote_ident(temp)
 
         # where expr must have pkey and dist fields
         klist = []
@@ -291,7 +291,7 @@ class BulkLoader(BaseHandler):
 
         # delete remaining rows
         if temp_used:
-            if USE_LONGLIVED_TEMP_TABLES:
+            if USE_LONGLIVED_TEMP_TABLES or USE_REAL_TABLE:
                 q = "truncate %s" % qtemp
             else:
                 # fscking problems with long-lived temp tables
@@ -302,14 +302,30 @@ class BulkLoader(BaseHandler):
         self.reset()
 
     def create_temp_table(self, curs):
-        # create temp table for loading
-        tempname = self.table_name.replace('.', '_') + "_loadertmp"
+        if USE_REAL_TABLE:
+            tempname = self.table_name + "_loadertmpx"
+        else:
+            # create temp table for loading
+            tempname = self.table_name.replace('.', '_') + "_loadertmp"
 
         # check if exists
-        if USE_LONGLIVED_TEMP_TABLES:
+        if USE_REAL_TABLE:
+            if skytools.exists_table(curs, tempname):
+                self.log.debug("bulk: Using existing real table %s" % tempname)
+                return tempname, quote_fqident(tempname)
+
+            # create non-temp table
+            q = "create table %s (like %s) %s" % (
+                        quote_fqident(tempname),
+                        quote_fqident(self.table_name),
+                        arg)
+            self.log.debug("bulk: Creating real table: %s" % q)
+            curs.execute(q)
+            return tempname, quote_fqident(tempname)
+        elif USE_LONGLIVED_TEMP_TABLES:
             if skytools.exists_temp_table(curs, tempname):
                 self.log.debug("bulk: Using existing temp table %s" % tempname)
-                return tempname
+                return tempname, quote_ident(tempname)
 
         # bizgres crashes on delete rows
         # removed arg = "on commit delete rows"
@@ -319,7 +335,7 @@ class BulkLoader(BaseHandler):
                 quote_ident(tempname), quote_fqident(self.table_name), arg)
         self.log.debug("bulk: Creating temp table: %s" % q)
         curs.execute(q)
-        return tempname
+        return tempname, quote_ident(tempname)
 
     def find_dist_fields(self, curs):
         if not skytools.exists_table(curs, "pg_catalog.gp_distribution_policy"):
