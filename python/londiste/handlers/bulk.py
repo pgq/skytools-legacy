@@ -315,10 +315,9 @@ class BulkLoader(BaseHandler):
                 return tempname, quote_fqident(tempname)
 
             # create non-temp table
-            q = "create table %s (like %s) %s" % (
+            q = "create table %s (like %s)" % (
                         quote_fqident(tempname),
-                        quote_fqident(self.table_name),
-                        arg)
+                        quote_fqident(self.table_name))
             self.log.debug("bulk: Creating real table: %s" % q)
             curs.execute(q)
             return tempname, quote_fqident(tempname)
