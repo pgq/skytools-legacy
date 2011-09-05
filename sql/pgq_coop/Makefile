@@ -22,7 +22,7 @@ CATSQL = ../../scripts/catsql.py
 #
 
 pgq_coop.sql: $(SRCS)
-	$(CATSQL) $(SQL_FULL) > $@
+	$(CATSQL) structure/install.sql > $@
 
 pgq_coop.upgrade.sql: $(SRCS)
 	$(CATSQL) $(SQL_UPGRADE) > $@
