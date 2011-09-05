@@ -24,5 +24,5 @@ CREATE OR REPLACE FUNCTION pgq.insert_event_raw(
     queue_name text, ev_id bigint, ev_time timestamptz,
     ev_owner integer, ev_retry integer, ev_type text, ev_data text,
     ev_extra1 text, ev_extra2 text, ev_extra3 text, ev_extra4 text)
-RETURNS int8 AS 'MODULE_PATHNAME', 'pgq_insert_event_raw' LANGUAGE C;
+RETURNS int8 AS '$libdir/pgq_lowlevel', 'pgq_insert_event_raw' LANGUAGE C;
 
