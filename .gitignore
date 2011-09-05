@@ -54,8 +54,6 @@ sql/pgq/pgq.upgrade.sql
 sql/pgq/docs
 sql/pgq_coop/pgq_coop.sql
 sql/pgq_coop/pgq_coop.upgrade.sql
-sql/pgq/lowlevel/pgq_lowlevel.sql
-sql/pgq/triggers/pgq_triggers.sql
 sql/pgq_ext/pgq_ext.sql
 sql/ticker/pgqd
 sql/txid/txid.sql.in
