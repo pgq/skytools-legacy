@@ -28,7 +28,7 @@
 --
 -- ----------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION pgq.sqltriga() RETURNS trigger
-AS 'MODULE_PATHNAME', 'pgq_sqltriga' LANGUAGE C;
+AS '$libdir/pgq_triggers', 'pgq_sqltriga' LANGUAGE C;
 
 -- ----------------------------------------------------------------------
 -- Function: pgq.logutriga()
@@ -68,7 +68,7 @@ AS 'MODULE_PATHNAME', 'pgq_sqltriga' LANGUAGE C;
 -- >   FOR EACH ROW EXECUTE PROCEDURE pgq.logutriga('qname', 'SKIP');
 -- ----------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION pgq.logutriga() RETURNS TRIGGER
-AS 'MODULE_PATHNAME', 'pgq_logutriga' LANGUAGE C;
+AS '$libdir/pgq_triggers', 'pgq_logutriga' LANGUAGE C;
 
 
 ---- disable obsolete trigger
@@ -102,5 +102,5 @@ AS 'MODULE_PATHNAME', 'pgq_logutriga' LANGUAGE C;
 -- ----------------------------------------------------------------------
 
 -- CREATE OR REPLACE FUNCTION pgq.logtriga() RETURNS trigger
--- AS 'MODULE_PATHNAME', 'pgq_logtriga' LANGUAGE C;
+-- AS '$libdir/pgq_triggers', 'pgq_logtriga' LANGUAGE C;
 
