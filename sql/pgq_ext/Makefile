@@ -8,12 +8,14 @@ SRCS = structure/tables.sql functions/track_batch.sql functions/track_event.sql 
 REGRESS = test_pgq_ext
 REGRESS_OPTS = --load-language=plpgsql
 
+CATSQL = ../../scripts/catsql.py
+
 include ../../config.mak
 
 include $(PGXS)
 
 pgq_ext.sql: $(SRCS)
-	cat $(SRCS) > $@
+	$(CATSQL) structure/install.sql > $@
 
 test: pgq_ext.sql
 	make installcheck || { less regression.diffs ; exit 1; }
