@@ -20,7 +20,7 @@ CATSQL = ../../scripts/catsql.py
 #
 
 pgq_node.sql: $(SRCS)
-	$(CATSQL) structure/tables.sql structure/functions.sql > $@
+	$(CATSQL) structure/install.sql > $@
 
 pgq_node.upgrade.sql: $(SRCS)
 	$(CATSQL) structure/functions.sql > $@
