@@ -7,20 +7,6 @@ pyver = $(shell $(PYTHON) -V 2>&1 | sed 's/^[^ ]* \([0-9]*\.[0-9]*\).*/\1/')
 
 SUBDIRS = sql doc
 
-#SCRIPTS = python/londiste.py python/qadmin.py python/pgqadm.py python/walmgr.py \
-#	  scripts/queue_loader.py scripts/queue_mover.py scripts/queue_splitter.py \
-#	  scripts/scriptmgr.py scripts/skytools_upgrade.py
-
-# add suffix
-SFX_SCRIPTS = python/londiste.py python/walmgr.py scripts/scriptmgr.py \
-	      scripts/queue_splitter.py scripts/queue_mover.py
-# dont add
-NOSFX_SCRIPTS = python/qadmin.py
-
-SCRIPT_SUFFIX = $(SUFFIX)
-
-SQLDIR = $(prefix)/share/skytools$(SUFFIX)
-
 # modules that use doctest for regtests
 DOCTESTMODS = skytools.quoting skytools.parsing skytools.timeutil \
 	   skytools.sqltools skytools.querybuilder skytools.natsort \
@@ -66,25 +52,8 @@ python-install: config.mak sub-all
 	rm -rf build
 	$(PYTHON) setup_pkgloader.py install --prefix=$(prefix) --root=$(DESTDIR)/ $(BROKEN_PYTHON)
 	find build -name 'pkgloader*' | xargs rm
-	$(PYTHON) setup_skytools.py install --prefix=$(prefix) --root=$(DESTDIR)/ \
-		--install-lib=$(prefix)/lib/python$(pyver)/$(SITEDIR)/skytools-3.0 \
-		--record=tmp_files.lst
-	for s in $(SFX_SCRIPTS); do \
-		exe=`echo $$s|sed -e 's!.*/!!' -e 's/[.]py//'`; \
-		install $$s $(DESTDIR)/$(bindir)/$${exe}$(SCRIPT_SUFFIX) || exit 1; \
-	done
-	for s in $(NOSFX_SCRIPTS); do \
-		exe=`echo $$s|sed -e 's!.*/!!' -e 's/[.]py//'`; \
-		install $$s $(DESTDIR)/$(bindir)/$$exe || exit 1; \
-	done
+	$(PYTHON) setup_skytools.py install --prefix=$(prefix) --root=$(DESTDIR)/ $(BROKEN_PYTHON)
 	$(MAKE) -C doc DESTDIR=$(DESTDIR) install
-
-python-install python-all: python/skytools/installer_config.py
-python/skytools/installer_config.py: python/skytools/installer_config.py.in config.mak
-	sed -e 's!@SQLDIR@!$(SQLDIR)!g' \
-	    -e 's!@SKYLOG@!$(SKYLOG)!g' \
-	    -e 's!@PACKAGE_VERSION@!$(PACKAGE_VERSION)!g' \
-	    $< > $@
 
 realclean: distclean
 	$(MAKE) -C doc $@
