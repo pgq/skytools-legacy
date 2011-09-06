@@ -56,11 +56,18 @@ def getvar(name, default):
         pass
     return default
 
+# dont rename scripts on win32
+if sys.platform == 'win32':
+    DEF_SUFFIX = '.py'
+    DEF_NOSUFFIX = '.py'
+else:
+    DEF_SUFFIX = ''
+    DEF_NOSUFFIX = ''
+
 # load defaults from config.mak
-DEF_SUFFIX = getvar('SUFFIX', '')
+DEF_SUFFIX = getvar('SUFFIX', DEF_SUFFIX)
 DEF_SKYLOG = getvar('SKYLOG', '0') != '0'
 DEF_SK3_SUBDIR = getvar('SK3_SUBDIR', '0') != '0'
-
 
 # create sql files if they dont exist
 for fn in sql_files:
@@ -77,9 +84,13 @@ for fn in sql_files:
 def fixscript(fn, dstdir, sfx):
     fn = os.path.basename(fn)
     fn2 = fn.replace('.py', sfx)
+    if fn == fn2:
+        return
     dfn = os.path.join(dstdir, fn)
     dfn2 = os.path.join(dstdir, fn2)
     print("Renaming %s -> %s" % (dfn, fn2))
+    if sys.platform == 'win32' and os.path.isfile(dfn2):
+        os.remove(dfn2)
     os.rename(dfn, dfn2)
 
 class sk3_build(build):
@@ -123,7 +134,7 @@ class sk3_install(install):
         for sfn in sfx_scripts:
             fixscript(sfn, self.install_scripts, self.script_suffix)
         for sfn in nosfx_scripts:
-            fixscript(sfn, self.install_scripts, '')
+            fixscript(sfn, self.install_scripts, DEF_NOSUFFIX)
 
 # check if building C is allowed
 c_modules = []
