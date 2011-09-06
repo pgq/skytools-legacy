@@ -85,10 +85,10 @@ changequote([, ])dnl
   esac
 fi
 
-dnl Find PostgreSQL pg_config
+dnl Decide default skylog setting
 SKYLOG=0
 AC_MSG_CHECKING(for skylog default setting)
-AC_ARG_WITH(skylog, [  --with-skylog=0|1  set default value for skylog (default: 0)],
+AC_ARG_WITH(skylog, [  --with-skylog  set default value for skylog (default: off)],
 [ if test "$withval" = "yes"; then
     SKYLOG="1"
   elif test "$withval" = "no"; then
@@ -99,6 +99,21 @@ AC_ARG_WITH(skylog, [  --with-skylog=0|1  set default value for skylog (default:
   AC_MSG_RESULT([$SKYLOG])])
 AC_MSG_RESULT([$SKYLOG])
 AC_SUBST(SKYLOG)
+
+dnl Decide module subdir
+SK3_SUBDIR=0
+AC_MSG_CHECKING([whether to install modules in /skytools-3.0/ subdir])
+AC_ARG_WITH(sk3-subdir, AC_HELP_STRING([--with-sk3-subdir], [put modules into /skytools-3.0/ subdir]),
+[ if test "$withval" = "yes"; then
+    SK3_SUBDIR="1"
+  elif test "$withval" = "no"; then
+    SK3_SUBDIR="0"
+  else
+    SK3_SUBDIR="$withval"
+  fi
+  AC_MSG_RESULT([$SK3_SUBDIR])])
+AC_MSG_RESULT([$SK3_SUBDIR])
+AC_SUBST(SK3_SUBDIR)
 
 dnl check for xmlto, but only if asciidoc is found
 if test "$ASCIIDOC" != "no"; then

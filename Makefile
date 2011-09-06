@@ -29,7 +29,7 @@ python-all: config.mak
 
 clean: sub-clean
 	$(PYTHON) setup_skytools.py clean
-	rm -rf build
+	rm -rf build build.sk3
 	find python -name '*.py[oc]' -print | xargs rm -f
 	rm -f python/skytools/installer_config.py source.list
 	rm -rf tests/londiste/sys
@@ -48,10 +48,7 @@ modules-install: config.mak
 SITEDIR = site-packages
 
 python-install: config.mak sub-all
-	mkdir -p $(DESTDIR)/$(bindir)
-	rm -rf build
 	$(PYTHON) setup_pkgloader.py install --prefix=$(prefix) --root=$(DESTDIR)/ $(BROKEN_PYTHON)
-	find build -name 'pkgloader*' | xargs rm
 	$(PYTHON) setup_skytools.py install --prefix=$(prefix) --root=$(DESTDIR)/ $(BROKEN_PYTHON)
 	$(MAKE) -C doc DESTDIR=$(DESTDIR) install
 
