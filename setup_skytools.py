@@ -1,6 +1,11 @@
-#e! /usr/bin/env python
+#! /usr/bin/env python
 
 # this script installs Python modules, scripts and sql files
+
+# custom switches for install:
+# --script-suffix=   add suffix to scripts
+# --sk3-subdir       install modules into "skytools-3.0" subdir
+# --skylog           use "skylog" logging by default
 
 import sys, os.path, re
 from distutils.core import setup
@@ -8,6 +13,11 @@ from distutils.extension import Extension
 from distutils.command.build import build
 from distutils.command.install import install
 from subprocess import Popen
+
+# dont build C module on win32 as it's unlikely to have dev env
+BUILD_C_MOD = 1
+if sys.platform == 'win32':
+    BUILD_C_MOD = 0
 
 # load version
 buf = open("configure.ac","r").read(256)
@@ -39,7 +49,7 @@ sql_files = [
 def getvar(name, default):
     try:
         cf = open('config.mak').read()
-        m = re.search(r'^%s\s*=\s*(.*)' % name, cf, re.M)
+        m = re.search(r'^%s *= *(.*)' % name, cf, re.M)
         if m:
             return m.group(1).strip()
     except IOError:
@@ -67,9 +77,9 @@ for fn in sql_files:
 def fixscript(fn, dstdir, sfx):
     fn = os.path.basename(fn)
     fn2 = fn.replace('.py', sfx)
-    print("Renaming %s -> %s" % (fn, fn2))
     dfn = os.path.join(dstdir, fn)
     dfn2 = os.path.join(dstdir, fn2)
+    print("Renaming %s -> %s" % (dfn, fn2))
     os.rename(dfn, dfn2)
 
 class sk3_build(build):
@@ -115,6 +125,12 @@ class sk3_install(install):
         for sfn in nosfx_scripts:
             fixscript(sfn, self.install_scripts, '')
 
+# check if building C is allowed
+c_modules = []
+if BUILD_C_MOD:
+    ext = Extension("skytools._cquoting", ['python/modules/cquoting.c'])
+    c_modules.append(ext)
+
 # run actual setup
 setup(
     name = "skytools",
@@ -131,7 +147,7 @@ setup(
         'python/conf/wal-slave.ini',
         ]),
       ('share/skytools3', sql_files)],
-    ext_modules=[Extension("skytools._cquoting", ['python/modules/cquoting.c'])],
+    ext_modules = c_modules,
     scripts = sfx_scripts + nosfx_scripts,
     cmdclass = { 'build': sk3_build, 'install': sk3_install },
 )
