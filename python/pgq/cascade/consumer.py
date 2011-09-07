@@ -146,10 +146,16 @@ class CascadedConsumer(Consumer):
         # fetch last tick from source
         q = "select last_tick from pgq.get_consumer_info(%s, %s)"
         src_curs.execute(q, [self.queue_name, self.consumer_name])
-        last_tick = src_curs.fetchone()['last_tick']
+        row = src_curs.fetchone()
         src_db.commit()
 
+        # on root node we dont have consumer info
+        if not row:
+            self.log.info("No info about consumer, cannot reset")
+            return
+
         # set on destination
+        last_tick = row['last_tick']
         q = "select * from pgq_node.set_consumer_completed(%s, %s, %s)"
         dst_curs.execute(q, [self.queue_name, self.consumer_name, last_tick])
         dst_db.commit()
