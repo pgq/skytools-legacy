@@ -14,6 +14,9 @@ from distutils.command.build import build
 from distutils.command.install import install
 from subprocess import Popen
 
+INSTALL_SCRIPTS = 1
+INSTALL_SQL = 1
+
 # dont build C module on win32 as it's unlikely to have dev env
 BUILD_C_MOD = 1
 if sys.platform == 'win32':
@@ -37,6 +40,10 @@ nosfx_scripts = [
     'python/qadmin.py',
 ]
 
+if not INSTALL_SCRIPTS:
+    sfx_scripts = []
+    nosfx_scripts = []
+
 # sql files we want to access from python
 sql_files = [
    'sql/pgq/pgq.sql',
@@ -45,6 +52,9 @@ sql_files = [
    'sql/pgq_node/pgq_node.sql',
    #'sql/txid/txid.sql',
 ]
+
+if not INSTALL_SQL:
+    sql_files = []
 
 def getvar(name, default):
     try:
