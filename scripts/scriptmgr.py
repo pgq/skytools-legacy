@@ -157,7 +157,7 @@ class ScriptMgr(skytools.DBScript):
             svc = job['service']
             if job['disabled']:
                 name += "  (disabled)"
-            
+
             if not pidfile:
                 print(" pidfile? [%s] %s" % (svc, name))
             elif os.path.isfile(pidfile):
@@ -184,8 +184,11 @@ class ScriptMgr(skytools.DBScript):
             self.log.warning("No pidfile for %s cannot launch")
             return 0
         if os.path.isfile(pidfile):
-            self.log.warning("Script %s seems running" % job_name)
-            return 0
+            if skytools.signal_pidfile(pidfile, 0):
+                self.log.warning("Script %s seems running" % job_name)
+                return 0
+            else:
+                self.log.info("Ignoring stale pidfile for %s" % job_name)
         cmd = "%(script)s %(config)s %(args)s -d" % job
         res = os.system(cmd)
         self.log.debug(res)
@@ -286,4 +289,3 @@ class ScriptMgr(skytools.DBScript):
 if __name__ == '__main__':
     script = ScriptMgr('scriptmgr', sys.argv[1:])
     script.start()
-
