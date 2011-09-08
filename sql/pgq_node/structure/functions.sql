@@ -2,6 +2,9 @@
 --
 --      Database functions for cascaded pgq.
 
+\i functions/pgq_node.upgrade_schema.sql
+select pgq_node.upgrade_schema();
+
 -- Group: Global Node Map
 \i   functions/pgq_node.register_location.sql
 \i   functions/pgq_node.unregister_location.sql

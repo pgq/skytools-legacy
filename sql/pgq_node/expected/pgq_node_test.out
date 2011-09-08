@@ -1,4 +1,14 @@
 \set ECHO none
+ upgrade_schema 
+----------------
+              0
+(1 row)
+
+ upgrade_schema 
+----------------
+              0
+(1 row)
+
 select * from pgq_node.register_location('aqueue', 'node1', 'dbname=node1', false);
  ret_code |      ret_note       
 ----------+---------------------
@@ -116,6 +126,12 @@ select queue_name, consumer_name, last_tick from pgq.get_consumer_info();
  aqueue     | node2_worker      |         1
 (3 rows)
 
+select * from pgq_node.get_worker_state('aqueue');
+ ret_code | ret_note | node_type | node_name | completed_tick | provider_node | provider_location | paused | uptodate | cur_error | worker_name  | global_watermark | local_watermark | local_queue_top | combined_queue | combined_type 
+----------+----------+-----------+-----------+----------------+---------------+-------------------+--------+----------+-----------+--------------+------------------+-----------------+-----------------+----------------+---------------
+      100 | Ok       | root      | node1     |              1 | node1         | dbname=node1      | f      | f        |           | node1_worker |                1 |               1 |               1 |                | 
+(1 row)
+
 update pgq.queue set queue_ticker_max_lag = '0', queue_ticker_idle_period = '0';
 select * from pgq.ticker('aqueue');
  ticker 
@@ -224,6 +240,24 @@ select * from pgq_node.get_node_info('cqueue');
  ret_code |       ret_note        | node_type | node_name | global_watermark | local_watermark | provider_node | provider_location | combined_queue | combined_type | worker_name | worker_paused | worker_uptodate | worker_last_tick 
 ----------+-----------------------+-----------+-----------+------------------+-----------------+---------------+-------------------+----------------+---------------+-------------+---------------+-----------------+------------------
       404 | Unknown queue: cqueue |           |           |                  |                 |               |                   |                |               |             |               |                 |                 
+(1 row)
+
+select * from pgq_node.get_worker_state('aqueue');
+ ret_code | ret_note | node_type | node_name | completed_tick | provider_node | provider_location | paused | uptodate | cur_error | worker_name  | global_watermark | local_watermark | local_queue_top | combined_queue | combined_type 
+----------+----------+-----------+-----------+----------------+---------------+-------------------+--------+----------+-----------+--------------+------------------+-----------------+-----------------+----------------+---------------
+      100 | Ok       | root      | node1     |              1 | node1         | dbname=node1      | f      | f        |           | node1_worker |                1 |               1 |               3 |                | 
+(1 row)
+
+select * from pgq_node.get_worker_state('bqueue');
+ ret_code | ret_note | node_type | node_name | completed_tick | provider_node | provider_location | paused | uptodate | cur_error | worker_name  | global_watermark | local_watermark | local_queue_top | combined_queue | combined_type 
+----------+----------+-----------+-----------+----------------+---------------+-------------------+--------+----------+-----------+--------------+------------------+-----------------+-----------------+----------------+---------------
+      100 | Ok       | branch    | node2     |              1 | node1         | dbname=node1      | f      | f        |           | node2_worker |                1 |               1 |               1 |                | 
+(1 row)
+
+select * from pgq_node.get_worker_state('cqueue');
+ ret_code |       ret_note        | node_type | node_name | completed_tick | provider_node | provider_location | paused | uptodate | cur_error | worker_name | global_watermark | local_watermark | local_queue_top | combined_queue | combined_type 
+----------+-----------------------+-----------+-----------+----------------+---------------+-------------------+--------+----------+-----------+-------------+------------------+-----------------+-----------------+----------------+---------------
+      404 | Unknown queue: cqueue |           |           |                |               |                   |        |          |           |             |                  |                 |                 |                | 
 (1 row)
 
 select * from pgq_node.is_root_node('aqueue');
@@ -353,6 +387,37 @@ select * from pgq_node.demote_root('aqueue', 3, 'node3');
  ret_code |   ret_note    | last_tick 
 ----------+---------------+-----------
       301 | Node not root |          
+(1 row)
+
+-- leaf node
+select * from pgq_node.register_location('mqueue', 'node1', 'dbname=node1', false);
+ ret_code |      ret_note       
+----------+---------------------
+      200 | Location registered
+(1 row)
+
+select * from pgq_node.register_location('mqueue', 'node2', 'dbname=node2', false);
+ ret_code |      ret_note       
+----------+---------------------
+      200 | Location registered
+(1 row)
+
+select * from pgq_node.register_location('mqueue', 'node3', 'dbname=node3', false);
+ ret_code |      ret_note       
+----------+---------------------
+      200 | Location registered
+(1 row)
+
+select * from pgq_node.create_node('mqueue', 'leaf', 'node2', 'node2_worker', 'node1', 13, 'aqueue');
+ ret_code |                           ret_note                           
+----------+--------------------------------------------------------------
+      200 | Node "node2" initialized for queue "mqueue" with type "leaf"
+(1 row)
+
+select * from pgq_node.get_worker_state('mqueue');
+ ret_code | ret_note | node_type | node_name | completed_tick | provider_node | provider_location | paused | uptodate | cur_error | worker_name  | global_watermark | local_watermark | local_queue_top | combined_queue | combined_type 
+----------+----------+-----------+-----------+----------------+---------------+-------------------+--------+----------+-----------+--------------+------------------+-----------------+-----------------+----------------+---------------
+      100 | Ok       | leaf      | node2     |             13 | node1         | dbname=node1      | f      | f        |           | node2_worker |                  |              13 |                 | aqueue         | branch
 (1 row)
 
 \q
