@@ -1,5 +1,9 @@
 -- Section: Londiste functions
 
+-- upgrade schema
+\i functions/londiste.upgrade_schema.sql
+select londiste.upgrade_schema();
+
 -- Group: Information
 \i functions/londiste.get_seq_list.sql
 \i functions/londiste.get_table_list.sql
