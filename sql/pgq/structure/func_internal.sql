@@ -1,5 +1,9 @@
 -- Section: Internal Functions
 
+-- install & launch schema upgrade
+\i functions/pgq.upgrade_schema.sql
+select pgq.upgrade_schema();
+
 -- Group: Low-level event handling
 
 \i functions/pgq.batch_event_sql.sql
