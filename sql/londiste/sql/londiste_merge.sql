@@ -26,10 +26,9 @@ select * from pgq_node.create_node('part2_set', 'leaf', 'p2merge', 'londiste_p2m
 select * from londiste.local_add_table('combined_set', 'tblmerge');
 
 select * from londiste.global_add_table('part1_set', 'tblmerge');
-select * from londiste.local_add_table('part1_set', 'tblmerge');
-
 select * from londiste.global_add_table('part2_set', 'tblmerge');
-select * from londiste.local_add_table('part2_set', 'tblmerge');
+
+select * from londiste.local_add_table('part1_set', 'tblmerge', array['merge_all']);
 
 select * from londiste.get_table_list('part1_set');
 select * from londiste.get_table_list('part2_set');

@@ -11,6 +11,8 @@ REGRESS = londiste_install londiste_provider londiste_subscriber \
 # londiste_denytrigger
 REGRESS_OPTS = --dbname=regression
 
+override CONTRIB_TESTDB=regression
+
 include ../../config.mak
 
 include $(PGXS)
@@ -22,7 +24,7 @@ londiste.upgrade.sql: $(SRCS)
 	$(CATSQL) structure/functions.sql > $@
 
 test: londiste.sql
-	$(MAKE) installcheck || { less regression.diffs; exit 1; }
+	$(MAKE) installcheck || { filterdiff --format=unified regression.diffs | less; exit 1; }
 
 ack:
 	cp results/* expected/

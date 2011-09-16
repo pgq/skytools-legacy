@@ -50,9 +50,9 @@ select tgname from pg_trigger where tgrelid = 'public.testdata'::regclass order 
 
 insert into testdata (txt) values ('test-data');
 select * from londiste.get_table_list('aset');
-   table_name    | local | merge_state | custom_snapshot | table_attrs | dropped_ddl | copy_role 
------------------+-------+-------------+-----------------+-------------+-------------+-----------
- public.testdata | t     | ok          |                 |             |             | 
+   table_name    | local | merge_state | custom_snapshot | table_attrs | dropped_ddl | copy_role | copy_pos 
+-----------------+-------+-------------+-----------------+-------------+-------------+-----------+----------
+ public.testdata | t     | ok          |                 |             |             |           |        0
 (1 row)
 
 select * from londiste.local_show_missing('aset');
@@ -81,8 +81,8 @@ select tgname from pg_trigger where tgrelid = 'public.testdata'::regclass;
 (0 rows)
 
 select * from londiste.get_table_list('aset');
- table_name | local | merge_state | custom_snapshot | table_attrs | dropped_ddl | copy_role 
-------------+-------+-------------+-----------------+-------------+-------------+-----------
+ table_name | local | merge_state | custom_snapshot | table_attrs | dropped_ddl | copy_role | copy_pos 
+------------+-------+-------------+-----------------+-------------+-------------+-----------+----------
 (0 rows)
 
 select ev_id, ev_type, ev_data, ev_extra1 from pgq.event_template;

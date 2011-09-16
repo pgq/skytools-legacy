@@ -1,4 +1,6 @@
 
+drop function if exists londiste.get_table_list(text);
+
 create or replace function londiste.get_table_list(
     in i_queue_name text,
     out table_name text,
@@ -8,7 +10,7 @@ create or replace function londiste.get_table_list(
     out table_attrs text,
     out dropped_ddl text,
     out copy_role text,
-    out copy_pos int)
+    out copy_pos int4)
 returns setof record as $$
 -- ----------------------------------------------------------------------
 -- Function: londiste.get_table_list(1)
