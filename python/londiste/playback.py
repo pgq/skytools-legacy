@@ -588,7 +588,6 @@ or (ev_extra1 in (%s)))
             sql = "TRUNCATE ONLY %s;" % fqname
         else:
             sql = "TRUNCATE %s;" % fqname
-        sql = "TRUNCATE %s;" % fqname
 
         self.flush_sql(dst_curs)
         dst_curs.execute(sql)
