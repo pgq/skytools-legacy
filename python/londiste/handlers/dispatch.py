@@ -345,7 +345,7 @@ class BaseBulkTempLoader(BaseBulkCollectingLoader):
         return self.logexec(curs, "drop table %s" % self.qtemp)
 
     def create(self, curs):
-        if self.USE_REAL_TABLE:
+        if USE_REAL_TABLE:
             tmpl = "create table %s (like %s)"
         else:
             tmpl = "create temp table %s (like %s) on commit preserve rows"
