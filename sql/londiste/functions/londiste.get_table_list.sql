@@ -32,9 +32,8 @@ returns setof record as $$
 --
 -- copy_role = lead:
 --      on copy start, drop indexes and store in dropped_ddl
---      on copy finish wait, until copy_role turns to NULL
---      if dropped_ddl not NULL, restore them
---      tag as catching-up
+--      on copy finish change state to catching-up, then wait until copy_role turns to NULL
+--      catching-up: if dropped_ddl not NULL, restore them
 -- copy_role = wait-copy:
 --      on copy start wait, until role changes (to wait-replay)
 -- copy_role = wait-replay:
@@ -43,14 +42,18 @@ returns setof record as $$
 --
 declare
     q_part1     text;
+    q_part_ddl  text;
     n_parts     int4;
     n_done      int4;
-    var_table_name text;
+    v_table_name text;
     n_combined_queue text;
 begin
-    for var_table_name, local, merge_state, custom_snapshot, table_attrs, dropped_ddl, q_part1, n_parts, n_done, n_combined_queue, copy_pos in
+    for v_table_name, local, merge_state, custom_snapshot, table_attrs, dropped_ddl,
+        q_part1, q_part_ddl, n_parts, n_done, n_combined_queue, copy_pos
+    in
         select t.table_name, t.local, t.merge_state, t.custom_snapshot, t.table_attrs, t.dropped_ddl,
                min(case when t2.local then t2.queue_name else null end) as _queue1,
+               min(case when t2.local and t2.dropped_ddl is not null then t2.queue_name else null end) as _queue1ddl,
                count(case when t2.local then t2.table_name else null end) as _total,
                count(case when t2.local then nullif(t2.merge_state, 'in-copy') else null end) as _done,
                min(n.combined_queue) as _combined_queue,
@@ -69,37 +72,52 @@ begin
         -- the copy processes need coordination
         copy_role := null;
 
+        -- be more robust against late joiners
+        q_part1 := coalesce(q_part_ddl, q_part1);
+
         if q_part1 is not null then
             if i_queue_name = q_part1 then
                 -- lead
-                if merge_state in ('in-copy', 'catching-up') then
+                if merge_state = 'in-copy' then
+                    if dropped_ddl is null and n_done > 0 then
+                        -- seems late addition, let it copy with indexes
+                        copy_role := 'wait-replay';
+                    elsif n_done < n_parts then
+                        -- show copy_role only if need to drop ddl or already did drop ddl
+                        copy_role := 'lead';
+                    end if;
+
+                    -- make sure it cannot be made to wait
+                    copy_pos := 0;
+                end if;
+                if merge_state = 'catching-up' and dropped_ddl is not null then
                     -- show copy_role only if need to wait for others
                     if n_done < n_parts then
-                        copy_role := 'lead';
+                        copy_role := 'wait-replay';
                     end if;
                 end if;
             else
                 -- follow
                 if merge_state = 'in-copy' then
-                    -- has lead already dropped ddl?
-                    perform 1 from londiste.table_info t
-                        where t.queue_name = q_part1
-                            and t.table_name = var_table_name
-                            and t.dropped_ddl is not null;
-                    if found then
+                    if q_part_ddl is not null then
+                        -- can copy, wait in replay until lead has applied ddl
+                        copy_role := 'wait-replay';
+                    elsif n_done > 0 then
+                        -- ddl is not dropped, others are active, copy without touching ddl
                         copy_role := 'wait-replay';
                     else
+                        -- wait for lead to drop ddl
                         copy_role := 'wait-copy';
                     end if;
                 elsif merge_state = 'catching-up' then
                     -- show copy_role only if need to wait for lead
-                    if n_done < n_parts then
+                    if q_part_ddl is not null then
                         copy_role := 'wait-replay';
                     end if;
                 end if;
             end if;
         end if;
-        table_name:=var_table_name;
+        table_name := v_table_name;
         return next;
     end loop;
     return;

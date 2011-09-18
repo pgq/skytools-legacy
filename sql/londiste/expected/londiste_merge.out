@@ -55,6 +55,24 @@ select * from pgq_node.create_node('part2_set', 'leaf', 'p2merge', 'londiste_p2m
       200 | Node "p2merge" initialized for queue "part2_set" with type "leaf"
 (1 row)
 
+select * from pgq_node.register_location('part3_set', 'p3root', 'dbname=db', false);
+ ret_code |      ret_note       
+----------+---------------------
+      200 | Location registered
+(1 row)
+
+select * from pgq_node.register_location('part3_set', 'p3merge', 'dbname=db3', false);
+ ret_code |      ret_note       
+----------+---------------------
+      200 | Location registered
+(1 row)
+
+select * from pgq_node.create_node('part3_set', 'leaf', 'p3merge', 'londiste_p3merge', 'p3root', 100, 'combined_set');
+ ret_code |                             ret_note                              
+----------+-------------------------------------------------------------------
+      200 | Node "p3merge" initialized for queue "part3_set" with type "leaf"
+(1 row)
+
 select * from londiste.local_add_table('combined_set', 'tblmerge');
  ret_code |           ret_note           
 ----------+------------------------------
@@ -139,12 +157,6 @@ select * from londiste.get_table_list('part2_set');
  public.tblmerge | t     | in-copy     |                 |             |             | wait-replay |        1
 (1 row)
 
-select * from londiste.local_set_table_state('part1_set', 'public.tblmerge', null, 'in-copy');
- ret_code |                   ret_note                   
-----------+----------------------------------------------
-      200 | Table public.tblmerge state set to 'in-copy'
-(1 row)
-
 select * from londiste.local_set_table_state('part2_set', 'public.tblmerge', null, 'catching-up');
  ret_code |                     ret_note                     
 ----------+--------------------------------------------------
@@ -163,6 +175,24 @@ select * from londiste.get_table_list('part2_set');
  public.tblmerge | t     | catching-up |                 |             |             | wait-replay |        0
 (1 row)
 
+select * from londiste.local_set_table_state('part1_set', 'public.tblmerge', null, 'catching-up');
+ ret_code |                     ret_note                     
+----------+--------------------------------------------------
+      200 | Table public.tblmerge state set to 'catching-up'
+(1 row)
+
+select * from londiste.get_table_list('part1_set');
+   table_name    | local | merge_state | custom_snapshot | table_attrs |  dropped_ddl  | copy_role | copy_pos 
+-----------------+-------+-------------+-----------------+-------------+---------------+-----------+----------
+ public.tblmerge | t     | catching-up |                 |             | create index; |           |        0
+(1 row)
+
+select * from londiste.get_table_list('part2_set');
+   table_name    | local | merge_state | custom_snapshot | table_attrs | dropped_ddl |  copy_role  | copy_pos 
+-----------------+-------+-------------+-----------------+-------------+-------------+-------------+----------
+ public.tblmerge | t     | catching-up |                 |             |             | wait-replay |        0
+(1 row)
+
 select * from londiste.local_set_table_struct('part1_set', 'public.tblmerge', null);
  ret_code |      ret_note       
 ----------+---------------------
@@ -172,30 +202,6 @@ select * from londiste.local_set_table_struct('part1_set', 'public.tblmerge', nu
 select * from londiste.get_table_list('part1_set');
    table_name    | local | merge_state | custom_snapshot | table_attrs | dropped_ddl | copy_role | copy_pos 
 -----------------+-------+-------------+-----------------+-------------+-------------+-----------+----------
- public.tblmerge | t     | in-copy     |                 |             |             | lead      |        0
-(1 row)
-
-select * from londiste.get_table_list('part2_set');
-   table_name    | local | merge_state | custom_snapshot | table_attrs | dropped_ddl |  copy_role  | copy_pos 
------------------+-------+-------------+-----------------+-------------+-------------+-------------+----------
- public.tblmerge | t     | catching-up |                 |             |             | wait-replay |        0
-(1 row)
-
-select * from londiste.local_set_table_state('part1_set', 'public.tblmerge', null, 'catching-up');
- ret_code |                     ret_note                     
-----------+--------------------------------------------------
-      200 | Table public.tblmerge state set to 'catching-up'
-(1 row)
-
-select * from londiste.local_set_table_state('part2_set', 'public.tblmerge', null, 'catching-up');
- ret_code |                     ret_note                     
-----------+--------------------------------------------------
-      200 | Table public.tblmerge state set to 'catching-up'
-(1 row)
-
-select * from londiste.get_table_list('part1_set');
-   table_name    | local | merge_state | custom_snapshot | table_attrs | dropped_ddl | copy_role | copy_pos 
------------------+-------+-------------+-----------------+-------------+-------------+-----------+----------
  public.tblmerge | t     | catching-up |                 |             |             |           |        0
 (1 row)
 
@@ -204,4 +210,51 @@ select * from londiste.get_table_list('part2_set');
 -----------------+-------+-------------+-----------------+-------------+-------------+-----------+----------
  public.tblmerge | t     | catching-up |                 |             |             |           |        0
 (1 row)
+
+--
+-- Test all combinations on 3-table merge
+--
+select * from londiste.global_add_table('part3_set', 'tblmerge');
+ ret_code |       ret_note        
+----------+-----------------------
+      200 | Table added: tblmerge
+(1 row)
+
+\set ECHO off
+select * from testmatrix();
+     p1s      |     p2s      |     p3s      |     p1r     |     p2r     |     p3r     
+--------------+--------------+--------------+-------------+-------------+-------------
+ !catching-up | catching-up  | catching-up  | NULL        | wait-replay | wait-replay
+ !catching-up | catching-up  | in-copy      | wait-replay | wait-replay | wait-replay
+ !catching-up | in-copy      | catching-up  | wait-replay | wait-replay | wait-replay
+ !catching-up | in-copy      | in-copy      | wait-replay | wait-replay | wait-replay
+ !in-copy     | catching-up  | catching-up  | lead        | wait-replay | wait-replay
+ !in-copy     | catching-up  | in-copy      | lead        | wait-replay | wait-replay
+ !in-copy     | in-copy      | catching-up  | lead        | wait-replay | wait-replay
+ !in-copy     | in-copy      | in-copy      | lead        | wait-replay | wait-replay
+ catching-up  | !catching-up | catching-up  | wait-replay | NULL        | wait-replay
+ catching-up  | !catching-up | in-copy      | wait-replay | wait-replay | wait-replay
+ catching-up  | !in-copy     | catching-up  | wait-replay | lead        | wait-replay
+ catching-up  | !in-copy     | in-copy      | wait-replay | lead        | wait-replay
+ catching-up  | catching-up  | !catching-up | wait-replay | wait-replay | NULL
+ catching-up  | catching-up  | !in-copy     | wait-replay | wait-replay | lead
+ catching-up  | catching-up  | catching-up  | NULL        | NULL        | NULL
+ catching-up  | catching-up  | in-copy      | NULL        | NULL        | wait-replay
+ catching-up  | in-copy      | !catching-up | wait-replay | wait-replay | wait-replay
+ catching-up  | in-copy      | !in-copy     | wait-replay | wait-replay | lead
+ catching-up  | in-copy      | catching-up  | NULL        | wait-replay | NULL
+ catching-up  | in-copy      | in-copy      | NULL        | wait-replay | wait-replay
+ in-copy      | !catching-up | catching-up  | wait-replay | wait-replay | wait-replay
+ in-copy      | !catching-up | in-copy      | wait-replay | wait-replay | wait-replay
+ in-copy      | !in-copy     | catching-up  | wait-replay | lead        | wait-replay
+ in-copy      | !in-copy     | in-copy      | wait-replay | lead        | wait-replay
+ in-copy      | catching-up  | !catching-up | wait-replay | wait-replay | wait-replay
+ in-copy      | catching-up  | !in-copy     | wait-replay | wait-replay | lead
+ in-copy      | catching-up  | catching-up  | wait-replay | NULL        | NULL
+ in-copy      | catching-up  | in-copy      | wait-replay | NULL        | wait-replay
+ in-copy      | in-copy      | !catching-up | wait-replay | wait-replay | wait-replay
+ in-copy      | in-copy      | !in-copy     | wait-replay | wait-replay | lead
+ in-copy      | in-copy      | catching-up  | wait-replay | wait-replay | NULL
+ in-copy      | in-copy      | in-copy      | lead        | wait-copy   | wait-copy
+(32 rows)
 
