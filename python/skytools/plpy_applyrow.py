@@ -122,7 +122,7 @@ def applyrow(tblname, ev_type, new_row,
 
     # fetch old row
     if alt_pkey_expr:
-        q = "select * from only %s where %s for update" % (qtbl, alt_pkey_expr)
+        q = "select * from only %s where %s for update" % (qtblname, alt_pkey_expr)
         res = skytools.plpy_exec(gd, q, fields)
         if res:
             oldrow = res[0]
