@@ -101,6 +101,10 @@ class CopyTable(Replicator):
         # !! this may commit, so must be done before anything else !!
         self.drop_fkeys(dst_db, tbl_stat.name)
 
+        # now start ddl-dropping tx
+        q = "lock table %" + skytools.quote_fqident(tbl_stat.name)
+        dst_curs.execute(q)
+
         # find dst struct
         src_struct = TableStruct(src_curs, tbl_stat.name)
         dst_struct = TableStruct(dst_curs, tbl_stat.name)
@@ -155,12 +159,16 @@ class CopyTable(Replicator):
         src_db.set_isolation_level(1)
         src_db.commit()
 
+        tbl_stat.change_state(TABLE_CATCHING_UP)
+        tbl_stat.change_snapshot(snapshot)
+        self.save_table_state(dst_curs)
+
         # create previously dropped objects
         if cmode == 1:
             dst_struct.create(dst_curs, objs, log = self.log)
         elif cmode == 2:
             dst_db.commit()
-            self.change_table_state(dst_db, tbl_stat, TABLE_CATCHING_UP)
+
             # start waiting for other copy processes to finish
             while tbl_stat.copy_role == 'lead':
                 self.log.info('waiting for other partitions to finish copy')
@@ -179,23 +187,15 @@ class CopyTable(Replicator):
                 self.looping = 1
             dst_db.commit()
 
-        # set state
-        if self.copy_thread:
-            tbl_stat.change_state(TABLE_CATCHING_UP)
-        else:
+        # hack for copy-in-playback
+        if not self.copy_thread:
             tbl_stat.change_state(TABLE_OK)
-        tbl_stat.change_snapshot(snapshot)
-        self.save_table_state(dst_curs)
+            self.save_table_state(dst_curs)
         dst_db.commit()
 
         # copy finished
         if tbl_stat.copy_role == 'wait-replay':
             return
-
-        # analyze
-        self.log.info("%s: analyze" % tbl_stat.name)
-        dst_curs.execute("analyze " + skytools.quote_fqident(tbl_stat.name))
-        dst_db.commit()
 
         # if copy done, request immidiate tick from pgqadm,
         # to make state juggling faster.  on mostly idle db-s

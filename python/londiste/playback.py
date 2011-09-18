@@ -526,6 +526,11 @@ or (ev_extra1 in (%s)))
             if t.copy_role in ('wait-replay', 'lead'):
                 return SYNC_LOOP
 
+            # copy just finished
+            if t.dropped_ddl:
+                self.restore_copy_ddl(t, dst_db)
+                return SYNC_OK
+
             # is there more work?
             if self.work_state:
                 return SYNC_OK
@@ -544,6 +549,23 @@ or (ev_extra1 in (%s)))
         else:
             # nothing to do
             return SYNC_EXIT
+
+    def restore_copy_ddl(self, ts, dst_db):
+        self.log.info("%s: restoring DDL", ts.name)
+        dst_curs = dst_db.cursor()
+        for ddl in skytools.parse_statements(ts.dropped_ddl):
+            self.log.info(ddl)
+            dst_curs.execute(ddl)
+        q = "select * from londiste.local_set_table_struct(%s, %s, NULL)"
+        self.exec_cmd(dst_curs, q, [self.queue_name, ts.name])
+        ts.dropped_ddl = None
+        dst_db.commit()
+
+        # analyze
+        self.log.info("%s: analyze", ts.name)
+        dst_curs.execute("analyze " + skytools.quote_fqident(ts.name))
+        dst_db.commit()
+
 
     def do_copy(self, tbl, src_db, dst_db):
         """Callback for actual copy implementation."""
