@@ -80,7 +80,7 @@ begin
     if combined_queue is not null then
         select n.node_type into combined_type
           from pgq_node.node_info n
-         where n.queue_name = combined_queue;
+         where n.queue_name = get_worker_state.combined_queue;
         if not found then
             select 404, 'Combinde queue node not found: ' || combined_queue
               into ret_code, ret_note;
