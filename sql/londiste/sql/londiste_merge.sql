@@ -84,26 +84,23 @@ declare
     tbl text = 'public.tblmerge';
 begin
     if position('!' in p1state) > 0 then
-        p1state := replace(p1state, '!', '');
-        p1ddl = 'x';
+        p1ddl := 'x';
     end if;
     if position('!' in p2state) > 0 then
-        p2state := replace(p2state, '!', '');
-        p2ddl = 'x';
+        p2ddl := 'x';
     end if;
     if position('!' in p3state) > 0 then
-        p3state := replace(p3state, '!', '');
-        p3ddl = 'x';
+        p3ddl := 'x';
     end if;
 
     update londiste.table_info
-       set merge_state = p1state, dropped_ddl = p1ddl, local = true
+       set merge_state = replace(p1state, '!', ''), dropped_ddl = p1ddl, local = true
        where table_name = tbl and queue_name = 'part1_set';
     update londiste.table_info
-       set merge_state = p2state, dropped_ddl = p2ddl, local = true
+       set merge_state = replace(p2state, '!', ''), dropped_ddl = p2ddl, local = true
        where table_name = tbl and queue_name = 'part2_set';
     update londiste.table_info
-       set merge_state = p3state, dropped_ddl = p3ddl, local = true
+       set merge_state = replace(p3state, '!', ''), dropped_ddl = p3ddl, local = true
        where table_name = tbl and queue_name = 'part3_set';
 
     select coalesce(copy_role, 'NULL') from londiste.get_table_list('part1_set')
