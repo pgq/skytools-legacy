@@ -10,7 +10,8 @@ SRCS = $(SQL_FULL) $(FUNCS)
 REGRESS = pgq_coop_test
 REGRESS_OPTS = --load-language=plpgsql
 
-include ../../config.mak
+PG_CONFIG = pg_config
+PGXS = $(shell $(PG_CONFIG) --pgxs)
 include $(PGXS)
 
 NDOC = NaturalDocs

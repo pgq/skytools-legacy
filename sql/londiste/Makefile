@@ -5,16 +5,20 @@ SQLS  = $(shell sed -e 's/^[^\\].*//' -e 's/\\i //' structure/install.sql)
 FUNCS = $(shell sed -e 's/^[^\\].*//' -e 's/\\i //' $(SQLS))
 SRCS = $(SQLS) $(FUNCS)
 
+NDOC = NaturalDocs
+NDOCARGS = -r -o html docs/html -p docs -i docs/sql
+CATSQL = ../../scripts/catsql.py
+
 REGRESS = londiste_install londiste_provider londiste_subscriber \
 	  londiste_fkeys londiste_execute londiste_seqs londiste_merge \
 	  londiste_leaf
 # londiste_denytrigger
-REGRESS_OPTS = --dbname=regression
 
+REGRESS_OPTS = --dbname=regression
 override CONTRIB_TESTDB=regression
 
-include ../../config.mak
-
+PG_CONFIG = pg_config
+PGXS = $(shell $(PG_CONFIG) --pgxs)
 include $(PGXS)
 
 londiste.sql: $(SRCS)
@@ -28,10 +32,6 @@ test: londiste.sql
 
 ack:
 	cp results/* expected/
-
-NDOC = NaturalDocs
-NDOCARGS = -r -o html docs/html -p docs -i docs/sql
-CATSQL = ../../scripts/catsql.py
 
 dox: cleandox
 	mkdir -p docs/html

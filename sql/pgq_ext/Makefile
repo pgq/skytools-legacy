@@ -10,8 +10,8 @@ REGRESS_OPTS = --load-language=plpgsql
 
 CATSQL = ../../scripts/catsql.py
 
-include ../../config.mak
-
+PG_CONFIG = pg_config
+PGXS = $(shell $(PG_CONFIG) --pgxs)
 include $(PGXS)
 
 pgq_ext.sql: $(SRCS)

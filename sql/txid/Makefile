@@ -1,10 +1,11 @@
 
-include ../../config.mak
+PG_CONFIG = pg_config
+PGXS = $(shell $(PG_CONFIG) --pgxs)
 
 PGVER := $(shell $(PG_CONFIG) --version | sed 's/PostgreSQL //')
 
 ifeq ($(PGVER),)
-$(error skytools not configured, cannot continue)
+$(error Failed to get Postgres version)
 else
 # postgres >= manages epoch itself, so skip epoch tables
 pg83 = $(shell test $(PGVER) "<" "8.3" && echo "false" || echo "true")
