@@ -142,8 +142,11 @@ class CopyTable(Replicator):
 
             if cmode == 2 and tbl_stat.dropped_ddl is None:
                 ddl = dst_struct.get_create_sql(objs)
-                q = "select * from londiste.local_set_table_struct(%s, %s, %s)"
-                self.exec_cmd(dst_curs, q, [self.queue_name, tbl_stat.name, ddl])
+                if ddl:
+                    q = "select * from londiste.local_set_table_struct(%s, %s, %s)"
+                    self.exec_cmd(dst_curs, q, [self.queue_name, tbl_stat.name, ddl])
+                else:
+                    ddl = None
                 dst_db.commit()
                 tbl_stat.dropped_ddl = ddl
 
