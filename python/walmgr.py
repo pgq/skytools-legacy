@@ -344,7 +344,7 @@ class WalMgr(skytools.DBScript):
             self.is_master = self.options.init_master
 
             config = skytools.Config(self.service_name, None,
-                user_defs = opt_dict, override = self.cf_operride)
+                user_defs = opt_dict, override = self.cf_override)
         else:
             # default to regular config handling
             config = skytools.DBScript.load_config(self)
