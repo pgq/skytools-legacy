@@ -37,6 +37,7 @@ Replication Extra:
   compare [TBL ...]     compare table contents on both sides
   repair [TBL ...]      repair data on subscriber
   execute [FILE ...]    execute SQL files on set
+  show-handlers [..]    show info about all or specific handler
 
 Internal Commands:
   copy                  copy table logic
@@ -48,6 +49,7 @@ cmd_handlers = (
       'drop-node', 'takeover'), londiste.LondisteSetup),
     (('add-table', 'remove-table', 'add-seq', 'remove-seq', 'tables', 'seqs',
       'missing', 'resync', 'check', 'fkeys', 'execute'), londiste.LondisteSetup),
+    (('show-handlers',), londiste.LondisteSetup),
     (('worker', 'replay'), londiste.Replicator),
     (('compare',), londiste.Comparator),
     (('repair',), londiste.Repairer),

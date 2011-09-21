@@ -146,12 +146,15 @@ _handler_map = {
     'londiste': TableHandler,
 }
 
+_handler_list = _handler_map.keys()
+
 def register_handler_module(modname):
     """Import and module and register handlers."""
     __import__(modname)
     m = sys.modules[modname]
     for h in m.__londiste_handlers__:
         _handler_map[h.handler_name] = h
+        _handler_list.append(h.handler_name)
 
 def _parse_arglist(arglist):
     args = {}
@@ -202,4 +205,25 @@ def load_handler_modules(cf):
 
     for m in lst:
         register_handler_module(m)
+
+def show(mods):
+    if not mods:
+        if 0:
+            names = _handler_map.keys()
+            names.sort()
+        else:
+            names = _handler_list
+        for n in names:
+            kls = _handler_map[n]
+            desc = kls.__doc__ or ''
+            if desc:
+                desc = desc.split('\n', 1)[0]
+            print("%s - %s" % (n, desc))
+    else:
+        for n in mods:
+            kls = _handler_map[n]
+            desc = kls.__doc__ or ''
+            if desc:
+                desc = desc.rstrip()
+            print("%s - %s" % (n, desc))
 

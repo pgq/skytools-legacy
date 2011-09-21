@@ -368,6 +368,10 @@ class LondisteSetup(CascadeAdmin):
         """TODO: show removed triggers."""
         pass
 
+    def cmd_show_handlers(self, *args):
+        """Show help about handlers."""
+        londiste.handler.show(args)
+
     def cmd_execute(self, *files):
         db = self.get_database('db')
         curs = db.cursor()
