@@ -211,6 +211,39 @@ select * from londiste.get_table_list('part2_set');
  public.tblmerge | t     | catching-up |                 |             |             |           |        0
 (1 row)
 
+-- test automatic registration on combined-root
+select * from londiste.global_add_table('part1_set', 'tblauto');
+ ret_code |       ret_note       
+----------+----------------------
+      200 | Table added: tblauto
+(1 row)
+
+select * from londiste.global_add_table('part2_set', 'tblauto');
+ ret_code |       ret_note       
+----------+----------------------
+      200 | Table added: tblauto
+(1 row)
+
+select * from londiste.local_add_table('part1_set', 'tblauto', array['merge_all', 'virtual_table'], 'handler=vtable');
+ ret_code |                   ret_note                   
+----------+----------------------------------------------
+      200 | Table added with no triggers: public.tblauto
+(1 row)
+
+select * from londiste.get_table_list('part2_set');
+   table_name    | local | merge_state | custom_snapshot |  table_attrs   | dropped_ddl | copy_role | copy_pos 
+-----------------+-------+-------------+-----------------+----------------+-------------+-----------+----------
+ public.tblmerge | t     | catching-up |                 |                |             |           |        0
+ public.tblauto  | t     | ok          |                 | handler=vtable |             |           |        0
+(2 rows)
+
+select * from londiste.get_table_list('combined_set');
+   table_name    | local | merge_state | custom_snapshot |  table_attrs   | dropped_ddl | copy_role | copy_pos 
+-----------------+-------+-------------+-----------------+----------------+-------------+-----------+----------
+ public.tblmerge | t     | ok          |                 |                |             |           |        0
+ public.tblauto  | t     | ok          |                 | handler=vtable |             |           |        0
+(2 rows)
+
 --
 -- Test all combinations on 3-table merge
 --

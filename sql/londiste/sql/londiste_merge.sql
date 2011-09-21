@@ -28,10 +28,8 @@ select * from pgq_node.create_node('part3_set', 'leaf', 'p3merge', 'londiste_p3m
 
 
 select * from londiste.local_add_table('combined_set', 'tblmerge');
-
 select * from londiste.global_add_table('part1_set', 'tblmerge');
 select * from londiste.global_add_table('part2_set', 'tblmerge');
-
 select * from londiste.local_add_table('part1_set', 'tblmerge', array['merge_all']);
 
 select * from londiste.get_table_list('part1_set');
@@ -58,6 +56,13 @@ select * from londiste.get_table_list('part2_set');
 select * from londiste.local_set_table_struct('part1_set', 'public.tblmerge', null);
 select * from londiste.get_table_list('part1_set');
 select * from londiste.get_table_list('part2_set');
+
+-- test automatic registration on combined-root
+select * from londiste.global_add_table('part1_set', 'tblauto');
+select * from londiste.global_add_table('part2_set', 'tblauto');
+select * from londiste.local_add_table('part1_set', 'tblauto', array['merge_all', 'virtual_table'], 'handler=vtable');
+select * from londiste.get_table_list('part2_set');
+select * from londiste.get_table_list('combined_set');
 
 --
 -- Test all combinations on 3-table merge
