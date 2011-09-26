@@ -90,6 +90,7 @@ class CopyTable(Replicator):
             cmode = 0
 
         # change to SERIALIZABLE isolation level
+        oldiso = src_db.isolation_level
         src_db.set_isolation_level(skytools.I_SERIALIZABLE)
         src_db.commit()
 
@@ -158,8 +159,8 @@ class CopyTable(Replicator):
         snapshot = src_curs.fetchone()[0]
         src_db.commit()
 
-        # restore READ COMMITTED behaviour
-        src_db.set_isolation_level(1)
+        # restore old behaviour
+        src_db.set_isolation_level(oldiso)
         src_db.commit()
 
         tbl_stat.change_state(TABLE_CATCHING_UP)
