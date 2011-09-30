@@ -1,0 +1,4 @@
+# don't list here 9.1, it's hard-coded in debian/rules (yes, I know)
+8.3
+8.4
+9.0

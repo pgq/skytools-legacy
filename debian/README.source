@@ -1,9 +1,15 @@
 skytools-3.0 for Debian
 -----------------------
 
-<this file describes information about the source package, see Debian policy
-manual section 4.14. You WILL either need to modify or delete this file>
+This package is maintained in git and uses a submodule.  To get a fresh
+checkout and build the packages, follow those steps:
 
+  ## fetch git tree, from dimitri who maintains the debian package
+  ## real upstream is at git://github.com/markokr/skytools-dev.git
+  $ git clone http://github.com/dimitri/skytools.git
 
+  ## fetch libusual submodule
+  $ git submodule update --init
 
-
+  ## now build
+  $ debuild ...

@@ -1,0 +1,10 @@
+#!/bin/sh -e
+
+case $1 in
+    configure)
+	for f in walmgr; do
+	    update-alternatives --remove $f /usr/bin/${f}3 || exit 1 ;
+	done;;
+esac
+
+#DEBHELPER#

@@ -16,9 +16,14 @@
 # This has to be exported to make some magic below work.
 export DH_OPTIONS
 
-# The build system is averse to VPATH building, so we can't use postgresql-server-dev-all
-PG_CONFIG_84=/usr/lib/postgresql/8.4/bin/pg_config
-PG_CONFIG_90=/usr/lib/postgresql/9.0/bin/pg_config
+# The build system is averse to VPATH building, so we can't properly use
+# postgresql-server-dev-all
+SRCDIR      = $(CURDIR)
+PG_CONFIG_91=/usr/lib/postgresql/9.1/bin/pg_config
+PKGVERS     = $(shell dpkg-parsechangelog | awk -F '[:-]' '/^Version:/ { print substr($$2, 2) }')
+ORIG_EXCLUDE=--exclude-vcs --exclude=debian
+
+include /usr/share/postgresql-common/pgxs_debian_control.mk
 
 config.mak:
 	autoreconf -I lib/m4
@@ -26,28 +31,42 @@ config.mak:
 
 override_dh_auto_configure:
 
-override_dh_auto_clean: config.mak
+override_dh_auto_clean: config.mak debian/control
 	make -C lib distclean
+	make -C doc realclean
 	dh_auto_clean -- distclean
-	rm -rf $(SRCDIR)/debian
+	rm -f upgrade/final/v3.0_pgq_core.sql
+	for version in $$(pg_buildext supported-versions .) ; do \
+		rm -rf debian/postgresql-$$version-pgq3; \
+	done
 
 override_dh_auto_build: config.mak lib/build
-	dh_auto_build -- SQLDIR=/usr/share/skytools3 PG_CONFIG=$(PG_CONFIG_90)
+	dh_auto_build -- SQLDIR=/usr/share/skytools3 PG_CONFIG=$(PG_CONFIG_91)
+	make -C upgrade
 
 # upstream build system will build fine for one given PostgreSQL version,
 # then we build the PostgreSQL module and files for yet another version of
 # it so that we have binary packages for postgresql-8.4-pgq3 and 9.0.
 override_dh_auto_install: 
-	dh_auto_install
-	for d in sql/pgq sql/pgq_node sql/pgq_ext sql/pgq_coop sql/txid sql/londiste; do \
-		make PG_CONFIG=$(PG_CONFIG_84) \
-                     DESTDIR=$(CURDIR)/debian/tmp \
-                     -C $$d clean install \
-                || exit 1 ;\
+	mkdir -p $(CURDIR)/debian/tmp
+	cp -a upgrade/final/v3.0_pgq_core.sql $(CURDIR)/debian/tmp/pgq_core_upgrade_to_v3.0.sql
+	dh_auto_install -- SQLDIR=/usr/share/skytools3 PG_CONFIG=$(PG_CONFIG_91)
+	# now care about any previous supported versions
+	for version in $$(pg_buildext supported-versions .) ; do \
+		echo "### Building for PostgreSQL $$version" && \
+		for d in sql/pgq sql/pgq_node sql/pgq_ext sql/pgq_coop sql/txid sql/londiste; do \
+			make PG_CONFIG=/usr/lib/postgresql/$$version/bin/pg_config \
+			DESTDIR=$(CURDIR)/debian/tmp \
+	                     -C $$d clean install \
+	                || exit 1 ;\
+		done; \
 	done
 
 lib/build:
 	chmod +x lib/find_modules.sh
+
+orig: clean
+	cd .. && tar czf skytools3_$(PKGVERS).orig.tar.gz $(ORIG_EXCLUDE) skytools
 
 %:
 	dh $@

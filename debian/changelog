@@ -1,7 +1,13 @@
-skytools3 (3.0~rc1-1) unstable; urgency=low
+skytools3 (3.0~rc1-2) experimental; urgency=low
 
-  * Packaging reorg
-  * Fixes: #621115 (ITP)
+  * Add automake to the Build Depends (Closes: #632574)
+  * Merge with upstream
+
+ -- Dimitri Fontaine <dim@tapoueh.org>  Wed, 06 Jul 2011 16:07:12 +0200
+
+skytools3 (3.0~rc1-1) experimental; urgency=low
+
+  * New upstream version of skytools (Closes: #621115)
 
  -- Dimitri Fontaine <dim@tapoueh.org>  Mon, 28 Mar 2011 14:28:13 +0200
 

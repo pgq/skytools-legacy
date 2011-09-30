@@ -20,19 +20,10 @@ set -e
 
 case "$1" in
     configure)
-	if getent passwd skytools > /dev/null; then
-	    echo user skytools already exists
-	else
-	    adduser --system --no-create-home --home /var/lib/skytools --group --disabled-login skytools
-	fi
-
-	# care for transient data directories
-	install -o skytools -g skytools -d /var/log/skytools /var/run/skytools
-
 	# scripts alternatives
 	bin=/usr/bin
 	man=/usr/share/man/man1
-	for f in londiste scriptmgr queue_mover queue_splitter
+	for f in walmgr
 	do
 	    update-alternatives --install $bin/${f} $f $bin/${f}3 3 \
 		--slave $man/${f}.1.gz $f.1 $man/${f}3.1.gz || exit 1
