@@ -371,15 +371,20 @@ class Replicator(CascadedWorker):
 
         # store event filter
         if self.cf.getboolean('local_only', False):
+            # create list of tables
             if self.copy_thread:
                 _filterlist = skytools.quote_literal(self.copy_table_name)
             else:
                 _filterlist = ','.join(map(skytools.quote_literal, self.table_map.keys()))
-            self.consumer_filter = """
-((ev_type like 'pgq%%' or ev_type like 'londiste%%')
-or (ev_extra1 in (%s)))
-""" % _filterlist
+
+            # build filter
+            meta = "(ev_type like 'pgq.%' or ev_type like 'londiste.%')"
+            if _filterlist:
+                self.consumer_filter = "(%s or (ev_extra1 in (%s)))" % (meta, _filterlist)
+            else:
+                self.consumer_filter = meta
         else:
+            # no filter
             self.consumer_filter = None
 
     def sync_tables(self, src_db, dst_db):
