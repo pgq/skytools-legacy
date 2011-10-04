@@ -103,7 +103,7 @@ class CopyTable(Replicator):
         self.drop_fkeys(dst_db, tbl_stat.name)
 
         # now start ddl-dropping tx
-        q = "lock table %" + skytools.quote_fqident(tbl_stat.name)
+        q = "lock table " + skytools.quote_fqident(tbl_stat.name)
         dst_curs.execute(q)
 
         # find dst struct
