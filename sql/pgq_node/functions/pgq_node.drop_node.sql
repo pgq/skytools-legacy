@@ -21,7 +21,7 @@ returns record as $$
 --
 -- Return Codes:
 --      200 - Ok
---      404 - No such queue
+--      304 - No such queue
 ------------------------------------------------------------------------
 declare
     _is_local   boolean;
@@ -31,7 +31,7 @@ begin
       where queue_name = i_queue_name;
 
     if not found then
-        select 404, 'No such queue: ' || i_queue_name into ret_code, ret_note;
+        select 304, 'No such queue: ' || i_queue_name into ret_code, ret_note;
         return;
     end if;
 
