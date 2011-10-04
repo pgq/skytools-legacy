@@ -644,11 +644,15 @@ class DBScript(BaseScript):
         @param args: cmdline args (sys.argv[1:]), but can be overrided
         """
         self.db_cache = {}
+        self._db_defaults = {}
         self._listen_map = {} # dbname: channel_list
         BaseScript.__init__(self, service_name, args)
 
     def connection_hook(self, dbname, conn):
         pass
+
+    def set_database_defaults(self, dbname, **kwargs):
+        self._db_defaults[dbname] = kwargs
 
     def get_database(self, dbname, autocommit = 0, isolation_level = -1,
                      cache = None, connstr = None):
@@ -662,6 +666,22 @@ class DBScript(BaseScript):
 
         if not cache:
             cache = dbname
+
+        params = {}
+        defs = self._db_defaults.get(cache, {})
+        params.update(defs)
+        if isolation_level >= 0:
+            params['isolation_level'] = isolation_level
+        elif autocommit:
+            params['isolation_level'] = 0
+        elif params.get('autocommit', 0):
+            params['isolation_level'] = 0
+        elif not 'isolation_level' in params:
+            params['isolation_level'] = I_READ_COMMITTED
+
+        if not 'max_age' in params:
+            params['max_age'] = max_age
+
         if cache in self.db_cache:
             if connstr is None:
                 connstr = self.cf.get(dbname, '')
@@ -672,14 +692,14 @@ class DBScript(BaseScript):
             if not connstr:
                 connstr = self.cf.get(dbname)
             self.log.debug("Connect '%s' to '%s'" % (cache, connstr))
-            dbc = DBCachedConn(cache, connstr, max_age, setup_func = self.connection_hook)
+            dbc = DBCachedConn(cache, connstr, params['max_age'], setup_func = self.connection_hook)
             self.db_cache[cache] = dbc
 
         clist = []
         if cache in self._listen_map:
             clist = self._listen_map[cache]
 
-        return dbc.get_connection(autocommit, isolation_level, clist)
+        return dbc.get_connection(params['isolation_level'], clist)
 
     def close_database(self, dbname):
         """Explicitly close a cached connection.
@@ -885,12 +905,7 @@ class DBCachedConn(object):
             return None
         return self.conn.cursor().fileno()
 
-    def get_connection(self, autocommit = 0, isolation_level = I_DEFAULT, listen_channel_list = []):
-        # autocommit overrider isolation_level
-        if autocommit:
-            if isolation_level == I_SERIALIZABLE:
-                raise Exception('autocommit is not compatible with I_SERIALIZABLE')
-            isolation_level = I_AUTOCOMMIT
+    def get_connection(self, isolation_level = I_DEFAULT, listen_channel_list = []):
 
         # default isolation_level is READ COMMITTED
         if isolation_level < 0:
