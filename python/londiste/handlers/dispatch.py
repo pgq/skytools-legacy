@@ -252,6 +252,10 @@ class BaseBulkCollectingLoader(BaseLoader):
             # when no edge defined for old -> new op, keep old
             _op = self.OP_GRAPH[_op].get(op, _op)
             self.pkey_ev_map[pk_data] = (_op, row)
+
+            # skip update to pk-only table
+            if len(pk_data) == len(row) and _op == 'U':
+                del self.pkey_ev_map[pk_data]
         except KeyError:
             raise Exception('unknown event type: %s' % op)
 
