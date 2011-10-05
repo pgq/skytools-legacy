@@ -1,0 +1,29 @@
+
+Following switches are common to all skytools.DBScript-based
+Python programs.
+
+  -h, --help::
+	show help message and exit
+
+  -q, --quiet::
+	make program silent
+
+  -v, --verbose::
+	make program more verbose
+
+  -d, --daemon::
+	make program go background
+
+Following switches are used to control already running process.
+The pidfile is read from config then signal is sent to process
+id specified there.
+
+  -r, --reload::
+	reload config (send SIGHUP)
+
+  -s, --stop::
+	stop program safely (send SIGINT)
+
+  -k, --kill::
+	kill program immidiately (send SIGTERM)
+
