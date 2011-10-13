@@ -997,7 +997,7 @@ config_backup        = %(config_backup)s
             if not os.path.isdir(ssh_dir):
                 self.log.info("Creating directory: %s" % ssh_dir)
                 if not self.not_really:
-                    os.path.mkdir(ssh_dir)
+                    os.mkdir(ssh_dir)
 
             self.log.debug("Reading public key from %s" % self.options.ssh_add_key)
             master_pubkey = open(self.options.ssh_add_key).read()
