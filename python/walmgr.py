@@ -324,8 +324,6 @@ class WalMgr(skytools.DBScript):
 
             # slave configuration settings
             slave_opt_dict = {
-                'slave_stop_cmd':   '/etc/init.d/postgresql-%s stop' % DEFAULT_PG_VERSION,
-                'slave_start_cmd':  '/etc/init.d/postgresql-%s start' % DEFAULT_PG_VERSION,
                 'completed_wals':   '%%(walmgr_data)s/logs.complete',
                 'partial_wals':     '%%(walmgr_data)s/logs.partial',
                 'full_backup':      '%%(walmgr_data)s/data.master',
@@ -851,7 +849,6 @@ class WalMgr(skytools.DBScript):
             for path in os.environ['PATH'].split(os.pathsep):
                 path = os.path.expanduser(path)
                 exe = os.path.join(path, "postgres")
-                print "checking",exe
                 if os.path.isfile(exe):
                     self.postgres_bin = path
                     break
@@ -871,6 +868,19 @@ class WalMgr(skytools.DBScript):
             if not self.options.init_slave:
                 # postgres_conf is required for master
                 die(1, "Configuration file not found: %s" % self.postgres_conf)
+
+        # Attempt to guess the init.d script name
+        script_suffixes = [ "9.1", "9.0", "8.4", "8.3", "8.2", "8.1", "8.0" ]
+        self.initd_script = "/etc/init.d/postgresql"
+        if not os.path.exists(self.initd_script):
+            for suffix in script_suffixes:
+                try_file = "%s-%s" % (self.initd_script, suffix)
+                if os.path.exists(try_file):
+                    self.initd_script = try_file
+                    break
+            else:
+                self.initd_script = "%s -m fast -D %s" % \
+                    (os.path.join(self.postgres_bin, "pg_ctl"), os.path.abspath(self.pgdata))
 
     def write_walmgr_config(self, config_data):
         cf_name = os.path.join(os.path.expanduser(self.options.config_dir),
@@ -963,6 +973,11 @@ compression         = %(compression)s
         self.override_cf_option('slave_bin', self.postgres_bin)
         self.override_cf_option('slave_data', self.pgdata)
         self.override_cf_option('slave_config_dir', os.path.dirname(self.postgres_conf))
+
+        if self.initd_script:
+            print "overriding "
+            self.override_cf_option('slave_start_cmd', "%s start" % self.initd_script)
+            self.override_cf_option('slave_stop_cmd', "%s stop" % self.initd_script)
 
         slave_config = """[walmgr]
 job_name             = %(job_name)s
