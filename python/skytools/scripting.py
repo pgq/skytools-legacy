@@ -161,25 +161,29 @@ def _init_log(job_name, service_name, cf, log_level, is_daemon):
         return log
     _log_init_done[job_name] = 1
 
+    # tune level on root logger
+    root = logging.getLogger()
+    root.setLevel(log_level)
+
     # compatibility: specify ini file in script config
     logfile = cf.getfile("logfile", "")
     if logfile:
-        fmt = logging.Formatter('%(asctime)s %(process)s %(levelname)s %(message)s')
+        fstr = cf.get('logfmt_file', '%(asctime)s %(process)s %(levelname)s %(message)s')
+        fmt = logging.Formatter(fstr)
         size = cf.getint('log_size', 10*1024*1024)
         num = cf.getint('log_count', 3)
         hdlr = logging.handlers.RotatingFileHandler(
                     logfile, 'a', size, num)
         hdlr.setFormatter(fmt)
-        log.addHandler(hdlr)
+        root.addHandler(hdlr)
 
     # if skylog.ini is disabled or not available, log at least to stderr
     if not got_skylog:
+        fstr = cf.get('logfmt_console', '%(asctime)s %(process)s %(levelname)s %(message)s')
         hdlr = logging.StreamHandler()
-        fmt = logging.Formatter('%(asctime)s %(process)s %(levelname)s %(message)s')
+        fmt = logging.Formatter(fstr)
         hdlr.setFormatter(fmt)
-        log.addHandler(hdlr)
-
-    log.setLevel(log_level)
+        root.addHandler(hdlr)
 
     return log
 
