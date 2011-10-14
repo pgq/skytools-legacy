@@ -194,7 +194,7 @@ class CascadedConsumer(Consumer):
 
         if not self.provider_connstr:
             raise Exception('provider_connstr not set')
-        src_db = self.get_database('_provider_db', connstr = self.provider_connstr)
+        src_db = self.get_provider_db(self._consumer_state)
 
         return Consumer.work(self)
 
@@ -226,7 +226,7 @@ class CascadedConsumer(Consumer):
         # update connection
         loc = state['provider_location']
         if self.provider_connstr != loc:
-            self.close_database('_provider_db')
+            self.close_database(PDB)
             self.provider_connstr = loc
 
         return state

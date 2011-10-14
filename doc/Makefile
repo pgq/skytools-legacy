@@ -8,16 +8,14 @@ EPYARGS = --no-private --url="http://pgfoundry.org/projects/skytools/" \
 	--name="Skytools" --html --no-private -v
 
 HTMLS = README.html INSTALL.html \
-	londiste.ref.html TODO.html pgq-sql.html pgqadm.html pgq-nodupes.html \
+	TODO.html pgq-sql.html pgq-nodupes.html \
 	$(SCRIPT_HTMLS) faq.html set.notes.html skytools3.html devnotes.html
 
-SCRIPT_TXTS = walmgr.txt queue_mover.txt queue_splitter.txt qadmin.txt \
-	      scriptmgr.txt skytools_upgrade.txt londiste.txt pgqadm.txt
+SCRIPT_TXTS = walmgr.txt qadmin.txt scriptmgr.txt skytools_upgrade.txt
 SCRIPT_HTMLS = $(SCRIPT_TXTS:.txt=.html)
 
-MAN5 = 
-MAN1_SFX = londiste.1 pgqadm.1 scriptmgr.1 skytools_upgrade.1 walmgr.1 \
-	   queue_splitter.1 queue_mover.1
+MAN5 =
+MAN1_SFX = scriptmgr.1 skytools_upgrade.1 walmgr.1
 MAN1 = qadmin.1 pgqd.1
 
 FQHTML = $(addprefix html/, $(HTMLS))
@@ -26,7 +24,7 @@ FQMAN1_SFX = $(addprefix man/, $(MAN1_SFX))
 FQMAN5 = $(addprefix man/, $(MAN5))
 FQMAN = $(FQMAN1) $(FQMAN1_SFX) $(FQMAN5)
 
-COMMON = common.switches.txt common.config.txt common.logutriga.txt
+COMMON = common.switches.txt common.config.txt
 
 GETATTRS = python ../misc/getattrs.py
 FIXMAN = python ../misc/fixman.py

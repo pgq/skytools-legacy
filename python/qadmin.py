@@ -118,10 +118,26 @@ IGNORE_HOSTS = {
     'ip6-mcastprefix': 1,
 }
 
+_ident_rx =''' ( " ( "" | [^"]+ )* " ) | ( [a-z_][a-z0-9_]* ) | [.] | (?P<err> .)  '''
+_ident_rc = re.compile(_ident_rx, re.X | re.I)
+
 def unquote_any(typ, s):
+    global _ident_rc
     if typ == 'ident':
-        ps = [skytools.unquote_ident(p) for p in s.split('.')]
-        s = '.'.join(ps)
+        res = []
+        pos = 0
+        while 1:
+            m = _ident_rc.match(s, pos)
+            if not m:
+                break
+            if m.group('err'):
+                raise Exception('invalid syntax for ident')
+            s1 = m.group()
+            if s1[0] == '"':
+                s1 = s1[1:-1].replace('""', '"')
+            res.append(s1)
+            pos = m.end()
+        s = ''.join(res)
     elif typ == 'str' or typ == 'dolq':
         s = skytools.unquote_literal(s, True)
     return s

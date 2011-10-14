@@ -1,4 +1,9 @@
 \set ECHO none
+ upgrade_schema 
+----------------
+              0
+(1 row)
+
 select pgq.create_queue('testqueue');
  create_queue 
 --------------
@@ -7,16 +12,16 @@ select pgq.create_queue('testqueue');
 
 update pgq.queue set queue_ticker_max_count = 1 where queue_name = 'testqueue';
 -- register
-select pgq.register_consumer('testqueue', 'maincons');
- register_consumer 
--------------------
-                 1
+select pgq_coop.register_subconsumer('testqueue', 'maincons', 'subcons1');
+ register_subconsumer 
+----------------------
+                    1
 (1 row)
 
 select pgq_coop.register_subconsumer('testqueue', 'maincons', 'subcons1');
  register_subconsumer 
 ----------------------
-                    1
+                    0
 (1 row)
 
 select pgq_coop.register_subconsumer('testqueue', 'maincons', 'subcons1');
@@ -117,6 +122,12 @@ select pgq_coop.finish_batch(2);
 (1 row)
 
 -- test takeover
+select pgq_coop.next_batch('testqueue', 'maincons', 'subcons2', '1 hour');
+ next_batch 
+------------
+           
+(1 row)
+
 update pgq.subscription set sub_active = '2005-01-01' where sub_batch is not null;
 select pgq_coop.next_batch('testqueue', 'maincons', 'subcons2', '1 hour');
  next_batch 

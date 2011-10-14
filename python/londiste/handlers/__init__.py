@@ -3,12 +3,14 @@ import new
 import sys
 
 DEFAULT_HANDLERS = [
-    'londiste.handlers.bulk',
     'londiste.handlers.qtable',
-    'londiste.handlers.dispatch',
     'londiste.handlers.applyfn',
     'londiste.handlers.part',
     'londiste.handlers.multimaster',
+    'londiste.handlers.vtable',
+
+    'londiste.handlers.bulk',
+    'londiste.handlers.dispatch',
 ]
 
 def handler_args(name, cls):

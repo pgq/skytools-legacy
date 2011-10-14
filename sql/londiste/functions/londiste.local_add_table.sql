@@ -2,6 +2,7 @@ create or replace function londiste.local_add_table(
     in i_queue_name     text,
     in i_table_name     text,
     in i_trg_args       text[],
+    in i_table_attrs    text,
     out ret_code        int4,
     out ret_note        text)
 as $$
@@ -67,6 +68,8 @@ declare
     arg text;
     _node record;
     _tbloid oid;
+    _combined_queue text;
+    _combined_table text;
     -- skip trigger
     _skip_prefix text := 'zzz_';
     _skip_trg_count integer;
@@ -211,7 +214,8 @@ begin
 
     update londiste.table_info
         set local = true,
-            merge_state = new_state
+            merge_state = new_state,
+            table_attrs = coalesce(i_table_attrs, table_attrs)
         where queue_name = i_queue_name and table_name = fq_table_name;
     if not found then
         raise exception 'lost table: %', fq_table_name;
@@ -252,19 +256,37 @@ begin
 
             update londiste.table_info
                set local = true,
-                   merge_state = new_state
+                   merge_state = new_state,
+                   table_attrs = coalesce(i_table_attrs, table_attrs)
                where queue_name = _queue_name and table_name = fq_table_name;
             if not found then
                 raise exception 'lost table: %', fq_table_name;
             end if;
         end loop;
+
+        -- if this node has combined_queue, add table there too
+        select n2.queue_name, t.table_name
+            from pgq_node.node_info n1
+            join pgq_node.node_info n2
+                on (n2.queue_name = n1.combined_queue)
+            left join londiste.table_info t
+                on (t.queue_name = n2.queue_name and t.table_name = fq_table_name)
+            where n1.queue_name = i_queue_name and n2.node_type = 'root'
+            into _combined_queue, _combined_table;
+        if found and _combined_table is null then
+            select f.ret_code, f.ret_note
+                from londiste.local_add_table(_combined_queue, fq_table_name, i_trg_args, i_table_attrs) f
+                into ret_code, ret_note;
+            if ret_code >= 300 then
+                return;
+            end if;
+        end if;
     end if;
 
     if _skip_truncate then
         perform 1
-        from londiste.local_set_table_attrs(i_queue_name,
-                                            fq_table_name,
-                                            'skip_truncate=1');
+        from londiste.local_set_table_attrs(i_queue_name, fq_table_name,
+            coalesce(i_table_attrs || '&skip_truncate=1', 'skip_truncate=1'));
     end if;
 
     -------- TRIGGER LOGIC
@@ -444,6 +466,25 @@ $$ language plpgsql;
 create or replace function londiste.local_add_table(
     in i_queue_name     text,
     in i_table_name     text,
+    in i_trg_args       text[],
+    out ret_code        int4,
+    out ret_note        text)
+as $$
+-- ----------------------------------------------------------------------
+-- Function: londiste.local_add_table(3)
+--
+--      Register table on Londiste node.
+-- ----------------------------------------------------------------------
+begin
+    select f.ret_code, f.ret_note into ret_code, ret_note
+      from londiste.local_add_table(i_queue_name, i_table_name, i_trg_args, null) f;
+    return;
+end;
+$$ language plpgsql;
+
+create or replace function londiste.local_add_table(
+    in i_queue_name     text,
+    in i_table_name     text,
     out ret_code        int4,
     out ret_note        text)
 as $$
@@ -451,11 +492,6 @@ as $$
 -- Function: londiste.local_add_table(2)
 --
 --      Register table on Londiste node.
---
--- Returns:
---      200 - Ok
---      301 - Warning, trigger exists that will fire before londiste one
---      400 - No such set
 -- ----------------------------------------------------------------------
 begin
     select f.ret_code, f.ret_note into ret_code, ret_note

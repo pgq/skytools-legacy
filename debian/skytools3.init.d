@@ -1,6 +1,6 @@
 #!/bin/sh
 ### BEGIN INIT INFO
-# Provides:          skytools-3.0
+# Provides:          skytools3
 # Required-Start:    $network $local_fs $remote_fs
 # Required-Stop:     $network $remote_fs
 # Default-Start:     2 3 4 5

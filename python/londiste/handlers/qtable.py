@@ -16,7 +16,7 @@ from londiste.handler import BaseHandler
 
 import pgq
 
-__all__ = ['QueueTableHandler', 'FakeLocalHandler', 'QueueSplitterHandler']
+__all__ = ['QueueTableHandler', 'QueueSplitterHandler']
 
 
 class QueueTableHandler(BaseHandler):
@@ -35,17 +35,6 @@ class QueueTableHandler(BaseHandler):
 
     def needs_table(self):
         return False
-
-class FakeLocalHandler(BaseHandler):
-    handler_name = 'fake_local'
-
-    def add(self, trigger_arg_list):
-        trigger_arg_list.append('virtual_table')
-
-    def needs_table(self):
-        return False
-
-
 
 class QueueSplitterHandler(BaseHandler):
     handler_name = 'qsplitter'
@@ -89,5 +78,4 @@ class QueueSplitterHandler(BaseHandler):
         return False
 
 
-__londiste_handlers__ = [QueueTableHandler, FakeLocalHandler,
-                         QueueSplitterHandler]
+__londiste_handlers__ = [QueueTableHandler, QueueSplitterHandler]

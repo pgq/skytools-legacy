@@ -37,8 +37,7 @@ debian/*debhelper
 debian/patches
 debian/python-pgq3/*
 debian/python-skytools3/*
-debian/postgresql-8.4-pgq3/*
-debian/postgresql-9.0-pgq3/*
+debian/postgresql-*-pgq3/*
 debian/skytools3*/*
 debian/skytools-pgq*/*
 debian/skytools-londiste*/*

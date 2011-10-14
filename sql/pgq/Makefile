@@ -12,7 +12,8 @@ SRCS = structure/tables.sql structure/grants.sql structure/install.sql \
 REGRESS = pgq_init pgq_core logutriga sqltriga trunctrg
 REGRESS_OPTS = --load-language=plpgsql
 
-include ../../config.mak
+PG_CONFIG = pg_config
+PGXS = $(shell $(PG_CONFIG) --pgxs)
 include $(PGXS)
 
 NDOC = NaturalDocs
@@ -28,7 +29,7 @@ clean: sub-clean
 distclean: sub-distclean
 sub-all sub-install sub-clean sub-distclean:
 	for dir in $(SUBDIRS); do \
-		$(MAKE) -C $$dir $(subst sub-,,$@) DESTDIR=$(DESTDIR); \
+		$(MAKE) -C $$dir $(subst sub-,,$@) DESTDIR=$(DESTDIR) PG_CONFIG=$(PG_CONFIG); \
 	done
 
 lowlevel/pgq_lowlevel.sql: sub-all
@@ -70,7 +71,7 @@ upload: dox
 #
 
 test: pgq.sql
-	$(MAKE) install installcheck || { less regression.diffs; exit 1; }
+	$(MAKE) install installcheck || { filterdiff --format=unified regression.diffs | less; exit 1; }
 
 ack:
 	cp results/*.out expected/

@@ -113,6 +113,11 @@ class Consumer(skytools.DBScript):
         # whether to use cursor to fetch events (0 disables)
         #pgq_lazy_fetch = 300
 
+        # whether to read from source size in autocommmit mode
+        # not compatible with pgq_lazy_fetch
+        # the actual user script on top of pgq.Consumer must also support it
+        #pgq_autocommit = 0
+
         # whether to wait for specified number of events, before
         # assigning a batch (0 disables)
         #pgq_batch_collect_events = 0
@@ -127,6 +132,9 @@ class Consumer(skytools.DBScript):
 
     # by default, use cursor-based fetch
     default_lazy_fetch = 300
+
+    # should reader connection be used in autocommit mode
+    pgq_autocommit = 0
 
     # proper variables
     consumer_name = None
@@ -173,10 +181,17 @@ class Consumer(skytools.DBScript):
         self.pgq_queue_name = self.queue_name
         self.consumer_id = self.consumer_name
 
+        # set default just once
+        self.pgq_autocommit = self.cf.getint("pgq_autocommit", self.pgq_autocommit)
+        if self.pgq_autocommit and self.pgq_lazy_fetch:
+            raise skytools.UsageError("pgq_autocommit is not compatible with pgq_lazy_fetch")
+        self.set_database_defaults(self.db_name, autocommit = self.pgq_autocommit)
+
     def reload(self):
         skytools.DBScript.reload(self)
 
         self.pgq_lazy_fetch = self.cf.getint("pgq_lazy_fetch", self.default_lazy_fetch)
+
         # set following ones to None if not set
         self.pgq_min_count = self.cf.getint("pgq_batch_collect_events", 0) or None
         self.pgq_min_interval = self.cf.get("pgq_batch_collect_interval", '') or None

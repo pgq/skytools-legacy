@@ -15,15 +15,12 @@ HDRS = $(LOCAL_HDRS) $(USUAL_HDRS)
 
 PG_INCDIR = $(shell $(PG_CONFIG) --includedir)
 PG_LIBDIR = $(shell $(PG_CONFIG) --libdir)
-PG_CPPFLAGS = -I$(PG_INCDIR)
-PG_LDFLAGS = -L$(PG_LIBDIR)
-PG_LIBS = -lpq -lm
 
 OBJS = $(SRCS:.c=.o) $(USUAL_OBJS)
 
-CPPFLAGS += $(USUAL_CPPFLAGS) $(PG_CPPFLAGS)
-LDFLAGS += $(PG_LDFLAGS)
-LIBS += $(PG_LIBS)
+CPPFLAGS += $(USUAL_CPPFLAGS) -I$(PG_INCDIR)
+LDFLAGS += -L$(PG_LIBDIR)
+LIBS += -lpq -lm
 
 all: $(PROGRAM)
 

@@ -9,3 +9,4 @@ for s in pgq pgq_node pgq_coop londiste; do
   git commit -m "$s.version(): $nver" "$fn"
 done
 
+grep 'return ' sql/*/functions/*.version.sql

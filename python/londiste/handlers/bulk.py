@@ -217,6 +217,10 @@ class BulkLoader(BaseHandler):
         upd_sql = "update only %s set %s from %s where %s" % (
                    qtbl, ", ".join(slist), qtemp, whe_expr)
 
+        # avoid updates on pk-only table
+        if not slist:
+            upd_list = []
+
         # insert sql
         colstr = ",".join([quote_ident(c) for c in col_list])
         ins_sql = "insert into %s (%s) select %s from %s" % (

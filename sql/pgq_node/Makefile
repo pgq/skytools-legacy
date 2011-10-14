@@ -8,7 +8,8 @@ SRCS = structure/tables.sql structure/functions.sql $(FUNCS)
 REGRESS = pgq_node_test
 REGRESS_OPTS = --load-language=plpgsql
 
-include ../../config.mak
+PG_CONFIG = pg_config
+PGXS = $(shell $(PG_CONFIG) --pgxs)
 include $(PGXS)
 
 NDOC = NaturalDocs

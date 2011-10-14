@@ -252,6 +252,10 @@ class BaseBulkCollectingLoader(BaseLoader):
             # when no edge defined for old -> new op, keep old
             _op = self.OP_GRAPH[_op].get(op, _op)
             self.pkey_ev_map[pk_data] = (_op, row)
+
+            # skip update to pk-only table
+            if len(pk_data) == len(row) and _op == 'U':
+                del self.pkey_ev_map[pk_data]
         except KeyError:
             raise Exception('unknown event type: %s' % op)
 
@@ -314,12 +318,6 @@ class BaseBulkTempLoader(BaseBulkCollectingLoader):
                 for f in self.keys)
         return ' and '.join(stmt)
 
-    def _set(self):
-        tmpl = "%(col)s = t.%(col)s"
-        stmt = (tmpl % {'col': quote_ident(f)}
-                for f in self.nonkeys())
-        return ", ".join(stmt)
-
     def _cols(self):
         return ','.join(quote_ident(f) for f in self.fields)
 
@@ -329,8 +327,18 @@ class BaseBulkTempLoader(BaseBulkCollectingLoader):
         return self.logexec(curs, sql)
 
     def update(self, curs):
+        qcols = [quote_ident(c) for c in self.nonkeys()]
+
+        # no point to update pk-only table
+        if not qcols:
+            return
+
+        tmpl = "%s = t.%s"
+        eqlist = [tmpl % (c,c) for c in qcols]
+        _set =  ", ".join(eqlist)
+
         sql = "update only %s set %s from %s as t where %s" % (
-                self.qtable, self._set(), self.qtemp, self._where())
+                self.qtable, _set, self.qtemp, self._where())
         return self.logexec(curs, sql)
 
     def delete(self, curs):
@@ -345,7 +353,7 @@ class BaseBulkTempLoader(BaseBulkCollectingLoader):
         return self.logexec(curs, "drop table %s" % self.qtemp)
 
     def create(self, curs):
-        if self.USE_REAL_TABLE:
+        if USE_REAL_TABLE:
             tmpl = "create table %s (like %s)"
         else:
             tmpl = "create temp table %s (like %s) on commit preserve rows"

@@ -1,5 +1,4 @@
 
-include ../../../config.mak
 
 MODULE_big = pgq_triggers
 SRCS = logtriga.c logutriga.c sqltriga.c \
@@ -8,6 +7,8 @@ SRCS = logtriga.c logutriga.c sqltriga.c \
 OBJS = $(SRCS:.c=.o)
 DATA = pgq_triggers.sql
 
+PG_CONFIG = pg_config
+PGXS = $(shell $(PG_CONFIG) --pgxs)
 include $(PGXS)
 
 cs:

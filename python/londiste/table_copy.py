@@ -56,8 +56,14 @@ class CopyTable(Replicator):
         src_curs = src_db.cursor()
         dst_curs = dst_db.cursor()
 
-        while tbl_stat.copy_role == 'wait-copy':
-            self.log.info('waiting for first partition to initialize copy')
+        while 1:
+            if tbl_stat.copy_role == 'wait-copy':
+                self.log.info('waiting for first partition to initialize copy')
+            elif tbl_stat.max_parallel_copies_reached():
+                self.log.info('number of max parallel copies (%s) reached' %\
+                                tbl_stat.max_parallel_copy)
+            else:
+                break
             time.sleep(10)
             tbl_stat = self.reload_table_stat(dst_curs, tbl_stat.name)
             dst_db.commit()
@@ -70,7 +76,7 @@ class CopyTable(Replicator):
             pt = pmap[tbl_stat.name]
             if pt.state == TABLE_OK:
                 break
-            
+
             self.log.warning("table %s not in sync yet on provider, waiting" % tbl_stat.name)
             time.sleep(10)
 
@@ -84,6 +90,7 @@ class CopyTable(Replicator):
             cmode = 0
 
         # change to SERIALIZABLE isolation level
+        oldiso = src_db.isolation_level
         src_db.set_isolation_level(skytools.I_SERIALIZABLE)
         src_db.commit()
 
@@ -95,10 +102,14 @@ class CopyTable(Replicator):
         # !! this may commit, so must be done before anything else !!
         self.drop_fkeys(dst_db, tbl_stat.name)
 
+        # now start ddl-dropping tx
+        q = "lock table " + skytools.quote_fqident(tbl_stat.name)
+        dst_curs.execute(q)
+
         # find dst struct
         src_struct = TableStruct(src_curs, tbl_stat.name)
         dst_struct = TableStruct(dst_curs, tbl_stat.name)
-        
+
         # take common columns, warn on missing ones
         dlist = dst_struct.get_column_list()
         slist = src_struct.get_column_list()
@@ -132,8 +143,11 @@ class CopyTable(Replicator):
 
             if cmode == 2 and tbl_stat.dropped_ddl is None:
                 ddl = dst_struct.get_create_sql(objs)
-                q = "select * from londiste.local_set_table_struct(%s, %s, %s)"
-                self.exec_cmd(dst_curs, q, [self.queue_name, tbl_stat.name, ddl])
+                if ddl:
+                    q = "select * from londiste.local_set_table_struct(%s, %s, %s)"
+                    self.exec_cmd(dst_curs, q, [self.queue_name, tbl_stat.name, ddl])
+                else:
+                    ddl = None
                 dst_db.commit()
                 tbl_stat.dropped_ddl = ddl
 
@@ -145,15 +159,21 @@ class CopyTable(Replicator):
         snapshot = src_curs.fetchone()[0]
         src_db.commit()
 
-        # restore READ COMMITTED behaviour
-        src_db.set_isolation_level(1)
+        # restore old behaviour
+        src_db.set_isolation_level(oldiso)
         src_db.commit()
+
+        tbl_stat.change_state(TABLE_CATCHING_UP)
+        tbl_stat.change_snapshot(snapshot)
+        self.save_table_state(dst_curs)
 
         # create previously dropped objects
         if cmode == 1:
             dst_struct.create(dst_curs, objs, log = self.log)
         elif cmode == 2:
             dst_db.commit()
+
+            # start waiting for other copy processes to finish
             while tbl_stat.copy_role == 'lead':
                 self.log.info('waiting for other partitions to finish copy')
                 time.sleep(10)
@@ -171,23 +191,15 @@ class CopyTable(Replicator):
                 self.looping = 1
             dst_db.commit()
 
-        # set state
-        if self.copy_thread:
-            tbl_stat.change_state(TABLE_CATCHING_UP)
-        else:
+        # hack for copy-in-playback
+        if not self.copy_thread:
             tbl_stat.change_state(TABLE_OK)
-        tbl_stat.change_snapshot(snapshot)
-        self.save_table_state(dst_curs)
+            self.save_table_state(dst_curs)
         dst_db.commit()
 
         # copy finished
         if tbl_stat.copy_role == 'wait-replay':
             return
-
-        # analyze
-        self.log.info("%s: analyze" % tbl_stat.name)
-        dst_curs.execute("analyze " + skytools.quote_fqident(tbl_stat.name))
-        dst_db.commit()
 
         # if copy done, request immidiate tick from pgqadm,
         # to make state juggling faster.  on mostly idle db-s

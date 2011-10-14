@@ -31,6 +31,9 @@ db = dbname=$db
 queue_name = replika
 logfile = log/%(job_name)s.log
 pidfile = pid/%(job_name)s.pid
+
+pgq_autocommit = 1
+pgq_lazy_fetch = 0
 EOF
 done
 
