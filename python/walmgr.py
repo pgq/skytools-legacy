@@ -283,6 +283,8 @@ class WalMgr(skytools.DBScript):
                      help = "slave: add public key to authorized_hosts", default=False)
         p.add_option("", "--ssh-remove-key", action="store", dest="ssh_remove_key",
                      help = "slave: remove master key from authorized_hosts", default=False)
+        p.add_option("", "--primary-conninfo", action="store", dest="primary_conninfo", default=None,
+                     help = "slave: connect string for streaming replication master")
         p.add_option("", "--init-slave", action="store_true", dest="init_slave",
                      help = "Initialize slave walmgr.", default=False)
         return p
@@ -996,6 +998,13 @@ partial_wals         = %(partial_wals)s
 full_backup          = %(full_backup)s
 config_backup        = %(config_backup)s
 """
+
+        if self.options.primary_conninfo:
+            self.override_cf_option('primary_conninfo', self.options.primary_conninfo)
+            slave_config += """
+primary_conninfo     = %(primary_conninfo)s
+"""
+
         try:
             opt_dict = dict([(k, self.cf.get(k)) for k in self.cf.options()])
             slave_config = slave_config % opt_dict
