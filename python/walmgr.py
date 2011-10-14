@@ -208,6 +208,19 @@ class PostgresConfiguration:
             return "off"
         return None
 
+    def synchronous_standby_names(self):
+        """Return value for specified parameter"""
+        # see if explicitly set
+        m = re.search("^\s*synchronous_standby_names\s*=\s*'?([a-zA-Z01]+)'?\s*#?.*$", self.cf_buf, re.M | re.I)
+        if m:
+            return m.group(1)
+        # also, it could be commented out as initdb leaves it
+        # it'd probably be best to check from the database ...
+        m = re.search("^#synchronous_standby_names\s*=.*$", self.cf_buf, re.M | re.I)
+        if m:
+            return ''
+        return None
+
     def wal_level(self):
         """Return value for specified parameter"""
         # see if explicitly set
@@ -721,6 +734,11 @@ class WalMgr(skytools.DBScript):
                 self.log.info("Setting archive_command to /bin/true to avoid WAL pileup")
 
                 cf_params['archive_command'] = '/bin/true'
+
+                # disable synchronous standbys, note that presently we don't care
+                # if there is more than one standby.
+                if cf.synchronous_standby_names():
+                    cf_params['synchronous_standby_names'] = ''
 
         self.log.debug("modifying configuration: %s" % cf_params)
 
