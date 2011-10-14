@@ -977,7 +977,6 @@ compression         = %(compression)s
         self.override_cf_option('slave_config_dir', os.path.dirname(self.postgres_conf))
 
         if self.initd_script:
-            print "overriding "
             self.override_cf_option('slave_start_cmd', "%s start" % self.initd_script)
             self.override_cf_option('slave_stop_cmd', "%s stop" % self.initd_script)
 
@@ -1861,6 +1860,9 @@ STOP TIME: %(stop_time)s
             conf += "standby_mode = 'on'\n"
             conf += "trigger_file = '%s'\n" % os.path.join(self.cf.getfile("completed_wals"), "STOP")
             conf += "primary_conninfo = '%s'\n" % primary_conninfo
+            conf += "archive_cleanup_command = '%s %s %%r'\n" % \
+                (os.path.join(self.cf.getfile("slave_bin"), "pg_archivecleanup"),
+                self.cf.getfile("completed_wals"))
 
         self.log.info("Write %s" % rconf)
         if self.not_really:
