@@ -1,3 +1,10 @@
+skytools3 (3.0~rc2-1) experimental; urgency=low
+
+  * Fix skytools3-walmgr dependencies (support 9.1)
+  * Bug fixes upstream
+
+ -- Dimitri Fontaine <dim@tapoueh.org>  Tue, 11 Oct 2011 12:06:54 +0200
+
 skytools3 (3.0~rc1-2) experimental; urgency=low
 
   * Add automake to the Build Depends (Closes: #632574)

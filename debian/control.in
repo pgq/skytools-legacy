@@ -36,8 +36,8 @@ Description: python framework for Skype tools for PostgreSQL replication
 
 Package: skytools3-walmgr
 Architecture: any
-Depends: ${misc:Depends}, ${python:Depends}, python-skytools3, postgresql-8.4 | postgresql-9.0
-Enhances: postgresql-8.4, postgresql-9.0
+Depends: ${misc:Depends}, ${python:Depends}, python-skytools3, postgresql-8.4 | postgresql-9.0 | postgresql-9.1
+Enhances: postgresql-8.4, postgresql-9.0, postgresql-9.1
 Description: Skype tools for PostgreSQL replication and failover
  This is a package of tools in use in Skype for replication and failover.
  It's the WAL Shipping part of it (binary cluster-wide replication).
