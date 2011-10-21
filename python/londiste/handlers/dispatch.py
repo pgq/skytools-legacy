@@ -135,6 +135,10 @@ encoding:
     name of destination encoding. handler replaces all invalid encoding symbols
     and logs them as warnings
 
+analyze:
+    0 - do not run analyze on temp tables (default)
+    1 - run analyze on temp tables
+
 NB! londiste3 does not currently support table renaming and field mapping when
 creating or coping initial data to destination table.  --expect-sync and
 --skip-truncate should be used and --create switch is to be avoided.
@@ -374,6 +378,7 @@ class BulkLoader(BaseBulkTempLoader):
     def __init__(self, table, pkeys, log, conf):
         BaseBulkTempLoader.__init__(self, table, pkeys, log, conf)
         self.method = self.conf['method']
+        self.run_analyze = self.conf['analyze']
         self.dist_fields = None
         # is temp table created
         self.temp_present = False
@@ -514,7 +519,7 @@ class BulkLoader(BaseBulkTempLoader):
         self.log.debug("bulk: COPY %d rows into %s" % (len(data), table))
         skytools.magic_insert(curs, table, data, self.fields,
                               quoted_table = True)
-        if _use_temp:
+        if _use_temp and self.run_analyze:
             self.analyze(curs)
 
     def find_dist_fields(self, curs):
@@ -684,6 +689,7 @@ class Dispatcher(BaseHandler):
         conf = skytools.dbdict()
         # set table mode
         conf.table_mode = self.get_arg('table_mode', TABLE_MODES)
+        conf.analyze = self.get_arg('analyze', [0, 1])
         if conf.table_mode == 'part':
             conf.part_mode = self.get_arg('part_mode', PART_MODES)
             conf.part_field = self.args.get('part_field')
