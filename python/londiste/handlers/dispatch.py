@@ -374,6 +374,7 @@ class BulkLoader(BaseBulkTempLoader):
     def __init__(self, table, pkeys, log, conf):
         BaseBulkTempLoader.__init__(self, table, pkeys, log, conf)
         self.method = self.conf['method']
+        self.dist_fields = None
         # is temp table created
         self.temp_present = False
 
@@ -451,12 +452,15 @@ class BulkLoader(BaseBulkTempLoader):
             self.table, len(op_map['I']), len(op_map['U']), len(op_map['D'])))
 
         # fetch distribution fields
-        dist_keys = self.find_dist_fields(curs)
-        self.log.debug("PKey fields: %s  Dist fields: %s" % (
-                       ",".join(self.pkeys), ",".join(dist_keys)))
-        for key in dist_keys:
-            if key not in self.keys:
-                self.keys.append(key)
+        if self.dist_fields is None:
+            self.dist_fields = self.find_dist_fields(curs)
+            self.log.debug("Key fields: %s  Dist fields: %s" % (
+                           ",".join(self.pkeys), ",".join(self.dist_fields)))
+            # add them to key
+            for key in self.dist_fields:
+                if key not in self.keys:
+                    self.keys.append(key)
+
         # check if temp table present
         self.check_temp(curs)
         # process I,U,D
