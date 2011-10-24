@@ -5,6 +5,7 @@
 ../zstop.sh
 
 v='-q'
+nocheck=1
 
 db_list="db1 db2 db3 db4 db5"
 
@@ -12,7 +13,11 @@ kdb_list=`echo $db_list | sed 's/ /,/g'`
 
 #( cd ../..; make -s install )
 
-echo " * create configs * "
+do_check() {
+  test $nocheck = 1 || ../zcheck.sh
+}
+
+title Londiste test
 
 # create ticker conf
 cat > conf/pgqd.ini <<EOF
@@ -70,7 +75,7 @@ run londiste3 $v conf/londiste_db4.ini create-branch node4 'dbname=db4' --provid
 run londiste3 $v conf/londiste_db5.ini create-branch node5 'dbname=db5' --provider='dbname=db3'
 
 msg "Run ticker"
-run pgqd -d conf/pgqd.ini
+run pgqd $v -d conf/pgqd.ini
 run sleep 5
 
 msg "See topology"
@@ -131,7 +136,7 @@ done
 ##
 
 # test lagged takeover
-if true; then
+if false; then
 
 msg "Force lag on db2"
 run londiste3 $v conf/londiste_db2.ini worker -s
@@ -170,7 +175,7 @@ run sleep 5
 
 msg "Done"
 
-run ../zcheck.sh
+do_check
 
 exit 0
 fi
@@ -192,7 +197,7 @@ msg "Check table structure"
 run psql -d db5 -c '\d mytable'
 run psql -d db5 -c 'select * from mytable'
 run sleep 10
-../zcheck.sh
+do_check
 fi
 
 #echo early quit
@@ -217,7 +222,7 @@ run ./loadgen.py -s conf/gen1.ini
 run ./loadgen.py -d conf/gen2.ini
 
 run sleep 10
-../zcheck.sh
+do_check
 
 msg "Change topology / failover"
 ps aux | grep 'postgres[:].* db2 ' | awk '{print $2}' | xargs -r kill
@@ -236,5 +241,6 @@ run ./loadgen.py -d conf/gen3.ini
 
 
 run sleep 10
-../zcheck.sh
+do_check
 
+msg Done
