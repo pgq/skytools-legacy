@@ -31,27 +31,44 @@ cleardb() {
 }
 
 clearlogs() {
+  code_off
   echo "clean logs"
   rm -f log/*.log log/*.log.[0-9]
 }
 
+code=0
+
+code_on() {
+  test $code = 1 || echo "----------"
+  code=1
+}
+
+code_off() {
+  test $code = 0 || echo "----------"
+  code=0
+}
+
 title() {
+  code_off
   echo ""
   echo "=" "$@" "="
   echo ""
 }
 
 run() {
-  echo "    $ $*"
-  "$@" 2>&1 | sed 's/^/    /'
+  code_on
+  echo "$ $*"
+  "$@" 2>&1
 }
 
 run_sql() {
-  echo "    $ psql -d \"$1\" -c \"$2\""
-  psql -d "$1" -c "$2" 2>&1 | sed 's/^/    /'
+  code_on
+  echo "$ psql -d \"$1\" -c \"$2\""
+  psql -d "$1" -c "$2" 2>&1
 }
 
 msg() {
+  code_off
   echo ""
   echo "$@"
   echo ""
