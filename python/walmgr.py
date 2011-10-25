@@ -208,6 +208,19 @@ class PostgresConfiguration:
             return "off"
         return None
 
+    def synchronous_standby_names(self):
+        """Return value for specified parameter"""
+        # see if explicitly set
+        m = re.search("^\s*synchronous_standby_names\s*=\s*'?([a-zA-Z01]+)'?\s*#?.*$", self.cf_buf, re.M | re.I)
+        if m:
+            return m.group(1)
+        # also, it could be commented out as initdb leaves it
+        # it'd probably be best to check from the database ...
+        m = re.search("^#synchronous_standby_names\s*=.*$", self.cf_buf, re.M | re.I)
+        if m:
+            return ''
+        return None
+
     def wal_level(self):
         """Return value for specified parameter"""
         # see if explicitly set
@@ -283,6 +296,8 @@ class WalMgr(skytools.DBScript):
                      help = "slave: add public key to authorized_hosts", default=False)
         p.add_option("", "--ssh-remove-key", action="store", dest="ssh_remove_key",
                      help = "slave: remove master key from authorized_hosts", default=False)
+        p.add_option("", "--primary-conninfo", action="store", dest="primary_conninfo", default=None,
+                     help = "slave: connect string for streaming replication master")
         p.add_option("", "--init-slave", action="store_true", dest="init_slave",
                      help = "Initialize slave walmgr.", default=False)
         return p
@@ -324,8 +339,6 @@ class WalMgr(skytools.DBScript):
 
             # slave configuration settings
             slave_opt_dict = {
-                'slave_stop_cmd':   '/etc/init.d/postgresql-%s stop' % DEFAULT_PG_VERSION,
-                'slave_start_cmd':  '/etc/init.d/postgresql-%s start' % DEFAULT_PG_VERSION,
                 'completed_wals':   '%%(walmgr_data)s/logs.complete',
                 'partial_wals':     '%%(walmgr_data)s/logs.partial',
                 'full_backup':      '%%(walmgr_data)s/data.master',
@@ -722,6 +735,11 @@ class WalMgr(skytools.DBScript):
 
                 cf_params['archive_command'] = '/bin/true'
 
+                # disable synchronous standbys, note that presently we don't care
+                # if there is more than one standby.
+                if cf.synchronous_standby_names():
+                    cf_params['synchronous_standby_names'] = ''
+
         self.log.debug("modifying configuration: %s" % cf_params)
 
         cf.modify(cf_params)
@@ -851,7 +869,6 @@ class WalMgr(skytools.DBScript):
             for path in os.environ['PATH'].split(os.pathsep):
                 path = os.path.expanduser(path)
                 exe = os.path.join(path, "postgres")
-                print "checking",exe
                 if os.path.isfile(exe):
                     self.postgres_bin = path
                     break
@@ -871,6 +888,19 @@ class WalMgr(skytools.DBScript):
             if not self.options.init_slave:
                 # postgres_conf is required for master
                 die(1, "Configuration file not found: %s" % self.postgres_conf)
+
+        # Attempt to guess the init.d script name
+        script_suffixes = [ "9.1", "9.0", "8.4", "8.3", "8.2", "8.1", "8.0" ]
+        self.initd_script = "/etc/init.d/postgresql"
+        if not os.path.exists(self.initd_script):
+            for suffix in script_suffixes:
+                try_file = "%s-%s" % (self.initd_script, suffix)
+                if os.path.exists(try_file):
+                    self.initd_script = try_file
+                    break
+            else:
+                self.initd_script = "%s -m fast -D %s" % \
+                    (os.path.join(self.postgres_bin, "pg_ctl"), os.path.abspath(self.pgdata))
 
     def write_walmgr_config(self, config_data):
         cf_name = os.path.join(os.path.expanduser(self.options.config_dir),
@@ -964,6 +994,10 @@ compression         = %(compression)s
         self.override_cf_option('slave_data', self.pgdata)
         self.override_cf_option('slave_config_dir', os.path.dirname(self.postgres_conf))
 
+        if self.initd_script:
+            self.override_cf_option('slave_start_cmd', "%s start" % self.initd_script)
+            self.override_cf_option('slave_stop_cmd', "%s stop" % self.initd_script)
+
         slave_config = """[walmgr]
 job_name             = %(job_name)s
 logfile              = %(logfile)s
@@ -981,6 +1015,13 @@ partial_wals         = %(partial_wals)s
 full_backup          = %(full_backup)s
 config_backup        = %(config_backup)s
 """
+
+        if self.options.primary_conninfo:
+            self.override_cf_option('primary_conninfo', self.options.primary_conninfo)
+            slave_config += """
+primary_conninfo     = %(primary_conninfo)s
+"""
+
         try:
             opt_dict = dict([(k, self.cf.get(k)) for k in self.cf.options()])
             slave_config = slave_config % opt_dict
@@ -997,7 +1038,7 @@ config_backup        = %(config_backup)s
             if not os.path.isdir(ssh_dir):
                 self.log.info("Creating directory: %s" % ssh_dir)
                 if not self.not_really:
-                    os.path.mkdir(ssh_dir)
+                    os.mkdir(ssh_dir)
 
             self.log.debug("Reading public key from %s" % self.options.ssh_add_key)
             master_pubkey = open(self.options.ssh_add_key).read()
@@ -1837,6 +1878,9 @@ STOP TIME: %(stop_time)s
             conf += "standby_mode = 'on'\n"
             conf += "trigger_file = '%s'\n" % os.path.join(self.cf.getfile("completed_wals"), "STOP")
             conf += "primary_conninfo = '%s'\n" % primary_conninfo
+            conf += "archive_cleanup_command = '%s %s %%r'\n" % \
+                (os.path.join(self.cf.getfile("slave_bin"), "pg_archivecleanup"),
+                self.cf.getfile("completed_wals"))
 
         self.log.info("Write %s" % rconf)
         if self.not_really:
