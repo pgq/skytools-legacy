@@ -3,14 +3,17 @@
 # this script installs Python modules, scripts and sql files
 
 # custom switches for install:
-# --script-suffix=   add suffix to scripts
 # --sk3-subdir       install modules into "skytools-3.0" subdir
 # --skylog           use "skylog" logging by default
+
+# non-working switches
+# --script-suffix=   add suffix to scripts
 
 import sys, os.path, re
 from distutils.core import setup
 from distutils.extension import Extension
 from distutils.command.build import build
+from distutils.command.build_scripts import build_scripts
 from distutils.command.install import install
 from subprocess import Popen
 
@@ -103,21 +106,30 @@ def fixscript(fn, dstdir, sfx):
         os.remove(dfn2)
     os.rename(dfn, dfn2)
 
+# rename build dir
 class sk3_build(build):
     def initialize_options(self):
         build.initialize_options(self)
         self.build_base = 'build.sk3'
 
+# fix script names in build dir
+class sk3_build_scripts(build_scripts):
+    def run(self):
+        build_scripts.run(self)
+
+        for sfn in sfx_scripts:
+            fixscript(sfn, self.build_dir, DEF_SUFFIX)
+        for sfn in nosfx_scripts:
+            fixscript(sfn, self.build_dir, DEF_NOSUFFIX)
+
 # wrap generic install command
 class sk3_install(install):
     user_options = install.user_options + [
-            ('script-suffix=', None, 'add suffix to scripts'),
             ('sk3-subdir', None, 'install modules into "skytools-3.0" subdir'),
             ('skylog', None, 'use "skylog" logging by default'),
     ]
     boolean_options = ['sk3-subdir', 'skylog']
     sk3_subdir = DEF_SK3_SUBDIR
-    script_suffix = DEF_SUFFIX
     skylog = DEF_SKYLOG
 
     def run(self):
@@ -139,12 +151,6 @@ class sk3_install(install):
 
         # generic install
         install.run(self)
-
-        # fix scripts
-        for sfn in sfx_scripts:
-            fixscript(sfn, self.install_scripts, self.script_suffix)
-        for sfn in nosfx_scripts:
-            fixscript(sfn, self.install_scripts, DEF_NOSUFFIX)
 
 # check if building C is allowed
 c_modules = []
@@ -170,6 +176,10 @@ setup(
       ('share/skytools3', sql_files)],
     ext_modules = c_modules,
     scripts = sfx_scripts + nosfx_scripts,
-    cmdclass = { 'build': sk3_build, 'install': sk3_install },
+    cmdclass = {
+        'build': sk3_build,
+        'build_scripts': sk3_build_scripts,
+        'install': sk3_install,
+    },
 )
 
