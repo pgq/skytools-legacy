@@ -289,10 +289,10 @@ class BaseBulkTempLoader(BaseBulkCollectingLoader):
         # temp table name
         if USE_REAL_TABLE:
             self.temp =  self.table + "_loadertmpx"
-            self.qtemp = quote_ident(self.temp)
+            self.qtemp = quote_fqident(self.temp)
         else:
             self.temp =  self.table.replace('.', '_') + "_loadertmp"
-            self.qtemp = quote_fqident(self.temp)
+            self.qtemp = quote_ident(self.temp)
         # quoted table name
         self.qtable = quote_fqident(self.table)
         # all fields
