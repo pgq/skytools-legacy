@@ -168,7 +168,7 @@ METH_INSERT = 3
 # BulkLoader hacks
 AVOID_BIZGRES_BUG = 0
 USE_LONGLIVED_TEMP_TABLES = True
-USE_REAL_TABLE = True
+USE_REAL_TABLE = False
 
 # mode variables (first in list is default value)
 TABLE_MODES = ['part', 'direct', 'ignore']

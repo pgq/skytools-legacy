@@ -41,7 +41,7 @@ DEFAULT_METHOD = METH_CORRECT
 AVOID_BIZGRES_BUG = 0
 USE_LONGLIVED_TEMP_TABLES = True
 
-USE_REAL_TABLE = True
+USE_REAL_TABLE = False
 
 class BulkEvent(object):
     """Helper class for BulkLoader to store relevant data."""
