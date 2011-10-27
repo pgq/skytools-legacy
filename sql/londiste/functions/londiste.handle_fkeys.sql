@@ -51,7 +51,7 @@ begin
     loop
         perform 1
            from londiste.table_info st_from
-          where st_from.table_name = fkeys.from_table
+          where coalesce(st_from.dest_table, st_from.table_name) = fkeys.from_table
             and st_from.merge_state = 'ok'
             and st_from.custom_snapshot is null
             and st_from.queue_name = i_queue_name;
@@ -60,7 +60,7 @@ begin
         end if;
         perform 1
            from londiste.table_info st_to
-          where st_to.table_name = fkeys.to_table
+          where coalesce(st_to.dest_table, st_to.table_name) = fkeys.to_table
             and st_to.merge_state = 'ok'
             and st_to.custom_snapshot is null
             and st_to.queue_name = i_queue_name;

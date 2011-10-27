@@ -29,7 +29,10 @@ plain londiste:
 
 """
 
-import sys, skytools, londiste.handlers
+import sys
+import logging
+import skytools
+import londiste.handlers
 
 __all__ = ['RowCache', 'BaseHandler', 'build_handler',
            'load_handler_modules', 'create_handler_string']
@@ -66,10 +69,14 @@ class BaseHandler:
     """Defines base API, does nothing.
     """
     handler_name = 'nop'
-    def __init__(self, table_name, args, log):
+    log = logging.getLogger('basehandler')
+
+    def __init__(self, table_name, args, dest_table):
         self.table_name = table_name
+        self.dest_table = dest_table or table_name
+        self.fq_table_name = skytools.quote_fqident(self.table_name)
+        self.fq_dest_table = skytools.quote_fqident(self.dest_table)
         self.args = args
-        self.log = log
 
     def add(self, trigger_arg_list):
         """Called when table is added.
@@ -99,13 +106,14 @@ class BaseHandler:
         """Called when batch finishes."""
         pass
 
-    def real_copy(self, tablename, src_curs, dst_curs, column_list, cond_list):
+    def real_copy(self, src_tablename, src_curs, dst_curs, column_list, cond_list):
         """do actual table copy and return tuple with number of bytes and rows
         copyed
         """
         condition = ' and '.join(cond_list)
-        return skytools.full_copy(tablename, src_curs, dst_curs, column_list,
-                                  condition)
+        return skytools.full_copy(src_tablename, src_curs, dst_curs,
+                                  column_list, condition,
+                                  dst_tablename = self.dest_table)
 
     def needs_table(self):
         """Does the handler need the table to exist on destination."""
@@ -124,7 +132,7 @@ class TableHandler(BaseHandler):
     def process_event(self, ev, sql_queue_func, arg):
         if len(ev.type) == 1:
             # sql event
-            fqname = skytools.quote_fqident(ev.extra1)
+            fqname = self.fq_dest_table
             fmt = self.sql_command[ev.type]
             sql = fmt % (fqname, ev.data)
         else:
@@ -132,7 +140,7 @@ class TableHandler(BaseHandler):
             pklist = ev.type[2:].split(',')
             row = skytools.db_urldecode(ev.data)
             op = ev.type[0]
-            tbl = ev.extra1
+            tbl = self.dest_table
             if op == 'I':
                 sql = skytools.mk_insert_sql(row, tbl, pklist)
             elif op == 'U':
@@ -188,7 +196,7 @@ def _parse_handler(hstr):
             args = skytools.db_urldecode(astr)
     return (name, args)
 
-def build_handler(tblname, hstr, log):
+def build_handler(tblname, hstr, dest_table=None):
     """Parse and initialize handler.
 
     hstr is result of create_handler_string()."""
@@ -196,7 +204,9 @@ def build_handler(tblname, hstr, log):
     # when no handler specified, use londiste
     hname = hname or 'londiste'
     klass = _handler_map[hname]
-    return klass(tblname, args, log)
+    if not dest_table:
+        dest_table = tblname
+    return klass(tblname, args, dest_table)
 
 def load_handler_modules(cf):
     """Load and register modules from config."""

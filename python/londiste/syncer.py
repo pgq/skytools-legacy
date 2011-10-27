@@ -4,6 +4,12 @@
 
 import sys, time, skytools
 
+class ATable:
+    def __init__(self, row):
+        self.table_name = row['table_name']
+        self.dest_table = row['dest_table'] or row['table_name']
+        self.merge_state = row['merge_state']
+
 class Syncer(skytools.DBScript):
     """Walks tables in primary key order and checks if data matches."""
 
@@ -60,14 +66,25 @@ class Syncer(skytools.DBScript):
             self.log.error('Consumer lagging too much, cannot proceed')
             sys.exit(1)
 
-    def get_subscriber_table_state(self, dst_db):
-        """Load table states from subscriber."""
-        dst_curs = dst_db.cursor()
-        q = "select * from londiste.get_table_list(%s) where local"
-        dst_curs.execute(q, [self.queue_name])
-        res = dst_curs.dictfetchall()
-        dst_db.commit()
-        return res
+    def get_tables(self, db):
+        """Load table info.
+
+        Returns tuple of (dict(name->ATable), namelist)"""
+
+        curs = db.cursor()
+        q = "select table_name, merge_state, dest_table"\
+            " from londiste.get_table_list(%s) where local"
+        curs.execute(q, [self.queue_name])
+        rows = curs.fetchall()
+        db.commit()
+
+        res = {}
+        names = []
+        for row in rows:
+            t = ATable(row)
+            res[t.table_name] = t
+            names.append(t.table_name)
+        return res, names
 
     def work(self):
         """Syncer main function."""
@@ -84,29 +101,32 @@ class Syncer(skytools.DBScript):
 
         self.check_consumer(setup_curs)
 
-        state_list = self.get_subscriber_table_state(dst_db)
-        state_map = {}
-        full_list = []
-        for ts in state_list:
-            name = ts['table_name']
-            full_list.append(name)
-            state_map[name] = ts
+        src_tables, ignore = self.get_tables(src_db)
+        dst_tables, names = self.get_tables(dst_db)
 
         if len(self.args) > 2:
             tlist = self.args[2:]
         else:
-            tlist = full_list
+            tlist = names
 
         for tbl in tlist:
             tbl = skytools.fq_name(tbl)
-            if not tbl in state_map:
+            if not tbl in dst_tables:
                 self.log.warning('Table not subscribed: %s' % tbl)
                 continue
-            st = state_map[tbl]
-            if st['merge_state'] != 'ok':
-                self.log.info('Table %s not synced yet, no point' % tbl)
+            if not tbl in src_tables:
+                self.log.warning('Table not available on provider: %s' % tbl)
                 continue
-            self.check_table(tbl, lock_db, src_db, dst_db, setup_curs)
+            t1 = src_tables[tbl]
+            t2 = dst_tables[tbl]
+
+            if t1.merge_state != 'ok':
+                self.log.warning('Table %s not ready yet on provider' % tbl)
+                continue
+            if t2.merge_state != 'ok':
+                self.log.warning('Table %s not synced yet, no point' % tbl)
+                continue
+            self.check_table(t1.dest_table, t2.dest_table, lock_db, src_db, dst_db, setup_curs)
             lock_db.commit()
             src_db.commit()
             dst_db.commit()
@@ -131,7 +151,7 @@ class Syncer(skytools.DBScript):
             if dur > 10 and not self.options.force:
                 raise Exception("Ticker seems dead")
 
-    def check_table(self, tbl, lock_db, src_db, dst_db, setup_curs):
+    def check_table(self, src_tbl, dst_tbl, lock_db, src_db, dst_db, setup_curs):
         """Get transaction to same state, then process."""
 
 
@@ -139,22 +159,22 @@ class Syncer(skytools.DBScript):
         src_curs = src_db.cursor()
         dst_curs = dst_db.cursor()
 
-        if not skytools.exists_table(src_curs, tbl):
-            self.log.warning("Table %s does not exist on provider side" % tbl)
+        if not skytools.exists_table(src_curs, src_tbl):
+            self.log.warning("Table %s does not exist on provider side" % src_tbl)
             return
-        if not skytools.exists_table(dst_curs, tbl):
-            self.log.warning("Table %s does not exist on subscriber side" % tbl)
+        if not skytools.exists_table(dst_curs, dst_tbl):
+            self.log.warning("Table %s does not exist on subscriber side" % dst_tbl)
             return
 
         # lock table in separate connection
-        self.log.info('Locking %s' % tbl)
+        self.log.info('Locking %s' % src_tbl)
         lock_db.commit()
         self.set_lock_timeout(lock_curs)
         lock_time = time.time()
-        lock_curs.execute("LOCK TABLE %s IN SHARE MODE" % skytools.quote_fqident(tbl))
+        lock_curs.execute("LOCK TABLE %s IN SHARE MODE" % skytools.quote_fqident(src_tbl))
 
         # now wait until consumer has updated target table until locking
-        self.log.info('Syncing %s' % tbl)
+        self.log.info('Syncing %s' % dst_tbl)
 
         # consumer must get futher than this tick
         tick_id = self.force_tick(setup_curs)
@@ -199,13 +219,13 @@ class Syncer(skytools.DBScript):
         lock_db.commit()
 
         # do work
-        self.process_sync(tbl, src_db, dst_db)
+        self.process_sync(src_tbl, dst_tbl, src_db, dst_db)
 
         # done
         src_db.commit()
         dst_db.commit()
 
-    def process_sync(self, tbl, src_db, dst_db):
+    def process_sync(self, src_tbl, dst_tbl, src_db, dst_db):
         """It gets 2 connections in state where tbl should be in same state.
         """
         raise Exception('process_sync not implemented')
@@ -215,3 +235,4 @@ class Syncer(skytools.DBScript):
         q = "select * from pgq_node.get_node_info(%s)"
         rows = self.exec_cmd(dst_db, q, [self.queue_name])
         return rows[0]['provider_location']
+

@@ -19,7 +19,7 @@ class MultimasterHandler(ApplyFuncHandler):
     """Handle multimaster replicas"""
     handler_name = 'multimaster'
 
-    def __init__(self, table_name, args, log):
+    def __init__(self, table_name, args, dest_table):
         """Init per-batch table data cache."""
         conf = args.copy()
         # remove Multimaster args from conf
@@ -28,7 +28,7 @@ class MultimasterHandler(ApplyFuncHandler):
                 conf.pop(name)
         conf = skytools.db_urlencode(conf)
         args = update(args, {'func_name': 'merge_on_time', 'func_conf': conf})  
-        ApplyFuncHandler.__init__(self, table_name, args, log)
+        ApplyFuncHandler.__init__(self, table_name, args, dest_table)
     
     def add(self, trigger_arg_list):
         """Create SKIP and BEFORE INSERT trigger"""

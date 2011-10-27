@@ -10,7 +10,8 @@ create or replace function londiste.get_table_list(
     out table_attrs text,
     out dropped_ddl text,
     out copy_role text,
-    out copy_pos int4)
+    out copy_pos int4,
+    out dest_table text)
 returns setof record as $$
 -- ----------------------------------------------------------------------
 -- Function: londiste.get_table_list(1)
@@ -49,7 +50,7 @@ declare
     n_combined_queue text;
 begin
     for v_table_name, local, merge_state, custom_snapshot, table_attrs, dropped_ddl,
-        q_part1, q_part_ddl, n_parts, n_done, n_combined_queue, copy_pos
+        q_part1, q_part_ddl, n_parts, n_done, n_combined_queue, copy_pos, dest_table
     in
         select t.table_name, t.local, t.merge_state, t.custom_snapshot, t.table_attrs, t.dropped_ddl,
                min(case when t2.local then t2.queue_name else null end) as _queue1,
@@ -57,15 +58,18 @@ begin
                count(case when t2.local then t2.table_name else null end) as _total,
                count(case when t2.local then nullif(t2.merge_state, 'in-copy') else null end) as _done,
                min(n.combined_queue) as _combined_queue,
-               count(nullif(t2.queue_name < i_queue_name and t.merge_state = 'in-copy' and t2.merge_state = 'in-copy', false)) as _copy_pos
+               count(nullif(t2.queue_name < i_queue_name and t.merge_state = 'in-copy' and t2.merge_state = 'in-copy', false)) as _copy_pos,
+               t.dest_table as _dest_table
             from londiste.table_info t
             join pgq_node.node_info n on (n.queue_name = t.queue_name)
             left join pgq_node.node_info n2 on (n2.combined_queue = n.combined_queue or
                 (n2.combined_queue is null and n.combined_queue is null))
-            left join londiste.table_info t2 on (t2.table_name = t.table_name and
-                t2.queue_name = n2.queue_name and (t2.merge_state is null or t2.merge_state != 'ok'))
+            left join londiste.table_info t2 on
+               (coalesce(t2.dest_table, t2.table_name) = coalesce(t.dest_table, t.table_name) and
+                t2.queue_name = n2.queue_name and
+                (t2.merge_state is null or t2.merge_state != 'ok'))
             where t.queue_name = i_queue_name
-            group by t.nr, t.table_name, t.local, t.merge_state, t.custom_snapshot, t.table_attrs, t.dropped_ddl
+            group by t.nr, t.table_name, t.local, t.merge_state, t.custom_snapshot, t.table_attrs, t.dropped_ddl, t.dest_table
             order by t.nr, t.table_name
     loop
         -- if the table is in middle of copy from multiple partitions,

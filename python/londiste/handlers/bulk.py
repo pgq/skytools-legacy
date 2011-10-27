@@ -57,10 +57,10 @@ class BulkLoader(BaseHandler):
     """
     handler_name = 'bulk'
     fake_seq = 0
-    def __init__(self, table_name, args, log):
+    def __init__(self, table_name, args, dest_table):
         """Init per-batch table data cache."""
 
-        BaseHandler.__init__(self, table_name, args, log)
+        BaseHandler.__init__(self, table_name, args, dest_table)
 
         self.pkey_list = None
         self.dist_fields = None
@@ -194,8 +194,8 @@ class BulkLoader(BaseHandler):
 
         # create temp table
         temp, qtemp = self.create_temp_table(curs)
-        tbl = self.table_name
-        qtbl = quote_fqident(self.table_name)
+        tbl = self.dest_table
+        qtbl = self.fq_dest_table
 
         # where expr must have pkey and dist fields
         klist = []
@@ -307,10 +307,10 @@ class BulkLoader(BaseHandler):
 
     def create_temp_table(self, curs):
         if USE_REAL_TABLE:
-            tempname = self.table_name + "_loadertmpx"
+            tempname = self.dest_table + "_loadertmpx"
         else:
             # create temp table for loading
-            tempname = self.table_name.replace('.', '_') + "_loadertmp"
+            tempname = self.dest_table.replace('.', '_') + "_loadertmp"
 
         # check if exists
         if USE_REAL_TABLE:
@@ -321,7 +321,7 @@ class BulkLoader(BaseHandler):
             # create non-temp table
             q = "create table %s (like %s)" % (
                         quote_fqident(tempname),
-                        quote_fqident(self.table_name))
+                        quote_fqident(self.dest_table))
             self.log.debug("bulk: Creating real table: %s" % q)
             curs.execute(q)
             return tempname, quote_fqident(tempname)
@@ -335,7 +335,7 @@ class BulkLoader(BaseHandler):
         arg = "on commit preserve rows"
         # create temp table for loading
         q = "create temp table %s (like %s) %s" % (
-                quote_ident(tempname), quote_fqident(self.table_name), arg)
+                quote_ident(tempname), quote_fqident(self.dest_table), arg)
         self.log.debug("bulk: Creating temp table: %s" % q)
         curs.execute(q)
         return tempname, quote_ident(tempname)
@@ -343,7 +343,7 @@ class BulkLoader(BaseHandler):
     def find_dist_fields(self, curs):
         if not skytools.exists_table(curs, "pg_catalog.gp_distribution_policy"):
             return []
-        schema, name = skytools.fq_name_parts(self.table_name)
+        schema, name = skytools.fq_name_parts(self.dest_table)
         q = "select a.attname"\
             "  from pg_class t, pg_namespace n, pg_attribute a,"\
             "       gp_distribution_policy p"\

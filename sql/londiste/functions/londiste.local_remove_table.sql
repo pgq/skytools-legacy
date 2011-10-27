@@ -43,7 +43,8 @@ begin
                 -- skip_truncate = null,
                 -- table_attrs = null,
                 -- dropped_ddl = null,
-                merge_state = null
+                merge_state = null,
+                dest_table = null
             where queue_name = i_queue_name
                 and table_name = fq_table_name;
     else

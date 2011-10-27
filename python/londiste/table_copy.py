@@ -80,6 +80,8 @@ class CopyTable(Replicator):
             self.log.warning("table %s not in sync yet on provider, waiting" % tbl_stat.name)
             time.sleep(10)
 
+        src_real_table = pt.dest_table
+
         # 0 - dont touch
         # 1 - single tx
         # 2 - multi tx
@@ -100,15 +102,15 @@ class CopyTable(Replicator):
 
         # just in case, drop all fkeys (in case "replay" was skipped)
         # !! this may commit, so must be done before anything else !!
-        self.drop_fkeys(dst_db, tbl_stat.name)
+        self.drop_fkeys(dst_db, tbl_stat.dest_table)
 
         # now start ddl-dropping tx
-        q = "lock table " + skytools.quote_fqident(tbl_stat.name)
+        q = "lock table " + skytools.quote_fqident(tbl_stat.dest_table)
         dst_curs.execute(q)
 
         # find dst struct
-        src_struct = TableStruct(src_curs, tbl_stat.name)
-        dst_struct = TableStruct(dst_curs, tbl_stat.name)
+        src_struct = TableStruct(src_curs, src_real_table)
+        dst_struct = TableStruct(dst_curs, tbl_stat.dest_table)
 
         # take common columns, warn on missing ones
         dlist = dst_struct.get_column_list()
@@ -138,7 +140,7 @@ class CopyTable(Replicator):
                 q = "truncate "
                 if dst_db.server_version >= 80400:
                     q += "only "
-                q += skytools.quote_fqident(tbl_stat.name)
+                q += skytools.quote_fqident(tbl_stat.dest_table)
                 dst_curs.execute(q)
 
             if cmode == 2 and tbl_stat.dropped_ddl is None:
@@ -152,7 +154,7 @@ class CopyTable(Replicator):
                 tbl_stat.dropped_ddl = ddl
 
         # do truncate & copy
-        self.real_copy(src_curs, dst_curs, tbl_stat, common_cols)
+        self.real_copy(src_curs, dst_curs, tbl_stat, common_cols, src_real_table)
 
         # get snapshot
         src_curs.execute("select txid_current_snapshot()")
@@ -208,7 +210,7 @@ class CopyTable(Replicator):
         src_curs.execute(q, [self.queue_name])
         src_db.commit()
 
-    def real_copy(self, srccurs, dstcurs, tbl_stat, col_list):
+    def real_copy(self, srccurs, dstcurs, tbl_stat, col_list, src_real_table):
         "Actual copy."
 
         tablename = tbl_stat.name
@@ -219,7 +221,7 @@ class CopyTable(Replicator):
         cond = tbl_stat.table_attrs.get('copy_condition')
         if cond:
             cond_list.append(cond)
-        stats = p.real_copy(tablename, srccurs, dstcurs, col_list, cond_list)
+        stats = p.real_copy(src_real_table, srccurs, dstcurs, col_list, cond_list)
         if stats:
             self.log.info("%s: copy finished: %d bytes, %d rows" % (
                           tablename, stats[0], stats[1]))

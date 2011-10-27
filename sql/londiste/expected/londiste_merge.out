@@ -98,21 +98,21 @@ select * from londiste.local_add_table('part1_set', 'tblmerge', array['merge_all
 (1 row)
 
 select * from londiste.get_table_list('part1_set');
-   table_name    | local | merge_state | custom_snapshot | table_attrs | dropped_ddl | copy_role | copy_pos 
------------------+-------+-------------+-----------------+-------------+-------------+-----------+----------
- public.tblmerge | t     |             |                 |             |             |           |        0
+   table_name    | local | merge_state | custom_snapshot | table_attrs | dropped_ddl | copy_role | copy_pos | dest_table 
+-----------------+-------+-------------+-----------------+-------------+-------------+-----------+----------+------------
+ public.tblmerge | t     |             |                 |             |             |           |        0 | 
 (1 row)
 
 select * from londiste.get_table_list('part2_set');
-   table_name    | local | merge_state | custom_snapshot | table_attrs | dropped_ddl | copy_role | copy_pos 
------------------+-------+-------------+-----------------+-------------+-------------+-----------+----------
- public.tblmerge | t     |             |                 |             |             |           |        0
+   table_name    | local | merge_state | custom_snapshot | table_attrs | dropped_ddl | copy_role | copy_pos | dest_table 
+-----------------+-------+-------------+-----------------+-------------+-------------+-----------+----------+------------
+ public.tblmerge | t     |             |                 |             |             |           |        0 | 
 (1 row)
 
 select * from londiste.get_table_list('combined_set');
-   table_name    | local | merge_state | custom_snapshot | table_attrs | dropped_ddl | copy_role | copy_pos 
------------------+-------+-------------+-----------------+-------------+-------------+-----------+----------
- public.tblmerge | t     | ok          |                 |             |             |           |        0
+   table_name    | local | merge_state | custom_snapshot | table_attrs | dropped_ddl | copy_role | copy_pos | dest_table 
+-----------------+-------+-------------+-----------------+-------------+-------------+-----------+----------+------------
+ public.tblmerge | t     | ok          |                 |             |             |           |        0 | 
 (1 row)
 
 select * from londiste.local_set_table_state('part1_set', 'public.tblmerge', null, 'in-copy');
@@ -128,15 +128,15 @@ select * from londiste.local_set_table_state('part2_set', 'public.tblmerge', nul
 (1 row)
 
 select * from londiste.get_table_list('part1_set');
-   table_name    | local | merge_state | custom_snapshot | table_attrs | dropped_ddl | copy_role | copy_pos 
------------------+-------+-------------+-----------------+-------------+-------------+-----------+----------
- public.tblmerge | t     | in-copy     |                 |             |             | lead      |        0
+   table_name    | local | merge_state | custom_snapshot | table_attrs | dropped_ddl | copy_role | copy_pos | dest_table 
+-----------------+-------+-------------+-----------------+-------------+-------------+-----------+----------+------------
+ public.tblmerge | t     | in-copy     |                 |             |             | lead      |        0 | 
 (1 row)
 
 select * from londiste.get_table_list('part2_set');
-   table_name    | local | merge_state | custom_snapshot | table_attrs | dropped_ddl | copy_role | copy_pos 
------------------+-------+-------------+-----------------+-------------+-------------+-----------+----------
- public.tblmerge | t     | in-copy     |                 |             |             | wait-copy |        1
+   table_name    | local | merge_state | custom_snapshot | table_attrs | dropped_ddl | copy_role | copy_pos | dest_table 
+-----------------+-------+-------------+-----------------+-------------+-------------+-----------+----------+------------
+ public.tblmerge | t     | in-copy     |                 |             |             | wait-copy |        1 | 
 (1 row)
 
 select * from londiste.local_set_table_struct('part1_set', 'public.tblmerge', 'create index;');
@@ -146,15 +146,15 @@ select * from londiste.local_set_table_struct('part1_set', 'public.tblmerge', 'c
 (1 row)
 
 select * from londiste.get_table_list('part1_set');
-   table_name    | local | merge_state | custom_snapshot | table_attrs |  dropped_ddl  | copy_role | copy_pos 
------------------+-------+-------------+-----------------+-------------+---------------+-----------+----------
- public.tblmerge | t     | in-copy     |                 |             | create index; | lead      |        0
+   table_name    | local | merge_state | custom_snapshot | table_attrs |  dropped_ddl  | copy_role | copy_pos | dest_table 
+-----------------+-------+-------------+-----------------+-------------+---------------+-----------+----------+------------
+ public.tblmerge | t     | in-copy     |                 |             | create index; | lead      |        0 | 
 (1 row)
 
 select * from londiste.get_table_list('part2_set');
-   table_name    | local | merge_state | custom_snapshot | table_attrs | dropped_ddl |  copy_role  | copy_pos 
------------------+-------+-------------+-----------------+-------------+-------------+-------------+----------
- public.tblmerge | t     | in-copy     |                 |             |             | wait-replay |        1
+   table_name    | local | merge_state | custom_snapshot | table_attrs | dropped_ddl |  copy_role  | copy_pos | dest_table 
+-----------------+-------+-------------+-----------------+-------------+-------------+-------------+----------+------------
+ public.tblmerge | t     | in-copy     |                 |             |             | wait-replay |        1 | 
 (1 row)
 
 select * from londiste.local_set_table_state('part2_set', 'public.tblmerge', null, 'catching-up');
@@ -164,15 +164,15 @@ select * from londiste.local_set_table_state('part2_set', 'public.tblmerge', nul
 (1 row)
 
 select * from londiste.get_table_list('part1_set');
-   table_name    | local | merge_state | custom_snapshot | table_attrs |  dropped_ddl  | copy_role | copy_pos 
------------------+-------+-------------+-----------------+-------------+---------------+-----------+----------
- public.tblmerge | t     | in-copy     |                 |             | create index; | lead      |        0
+   table_name    | local | merge_state | custom_snapshot | table_attrs |  dropped_ddl  | copy_role | copy_pos | dest_table 
+-----------------+-------+-------------+-----------------+-------------+---------------+-----------+----------+------------
+ public.tblmerge | t     | in-copy     |                 |             | create index; | lead      |        0 | 
 (1 row)
 
 select * from londiste.get_table_list('part2_set');
-   table_name    | local | merge_state | custom_snapshot | table_attrs | dropped_ddl |  copy_role  | copy_pos 
------------------+-------+-------------+-----------------+-------------+-------------+-------------+----------
- public.tblmerge | t     | catching-up |                 |             |             | wait-replay |        0
+   table_name    | local | merge_state | custom_snapshot | table_attrs | dropped_ddl |  copy_role  | copy_pos | dest_table 
+-----------------+-------+-------------+-----------------+-------------+-------------+-------------+----------+------------
+ public.tblmerge | t     | catching-up |                 |             |             | wait-replay |        0 | 
 (1 row)
 
 select * from londiste.local_set_table_state('part1_set', 'public.tblmerge', null, 'catching-up');
@@ -182,15 +182,15 @@ select * from londiste.local_set_table_state('part1_set', 'public.tblmerge', nul
 (1 row)
 
 select * from londiste.get_table_list('part1_set');
-   table_name    | local | merge_state | custom_snapshot | table_attrs |  dropped_ddl  | copy_role | copy_pos 
------------------+-------+-------------+-----------------+-------------+---------------+-----------+----------
- public.tblmerge | t     | catching-up |                 |             | create index; |           |        0
+   table_name    | local | merge_state | custom_snapshot | table_attrs |  dropped_ddl  | copy_role | copy_pos | dest_table 
+-----------------+-------+-------------+-----------------+-------------+---------------+-----------+----------+------------
+ public.tblmerge | t     | catching-up |                 |             | create index; |           |        0 | 
 (1 row)
 
 select * from londiste.get_table_list('part2_set');
-   table_name    | local | merge_state | custom_snapshot | table_attrs | dropped_ddl |  copy_role  | copy_pos 
------------------+-------+-------------+-----------------+-------------+-------------+-------------+----------
- public.tblmerge | t     | catching-up |                 |             |             | wait-replay |        0
+   table_name    | local | merge_state | custom_snapshot | table_attrs | dropped_ddl |  copy_role  | copy_pos | dest_table 
+-----------------+-------+-------------+-----------------+-------------+-------------+-------------+----------+------------
+ public.tblmerge | t     | catching-up |                 |             |             | wait-replay |        0 | 
 (1 row)
 
 select * from londiste.local_set_table_struct('part1_set', 'public.tblmerge', null);
@@ -200,15 +200,15 @@ select * from londiste.local_set_table_struct('part1_set', 'public.tblmerge', nu
 (1 row)
 
 select * from londiste.get_table_list('part1_set');
-   table_name    | local | merge_state | custom_snapshot | table_attrs | dropped_ddl | copy_role | copy_pos 
------------------+-------+-------------+-----------------+-------------+-------------+-----------+----------
- public.tblmerge | t     | catching-up |                 |             |             |           |        0
+   table_name    | local | merge_state | custom_snapshot | table_attrs | dropped_ddl | copy_role | copy_pos | dest_table 
+-----------------+-------+-------------+-----------------+-------------+-------------+-----------+----------+------------
+ public.tblmerge | t     | catching-up |                 |             |             |           |        0 | 
 (1 row)
 
 select * from londiste.get_table_list('part2_set');
-   table_name    | local | merge_state | custom_snapshot | table_attrs | dropped_ddl | copy_role | copy_pos 
------------------+-------+-------------+-----------------+-------------+-------------+-----------+----------
- public.tblmerge | t     | catching-up |                 |             |             |           |        0
+   table_name    | local | merge_state | custom_snapshot | table_attrs | dropped_ddl | copy_role | copy_pos | dest_table 
+-----------------+-------+-------------+-----------------+-------------+-------------+-----------+----------+------------
+ public.tblmerge | t     | catching-up |                 |             |             |           |        0 | 
 (1 row)
 
 -- test automatic registration on combined-root
@@ -231,17 +231,17 @@ select * from londiste.local_add_table('part1_set', 'tblauto', array['merge_all'
 (1 row)
 
 select * from londiste.get_table_list('part2_set');
-   table_name    | local | merge_state | custom_snapshot |  table_attrs   | dropped_ddl | copy_role | copy_pos 
------------------+-------+-------------+-----------------+----------------+-------------+-----------+----------
- public.tblmerge | t     | catching-up |                 |                |             |           |        0
- public.tblauto  | t     | ok          |                 | handler=vtable |             |           |        0
+   table_name    | local | merge_state | custom_snapshot |  table_attrs   | dropped_ddl | copy_role | copy_pos | dest_table 
+-----------------+-------+-------------+-----------------+----------------+-------------+-----------+----------+------------
+ public.tblmerge | t     | catching-up |                 |                |             |           |        0 | 
+ public.tblauto  | t     | ok          |                 | handler=vtable |             |           |        0 | 
 (2 rows)
 
 select * from londiste.get_table_list('combined_set');
-   table_name    | local | merge_state | custom_snapshot |  table_attrs   | dropped_ddl | copy_role | copy_pos 
------------------+-------+-------------+-----------------+----------------+-------------+-----------+----------
- public.tblmerge | t     | ok          |                 |                |             |           |        0
- public.tblauto  | t     | ok          |                 | handler=vtable |             |           |        0
+   table_name    | local | merge_state | custom_snapshot |  table_attrs   | dropped_ddl | copy_role | copy_pos | dest_table 
+-----------------+-------+-------------+-----------------+----------------+-------------+-----------+----------+------------
+ public.tblmerge | t     | ok          |                 |                |             |           |        0 | 
+ public.tblauto  | t     | ok          |                 | handler=vtable |             |           |        0 | 
 (2 rows)
 
 --

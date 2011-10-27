@@ -94,6 +94,7 @@ create table londiste.table_info (
     custom_snapshot     text,
     dropped_ddl         text,
     table_attrs         text,
+    dest_table          text,
 
     primary key (queue_name, table_name),
     foreign key (queue_name)

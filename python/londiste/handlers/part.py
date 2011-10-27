@@ -10,8 +10,8 @@ __all__ = ['PartHandler']
 class PartHandler(TableHandler):
     handler_name = 'part'
 
-    def __init__(self, table_name, args, log):
-        TableHandler.__init__(self, table_name, args, log)
+    def __init__(self, table_name, args, dest_table):
+        TableHandler.__init__(self, table_name, args, dest_table)
         self.max_part = None       # max part number
         self.local_part = None     # part number of local node
         self.key = args.get('key')        

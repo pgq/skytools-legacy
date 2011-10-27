@@ -663,14 +663,16 @@ class Dispatcher(BaseHandler):
     """
     handler_name = 'dispatch'
 
-    def __init__(self, table_name, args, log):
-        BaseHandler.__init__(self, table_name, args, log)
+    def __init__(self, table_name, args, dest_table):
+
+        # compat for dest-table
+        dest_table = args.get('table', dest_table)
+
+        BaseHandler.__init__(self, table_name, args, dest_table)
+
         # show args
         self.log.debug("dispatch.init: table_name=%r, args=%r" % \
                        (table_name, args))
-        # get table name
-        self.table_name = args.get('table', self.table_name)
-        self.quoted_name = quote_fqident(self.table_name)
         self.batch_info = None
         self.dst_curs = None
         self.pkeys = None
@@ -805,7 +807,7 @@ class Dispatcher(BaseHandler):
             if dst not in self.row_handler.table_map:
                 self.check_part(dst, part_time)
         else:
-            dst = self.table_name
+            dst = self.dest_table
 
         if dst not in self.row_handler.table_map:
             self.row_handler.add_table(dst, LOADERS[self.conf.load_mode],
@@ -841,7 +843,7 @@ class Dispatcher(BaseHandler):
         else:
             raise UsageError('Bad value for part_mode: %s' %\
                     self.conf.part_mode)
-        vals = {'parent': self.table_name,
+        vals = {'parent': self.dest_table,
                 'year': "%04d" % dtm.year,
                 'month': "%02d" % dtm.month,
                 'day': "%02d" % dtm.day,
@@ -861,7 +863,7 @@ class Dispatcher(BaseHandler):
         dst = quote_fqident(dst)
         vals = {'dest': dst,
                 'part': dst,
-                'parent': self.quoted_name,
+                'parent': self.fq_dest_table,
                 'pkeys': ",".join(self.pkeys), # quoting?
                 # we do this to make sure that constraints for
                 # tables who contain a schema will still work
@@ -887,7 +889,7 @@ class Dispatcher(BaseHandler):
             else:
                 self.log.debug('part func %s not found, cloning table' %\
                         PART_FUNC)
-                struct = TableStruct(curs, self.table_name)
+                struct = TableStruct(curs, self.dest_table)
                 struct.create(curs, T_ALL, dst)
         exec_with_vals(self.conf.post_part)
         self.log.info("Created table: %s" % dst)
@@ -914,8 +916,9 @@ class Dispatcher(BaseHandler):
         else:
             _write_hook = None
 
-        return skytools.full_copy(tablename, src_curs, dst_curs, _src_cols,
-                                  condition, self.table_name, _dst_cols,
+        return skytools.full_copy(tablename, src_curs, dst_curs, _src_cols, condition,
+                                  dst_tablename = self.dest_table,
+                                  dst_column_list = _dst_cols,
                                   write_hook = _write_hook)
 
 

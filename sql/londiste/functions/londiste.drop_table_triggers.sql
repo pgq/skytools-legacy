@@ -18,12 +18,23 @@ returns void as $$
 declare
     logtrg_name     text;
     b_queue_name    bytea;
+    _dest_table     text;
 begin
-    -- skip if no triggers found on that table
-    perform 1 from pg_catalog.pg_trigger where tgrelid = londiste.find_table_oid(i_table_name);
+    select coalesce(dest_table, table_name)
+        from londiste.table_info t
+        where t.queue_name = i_queue_name
+          and t.table_name = i_table_name
+        into _dest_table;
     if not found then
         return;
     end if;
+
+    -- skip if no triggers found on that table
+    perform 1 from pg_catalog.pg_trigger where tgrelid = londiste.find_table_oid(_dest_table);
+    if not found then
+        return;
+    end if;
+
     -- cast to bytea
     b_queue_name := replace(i_queue_name, E'\\', E'\\\\')::bytea;
 
@@ -32,13 +43,13 @@ begin
     -- dependency on naming standard or side-storage.
     for logtrg_name in
         select tgname from pg_catalog.pg_trigger
-         where tgrelid = londiste.find_table_oid(i_table_name)
+         where tgrelid = londiste.find_table_oid(_dest_table)
            and londiste.is_replica_func(tgfoid)
            and octet_length(tgargs) > 0
            and substring(tgargs for (position(E'\\000'::bytea in tgargs) - 1)) = b_queue_name
     loop
         execute 'drop trigger ' || quote_ident(logtrg_name)
-                || ' on ' || londiste.quote_fqname(i_table_name);
+                || ' on ' || londiste.quote_fqname(_dest_table);
     end loop;
 end;
 $$ language plpgsql strict;

@@ -71,6 +71,8 @@ class LondisteSetup(CascadeAdmin):
                     help="don't merge tables from source queues", default=False)
         p.add_option("--max-parallel-copy", type = "int",
                     help="max number of parallel copy processes")
+        p.add_option("--dest-table",
+                    help="add: name for actual table")
 
         return p
 
@@ -122,7 +124,7 @@ class LondisteSetup(CascadeAdmin):
         # dont check for exist/not here (root handling)
         problems = False
         for tbl in args:
-            if (tbl in src_tbls) and not src_tbls[tbl]:
+            if (tbl in src_tbls) and not src_tbls[tbl]['local']:
                 self.log.error("Table %s does not exist on provider, need to switch to different provider" % tbl)
                 problems = True
         if problems:
@@ -137,30 +139,42 @@ class LondisteSetup(CascadeAdmin):
         else:
             create_flags = 0
 
+        # sanity check
+        if self.options.dest_table and len(args) > 1:
+            self.log.error("--dest-table can be given only for single table")
+            sys.exit(1)
+
         # seems ok
         for tbl in args:
             tbl = skytools.fq_name(tbl)
-            self.add_table(src_db, dst_db, tbl, create_flags)
+            self.add_table(src_db, dst_db, tbl, create_flags, src_tbls)
 
-    def add_table(self, src_db, dst_db, tbl, create_flags):
+    def add_table(self, src_db, dst_db, tbl, create_flags, src_tbls):
         src_curs = src_db.cursor()
         dst_curs = dst_db.cursor()
-        tbl_exists = skytools.exists_table(dst_curs, tbl)
+        src_dest_table = src_tbls[tbl]['dest_table']
+        dest_table = self.options.dest_table or tbl
+        tbl_exists = skytools.exists_table(dst_curs, dest_table)
         if create_flags:
             if tbl_exists:
-                self.log.info('Table %s already exist, not touching' % tbl)
+                self.log.info('Table %s already exist, not touching' % dest_table)
             else:
-                if not skytools.exists_table(src_curs, tbl):
+                if not skytools.exists_table(src_curs, src_dest_table):
                     # table not present on provider - nowhere to get the DDL from
                     self.log.warning('Table "%s" missing on provider, skipping' % tbl)
                     return
-                schema = skytools.fq_name_parts(tbl)[0]
+                schema = skytools.fq_name_parts(dest_table)[0]
                 if not skytools.exists_schema(dst_curs, schema):
                     q = "create schema %s" % skytools.quote_ident(schema)
                     dst_curs.execute(q)
-                s = skytools.TableStruct(src_curs, tbl)
+                s = skytools.TableStruct(src_curs, src_dest_table)
                 src_db.commit()
-                s.create(dst_curs, create_flags, log = self.log)
+
+                # create, using rename logic only when necessary
+                newname = None
+                if src_dest_table != dest_table:
+                    newname = dest_table
+                s.create(dst_curs, create_flags, log = self.log, new_table_name = newname)
 
         tgargs = []
         if self.options.trigger_arg:
@@ -179,7 +193,7 @@ class LondisteSetup(CascadeAdmin):
         if self.options.handler:
             hstr = londiste.handler.create_handler_string(
                             self.options.handler, self.options.handler_arg)
-            p = londiste.handler.build_handler(tbl, hstr, self.log)
+            p = londiste.handler.build_handler(tbl, hstr, self.options.dest_table)
             attrs['handler'] = hstr
             p.add(tgargs)
 
@@ -211,7 +225,7 @@ class LondisteSetup(CascadeAdmin):
         if self.options.handler:
             hstr = londiste.handler.create_handler_string(
                             self.options.handler, self.options.handler_arg)
-            p = londiste.handler.build_handler('unused.string', hstr, self.log)
+            p = londiste.handler.build_handler('unused.string', hstr, None)
             return p.needs_table()
         return True
 
@@ -221,7 +235,7 @@ class LondisteSetup(CascadeAdmin):
             if tbl not in dst_tbls:
                 self.log.info("Table %s info missing from subscriber, adding" % tbl)
                 self.exec_cmd(dst_curs, q, [self.set_name, tbl])
-                dst_tbls[tbl] = False
+                dst_tbls[tbl] = {'local': False, 'dest_table': tbl}
         for tbl in dst_tbls.keys():
             q = "select * from londiste.global_remove_table(%s, %s)"
             if tbl not in src_tbls:
@@ -230,11 +244,13 @@ class LondisteSetup(CascadeAdmin):
                 del dst_tbls[tbl]
 
     def fetch_set_tables(self, curs):
-        q = "select table_name, local from londiste.get_table_list(%s)"
+        q = "select table_name, local, "\
+            " coalesce(dest_table, table_name) as dest_table "\
+            " from londiste.get_table_list(%s)"
         curs.execute(q, [self.set_name])
         res = {}
         for row in curs.fetchall():
-            res[row[0]] = row[1]
+            res[row[0]] = row
         return res
 
     def cmd_remove_table(self, *args):

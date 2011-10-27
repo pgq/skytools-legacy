@@ -54,29 +54,30 @@ class Repairer(Syncer):
     pkey_list = []
     common_fields = []
 
-    def process_sync(self, tbl, src_db, dst_db):
+    def process_sync(self, src_tbl, dst_tbl, src_db, dst_db):
         """Actual comparision."""
 
         src_curs = src_db.cursor()
         dst_curs = dst_db.cursor()
 
-        self.log.info('Checking %s' % tbl)
+        self.log.info('Checking %s' % dst_tbl)
 
         self.common_fields = []
+        self.fq_common_fields = []
         self.pkey_list = []
-        copy_tbl = self.gen_copy_tbl(tbl, src_curs, dst_curs)
+        self.load_common_columns(src_tbl, dst_tbl, src_curs, dst_curs)
 
-        dump_src = tbl + ".src"
-        dump_dst = tbl + ".dst"
+        dump_src = dst_tbl + ".src"
+        dump_dst = dst_tbl + ".dst"
 
-        self.log.info("Dumping src table: %s" % tbl)
-        self.dump_table(tbl, copy_tbl, src_curs, dump_src)
+        self.log.info("Dumping src table: %s" % src_tbl)
+        self.dump_table(src_tbl, src_curs, dump_src)
         src_db.commit()
-        self.log.info("Dumping dst table: %s" % tbl)
-        self.dump_table(tbl, copy_tbl, dst_curs, dump_dst)
+        self.log.info("Dumping dst table: %s" % dst_tbl)
+        self.dump_table(dst_tbl, dst_curs, dump_dst)
         dst_db.commit()
         
-        self.log.info("Sorting src table: %s" % tbl)
+        self.log.info("Sorting src table: %s" % dump_src)
 
         s_in, s_out = os.popen4("sort --version")
         s_ver = s_out.read()
@@ -86,26 +87,27 @@ class Repairer(Syncer):
         else:
             args = ""
         os.system("sort %s -T . -o %s.sorted %s" % (args, dump_src, dump_src))
-        self.log.info("Sorting dst table: %s" % tbl)
+        self.log.info("Sorting dst table: %s" % dump_dst)
         os.system("sort %s -T . -o %s.sorted %s" % (args, dump_dst, dump_dst))
 
-        self.dump_compare(tbl, dump_src + ".sorted", dump_dst + ".sorted")
+        self.dump_compare(dst_tbl, dump_src + ".sorted", dump_dst + ".sorted")
 
         os.unlink(dump_src)
         os.unlink(dump_dst)
         os.unlink(dump_src + ".sorted")
         os.unlink(dump_dst + ".sorted")
 
-    def gen_copy_tbl(self, tbl, src_curs, dst_curs):
-        """Create COPY expession from common fields."""
-        self.pkey_list = get_pkey_list(src_curs, tbl)
-        dst_pkey = get_pkey_list(dst_curs, tbl)
+    def load_common_columns(self, src_tbl, dst_tbl, src_curs, dst_curs):
+        """Get common fields, put pkeys in start."""
+
+        self.pkey_list = get_pkey_list(src_curs, src_tbl)
+        dst_pkey = get_pkey_list(dst_curs, dst_tbl)
         if dst_pkey != self.pkey_list:
             self.log.error('pkeys do not match')
             sys.exit(1)
 
-        src_cols = get_column_list(src_curs, tbl)
-        dst_cols = get_column_list(dst_curs, tbl)
+        src_cols = get_column_list(src_curs, src_tbl)
+        dst_cols = get_column_list(dst_curs, dst_tbl)
         field_list = []
         for f in self.pkey_list:
             field_list.append(f)
@@ -118,17 +120,18 @@ class Repairer(Syncer):
         self.common_fields = field_list
 
         fqlist = [skytools.quote_ident(col) for col in field_list]
+        self.fq_common_fields = fqlist
 
-        tbl_expr = "%s (%s)" % (skytools.quote_fqident(tbl), ",".join(fqlist))
+        cols = ",".join(fqlist)
+        self.log.debug("using columns: %s" % cols)
 
-        self.log.debug("using copy expr: %s" % tbl_expr)
-
-        return tbl_expr
-
-    def dump_table(self, tbl, copy_tbl, curs, fn):
+    def dump_table(self, tbl, curs, fn):
         """Dump table to disk."""
+        cols = ','.join(self.fq_common_fields)
+        q = "copy %s (%s) to stdout" % (skytools.quote_fqident(tbl), cols)
+
         f = open(fn, "w", 64*1024)
-        curs.copy_to(f, copy_tbl)
+        curs.copy_expert(q, f)
         size = f.tell()
         f.close()
         self.log.info('%s: Got %d bytes' % (tbl, size))

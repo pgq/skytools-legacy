@@ -21,7 +21,7 @@ begin
                   and n.nspname !~ '^pg_(toast|temp)'
                   and not exists (select 1 from londiste.table_info
                                    where queue_name = i_queue_name
-                                     and table_name = (n.nspname || '.' || r.relname))
+                                     and coalesce(dest_table, table_name) = (n.nspname || '.' || r.relname))
                 order by 1, 2
         loop
             return next;

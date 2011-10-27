@@ -19,8 +19,8 @@ def handler_args(name, cls):
     Define successor for handler class cls with func as argument generator
     """
     def wrapper(func):
-        def _init_override(self, table_name, args, log):
-            cls.__init__(self, table_name, func(args.copy()), log)
+        def _init_override(self, table_name, args, dest_table):
+            cls.__init__(self, table_name, func(args.copy()), dest_table)
         dct = {'__init__': _init_override, 'handler_name': name}
         module = sys.modules[cls.__module__]
         newname = '%s_%s' % (cls.__name__, name.replace('.','_'))
@@ -36,3 +36,4 @@ def update(*p):
     in reverse order """
     return reduce(lambda x, y: x.update(y) or x,
             (p[i] for i in range(len(p)-1,-1,-1)), {})
+

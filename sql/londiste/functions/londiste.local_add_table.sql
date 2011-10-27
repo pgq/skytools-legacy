@@ -3,18 +3,21 @@ create or replace function londiste.local_add_table(
     in i_table_name     text,
     in i_trg_args       text[],
     in i_table_attrs    text,
+    in i_dest_table     text,
     out ret_code        int4,
     out ret_note        text)
 as $$
 -- ----------------------------------------------------------------------
--- Function: londiste.local_add_table(3)
+-- Function: londiste.local_add_table(5)
 --
 --      Register table on Londiste node, with customizable trigger args.
 --
 -- Parameters:
---      i_queue_name - queue name
---      i_table_name - table name
---      i_trg_args   - args to trigger, or magic parameters.
+--      i_queue_name    - queue name
+--      i_table_name    - table name
+--      i_trg_args      - args to trigger, or magic parameters.
+--      i_table_attrs   - args to python handler
+--      i_dest_table    - actual name of destination table (NULL if same)
 --
 -- Trigger args:
 --      See documentation for pgq triggers.
@@ -91,6 +94,9 @@ declare
     _no_triggers boolean := false;
     _skip boolean := false;
     _virtual_table boolean := false;
+    _dest_table text;
+    _got_extra1 boolean := false;
+    _table_name2 text;
 begin
 
     -------- i_trg_args ARGUMENTS PARSING
@@ -123,6 +129,9 @@ begin
                 _expect_sync := true;   -- do not copy
                 _no_triggers := true;   -- do not create triggers
             else
+                if arg like 'ev_extra1=%' then
+                    _got_extra1 := true;
+                end if;
                 -- ordinary arg
                 _args = array_append(_args, quote_literal(arg));
             end if;
@@ -136,16 +145,24 @@ begin
     end if;
 
     fq_table_name := londiste.make_fqname(i_table_name);
+    _dest_table := londiste.make_fqname(coalesce(i_dest_table, i_table_name));
+
+    if _dest_table <> fq_table_name and not _got_extra1 then
+        -- if renamed table, enforce trigger to put
+        -- global table name into extra1
+        arg := 'ev_extra1=' || quote_literal(fq_table_name);
+        _args := array_append(_args, quote_literal(arg));
+    end if;
 
     -------- TABLE STRUCTURE CHECK
 
     if not _virtual_table then
-        _tbloid := londiste.find_table_oid(fq_table_name);
+        _tbloid := londiste.find_table_oid(_dest_table);
         if _tbloid is null then
-            select 404, 'Table does not exist: ' || fq_table_name into ret_code, ret_note;
+            select 404, 'Table does not exist: ' || _dest_table into ret_code, ret_note;
             return;
         end if;
-        col_types := londiste.find_column_types(fq_table_name);
+        col_types := londiste.find_column_types(_dest_table);
         if position('k' in col_types) < 1 then
             -- allow missing primary key in case of combined table where
             -- pkey was removed by londiste
@@ -156,10 +173,10 @@ begin
                 and n_other.combined_queue = n_this.combined_queue
                 and n_other.queue_name <> n_this.queue_name
                 and t.queue_name = n_other.queue_name
-                and t.table_name = fq_table_name
+                and coalesce(t.dest_table, t.table_name) = _dest_table
                 and t.dropped_ddl is not null;
             if not found then
-                select 400, 'Primary key missing on table: ' || fq_table_name into ret_code, ret_note;
+                select 400, 'Primary key missing on table: ' || _dest_table into ret_code, ret_note;
                 return;
             end if;
         end if;
@@ -215,7 +232,8 @@ begin
     update londiste.table_info
         set local = true,
             merge_state = new_state,
-            table_attrs = coalesce(i_table_attrs, table_attrs)
+            table_attrs = coalesce(i_table_attrs, table_attrs),
+            dest_table = nullif(_dest_table, fq_table_name)
         where queue_name = i_queue_name and table_name = fq_table_name;
     if not found then
         raise exception 'lost table: %', fq_table_name;
@@ -223,13 +241,15 @@ begin
 
     -- merge all table sources on leaf
     if _node.node_type = 'leaf' and not _no_merge then
-        for _queue_name, _local in
-            select t2.queue_name, t2.local
+        for _queue_name, _table_name2, _local in
+            select t2.queue_name, t2.table_name, t2.local
             from londiste.table_info t
             join pgq_node.node_info n on (n.queue_name = t.queue_name)
             left join pgq_node.node_info n2 on (n2.combined_queue = n.combined_queue or
                     (n2.combined_queue is null and n.combined_queue is null))
-            left join londiste.table_info t2 on (t2.table_name = t.table_name and t2.queue_name = n2.queue_name)
+            left join londiste.table_info t2
+              on (t2.queue_name = n2.queue_name and
+                  coalesce(t2.dest_table, t2.table_name) = coalesce(t.dest_table, t.table_name))
             where t.queue_name = i_queue_name
               and t.table_name = fq_table_name
               and t2.queue_name != i_queue_name -- skip self
@@ -258,13 +278,14 @@ begin
                set local = true,
                    merge_state = new_state,
                    table_attrs = coalesce(i_table_attrs, table_attrs)
-               where queue_name = _queue_name and table_name = fq_table_name;
+               where queue_name = _queue_name and table_name = _table_name2;
             if not found then
-                raise exception 'lost table: %', fq_table_name;
+                raise exception 'lost table: % on queue %', _table_name2, _queue_name;
             end if;
         end loop;
 
         -- if this node has combined_queue, add table there too
+        -- note: we need to keep both table_name/dest_table values
         select n2.queue_name, t.table_name
             from pgq_node.node_info n1
             join pgq_node.node_info n2
@@ -275,7 +296,7 @@ begin
             into _combined_queue, _combined_table;
         if found and _combined_table is null then
             select f.ret_code, f.ret_note
-                from londiste.local_add_table(_combined_queue, fq_table_name, i_trg_args, i_table_attrs) f
+                from londiste.local_add_table(_combined_queue, fq_table_name, i_trg_args, i_table_attrs, _dest_table) f
                 into ret_code, ret_note;
             if ret_code >= 300 then
                 return;
@@ -346,7 +367,7 @@ begin
         select count(*), min(t.tgname)
         into _skip_trg_count, _skip_trg_name
         from pg_catalog.pg_trigger t
-        where t.tgrelid = londiste.find_table_oid(fq_table_name)
+        where t.tgrelid = londiste.find_table_oid(_dest_table)
             and position(E'\\000skip\\000' in lower(tgargs::text)) > 0;
         -- if no previous skip triggers, prefix name and add SKIP to args
         if _skip_trg_count = 0 then
@@ -358,12 +379,12 @@ begin
             -- if not prefixed then rename
             if position(_skip_prefix in _skip_trg_name) != 1 then
                 sql := 'alter trigger ' || _skip_trg_name
-                    || ' on ' || londiste.quote_fqname(fq_table_name)
+                    || ' on ' || londiste.quote_fqname(_dest_table)
                     || ' rename to ' || _skip_prefix || _skip_trg_name;
                 execute sql;
             end if;
         else
-            select 405, 'Multiple SKIP triggers in table: ' || fq_table_name
+            select 405, 'Multiple SKIP triggers in table: ' || _dest_table
             into ret_code, ret_note;
             return;
         end if;
@@ -371,7 +392,7 @@ begin
 
     -- create Ins/Upd/Del trigger if it does not exists already
     perform 1 from pg_catalog.pg_trigger
-        where tgrelid = londiste.find_table_oid(fq_table_name)
+        where tgrelid = londiste.find_table_oid(_dest_table)
             and tgname = lg_name;
     if not found then
 
@@ -390,7 +411,7 @@ begin
         -- create trigger
         sql := 'create trigger ' || quote_ident(lg_name)
             || ' ' || lg_pos || ' ' || lg_event
-            || ' on ' || londiste.quote_fqname(fq_table_name)
+            || ' on ' || londiste.quote_fqname(_dest_table)
             || ' for each row execute procedure '
             || lg_func || '(' || lg_args || _extra_args || ')';
         execute sql;
@@ -401,11 +422,11 @@ begin
     if pgversion >= 80400 then
         trunctrg_name  := '_londiste_' || i_queue_name || '_truncate';
         perform 1 from pg_catalog.pg_trigger
-          where tgrelid = londiste.find_table_oid(fq_table_name)
+          where tgrelid = londiste.find_table_oid(_dest_table)
             and tgname = trunctrg_name;
         if not found then
             sql := 'create trigger ' || quote_ident(trunctrg_name)
-                || ' after truncate on ' || londiste.quote_fqname(fq_table_name)
+                || ' after truncate on ' || londiste.quote_fqname(_dest_table)
                 || ' for each statement execute procedure pgq.sqltriga(' || quote_literal(i_queue_name)
                 || _extra_args || ')';
             execute sql;
@@ -422,7 +443,7 @@ begin
     if pgversion >= 90000 then
         select tg.tgname into logtrg_previous
         from pg_class r join pg_trigger tg on (tg.tgrelid = r.oid)
-        where r.oid = londiste.find_table_oid(fq_table_name)
+        where r.oid = londiste.find_table_oid(_dest_table)
           and not tg.tgisinternal
           and tg.tgname < lg_name::name
           -- per-row AFTER trigger
@@ -436,7 +457,7 @@ begin
     else
         select tg.tgname into logtrg_previous
         from pg_class r join pg_trigger tg on (tg.tgrelid = r.oid)
-        where r.oid = londiste.find_table_oid(fq_table_name)
+        where r.oid = londiste.find_table_oid(_dest_table)
           and not tg.tgisconstraint
           and tg.tgname < lg_name::name
           -- per-row AFTER trigger
@@ -459,6 +480,26 @@ begin
     end if;
 
     select 200, 'Table added: ' || fq_table_name into ret_code, ret_note;
+    return;
+end;
+$$ language plpgsql;
+
+create or replace function londiste.local_add_table(
+    in i_queue_name     text,
+    in i_table_name     text,
+    in i_trg_args       text[],
+    in i_table_attrs    text,
+    out ret_code        int4,
+    out ret_note        text)
+as $$
+-- ----------------------------------------------------------------------
+-- Function: londiste.local_add_table(4)
+--
+--      Register table on Londiste node.
+-- ----------------------------------------------------------------------
+begin
+    select f.ret_code, f.ret_note into ret_code, ret_note
+      from londiste.local_add_table(i_queue_name, i_table_name, i_trg_args, i_table_attrs, null) f;
     return;
 end;
 $$ language plpgsql;

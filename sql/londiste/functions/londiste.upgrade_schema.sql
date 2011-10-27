@@ -19,6 +19,15 @@ begin
         cnt := cnt + 1;
     end if;
 
+    -- table_info.dest_table
+    perform 1 from information_schema.columns
+      where table_schema = 'londiste'
+        and table_name = 'table_info'
+        and column_name = 'dest_table';
+    if not found then
+        alter table londiste.table_info add column dest_table text;
+    end if;
+
     return cnt;
 end;
 $$ language plpgsql;

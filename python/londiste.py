@@ -108,6 +108,8 @@ class Londiste(skytools.DBScript):
         g = optparse.OptionGroup(p, "options for add")
         g.add_option("--all", action="store_true",
                 help = "add: include add possible tables")
+        g.add_option("--dest-table",
+                help = "add: redirect changes to different table")
         g.add_option("--force", action="store_true",
                 help = "add: ignore table differences, repair: ignore lag")
         g.add_option("--expect-sync", action="store_true", dest="expect_sync",

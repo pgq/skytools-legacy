@@ -62,6 +62,7 @@ class TableState(object):
     def __init__(self, name, log):
         """Init TableState for one table."""
         self.name = name
+        self.dest_table = name
         self.log = log
         # same as forget:
         self.state = TABLE_MISSING
@@ -188,9 +189,14 @@ class TableState(object):
         self.max_parallel_copy = int(self.table_attrs.get('max_parallel_copy',
                                                         self.max_parallel_copy))
 
+        if 'dest_table' in row and row['dest_table']:
+            self.dest_table = row['dest_table']
+        else:
+            self.dest_table = self.name
+
         hstr = self.table_attrs.get('handlers', '') # compat
         hstr = self.table_attrs.get('handler', hstr)
-        self.plugin = build_handler(self.name, hstr, self.log)
+        self.plugin = build_handler(self.name, hstr, self.dest_table)
 
     def max_parallel_copies_reached(self):
         return self.max_parallel_copy and\
@@ -480,7 +486,7 @@ class Replicator(CascadedWorker):
                 npossible -= 1
 
                 # drop all foreign keys to and from this table
-                self.drop_fkeys(dst_db, t.name)
+                self.drop_fkeys(dst_db, t.dest_table)
 
                 # change state after fkeys are dropped thus allowing
                 # failure inbetween
@@ -627,7 +633,7 @@ class Replicator(CascadedWorker):
             self.stat_increase('ignored_events')
             return
 
-        fqname = skytools.quote_fqident(ev.extra1)
+        fqname = skytools.quote_fqident(t.dest_table)
         if dst_curs.connection.server_version >= 80400:
             sql = "TRUNCATE ONLY %s;" % fqname
         else:
