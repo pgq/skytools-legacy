@@ -39,7 +39,7 @@ class _BatchWalker(object):
      - one for loop over events
      - len() after that
     """
-    def __init__(self, curs, batch_id, queue_name, fetch_size = 300):
+    def __init__(self, curs, batch_id, queue_name, fetch_size = 300, consumer_filter = None):
         self.queue_name = queue_name
         self.fetch_size = fetch_size
         self.sql_cursor = "batch_walker"
@@ -48,14 +48,15 @@ class _BatchWalker(object):
         self.status_map = {}
         self.batch_id = batch_id
         self.fetch_status = 0 # 0-not started, 1-in-progress, 2-done
+        self.consumer_filter = consumer_filter
 
     def __iter__(self):
         if self.fetch_status:
             raise Exception("BatchWalker: double fetch? (%d)" % self.fetch_status)
         self.fetch_status = 1
 
-        q = "select * from pgq.get_batch_cursor(%s, %s, %s)"
-        self.curs.execute(q, [self.batch_id, self.sql_cursor, self.fetch_size])
+        q = "select * from pgq.get_batch_cursor(%s, %s, %s, %s)"
+        self.curs.execute(q, [self.batch_id, self.sql_cursor, self.fetch_size, self.consumer_filter])
         # this will return first batch of rows
 
         q = "fetch %d from %s" % (self.fetch_size, self.sql_cursor)
@@ -306,7 +307,7 @@ class Consumer(skytools.DBScript):
         """Fetch all events for this batch."""
 
         if self.pgq_lazy_fetch:
-            return _BatchWalker(curs, batch_id, self.queue_name, self.pgq_lazy_fetch)
+            return _BatchWalker(curs, batch_id, self.queue_name, self.pgq_lazy_fetch, self.consumer_filter)
         else:
             return self._load_batch_events_old(curs, batch_id)
 

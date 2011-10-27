@@ -57,6 +57,9 @@ close acurs;
 select ev_id,ev_retry,ev_type,ev_data,ev_extra1,ev_extra2,ev_extra3,ev_extra4
     from pgq.get_batch_cursor(3, 'acurs', 2);
 close acurs;
+select ev_id,ev_retry,ev_type,ev_data,ev_extra1,ev_extra2,ev_extra3,ev_extra4
+    from pgq.get_batch_cursor(3, 'acurs', 2, 'ev_id = 1');
+close acurs;
 end;
 
 select pgq.event_retry(3, 2, 0);
