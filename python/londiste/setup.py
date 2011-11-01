@@ -104,18 +104,27 @@ class LondisteSetup(CascadeAdmin):
         node_db.commit()
         provider_db.commit()
 
+    def is_root(self):
+        return self.queue_info.local_node.type == 'root'
+
     def cmd_add_table(self, *args):
         """Attach table(s) to local node."""
 
+        self.load_local_info()
+
+        src_db = self.get_provider_db()
+        if not self.is_root():
+            src_curs = src_db.cursor()
+            src_tbls = self.fetch_set_tables(src_curs)
+            src_db.commit()
+
         dst_db = self.get_database('db')
         dst_curs = dst_db.cursor()
-        src_db = self.get_provider_db()
-        src_curs = src_db.cursor()
-
-        src_tbls = self.fetch_set_tables(src_curs)
         dst_tbls = self.fetch_set_tables(dst_curs)
-        src_db.commit()
-        self.sync_table_list(dst_curs, src_tbls, dst_tbls)
+        if self.is_root():
+            src_tbls = dst_tbls
+        else:
+            self.sync_table_list(dst_curs, src_tbls, dst_tbls)
         dst_db.commit()
 
         needs_tbl = self.handler_needs_table()
@@ -124,6 +133,7 @@ class LondisteSetup(CascadeAdmin):
         # dont check for exist/not here (root handling)
         problems = False
         for tbl in args:
+            tbl = skytools.fq_name(tbl)
             if (tbl in src_tbls) and not src_tbls[tbl]['local']:
                 self.log.error("Table %s does not exist on provider, need to switch to different provider" % tbl)
                 problems = True
@@ -146,22 +156,31 @@ class LondisteSetup(CascadeAdmin):
 
         # seems ok
         for tbl in args:
-            tbl = skytools.fq_name(tbl)
             self.add_table(src_db, dst_db, tbl, create_flags, src_tbls)
 
     def add_table(self, src_db, dst_db, tbl, create_flags, src_tbls):
+        # use full names
+        tbl = skytools.fq_name(tbl)
+        dest_table = self.options.dest_table or tbl
+        dest_table = skytools.fq_name(dest_table)
+
         src_curs = src_db.cursor()
         dst_curs = dst_db.cursor()
-        src_dest_table = src_tbls[tbl]['dest_table']
-        dest_table = self.options.dest_table or tbl
         tbl_exists = skytools.exists_table(dst_curs, dest_table)
+
+        if dest_table == tbl:
+            desc = tbl
+        else:
+            desc = "%s(%s)" % (tbl, dest_table)
+
         if create_flags:
             if tbl_exists:
-                self.log.info('Table %s already exist, not touching' % dest_table)
+                self.log.info('Table %s already exist, not touching' % desc)
             else:
+                src_dest_table = src_tbls[tbl]['dest_table']
                 if not skytools.exists_table(src_curs, src_dest_table):
                     # table not present on provider - nowhere to get the DDL from
-                    self.log.warning('Table "%s" missing on provider, skipping' % tbl)
+                    self.log.warning('Table %s missing on provider, skipping' % desc)
                     return
                 schema = skytools.fq_name_parts(dest_table)[0]
                 if not skytools.exists_schema(dst_curs, schema):
@@ -209,15 +228,13 @@ class LondisteSetup(CascadeAdmin):
         if self.options.max_parallel_copy:
             attrs['max_parallel_copy'] = self.options.max_parallel_copy
 
-        args = [self.set_name, tbl, tgargs]
-
-        if attrs:
-            args.append(skytools.db_urlencode(attrs))
-
-        q = "select * from londiste.local_add_table(%s)" %\
-            ','.join(['%s']*len(args))
-
         # actual table registration
+        args = [self.set_name, tbl, tgargs, None, None]
+        if attrs:
+            args[3] = skytools.db_urlencode(attrs)
+        if dest_table != tbl:
+            args[4] = dest_table
+        q = "select * from londiste.local_add_table(%s, %s, %s, %s, %s)"
         self.exec_cmd(dst_curs, q, args)
         dst_db.commit()
 

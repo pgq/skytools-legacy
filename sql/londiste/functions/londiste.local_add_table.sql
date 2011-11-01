@@ -97,6 +97,7 @@ declare
     _dest_table text;
     _got_extra1 boolean := false;
     _table_name2 text;
+    _desc text;
 begin
 
     -------- i_trg_args ARGUMENTS PARSING
@@ -154,12 +155,18 @@ begin
         _args := array_append(_args, quote_literal(arg));
     end if;
 
+    if _dest_table = fq_table_name then
+        _desc := fq_table_name;
+    else
+        _desc := fq_table_name || '(' || _dest_table || ')';
+    end if;
+
     -------- TABLE STRUCTURE CHECK
 
     if not _virtual_table then
         _tbloid := londiste.find_table_oid(_dest_table);
         if _tbloid is null then
-            select 404, 'Table does not exist: ' || _dest_table into ret_code, ret_note;
+            select 404, 'Table does not exist: ' || _desc into ret_code, ret_note;
             return;
         end if;
         col_types := londiste.find_column_types(_dest_table);
@@ -176,7 +183,7 @@ begin
                 and coalesce(t.dest_table, t.table_name) = _dest_table
                 and t.dropped_ddl is not null;
             if not found then
-                select 400, 'Primary key missing on table: ' || _dest_table into ret_code, ret_note;
+                select 400, 'Primary key missing on table: ' || _desc into ret_code, ret_note;
                 return;
             end if;
         end if;
@@ -202,7 +209,7 @@ begin
                 return;
             end if;
         else
-            select 404, 'Table not available on queue: ' || fq_table_name
+            select 404, 'Table not available on queue: ' || _desc
                 into ret_code, ret_note;
             return;
         end if;
@@ -214,7 +221,7 @@ begin
     end if;
 
     if tbl.local then
-        select 200, 'Table already added: ' || fq_table_name into ret_code, ret_note;
+        select 200, 'Table already added: ' || _desc into ret_code, ret_note;
         return;
     end if;
 
@@ -257,7 +264,7 @@ begin
             -- if table from some other source is already marked as local,
             -- raise error
             if _local then
-                select 405, 'Found local table '|| fq_table_name
+                select 405, 'Found local table '|| _desc
                         || ' in queue ' || _queue_name
                         || ', use remove-table first to remove all previous '
                         || 'table subscriptions'
@@ -268,7 +275,7 @@ begin
            -- when table comes from multiple sources, merge_all switch is
            -- required
            if not _merge_all then
-               select 405, 'Found multiple sources for table '|| fq_table_name
+               select 405, 'Found multiple sources for table '|| _desc
                        || ', use merge-all or no-merge to continue'
                into ret_code, ret_note;
                return;
@@ -354,7 +361,7 @@ begin
         perform 1 from pg_proc p join pg_namespace n on (n.oid = p.pronamespace)
             where n.nspname = 'pgq' and p.proname in ('logutriga', 'sqltriga');
         if not found then
-            select 200, 'Table added with no triggers: ' || fq_table_name into ret_code, ret_note;
+            select 200, 'Table added with no triggers: ' || _desc into ret_code, ret_note;
             return;
         end if;
         -- on regular leaf, install deny trigger
@@ -384,7 +391,7 @@ begin
                 execute sql;
             end if;
         else
-            select 405, 'Multiple SKIP triggers in table: ' || _dest_table
+            select 405, 'Multiple SKIP triggers in table: ' || _desc
             into ret_code, ret_note;
             return;
         end if;
@@ -397,7 +404,7 @@ begin
     if not found then
 
         if _no_triggers then
-            select 200, 'Table added with no triggers: ' || fq_table_name
+            select 200, 'Table added with no triggers: ' || _desc
             into ret_code, ret_note;
             return;
         end if;
@@ -472,14 +479,14 @@ begin
 
     if logtrg_previous is not null then
        select 301,
-              'Table added: ' || fq_table_name
+              'Table added: ' || _desc
                               || ', but londiste trigger is not first: '
                               || logtrg_previous
          into ret_code, ret_note;
         return;
     end if;
 
-    select 200, 'Table added: ' || fq_table_name into ret_code, ret_note;
+    select 200, 'Table added: ' || _desc into ret_code, ret_note;
     return;
 end;
 $$ language plpgsql;
