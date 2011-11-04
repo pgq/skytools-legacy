@@ -188,7 +188,6 @@ def _init_log(job_name, service_name, cf, log_level, is_daemon):
     return log
 
 
-
 class BaseScript(object):
     """Base class for service scripts.
 
@@ -323,24 +322,12 @@ class BaseScript(object):
 
     def _print_ini_frag(self, doc):
         # use last '::' block as config template
-        pos = doc and doc.rfind('::') or -1
+        pos = doc and doc.rfind('::\n') or -1
         if pos < 0:
             return
         doc = doc[pos+2 : ].rstrip()
 
-        # and remove same prefix from all the following lines
-        pfx = None
-        for ln in doc.splitlines():
-            if not pfx:
-                if not ln.strip():
-                    continue
-                wslen = len(ln) - len(ln.lstrip())
-                pfx = ln[ : wslen]
-            if pfx:
-                if ln.startswith(pfx):
-                    print(ln[ len(pfx) : ])
-                else:
-                    print(ln)
+        print(skytools.dedent(doc))
         print('')
 
     def load_config(self):

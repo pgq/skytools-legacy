@@ -83,6 +83,7 @@ _symbols = {
     'parse_statements': 'skytools.parsing:parse_statements',
     'parse_tabbed_table': 'skytools.parsing:parse_tabbed_table',
     'sql_tokenizer': 'skytools.parsing:sql_tokenizer',
+    'dedent': 'skytools.parsing:dedent',
     # skytools.dbstruct
     'SeqStruct': 'skytools.dbstruct:SeqStruct',
     'TableStruct': 'skytools.dbstruct:TableStruct',

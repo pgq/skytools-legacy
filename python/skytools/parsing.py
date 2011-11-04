@@ -7,7 +7,7 @@ import skytools
 __all__ = [
     "parse_pgarray", "parse_logtriga_sql", "parse_tabbed_table",
     "parse_statements", 'sql_tokenizer', 'parse_sqltriga_sql',
-    "parse_acl"]
+    "parse_acl", "dedent"]
 
 _rc_listelem = re.compile(r'( [^,"}]+ | ["] ( [^"\\]+ | [\\]. )* ["] )', re.X)
 
@@ -401,6 +401,38 @@ def parse_acl(acl):
         owner = skytools.unquote_ident(owner[1:])
 
     return (target, perm, owner)
+
+
+def dedent(doc):
+    r"""Relaxed dedent.
+
+    - takes whitespace to be removed from first indented line.
+    - allows empty or non-indented lines at the start
+    - allows first line to be unindented
+    - skips empty lines at the start
+    - ignores indent of empty lines
+    - if line does not match common indent, is stays unchanged
+
+    >>> dedent('  Line1:\n    Line 2\n')
+    'Line1:\n  Line 2\n'
+    >>> dedent('  \nLine1:\n  Line 2\n Line 3\n    Line 4')
+    'Line1:\nLine 2\n Line 3\n  Line 4\n'
+    """
+    pfx = None
+    res = []
+    for ln in doc.splitlines():
+        ln = ln.rstrip()
+        if not pfx and len(res) < 2:
+            if not ln:
+                continue
+            wslen = len(ln) - len(ln.lstrip())
+            pfx = ln[ : wslen]
+        if pfx:
+            if ln.startswith(pfx):
+                ln = ln[ len(pfx) : ]
+        res.append(ln)
+    res.append('')
+    return '\n'.join(res)
 
 if __name__ == '__main__':
     import doctest
