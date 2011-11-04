@@ -767,6 +767,14 @@ class Replicator(CascadedWorker):
         """Store changed table state in database."""
 
         for t in self.table_list:
+            # backwards compat: move plugin-only dest_table to table_info
+            if t.dest_table != t.plugin.dest_table:
+                self.log.info("Overwriting .dest_table from plugin: tbl=%s  dst=%s",
+                              t.name, t.plugin.dest_table)
+                q = "update londiste.table_info set dest_table = %s"\
+                    " where queue_name = %s and table_name = %s"
+                curs.execute(q, [t.plugin.dest_table, self.set_name, t.name])
+
             if not t.changed:
                 continue
             merge_state = t.render_state()
