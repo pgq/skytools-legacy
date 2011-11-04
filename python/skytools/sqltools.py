@@ -4,7 +4,7 @@
 import os
 from cStringIO import StringIO
 import skytools
-import skytools.installer_config
+
 try:
     import plpy
 except ImportError:
@@ -524,6 +524,7 @@ def installer_find_file(filename):
         if os.path.isfile(filename):
             full_fn = filename
     else:
+        import skytools.installer_config
         dir_list = skytools.installer_config.sql_locations
         for fdir in dir_list:
             fn = os.path.join(fdir, filename)
