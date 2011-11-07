@@ -117,7 +117,7 @@ _symbols['__version__'] = 'skytools.installer_config:package_version'
 
 if 1:
     import skytools.apipkg as _apipkg
-    _apipkg.initpkg(__name__, _symbols)
+    _apipkg.initpkg(__name__, _symbols, {'apipkg': _apipkg})
 else:
     from skytools.timeutil import *
     from skytools.gzlog import *
