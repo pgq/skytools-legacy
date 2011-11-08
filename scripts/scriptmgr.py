@@ -78,6 +78,7 @@ class ScriptMgr(skytools.DBScript):
     def init_optparse(self, p = None):
         p = skytools.DBScript.init_optparse(self, p)
         p.add_option("-a", "--all", action="store_true", help="apply command to all jobs")
+        p.add_option("-w", "--wait", action="store_true", help="wait for job(s) after signaling")
         p.set_usage(command_usage.strip())
         return p
 
@@ -170,13 +171,9 @@ class ScriptMgr(skytools.DBScript):
             print(job)
 
     def cmd_start(self, job_name):
-        if job_name not in self.job_map:
-            self.log.error('Unknown job: '+job_name)
-            return 1
-        job = self.job_map[job_name]
-        if job['disabled']:
-            self.log.info("Skipping %s" % job_name)
-            return 0
+        job = self.get_job_by_name (job_name)
+        if isinstance (job, int):
+            return job # ret.code
         self.log.info('Starting %s' % job_name)
         os.chdir(job['cwd'])
         pidfile = job['pidfile']
@@ -199,26 +196,42 @@ class ScriptMgr(skytools.DBScript):
             return 0
 
     def cmd_stop(self, job_name):
-        if job_name not in self.job_map:
-            self.log.error('Unknown job: '+job_name)
-            return
-        job = self.job_map[job_name]
-        if job['disabled']:
-            self.log.info("Skipping %s" % job_name)
-            return
+        job = self.get_job_by_name (job_name)
+        if isinstance (job, int):
+            return job # ret.code
         self.log.info('Stopping %s' % job_name)
         self.signal_job(job, signal.SIGINT)
 
     def cmd_reload(self, job_name):
-        if job_name not in self.job_map:
-            self.log.error('Unknown job: '+job_name)
-            return
-        job = self.job_map[job_name]
-        if job['disabled']:
-            self.log.info("Skipping %s" % job_name)
-            return
+        job = self.get_job_by_name (job_name)
+        if isinstance (job, int):
+            return job # ret.code
         self.log.info('Reloading %s' % job_name)
         self.signal_job(job, signal.SIGHUP)
+
+    def get_job_by_name (self, job_name):
+        if job_name not in self.job_map:
+            self.log.error ("Unknown job: %s" % job_name)
+            return 1
+        job = self.job_map[job_name]
+        if job['disabled']:
+            self.log.info ("Skipping %s" % job_name)
+            return 0
+        return job
+
+    def wait_for_stop (self, job_name):
+        job = self.get_job_by_name (job_name)
+        if isinstance (job, int):
+            return job # ret.code
+        msg = False
+        while True:
+            if skytools.signal_pidfile (job['pidfile'], 0):
+                if not msg:
+                    self.log.info ("Waiting for %s to stop" % job_name)
+                    msg = True
+                time.sleep (0.1)
+            else:
+                return 0
 
     def signal_job(self, job, sig):
         os.chdir(job['cwd'])
@@ -274,10 +287,18 @@ class ScriptMgr(skytools.DBScript):
         elif cmd == "stop":
             for n in jobs:
                 self.cmd_stop(n)
+            if self.options.wait:
+                for n in jobs:
+                    self.wait_for_stop(n)
         elif cmd == "restart":
             for n in jobs:
                 self.cmd_stop(n)
+            if self.options.wait:
+                for n in jobs:
+                    self.wait_for_stop(n)
+            else:
                 time.sleep(2)
+            for n in jobs:
                 self.cmd_start(n)
         elif cmd == "reload":
             for n in jobs:
