@@ -181,7 +181,7 @@ class ScriptMgr(skytools.DBScript):
         os.chdir(job['cwd'])
         pidfile = job['pidfile']
         if not pidfile:
-            self.log.warning("No pidfile for %s cannot launch")
+            self.log.warning("No pidfile for %s, cannot launch" % job_name)
             return 0
         if os.path.isfile(pidfile):
             if skytools.signal_pidfile(pidfile, 0):
