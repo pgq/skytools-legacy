@@ -166,9 +166,12 @@ def _init_log(job_name, service_name, cf, log_level, is_daemon):
     root.setLevel(log_level)
 
     # compatibility: specify ini file in script config
+    def_fmt = '%(asctime)s %(process)s %(levelname)s %(message)s'
     logfile = cf.getfile("logfile", "")
     if logfile:
-        fstr = cf.get('logfmt_file', '%(asctime)s %(process)s %(levelname)s %(message)s')
+        fstr = cf.get('logfmt_file', def_fmt)
+        if log_level < logging.INFO:
+            fstr = cf.get('logfmt_file_verbose', fstr)
         fmt = logging.Formatter(fstr)
         size = cf.getint('log_size', 10*1024*1024)
         num = cf.getint('log_count', 3)
@@ -179,7 +182,9 @@ def _init_log(job_name, service_name, cf, log_level, is_daemon):
 
     # if skylog.ini is disabled or not available, log at least to stderr
     if not got_skylog:
-        fstr = cf.get('logfmt_console', '%(asctime)s %(process)s %(levelname)s %(message)s')
+        fstr = cf.get('logfmt_console', def_fmt)
+        if log_level < logging.INFO:
+            fstr = cf.get('logfmt_console_verbose', fstr)
         hdlr = logging.StreamHandler()
         fmt = logging.Formatter(fstr)
         hdlr.setFormatter(fmt)
@@ -220,7 +225,6 @@ class BaseScript(object):
     service_name = None
     job_name = None
     cf = None
-    log = None
     pidfile = None
 
     # >0 - sleep time if work() requests sleep
@@ -237,6 +241,9 @@ class BaseScript(object):
     #  0 - no work, sleep before calling again
     # -1 - exception was thrown
     work_state = 1
+
+    # setup logger here, this allows override by subclass
+    log = logging.getLogger('skytools.BaseScript')
 
     def __init__(self, service_name, args):
         """Script setup.
@@ -285,7 +292,7 @@ class BaseScript(object):
         self.reload()
 
         # init logging
-        self.log = _init_log(self.job_name, self.service_name, self.cf, self.log_level, self.go_daemon)
+        _init_log(self.job_name, self.service_name, self.cf, self.log_level, self.go_daemon)
 
         # send signal, if needed
         if self.options.cmd == "kill":
