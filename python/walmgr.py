@@ -1358,6 +1358,12 @@ STOP TIME: %(stop_time)s
         # copy data
         self.exec_rsync([ srcpath, dst_loc ], True)
 
+        # sync the buffers to disk - this is should reduce the chance
+        # of WAL file corruption in case the slave crashes.
+        slave = self.cf.get("slave")
+        cmdline = ["ssh", "-nT", slave, "sync" ]
+        self.exec_cmd(cmdline)
+
         self.log.debug("%s: done", srcname)
         end_time = time.time()
         self.stat_add('count', 1)
