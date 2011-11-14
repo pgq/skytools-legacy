@@ -111,6 +111,9 @@ Optional: make git colorful:
   $ git config --global color.diff auto
   $ git config --global color.pager true
   $ git config --global color.status true
+  ## make log nicer
+  $ git config --global log.decorate short
+  $ git config --global log.abbrevCommit true
 
 Optional: activate tab-completion for git, pick one of the lines below
 and put it into your `.bashrc`:
