@@ -12,7 +12,7 @@ __all__ = ['AdminScript']
 class AdminScript(skytools.DBScript):
     """Contains common admin script tools.
 
-    Second argument (first is .ini file) is takes as command
+    Second argument (first is .ini file) is taken as command
     name.  If class method 'cmd_' + arg exists, it is called,
     otherwise error is given.
     """
