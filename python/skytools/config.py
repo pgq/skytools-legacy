@@ -205,3 +205,6 @@ class Config(object):
     def items(self):
         """Returns list of (name, value) for each option in main section."""
         return self.cf.items(self.main_section)
+
+    # define some aliases (short-cuts / backward compatibility cruft)
+    getbool = getboolean
