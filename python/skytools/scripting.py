@@ -167,12 +167,15 @@ def _init_log(job_name, service_name, cf, log_level, is_daemon):
 
     # compatibility: specify ini file in script config
     def_fmt = '%(asctime)s %(process)s %(levelname)s %(message)s'
+    def_datefmt = '' # None
     logfile = cf.getfile("logfile", "")
     if logfile:
         fstr = cf.get('logfmt_file', def_fmt)
+        fstr_date = cf.get('logdatefmt_file', def_datefmt)
         if log_level < logging.INFO:
             fstr = cf.get('logfmt_file_verbose', fstr)
-        fmt = logging.Formatter(fstr)
+            fstr_date = cf.get('logdatefmt_file_verbose', fstr_date)
+        fmt = logging.Formatter(fstr, fstr_date)
         size = cf.getint('log_size', 10*1024*1024)
         num = cf.getint('log_count', 3)
         hdlr = logging.handlers.RotatingFileHandler(
@@ -183,10 +186,12 @@ def _init_log(job_name, service_name, cf, log_level, is_daemon):
     # if skylog.ini is disabled or not available, log at least to stderr
     if not got_skylog:
         fstr = cf.get('logfmt_console', def_fmt)
+        fstr_date = cf.get('logdatefmt_console', def_datefmt)
         if log_level < logging.INFO:
             fstr = cf.get('logfmt_console_verbose', fstr)
+            fstr_date = cf.get('logdatefmt_console_verbose', fstr_date)
         hdlr = logging.StreamHandler()
-        fmt = logging.Formatter(fstr)
+        fmt = logging.Formatter(fstr, fstr_date)
         hdlr.setFormatter(fmt)
         root.addHandler(hdlr)
 
