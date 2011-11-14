@@ -225,6 +225,7 @@ class BaseScript(object):
     service_name = None
     job_name = None
     cf = None
+    cf_defaults = {}
     pidfile = None
 
     # >0 - sleep time if work() requests sleep
@@ -348,7 +349,9 @@ class BaseScript(object):
             print("need config file, use --help for help.")
             sys.exit(1)
         conf_file = self.args[0]
-        return skytools.Config(self.service_name, conf_file, override = self.cf_override)
+        return skytools.Config(self.service_name, conf_file,
+                               user_defs = self.cf_defaults,
+                               override = self.cf_override)
 
     def init_optparse(self, parser = None):
         """Initialize a OptionParser() instance that will be used to
