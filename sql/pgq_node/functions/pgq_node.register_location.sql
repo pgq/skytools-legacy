@@ -42,7 +42,7 @@ begin
                dead = i_dead
          where queue_name = i_queue_name
            and node_name = i_node_name;
-    else
+    elsif i_node_location is not null then
         insert into pgq_node.node_location (queue_name, node_name, node_location, dead)
         values (i_queue_name, i_node_name, i_node_location, i_dead);
     end if;
