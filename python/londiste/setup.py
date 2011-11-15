@@ -278,11 +278,32 @@ class ProviderSetup(CommonSetup):
         self.provider_notify_change()
 
     def provider_add_table(self, tbl):
+
+        src_db = self.get_database('provider_db')
+        src_curs = src_db.cursor()
+        pg_vers = src_curs.connection.server_version
+
         q = "select londiste.provider_add_table(%s, %s)"
         self.exec_provider(q, [self.pgq_queue_name, tbl])
 
         # detect dangerous triggers
-        q = """
+        if pg_vers >= 90100:
+            q = """
+            select tg.trigger_name
+                from londiste.provider_table tbl,
+                     information_schema.triggers tg
+                where tbl.queue_name = %s
+                  and tbl.table_name = %s
+                  and tg.event_object_schema = %s
+                  and tg.event_object_table = %s
+                  and tg.action_timing = 'AFTER'
+                  and tg.trigger_name != tbl.trigger_name
+                  and tg.trigger_name < tbl.trigger_name
+                  and substring(tg.trigger_name from 1 for 10) != '_londiste_'
+                  and substring(tg.trigger_name from char_length(tg.trigger_name) - 6) != '_logger'
+            """
+        else:
+            q = """
             select tg.trigger_name
                 from londiste.provider_table tbl,
                      information_schema.triggers tg
@@ -296,9 +317,8 @@ class ProviderSetup(CommonSetup):
                   and substring(tg.trigger_name from 1 for 10) != '_londiste_'
                   and substring(tg.trigger_name from char_length(tg.trigger_name) - 6) != '_logger'
             """
+
         sname, tname = skytools.fq_name_parts(tbl)
-        src_db = self.get_database('provider_db')
-        src_curs = src_db.cursor()
         src_curs.execute(q, [self.pgq_queue_name, tbl, sname, tname])
         for r in src_curs.fetchall():
             self.log.warning("Table %s has AFTER trigger '%s' which runs before Londiste trigger.  "\
