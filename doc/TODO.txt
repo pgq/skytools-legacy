@@ -12,10 +12,6 @@ Low::
 
 == High Priority ==
 
-* qadmin: register/unregister subconsumer
-  . add syntax
-  . call db-functions.
-
 * londiste takeover: check if all tables exist and are in sync.
   Inform user.  Should the takeover stop if problems?
   How can such state be checked on-the-fly?
@@ -25,9 +21,6 @@ Low::
   - londiste manpage
   - qadmin manpage
   - pgqd manpage
-
-* cascade: merge leaf creation should check if target queue exists -
-  `pgq_node.create_node()` should return error if not.
 
 * cascade takeover: wal failover queue sync.  WAL-failover can be
   behind/ahead from regular replication with partial batch.  Need
@@ -49,8 +42,6 @@ Low::
   - branch behind
 
 == Medium Priority ==
-
-* Split package (`pgq-modules-X.Y`, `pgqd`, `skytools`) [dimitri]
 
 * tests for things that have not their own regtests
   or are not tested enough during other tests:
@@ -84,8 +75,6 @@ Low::
 
 * dbscript: configurable error timeout (currently it's hardwired to 20s)
 
-* dbscript: `exec_cmd()` needs better name.
-
 * londiste replay: when buffering queries, check their size.  Current
   buffering is by count - flushed if 200 events have been collected.
   That does not take account that some rows can be very large.
@@ -106,20 +95,6 @@ Low::
 * dbscript: switch (-q) for silence for cron/init scripts.
   Dunno if we can override loggers loaded from skylog.ini.
   Simply redirecting fds 0,1,2 to /dev/null should be enough then.
-
-* londiste add/copy: merge copy without combined queue?  If several
-  partitions need to write data to single place, there are 2 variants:
-  1. Use `--skip-truncate` when adding table in partitons.
-     Problem: it repeatedly drops/creates indexes.
-  2. Use `merge-leaf`->`combined-root` cascading logic, for which
-     Londiste has optimized copy without repeated index dropping+creation.
-     Problem: it expects target combined queue where to copy
-     events and which also triggers the additional copy logic.
-
-  Should there also be 3) - optimized copy without combined queue?
-  Problem: the additional logic needs to checks tables from all the other
-  nodes, all the time, because it has no clear flag that merging
-  needs to happen.  Seems it's better to avoid that.
 
 * londiste: support creating slave from master by pg_dump / PITR.
   Take full dump from root or failover-branch and turn it into
