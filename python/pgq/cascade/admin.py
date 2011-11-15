@@ -422,12 +422,15 @@ class CascadeAdmin(skytools.AdminScript):
         self.resume_consumer(node, consumer)
 
         # unsubscribe from old provider
-        if is_worker:
-            q = "select * from pgq_node.unregister_subscriber(%s, %s)"
-            self.node_cmd(old_provider, q, [self.queue_name, node])
-        else:
-            q = "select * from pgq.unregister_consumer(%s, %s)"
-            self.node_cmd(old_provider, q, [self.queue_name, consumer])
+        try:
+            if is_worker:
+                q = "select * from pgq_node.unregister_subscriber(%s, %s)"
+                self.node_cmd(old_provider, q, [self.queue_name, node])
+            else:
+                q = "select * from pgq.unregister_consumer(%s, %s)"
+                self.node_cmd(old_provider, q, [self.queue_name, consumer])
+        except skytools.DBError, d:
+            self.log.warning("failed to unregister from old provider (%s): %s", old_provider, str(d))
 
     def cmd_rename_node(self, old_name, new_name):
         """Rename node."""
