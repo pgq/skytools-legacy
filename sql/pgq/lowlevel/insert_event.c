@@ -152,12 +152,17 @@ static void *load_insert_plan(struct QueueState *state)
 	 entry = hash_search(insert_cache, &queue_id, HASH_ENTER, &did_exist);
 	 if (did_exist)
 	 {
-		 if (state->cur_table == entry->cur_table)
+		 if (entry->plan && state->cur_table == entry->cur_table)
 			 return entry->plan;
-		 SPI_freeplan(entry->plan);
+		 if (entry->plan)
+			 SPI_freeplan(entry->plan);
 	 }
 	 entry->cur_table = state->cur_table;
+	 entry->plan = NULL;
+
+	 /* this can fail, struct must be valid before */
 	 entry->plan = make_plan(state);
+
 	 return entry->plan;
 }
 
