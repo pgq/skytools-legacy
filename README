@@ -24,9 +24,7 @@ Features:
 
 Documentation:
 
-- PgQ admin tool (pgqadm) usage: doc/pgq-admin.txt
-- PgQ SQL API overview: doc/pgq-sql.txt
-- PgQ SQL reference: http://skytools.projects.postgresql.org/pgq/
+- http://skytools.projects.postgresql.org/skytools-3.0/
 
 === Londiste ===
 
@@ -77,6 +75,9 @@ runtime WAL archive and restore.
   sql/pgq/
     Table definitions and functions for PgQ queueing.
 
+  sql/pgq_node/
+    Framework for cascaded consuming.
+
   sql/pgq_coop/
     Functions for cooperative consuming.
 
@@ -98,4 +99,16 @@ runtime WAL archive and restore.
 
   misc/
     Random scripts used for building.
+
+== Upgrade from 2.1 ==
+
+Assuming PgQ + Londiste setup.  This will upgrade PgQ to 3.0 and install
+Londiste 3 in parallel with Londiste 2.
+
+1. Install Postgres modules.  They are backwards compatible with 2.1.
+2. Stop `pgqadm.py ticker` processes.
+3. Apply ./upgrade/final/v3.0_pgq_core.sql
+4. Apply installed pgq_node.sql
+5. Apply installed londiste.sql - this will throw error on CREATE SCHEMA, but should otherwise apply fine.
+6. Start pgqd.
 
