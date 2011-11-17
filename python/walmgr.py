@@ -34,9 +34,7 @@ Internal commands:
   xrelease           Release backup lock (master)
   xrotate            Rotate backup sets, expire and archive oldest if necessary.
   xpurgewals         Remove WAL files not needed for backup (slave)
-
-Switches:
-  -n                 no action, just print commands
+  xpartialsync       Append data to WAL file (slave)
 """
 
 import os, sys, re, signal, time, traceback
