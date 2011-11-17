@@ -1,0 +1,519 @@
+
+= walmgr3(1) =
+
+== NAME ==
+
+walmgr3 - tool for managing WAL-based replication for PostgreSQL.
+
+== SYNOPSIS ==
+
+  walmgr3 <config.ini> command [--not-really] [options]
+
+== DESCRIPTION ==
+
+Walmgr3 is a tool to handle replication of PostgreSQL with PITR (also
+known as Log Shipping).
+
+This script allows to setup and administer the replication, it is also
+used by PostgreSQL to archive and restore the WAL files.
+
+See <<quick_start,QUICK START>> below to start your first log shipping
+in few steps.
+
+The 'command' is one of the Master, Slave, Common or Internal commands
+listed below.
+
+== GENERAL OPTIONS ==
+
+  -V, --version::
+    Print version info and exit.
+
+  -h, --help::
+    Show this help message and exit.
+
+  -q, --quiet::
+    Log only errors and warnings.
+
+  -v, --verbose::
+    Log verbosely.
+
+  -d, --daemon::
+    Run in daemon mode (go background).
+
+  -n, --not-really::
+    Show what would be done without actually doing anything.
+
+== SPECIFIC OPTIONS ==
+
+  --ini::
+    Display sample ini file.
+
+  --set="'param=val[,param=value]'"::
+    Override config setting
+
+  --init-master::
+    Initialize Master walmgr3 configuration.
+
+  --init-slave::
+    Initialize Slave walmgr3 configuration.
+
+  --config-dir='filepath'::
+    Configuration file location for `--init-X commands`.
+
+  --slave='hostname'::
+    Slave host name.
+
+  --pgdata='path'::
+    PostgreSQL data directory.
+
+  --ssh-keygen::
+    Generate a SSH key pair if needed (used in Master).
+
+  --ssh-add-key='keyfile.pub'::
+    Add the public key file to authorized_hosts file (used in Slave).
+
+  --ssh-remove-key='ssh_key'::
+    Remove Master ssh key from authorized_hosts file (used in Slave).
+
+  --primary-conninfo='connection_string'::
+    Provide the connection string to the streaming replication Master
+    (used in Slave).
+
+== DAEMON OPTIONS ==
+
+  -r, --reload::
+    Reload config (send SIGHUP).
+
+  -s, --stop::
+    Stop program safely (send SIGINT).
+
+  -k, --kill::
+    Kill program immediately (send SIGTERM).
+
+== MASTER COMMANDS ==
+
+=== setup ===
+
+Sets up PostgreSQL for WAL archiving, creates necessary directory
+structures on Slave.
+
+=== sync ===
+
+Copies in-progress WAL files to Slave.
+
+=== syncdaemon ===
+
+Start WAL synchronization in daemon mode. This will start periodically
+synching the in-progress WAL files to Slave.
+
+The following configuration parameters are used to drive the syncdaemon:
+
+ - *loop_delay* - how long to sleep between the synchs.
+
+ - *use_xlog_functions* - use record based shipping to synchronize
+   in-progress WAL segments.
+
+=== stop ===
+
+Stop archiving and de-configure PostgreSQL archiving.
+
+=== periodic ===
+
+Runs periodic command if configured. This enables to execute arbitrary
+commands on interval, useful for synchronizing scripts, config files,
+crontabs etc.
+
+== SLAVE COMMANDS ==
+
+=== boot ===
+
+Stop WAL playback and bring the database up so it can accept queries.
+
+=== pause ===
+
+Pauses WAL playback.
+
+=== continue ===
+
+Continues previously paused WAL playback.
+
+== COMMON COMMANDS ==
+
+=== listbackups ===
+
+Lists available backups on Slave node.
+
+=== backup ===
+
+Creates a new base backup from Master database. Will purge expired
+backups and WAL files on Slave if `keep_backups` is not specified.
+During a backup a lock file is created in Slave `completed_wals`
+directory. This is to prevent simultaneous backups and resulting
+corruption. If running backup is terminated, the BACKUPLOCK file may
+have to be removed manually.
+
+EXPERIMENTAL: If run on Slave, creates backup from in-recovery Slave
+data. WAL playback is paused, Slave data directory is backed up to
+`full_backup` directory and WAL playback is resumed. Backups are rotated
+as needed. The idea is to move the backup load away from production node.
+Usable from PostgreSQL 8.2 and up.
+
+=== restore [src[dst]] ===
+
+Restores the specified backup set to target directory. If specified
+without arguments the latest backup is *moved* to Slave data directory
+(doesn't obey retention rules). If `src` backup is specified the backup
+is copied (instead of moved). Alternative destination directory can be
+specified with `dst`.
+
+=== cleanup ===
+
+Cleanup any walmgr3 files after stop.
+
+== INTERNAL COMMANDS ==
+
+=== xarchive <srcpath> <srcname> ===
+
+On Master, archive one WAL file.
+
+=== xrestore <srcname> <dstpath> [last restartpoint wal] ===
+
+On Slave, restore one WAL file.
+
+=== xlock ===
+
+On Master, create lock file to deny other concurrent backups.
+
+=== xrelease ===
+
+On Slave, remove backup lock file, allow other backup to run.
+
+=== xrotate ===
+
+Rotate backups by increasing backup directory suffixes. Note that since
+we also have to make room for next backup, we actually have
+*keep_backups - 1* backups available after this.
+
+Unneeded WAL files are not removed here, it is handled by `xpurgewals`
+command instead.
+
+=== xpurgewals ===
+
+On Slave, remove WAL files not needed for recovery.
+
+=== xpartialsync <filename> <offset> <bytes> ===
+
+Read 'bytes' worth of data from stdin, append to the partial WAl file
+starting from 'offset'. On error it is assumed that master restarts
+from zero.
+
+The resulting file is always padded to XLOG_SEGMENT_SIZE bytes to
+simplify recovery.
+
+== CONFIGURATION ==
+
+=== Common settings ===
+
+==== job_name ====
+
+Optional. Indentifies this script, used in logging. Keep unique if
+using central logging.
+
+==== logfile ====
+
+Where to log.
+
+==== use_skylog ====
+
+Optional. If nonzero, 'skylog.ini' is used for log configuration.
+
+=== Master settings ===
+
+==== pidfile ====
+
+Pid file location for syncdaemon mode (if running with -d). Otherwise
+not required.
+
+==== master_db ====
+
+Database to connect to for pg_start_backup(), etc. It is not a
+good idea to use `dbname=template` if running syncdaemon in record
+shipping mode.
+
+==== master_data ====
+
+Master data directory location.
+
+==== master_config ====
+
+Master postgresql.conf file location. This is where `archive_command`
+gets updated.
+
+==== master_restart_cmd  ====
+
+The command to restart Master database, this used after changing
+`archive_mode` parameter. Leave unset if you cannot afford to restart
+the database at setup/stop.
+
+==== slave ====
+
+Slave host and base directory.
+
+==== slave_config ====
+
+Configuration file location for the Slave walmgr3.
+
+==== completed_wals ====
+
+Slave directory where archived WAL files are copied.
+
+==== partial_wals ====
+
+Slave directory where incomplete WAL files are stored.
+
+==== full_backup ====
+
+Slave directory where full backups are stored.
+
+==== config_backup ====
+
+Optional. Slave directory where configuration file backups are stored.
+
+==== loop_delay ====
+
+The frequency of syncdaemon updates. In record shipping mode only
+incremental updates are sent, so smaller interval can be used.
+
+==== use_xlog_functions ====
+
+Use pg_xlog functions for record based shipping (available in 8.2 and
+up).
+
+==== compression ====
+
+If nonzero, a `-z` flag is added to rsync cmdline. It reduces network
+traffic at the cost of extra CPU time.
+
+==== keep_symlinks ====
+
+Keep symlinks for `pg_xlog` and `pg_log`.
+
+==== hot_standby ====
+
+If set to 1, walmgr3 setup will set `wal_level` to `hot_standby`
+(PostgreSQL 9.0 and newer).
+
+==== command_interval ====
+
+How ofter to run periodic command script. In seconds, and only evaluated
+at log switch times.
+
+==== periodic_command ====
+
+Shell script to be executed at specified time interval. Can be used for
+synchronizing scripts, config files etc.
+
+=== Sample master.ini ===
+
+    [walmgr]
+    job_name             = wal-master
+    logfile              = ~/log/%(job_name)s.log
+    pidfile              = ~/pid/%(job_name)s.pid
+    use_skylog           = 1
+
+    master_db            = dbname=my_db
+    master_data          = /var/lib/postgresql/9.1/main
+    master_config        = /etc/postgresql/9.1/main/postgresql.conf
+    master_bin           = /usr/lib/postgresql/9.1/bin
+
+    # set this only if you can afford database restarts during setup and stop.
+    #master_restart_cmd   = /etc/init.d/postgresql-9.1 restart
+
+    slave = slave-host
+    slave_config = /var/lib/postgresql/conf/wal-slave.ini
+
+    walmgr_data          = /var/lib/postgresql/walshipping
+    completed_wals       = %(walmgr_data)s/logs.complete
+    partial_wals         = %(walmgr_data)s/logs.partial
+    full_backup          = %(walmgr_data)s/data.master
+    config_backup        = %(walmgr_data)s/config.backup
+
+    # syncdaemon update frequency
+    loop_delay           = 10.0
+    # use record based shipping available since 8.2
+    use_xlog_functions   = 0
+
+    # pass -z to rsync, useful on low bandwidth links
+    compression          = 0
+
+    # keep symlinks for pg_xlog and pg_log
+    keep_symlinks        = 1
+
+    # tell walmgr to set wal_level to hot_standby during setup
+    #hot_standby = 1
+
+    # periodic sync
+    #command_interval     = 600
+    #periodic_command     = /var/lib/postgresql/walshipping/periodic.sh
+
+=== Slave settings ===
+
+==== slave_data ====
+
+PostgreSQL data directory for the Slave. This is where the restored
+backup is copied/moved.
+
+==== slave_bin ====
+
+Specifies the location of PostgreSQL binaries (pg_controldata, etc).
+Needed if they are not already in the PATH.
+
+==== slave_stop_cmd ====
+
+Script to stop PostgreSQL on Slave.
+
+==== slave_start_cmd ====
+
+Script to start PostgreSQL on Slave.
+
+==== slave_config_dir ====
+
+Directory for PostgreSQL configuration files. If specified, `walmgr3 restore`
+attempts to restore configuration files from `config_backup` directory.
+
+==== slave_pg_xlog ====
+
+Set to the directory on the Slave where pg_xlog files get written to. On
+a restore to the Slave walmgr3 will create a symbolic link from
+data/pg_xlog to this location.
+
+==== completed_wals ====
+
+Directory where complete WAL files are stored. Also miscellaneous
+control files are created in this directory (BACKUPLOCK, STOP, PAUSE,
+etc.).
+
+==== partial_wals ====
+
+Directory where partial WAL files are stored.
+
+==== full_backup ====
+
+Directory where full backups are stored.
+
+==== config_backup ====
+
+Optional. Slave directory where configuration file backups are stored.
+
+==== backup_datadir ====
+
+Set `backup_datadir` to 'no' to prevent walmgr3 from making a backup of
+the data directory when restoring to the Slave. This defaults to 'yes'.
+
+==== keep_backups ====
+
+Number of backups to keep. Also all WAL files needed to bring earliest
+backup up to date are kept. The backups are rotated before new backup
+is started, so at one point there is actually one less backup available.
+
+It probably doesn't make sense to specify `keep_backups` if periodic 
+backups are not performed - the WAL files will pile up quickly.
+
+Backups will be named data.master, data.master.0, data.master.1 etc.
+
+==== archive_command ====
+Script to execute before rotating away the oldest backup. If it fails
+backups will not be rotated.
+
+==== primary_conninfo ====
+
+Primary database connection string for hot standby - enabling this will
+cause the Slave to be started in hot standby mode.
+
+=== Sample slave.ini ===
+
+    [walmgr]
+    job_name             = wal-slave
+    logfile              = ~/log/%(job_name)s.log
+    use_skylog           = 1
+
+    slave_data           = /var/lib/postgresql/9.1/main
+    slave_bin            = /usr/lib/postgresql/9.1/bin
+    slave_stop_cmd       = /etc/init.d/postgresql-9.1 stop
+    slave_start_cmd      = /etc/init.d/postgresql-9.1 start
+    slave_config_dir     = /etc/postgresql/9.1/main
+
+    # alternative pg_xlog directory for slave, symlinked to  pg_xlog on restore
+    #slave_pg_xlog        = /vol2/pg_xlog
+
+    walmgr_data          = ~/walshipping
+    completed_wals       = %(walmgr_data)s/logs.complete
+    partial_wals         = %(walmgr_data)s/logs.partial
+    full_backup          = %(walmgr_data)s/data.master
+    config_backup        = %(walmgr_data)s/config.backup
+
+    backup_datadir       = yes
+    keep_backups         = 0
+    archive_command =
+
+    # primary database connect string for hot standby -- enabling
+    # this will cause the slave to be started in hot standby mode.
+    #primary_conninfo = host=master port=5432 user=postgres
+
+== EXIT STATUS ==
+
+  0::
+    Successful program execution.
+
+== ENVIRONMENT ==
+
+PostgreSQL environment variables can be used.
+
+== QUICK START [[quick_start]] ==
+
+1. Set up passwordless ssh-key on Master and write configuration file
+
+  master$ walmgr3 --ssh-keygen --init-master --slave <slave_hostname>
+
+2. Set up passwordless ssh authentication from Master to Slave and write
+   configuration file on Slave
+
+  slave$ walmgr3 --init-slave --ssh-add-key=/tmp/id_rsa.pub
+
+3. Logging setup on Master and Slave
+
+  master$ cp skylog.ini ~postgres/
+  slave$ cp skylog.ini ~postgres/
+
+4. Start archival process and create a base backup
+
+  master$ walmgr3 /var/lib/postgresql/conf/wal-master.ini setup
+  master$ walmgr3 /var/lib/postgresql/conf/wal-master.ini backup
+
+  CAUTION: starting from PostgreSQL 8.3 the archiving is enabled by
+  setting archive_mode GUC to on. However changing this parameter
+  requires the server to be restarted.
+
+5. Prepare postgresql.conf and pg_hba.conf on Slave and start replay
+
+  slave$ walmgr3 /var/lib/postgresql/conf/wal-slave.ini restore
+
+  For debian based distributions the standard configuration files are
+  located in /etc/postgresql/x.x/main directory. If another scheme is
+  used the postgresql.conf and pg_hba.conf should be copied to slave
+  full_backup directory. Make sure to disable archive_command in slave
+  config.
+
+  'walmgr3 restore' moves data in place, creates recovery.conf and
+  starts postmaster in recovery mode.
+
+6. In-progress WAL segments can be backup by command:
+
+    master$ walmgr3 /var/lib/postgresql/conf/wal-master.ini sync
+
+7. If need to stop replay on Slave and boot into normal mode, do:
+
+    slave$ walmgr3 /var/lib/postgresql/conf/wal-slave.ini boot
+
+
+
