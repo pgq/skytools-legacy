@@ -55,7 +55,7 @@ def rx_replace(rx, sql, new_part):
     """Find a regex match and replace that part with new_part."""
     m = re.search(rx, sql, re.I)
     if not m:
-        raise Exception('rx_replace failed')
+        raise Exception('rx_replace failed: rx=%r sql=%r new=%r' % (rx, sql, new_part))
     p1 = sql[:m.start()]
     p2 = sql[m.end():]
     return p1 + new_part + p2
