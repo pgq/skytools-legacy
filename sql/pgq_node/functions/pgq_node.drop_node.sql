@@ -35,18 +35,11 @@ begin
         return;
     end if;
 
-    begin
-        perform pgq_node.unregister_subscriber(i_queue_name, i_node_name);
-    exception
-        when others then
-            null;
-    end;
-
-    delete from pgq_node.subscriber_info
-     where queue_name = i_queue_name
-        and subscriber_node = i_node_name;
-
+    -- drop local state
     if _is_local then
+        delete from pgq_node.subscriber_info
+         where queue_name = i_queue_name;
+
         delete from pgq_node.local_state
          where queue_name = i_queue_name;
 
@@ -58,12 +51,16 @@ begin
            from pgq.queue where queue_name = i_queue_name;
 
         delete from pgq_node.node_location
-         where queue_name = i_queue_name;
-    else
-        delete from pgq_node.node_location
          where queue_name = i_queue_name
-            and node_name = i_node_name;
+           and node_name <> i_node_name;
+    else
+        perform pgq_node.unregister_subscriber(i_queue_name, i_node_name);
     end if;
+
+    -- let the unregister_location send event if needed
+    select f.ret_code, f.ret_note
+        from pgq_node.unregister_location(i_queue_name, i_node_name)
+        into ret_code, ret_note;
 
     select 200, 'Node dropped' into ret_code, ret_note;
     return;
