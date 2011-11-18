@@ -50,7 +50,7 @@ cmd_handlers = (
     (('add-table', 'remove-table', 'add-seq', 'remove-seq', 'tables', 'seqs',
       'missing', 'resync', 'check', 'fkeys', 'execute'), londiste.LondisteSetup),
     (('show-handlers',), londiste.LondisteSetup),
-    (('worker', 'replay'), londiste.Replicator),
+    (('worker',), londiste.Replicator),
     (('compare',), londiste.Comparator),
     (('repair',), londiste.Repairer),
     (('copy',), londiste.CopyTable),
