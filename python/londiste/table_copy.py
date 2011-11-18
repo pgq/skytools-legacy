@@ -45,6 +45,9 @@ class CopyTable(Replicator):
 
     def reload_table_stat(self, dst_curs, tblname):
         self.load_table_state(dst_curs)
+        if tblname not in self.table_map:
+            self.log.warning('Table %s removed from replication', tblname)
+            sys.exit(1)
         t = self.table_map[tblname]
         return t
 
