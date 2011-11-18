@@ -1,9 +1,19 @@
+-- drop old function with timestamp
+DROP FUNCTION IF EXISTS public.create_partition(
+    text,
+    text,
+    text,
+    text,
+    timestamp,
+    text
+);
+
 CREATE OR REPLACE FUNCTION public.create_partition(
     i_table text,
     i_part  text,
     i_pkeys text,
     i_part_field text,
-    i_part_time timestamp,
+    i_part_time timestamptz,
     i_part_period text
 ) RETURNS int
 AS $$
@@ -23,14 +33,13 @@ AS $$
 --      i_part_period -  period of partitioned data, current possible values are 'hour', 'day', 'month' and 'year'
 --
 -- Example:
---      select public.create_partition('aggregate.user_call_monthly', 'aggregate.user_call_monthly_2010_01_10', 'key_user', 'period_start', '2010-01-10 11:00'::timestamp, 'month');
+--      select public.create_partition('aggregate.user_call_monthly', 'aggregate.user_call_monthly_2010_01', 'key_user', 'period_start', '2010-01-10 11:00'::timestamptz, 'month');
 --
--- Version:
 ------------------------------------------------------------------------
 declare
     chk_start       text;
     chk_end         text;
-    part_start      timestamp;
+    part_start      timestamptz;
     table_schema    text;
     table_name      text;
     part_schema     text;
@@ -74,7 +83,8 @@ begin
     else
         -- need to use 'like' to get indexes
         execute 'create table ' || fq_part
-            || ' (like ' || fq_table || ')'
+            || ' (like ' || fq_table || ' including indexes including constraints)'
+            -- || ' () '
             || ' inherits (' || fq_table || ')';
 
         if i_part_field != '' then

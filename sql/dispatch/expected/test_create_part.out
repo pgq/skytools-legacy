@@ -1,0 +1,39 @@
+\set ECHO none
+create table events (
+    id int4 primary key,
+    txt text not null,
+    ctime timestamptz not null default now(),
+    someval int4 check (someval > 0)
+);
+create index ctime_idx on events (ctime);
+select create_partition('events', 'events_2011_01', 'id', 'ctime', '2011-01-01', 'month');
+ create_partition 
+------------------
+                1
+(1 row)
+
+select create_partition('events', 'events_2011_01', 'id', 'ctime', '2011-01-01'::timestamptz, 'month');
+ create_partition 
+------------------
+                0
+(1 row)
+
+select create_partition('events', 'events_2011_01', 'id', 'ctime', '2011-01-01'::timestamp, 'month');
+ create_partition 
+------------------
+                0
+(1 row)
+
+select count(*) from pg_indexes where schemaname='public' and tablename = 'events_2011_01';
+ count 
+-------
+     2
+(1 row)
+
+select count(*) from pg_constraint where conrelid = 'public.events_2011_01'::regclass;
+ count 
+-------
+     3
+(1 row)
+
+-- \d events_2011_01
