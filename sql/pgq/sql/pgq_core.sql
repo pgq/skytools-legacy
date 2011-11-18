@@ -15,7 +15,7 @@ select pgq.ticker();
 select pgq.next_batch('myqueue', 'consumer');
 select pgq.next_batch('myqueue', 'consumer');
 
-select queue_name, consumer_name, prev_tick_id, tick_id, lag from pgq.get_batch_info(1);
+select queue_name, consumer_name, prev_tick_id, tick_id, lag < '1 second' from pgq.get_batch_info(1);
 
 select queue_name, queue_ntables, queue_cur_table, queue_rotation_period,
        queue_switch_time <= now() as switch_time_exists,

@@ -80,10 +80,10 @@ select pgq.next_batch('myqueue', 'consumer');
           1
 (1 row)
 
-select queue_name, consumer_name, prev_tick_id, tick_id, lag from pgq.get_batch_info(1);
- queue_name | consumer_name | prev_tick_id | tick_id |     lag     
-------------+---------------+--------------+---------+-------------
- myqueue    | consumer      |            1 |       2 | @ 0.00 secs
+select queue_name, consumer_name, prev_tick_id, tick_id, lag < '1 second' from pgq.get_batch_info(1);
+ queue_name | consumer_name | prev_tick_id | tick_id | ?column? 
+------------+---------------+--------------+---------+----------
+ myqueue    | consumer      |            1 |       2 | t
 (1 row)
 
 select queue_name, queue_ntables, queue_cur_table, queue_rotation_period,
