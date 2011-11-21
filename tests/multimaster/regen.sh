@@ -85,9 +85,9 @@ done
 
 msg "Run londiste3 daemon for each node"
 for db in $src_db_list; do
-run londiste3 $v -d conf/londiste_$db.ini replay
+run londiste3 $v -d conf/londiste_$db.ini worker
 for dst in $dst_db_list; do
-run londiste3 $v -d conf/londiste_${db}_${dst}.ini replay
+run londiste3 $v -d conf/londiste_${db}_${dst}.ini worker
 done
 done
 

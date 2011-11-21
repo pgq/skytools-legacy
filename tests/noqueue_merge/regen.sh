@@ -99,7 +99,7 @@ done
 msg "Launch ticker"
 run pgqd $v -d conf/pgqd.ini
 
-msg "Launch londiste replay"
+msg "Launch londiste worker"
 
 for db in $part_list; do
     queue=l3_${db}_q

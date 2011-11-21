@@ -62,7 +62,7 @@ run londiste3 $v conf/londiste_rendb2.ini create-branch node2 'dbname=rendb2' --
 msg "Run londiste3 daemon for each node"
 for db in $db_list; do
   run psql -d $db -c "update pgq.queue set queue_ticker_idle_period='5 secs'"
-  run londiste3 $v -d conf/londiste_$db.ini replay
+  run londiste3 $v -d conf/londiste_$db.ini worker
 done
 
 msg "Run ticker"
