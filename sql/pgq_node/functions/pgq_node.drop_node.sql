@@ -22,13 +22,20 @@ returns record as $$
 -- Return Codes:
 --      200 - Ok
 --      304 - No such queue
+--      406 - That is a provider
 ------------------------------------------------------------------------
 declare
     _is_local   boolean;
+    _is_prov    boolean;
 begin
-    select (node_name = i_node_name) into _is_local
-    from pgq_node.node_info
-      where queue_name = i_queue_name;
+    select (n.node_name = i_node_name),
+           (select s.provider_node = i_node_name
+              from pgq_node.local_state s
+              where s.queue_name = i_queue_name
+                and s.consumer_name = n.worker_name)
+        into _is_local, _is_prov
+        from pgq_node.node_info n
+        where n.queue_name = i_queue_name;
 
     if not found then
         select 304, 'No such queue: ' || i_queue_name into ret_code, ret_note;
@@ -53,6 +60,9 @@ begin
         delete from pgq_node.node_location
          where queue_name = i_queue_name
            and node_name <> i_node_name;
+    elsif _is_prov then
+        select 405, 'Cannot drop provider node: ' || i_node_name into ret_code, ret_note;
+        return;
     else
         perform pgq_node.unregister_subscriber(i_queue_name, i_node_name);
     end if;
