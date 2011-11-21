@@ -43,6 +43,11 @@ Low::
 
 == Medium Priority ==
 
+* Load public connect string from .ini
+* Load provider connect string:
+  - from ini (not good)
+  - describe connstr + query to look up node names?
+
 * tests for things that have not their own regtests
   or are not tested enough during other tests:
   - pgq.RemoteConsumer
