@@ -147,7 +147,7 @@ def _init_log(job_name, service_name, cf, log_level, is_daemon):
             fn = os.path.expanduser(fn)
             if os.path.isfile(fn):
                 defs = {'job_name': job_name, 'service_name': service_name}
-                logging.config.fileConfig(fn, defs)
+                logging.config.fileConfig(fn, defs, False)
                 got_skylog = 1
                 break
         _log_config_done = 1
