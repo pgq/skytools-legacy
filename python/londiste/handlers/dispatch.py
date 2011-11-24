@@ -401,8 +401,8 @@ class BulkLoader(BaseBulkTempLoader):
         self.delete(curs)
         # check if right amount of rows deleted (only in direct mode)
         if self.conf.table_mode == 'direct' and cnt != curs.rowcount:
-            self.log.warning("Delete mismatch: expected=%s deleted=%d"
-                    % (cnt, curs.rowcount))
+            self.log.warning("%s: Delete mismatch: expected=%s deleted=%d"
+                    % (self.table, cnt, curs.rowcount))
 
     def process_update(self, curs, op_map):
         """Process update list"""
@@ -423,15 +423,15 @@ class BulkLoader(BaseBulkTempLoader):
             self.update(curs)
             # check count (only in direct mode)
             if self.conf.table_mode == 'direct' and cnt != curs.rowcount:
-                self.log.warning("Update mismatch: expected=%s updated=%d"
-                        % (cnt, curs.rowcount))
+                self.log.warning("%s: Update mismatch: expected=%s updated=%d"
+                        % (self.table, cnt, curs.rowcount))
         else:
             # delete from main table using temp
             self.delete(curs)
             # check count (only in direct mode)
             if self.conf.table_mode == 'direct' and real_cnt != curs.rowcount:
-                self.log.warning("bulk: Update mismatch: expected=%s deleted=%d"
-                        % (real_cnt, curs.rowcount))
+                self.log.warning("%s: Update mismatch: expected=%s deleted=%d"
+                        % (self.table, real_cnt, curs.rowcount))
             # insert into main table
             if AVOID_BIZGRES_BUG:
                 # copy again, into main table
