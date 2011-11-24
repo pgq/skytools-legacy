@@ -121,6 +121,21 @@ def run_single_process(runnable, daemon, pidfile):
 _log_config_done = 0
 _log_init_done = {}
 
+def _load_log_config(fn, defs):
+    """Fixed fileConfig."""
+
+    # Work around fileConfig default behaviour to disable
+    # not only old handlers on load (which slightly makes sense)
+    # but also old logger objects (which does not make sense).
+
+    if sys.hexversion >= 0x2060000:
+        logging.config.fileConfig(fn, defs, False)
+    else:
+        logging.config.fileConfig(fn, defs)
+        root = logging.getLogger()
+        for lg in root.manager.loggerDict.values():
+            lg.disabled = 0
+
 def _init_log(job_name, service_name, cf, log_level, is_daemon):
     """Logging setup happens here."""
     global _log_init_done, _log_config_done
@@ -147,7 +162,7 @@ def _init_log(job_name, service_name, cf, log_level, is_daemon):
             fn = os.path.expanduser(fn)
             if os.path.isfile(fn):
                 defs = {'job_name': job_name, 'service_name': service_name}
-                logging.config.fileConfig(fn, defs, False)
+                _load_log_config(fn, defs)
                 got_skylog = 1
                 break
         _log_config_done = 1
