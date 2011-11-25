@@ -1,0 +1,357 @@
+
+= londiste3(1) =
+
+== NAME ==
+
+londiste3 - tool for managing trigger-based replication for PostgreSQL.
+
+== SYNOPSIS ==
+
+  londiste3 <config.ini> command [subcommand] [options]
+
+== DESCRIPTION ==
+
+Londiste allows to setup and administer the replication, and is run as a
+daemon to handle the replication itself. (Londiste is just a complex
+PgQ Consumer).
+
+See <<examples,EXAMPLES>> below to start your first trigger-based
+replication in few steps.
+
+The 'command' is one of Node, Replication, Information or Internal
+commands listed below.
+
+Londiste introduces the notion of 'takeover', it is the action when a
+local node takes over the work of another node. The other node can be a
+root node or a branch node and it can be dead or alive when the action
+is run.
+
+Londiste also allows, among many other features,  cascading replication,
+partial replication and custom handlers for replication.
+
+== GENERAL OPTIONS ==
+
+  -V, --version::
+    Print version info and exit.
+
+  -h, --help::
+    Show this help message and exit.
+
+  -q, --quiet::
+    Log only errors and warnings.
+
+  -v, --verbose::
+    Log verbosely.
+
+  -d, --daemon::
+    Run in daemon mode (go background).
+
+== SPECIFIC OPTIONS ==
+
+  --ini::
+    Display sample ini file.
+
+  --set="'param=val[,param=value]'"::
+    Override config setting.
+
+== DAEMON OPTIONS ==
+
+  -r, --reload::
+    Reload config (send SIGHUP).
+
+  -s, --stop::
+    Stop program safely (send SIGINT).
+
+  -k, --kill::
+    Kill program immediately (send SIGTERM).
+
+== REPLICATION EXTRA ARGUMENTS ==
+
+  --rewind::
+    Change queue position according to destination.
+
+  --reset::
+    Reset queue position on destination side.
+
+== NODE INITIALIZATION COMMANDS ==
+
+Initialization commands are the only ones that requires a connection
+string argument. It is the connection string that Londiste3 will store,
+other nodes will use it to connect to the current node.
+
+=== create-root <node> <connstr> ===
+
+Initializes a Master node.
+
+The <node> is the name of the node, it should be unique.
+The <connstr> argument is the connection string to the database on the
+Master node.
+
+=== create-branch <node> <connstr> --provider=<public_connstr> ===
+
+Initializes a Slave node which can be used as a reference for other
+nodes.
+
+The <node> is the name of the node, it should be unique.
+The <connstr> argument is the connection string to the database on the
+current node and <public_connstr> is the connection string to the
+provider database (it can be a root node or a branch node).
+
+=== create-leaf <node> <connstr> --provider=<public_connstr> ===
+
+Initializes a Slave node which can not be used as a reference for other
+nodes.
+
+The <node> is the name of the node, it should be unique.
+The <connstr> argument is the connection string to the database on the
+current node and <public_connstr> is the connection string to the
+provider database (it can be a root node or a branch node).
+
+  --merge='qname'::
+    combined queue name
+
+== NODE ADMINISTRATION COMMANDS ==
+
+=== pause ===
+
+Pause the consumer: the replication of the events is stopped and can be
+resumed later.
+
+=== resume ===
+
+When the consumer has been paused, let it replay again.
+
+=== change-provider <tonode> ===
+
+Make <tonode> become the new provider for the current node.
+
+TODO: londiste.py need update (param change from --provider)
+
+=== takeover <fromnode> [--target=<tonode>] [--all] [--dead] ===
+
+This command allows to achieve failover and switchover for any of your
+providers (root or branch nodes).
+
+  --target='tonode'::
+    Target node of the takeover.
+
+  --all::
+    In addition to take over the work from the 'fromnode', make other
+    nodes change their provider to the current node.
+
+  --dead::
+    Don't wait to take the new role and flag the 'fromnode' as dead.
+
+  --dead='deadnode'::
+    Assume node is dead.
+    TODO : why use this one ?
+
+  --dead-root::
+    Old node was root.
+
+  --dead-branch::
+    Old node was branch
+
+=== drop-node <node> ===
+
+Remove the node from the Londiste replication.
+
+Londiste triggers on the node are removed but Londiste or PgQ are not
+removed.
+
+=== tag-dead <node> ===
+
+Tag the node as dead, the command can be run from any node in the
+replication.
+
+=== tag-alive <node> ===
+
+Tag the node as alive, the command can be run from any node in the
+replication.
+
+== INFORMATION COMMANDS ==
+
+=== status ===
+
+Show status of the replication viewed by the current node.
+
+The output is a tree of the members of the replication with their lags,
+last tick, status and the number of tables in state: ok/half/ignored
+(replicated, initial copy not finnished, table not replicated locally).
+
+=== members ===
+
+Show members of the replication viewed by the current node.
+
+Output the nodes name, status and node location (connection string to
+the node).
+
+=== show-consumers [--node] ===
+
+TODO: command is not working
+
+== REPLICATION DAEMON COMMAND ==
+
+=== worker ===
+
+Replay events to subscriber: it is needed to make the replication active
+as it will start to replay the events.
+
+== REPLICATION ADMINISTRATION COMMANDS ==
+
+=== add-table <table> [args] ===
+
+Add the table to the replication.
+
+See <<add_args,ADD ARGUMENTS>> below for the list of possible arguments.
+
+=== remove-table <table> ===
+
+Remove the table from the replication.
+
+=== add-seq <seq> [args] ===
+
+Add the sequence to the replication.
+
+See <<add_args,ADD ARGUMENTS>> below for the list of possible arguments.
+
+=== remove-seq <seq> ===
+
+Remove the sequence from the replication.
+
+=== tables ===
+
+Show all tables on provider.
+
+=== seqs ===
+
+Show all sequences on provider.
+
+=== missing ===
+
+List tables subscriber has not yet attached to.
+
+=== resync <table> ===
+
+Do full copy of the table, again.
+
+== ADD ARGUMENTS [[add_args]] ==
+
+  --all::
+    Include all possible tables.
+
+  --dest-table='table'::
+    Redirect changes to different table.
+
+  --force::
+    Ignore table differences.
+
+  --expect-sync::
+    No copy needed.
+
+  --skip-truncate::
+    Keep old data.
+
+  --create::
+    Create table/sequence if not exist, with minimal schema.
+
+  --create-full::
+    Create table/sequence if not exist, with full schema.
+
+  --trigger-flags='trigger_flags'::
+    Trigger creation flags, see below for details.
+
+  --trigger-arg='trigger_arg'::
+    Custom trigger arg (can be specified multiply times).
+
+  --no-triggers::
+    Dont put triggers on table (makes sense on leaf node).
+
+  --handler='handler'::
+    Custom handler for table.
+
+  --handler-arg='handler_arg'::
+    Argument to custom handler.
+
+  --copy-condition='copy_condition'::
+    Set WHERE expression for copy.
+
+  --merge-all::
+    Merge tables from all source queues.
+
+  --no-merge::
+    Don't merge tables from source queues.
+
+  --max-parallel-copy='max_parallel_copy'::
+    Max number of parallel copy processes.
+
+Trigger creation flags (default: AIUDL):
+
+- I - ON INSERT
+- U - ON UPDATE
+- D - ON DELETE
+- Q - use pgq.sqltriga() as trigger function
+- L - use pgq.logutriga() as trigger function
+- B - BEFORE
+- A - AFTER
+- S - SKIP
+
+== REPLICATION EXTRA COMMANDS ==
+
+=== check ===
+
+Compare table structure on both sides.
+
+=== fkeys ===
+
+Print out fkey drop/create commands.
+
+=== compare [<table>] ===
+
+Compare table contents on both sides.
+
+=== repair [<table>] [--force] ===
+
+Repair data on subscriber.
+
+  --force::
+    Ignore lag.
+
+=== execute [filepath] ===
+
+Execute SQL files on each nodes of the set.
+
+=== show-handlers ['handler'] ===
+
+Show info about all or a specific handler.
+
+== INTERNAL COMMAND ==
+
+=== copy ===
+
+Copy table logic.
+
+== EXIT STATUS ==
+
+  0::
+    Successful program execution.
+
+== ENVIRONMENT ==
+
+PostgreSQL environment variables can be used.
+
+== EXAMPLES [[examples]] ==
+
+Londiste is provided with HowTos to help you make your fisrt steps:
+
+- How to set up simple replication.
+- How to set up cascaded replication.
+- How to set up table partitioning (handlers).
+
+
+
+
+
+
+
+

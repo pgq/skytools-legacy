@@ -7,33 +7,279 @@ qadmin - Easy to use admin console to examine and administer PgQ queues.
 
 == SYNOPSIS ==
 
-  qadmin.py [ options ... ]
+  qadmin [options]
 
 == DESCRIPTION ==
 
-The goal is to be psql-like console for queue administration.
+This is a psql-like console for queue administration.
+
+The console offers a large number of command to setup, control and
+manage PgQ queueing system.
+
+It also offers a non-interactive mode to run one or more commands.
+
+qadmin keeps an history file in the home of the user (`~/.qadmin_history`).
 
 == GENERAL OPTIONS ==
 
-Initial connection options (for libpq):
+  --help::
+    Help screen.
 
- -h host:: specify host to connect to (default: localhost via unix socket)
+  --version::
+    Print version.
 
- -p port:: specify port
+== CONNECTION OPTIONS ==
 
- -U user:: specify user name
+  -h host::
+    Sspecify host to connect to (default: localhost via unix socket).
 
- -d dbname:: database name
+  -p port::
+    Specify port.
 
-Options for qadmin:
+  -U user::
+    Specify user name.
 
- -Q queuename:: queue name
+  -d dbname::
+    Database name.
 
- -c cmd_string:: execute command
+  -Q queuename::
+    Queue name, it is used as the `default queue` if it is provided.
 
- -f execfile:: execute file containing commands
+== SPECIFIC OPTIONS ==
 
- --help:: help screen
+  -c 'cmd_string'::
+    Execute console command.
 
- --version:: print version
+  -f 'execfile'::
+    Execute file containing console commands.
 
+== CONNECTION COMMANDS ==
+
+qadmin offers to connect to other databases or queues from the console
+itself.
+
+=== connect <connstring> [queue=<qname>]; ===
+
+Connect the console with the specified connection string, optional
+parameter to set the default queue on connection.
+
+=== connect [queue=<qname>] [node=<node>]; ===
+
+Connect the console to the specified queue and/or node.
+
+== MANAGEMENT COMMANDS ==
+
+=== install pgq | londiste; ===
+
+Install PgQ or Londiste to the connected database.
+
+=== create queue <qname>; ===
+
+Create the specified queue.
+
+=== alter queue <qname | *> set param =<foo=1>,<bar=2>; ===
+
+Set one or more parameters on one or all queue at once.
+
+=== drop queue <qname>; ===
+
+Drop the named queue.
+
+=== register consumer <consumer> [on <qname> | at <tick_id> | copy <consumer> ]; ===
+
+Register a consumer on a queue, or at a specified tick or based on
+another consumer.
+
+=== unregister consumer <consumer | *> [from <qname>]; ===
+
+Unregister one or all consumers, if the console is not connected to a
+queue, its name must be provided.
+
+=== register subconsumer <subconsumer> for <consumer> [on <qname>]; ===
+
+Register a subconsumer to a consumer, if the console is not connected to a
+queue, its name must be provided.
+
+=== unregister subconsumer <subconsumer | *> for <consumer> [from <qname>] [close [batch]]; ===
+
+Unregister one or all subconsumers from a consumer, if the console is
+not connected to a queue, its name must be provided.
+Current batch can be aborted if the `close batch` subcommand is
+provided.
+
+== SHOW COMMANDS ==
+
+=== show help; ===
+
+Show all the console commands.
+
+=== show queue [ <qname | *> ]; ===
+
+Show details of one or all queues.
+
+=== show table <tbl>; ===
+
+Show DDL for the specified table.
+
+=== show sequence <seq>; ===
+
+Show DDL for the specified sequence.
+
+=== show consumer [ <consumer | *> [on <qname>] ]; ===
+
+Show details of one or all consumers on one or all queues.
+
+=== show batch <batch_id>; ===
+
+Show details of the batch, default queue must be set (see `connect queue`)
+
+=== show batch <consumer>; ===
+
+Show details of the current batch for the specified consumer, default
+queue must be set (see `connect queue`)
+
+== LONDISTE COMMANDS ==
+
+All this commands are applyed on the node where the console is connected
+to.
+
+=== londiste add table <tbl> [with ... ] ===
+
+  with no_triggers::
+    Skip trigger creation.
+
+  with skip_truncate::
+    Does not truncate the table on the destination.
+
+  with expect_sync::
+    Set table state to 'ok'.
+
+  with tgflags='UIDBAQL'::
+    Trigger creation flags, see below for details.
+
+  with backup::
+    Put urlencoded contents of old row to `ev_extra2`.
+
+  with skip::
+    Create skip trigger. Same as S flag.
+
+  with when='expr'::
+    If 'expr' returns false, don't insert event.
+
+  with ev_XX='EXPR'::
+    Overwrite default ev_* columns (see below).
+
+Trigger creation flags (default: AIUDL):
+
+- I - ON INSERT
+- U - ON UPDATE
+- D - ON DELETE
+- Q - use pgq.sqltriga() as trigger function
+- L - use pgq.logutriga() as trigger function
+- B - BEFORE
+- A - AFTER
+- S - SKIP
+
+Queue event fields:
+
+- ev_type   - I/U/D
+- ev_data   - partial SQL statement
+- ev_extra1 - table name
+- ev_extra2 - optional urlencoded backup
+
+
+=== londiste add sequence <seq>; ===
+
+Add the specified sequence to Londiste replication.
+
+=== londiste remove table <tbl> [,tbl]; ===
+
+Remove the specified table(s) from the Londiste replication.
+
+=== londiste remove sequence <seq> [,seq]; ===
+
+Remove the specified sequence(s) from the Londiste replication.
+
+=== londiste tables; ===
+
+List registered tables and informations about them:
+
+- table_name      - fully-qualified table name
+- local           - does events needs to be applied to local table
+- merge_state     - show phase of initial copy
+- custom_snapshot - remote snapshot of COPY transaction
+- table_attrs     - urlencoded dict of table attributes
+- dropped_ddl     - partition combining: temp place to put DDL
+- copy_role       - partition combining: how to handle copy
+- copy_pos        - position in parallel copy working order
+
+==== copy_role = lead ====
+
+On copy start, drop indexes and store in dropped_ddl.
+
+On copy finish change state to catching-up, then wait until copy_role
+turns to NULL.
+
+Catching-up: if dropped_ddl is not NULL, restore them.
+
+==== copy_role = wait-copy ====
+
+On copy start wait, until role changes (to wait-replay).
+
+==== copy_role = wait-replay ====
+
+On copy finish, tag as 'catching-up'.
+
+Wait until copy_role is NULL, then proceed.
+
+=== londiste seqs; ===
+
+List registered sequences on this node and their last value.
+
+=== londiste missing; ===
+
+On Master, list tables not registered on set.
+
+On Slave, list tables on set but not registered locally.
+
+== OTHER COMMANDS ==
+
+=== exit; ===
+
+Quit program.
+
+=== ^D ===
+
+Quit program.
+
+=== ^C ===
+
+Clear current buffer.
+
+== EXIT STATUS ==
+
+  0::
+    Successful program execution.
+
+== ENVIRONMENT ==
+
+PostgreSQL environment variables can be used.
+
+== NOT IMPLEMENTED COMMANDS ==
+
+TODO : is it up-to-date ?
+
+- create <root | branch | leaf> node <node> location <loc> [on <qname>];
+
+- alter node <name> provider <new>;
+- alter node <name> takeover <oldnow> with all;
+- alter node <name> rename <new>;
+- alter node <name> [location=<loc>]
+
+- drop node <name> [on <qname>];
+- takeover <oldnode>;
+
+- show node [ <node | *> [on <qname>] ];
+- show cascade;
+- show_queue_stats <q>;
+- status
