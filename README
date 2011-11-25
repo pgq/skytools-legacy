@@ -1,8 +1,9 @@
 = SkyTools - tools for PostgreSQL =
 
-This is a package of tools in use in Skype for replication and
-failover.  Also it includes a generic queuing mechanism PgQ and
-utility library for Python scripts.
+This is a package of tools in use in Skype for replication and failover.
+It also includes a generic queuing mechanism PgQ and utility library for
+Python scripts, as well as a script for setting up and managing WAL based
+standby servers.
 
 == Overview ==
 
@@ -10,22 +11,39 @@ It contains following tools:
 
 === PgQ ===
 
-This is the queue mechanism we use. It consists of PL/pgsql, and C code
-in database, with Python framework on top of it.  It is based on
-snapshot based event handling ideas from Slony-I, written for general
-usage.
+PgQ is a queuing system written in PL/pgsql, Python and C code. It is
+based on snapshot based event handling ideas from Slony-I, written for
+general usage.
 
-Features:
+PgQ provides an efficient, transactionnal, queueing system with
+multi-nodes support (including work sharing and splitting, failover and
+switchover, for queues and for consumers).
+
+Rules:
 
 - There can be several queues in database.
 - There can be several producers than can insert into any queue.
-- There can be several consumers on one queue and all consumers see
-   all events.
+- There can be several consumers on one queue.
+- There can be several subconsumers on a consumer.
+
+PgQ is splited into 3 layers: Producers, Ticker and Consumers.
+
+*Producers*  and *Consumers* respectively push and read events into a
+queue. Producers just need to call PostgreSQL stored procedures (like a
+trigger on a table or a PostgreSQL call from the application). And
+consumers are frequently written in Python, the prefered language as it
+has a powerful SKytools Framework but it is not limitative and any
+language able to run PostgreSQL stored procedures can be used.
+
+*Ticker* is a daemon which splits the queues in batch of events and
+handle the maintenance of the system. The Ticker is provided with the
+Skytools.
 
 Documentation:
 
-- PgQ admin tool (pgqadm) usage: doc/pgq-admin.txt
-- PgQ SQL API overview: doc/pgq-sql.txt
+- PgQ ticker daemon (pgqd) usage: link:pgqd.html[]
+- PgQ admin tool (qadm) usage: link:qadmin.html[]
+- PgQ SQL API overview: link:pgq-sql.html[]
 - PgQ SQL reference: http://skytools.projects.postgresql.org/pgq/
 
 === Londiste ===
@@ -52,6 +70,8 @@ Documentation:
 This script will setup WAL archiving, does initial backup and
 runtime WAL archive and restore.
 
+It can also be used for up-to-last-second partial file copying,
+so less than whole file is lost in case of loss of master database server.
 
 == Source tree contents ==
 
