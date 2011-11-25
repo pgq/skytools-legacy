@@ -51,8 +51,16 @@ if not INSTALL_SCRIPTS:
 sql_files = [
    'sql/pgq/pgq.sql',
    'sql/londiste/londiste.sql',
-   'sql/pgq_ext/pgq_ext.sql',
    'sql/pgq_node/pgq_node.sql',
+   'sql/pgq_coop/pgq_coop.sql',
+   'sql/pgq_ext/pgq_ext.sql',
+
+   'sql/pgq/pgq.upgrade.sql',
+   'sql/pgq_node/pgq_node.upgrade.sql',
+   'sql/londiste/londiste.upgrade.sql',
+   'sql/pgq_coop/pgq_coop.upgrade.sql',
+
+   'upgrade/final/v3.0_pgq_core.sql',
    #'sql/txid/txid.sql',
 ]
 
