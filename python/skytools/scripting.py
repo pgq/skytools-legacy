@@ -118,6 +118,16 @@ def run_single_process(runnable, daemon, pidfile):
 # logging setup
 #
 
+logging.TRACE = TRACE = 5
+
+class SkyLogger (logging.getLoggerClass()):
+    def trace (self, msg, *args, **kwargs):
+        return self.log (TRACE, msg, *args, **kwargs)
+
+# start using our class when instantiating a logger
+logging.addLevelName (TRACE, 'TRACE')
+logging.setLoggerClass (SkyLogger)
+
 _log_config_done = 0
 _log_init_done = {}
 
@@ -297,7 +307,9 @@ class BaseScript(object):
             self.go_daemon = 1
         if self.options.quiet:
             self.log_level = logging.WARNING
-        if self.options.verbose:
+        if self.options.verbose > 1:
+            self.log_level = logging.TRACE
+        elif self.options.verbose:
             self.log_level = logging.DEBUG
         if self.options.ini:
             self.print_ini()
@@ -393,7 +405,7 @@ class BaseScript(object):
         # generic options
         p.add_option("-q", "--quiet", action="store_true",
                      help = "log only errors and warnings")
-        p.add_option("-v", "--verbose", action="store_true",
+        p.add_option("-v", "--verbose", action="count",
                      help = "log verbosely")
         p.add_option("-d", "--daemon", action="store_true",
                      help = "go background")
