@@ -60,13 +60,17 @@ sql_files = [
    'sql/pgq_node/pgq_node.upgrade.sql',
    'sql/londiste/londiste.upgrade.sql',
    'sql/pgq_coop/pgq_coop.upgrade.sql',
+   'sql/pgq_ext/pgq_ext.upgrade.sql',
+]
 
+# sql files for special occasions
+extra_sql_files = [
    'upgrade/final/v3.0_pgq_core.sql',
-   #'sql/txid/txid.sql',
 ]
 
 if not INSTALL_SQL:
     sql_files = []
+    extra_sql_files = []
 
 def getvar(name, default):
     try:
@@ -92,15 +96,21 @@ DEF_SKYLOG = getvar('SKYLOG', '0') != '0'
 DEF_SK3_SUBDIR = getvar('SK3_SUBDIR', '0') != '0'
 
 # create sql files if they dont exist
-for fn in sql_files:
-    if not os.path.isfile(fn):
-        f = open(fn, 'w')
-        wd = os.path.dirname(fn)
-        cmd = [sys.executable, '../../scripts/catsql.py', 'structure/install.sql']
-        p = Popen(cmd, stdout=f, cwd = wd)
-        p.communicate()
-        if p.returncode != 0:
-            raise Exception('catsql failed')
+def make_sql():
+    for fn in sql_files:
+        if not os.path.isfile(fn):
+            f = open(fn, 'w')
+            wd = os.path.dirname(fn)
+            if fn.endswith('upgrade.sql'):
+                base = 'structure/upgrade.sql'
+            else:
+                base = 'structure/install.sql'
+            print("Creating %s" % (fn,))
+            cmd = [sys.executable, '../../scripts/catsql.py', base]
+            p = Popen(cmd, stdout=f, cwd = wd)
+            p.communicate()
+            if p.returncode != 0:
+                raise Exception('catsql failed')
 
 # remove .py, add suffix
 def fixscript(fn, dstdir, sfx):
@@ -121,9 +131,14 @@ class sk3_build(build):
         build.initialize_options(self)
         self.build_base = 'build.sk3'
 
+    def run(self):
+        build.run(self)
+        make_sql()
+
 # fix script names in build dir
 class sk3_build_scripts(build_scripts):
     def run(self):
+
         build_scripts.run(self)
 
         for sfn in sfx_scripts:
@@ -142,7 +157,6 @@ class sk3_install(install):
     skylog = DEF_SKYLOG
 
     def run(self):
-
         # create installer_config.py with final paths
         fn = 'python/skytools/installer_config.py'
         cf = open(fn + '.in', 'r').read()
@@ -182,7 +196,8 @@ setup(
         'python/conf/wal-master.ini',
         'python/conf/wal-slave.ini',
         ]),
-      ('share/skytools3', sql_files)],
+      ('share/skytools3', sql_files),
+      ('share/skytools3/extra', extra_sql_files)],
     ext_modules = c_modules,
     scripts = sfx_scripts + nosfx_scripts,
     cmdclass = {

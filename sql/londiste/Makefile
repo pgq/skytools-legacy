@@ -25,7 +25,7 @@ londiste.sql: $(SRCS)
 	$(CATSQL) $(SQLS) > $@
 
 londiste.upgrade.sql: $(SRCS)
-	$(CATSQL) structure/functions.sql > $@
+	$(CATSQL) structure/upgrade.sql > $@
 
 test: londiste.sql
 	$(MAKE) installcheck || { filterdiff --format=unified regression.diffs | less; exit 1; }

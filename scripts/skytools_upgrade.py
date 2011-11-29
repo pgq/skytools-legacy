@@ -16,7 +16,7 @@ from skytools.natsort import natsort_key
 
 
 # schemas, where .upgrade.sql is enough
-AUTO_UPGRADE = ('pgq', 'pgq_node', 'pgq_coop', 'londiste')
+AUTO_UPGRADE = ('pgq', 'pgq_node', 'pgq_coop', 'londiste', 'pgq_ext')
 
 # fetch list of databases
 DB_LIST = "select datname from pg_database "\
@@ -28,6 +28,7 @@ version_list = [
     # schema, ver, filename, recheck_func
     ['pgq', '3.0', None, None],
     ['londiste', '3.0', None, None],
+    ['pgq_ext', '2.1', None, None],
 ]
 
 

@@ -1,6 +1,6 @@
 #! /bin/sh
 
-for s in pgq pgq_node pgq_coop londiste; do
+for s in pgq pgq_node pgq_coop londiste pgq_ext; do
   sver=$(git log --raw -n 1 sql/$s/functions | head -1)
   fn="sql/$s/functions/$s.version.sql"
   fver=$(git log --raw -n 1 "$fn" | head -1)

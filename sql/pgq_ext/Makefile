@@ -1,6 +1,6 @@
 
 DOCS = README.pgq_ext
-DATA_built = pgq_ext.sql
+DATA_built = pgq_ext.sql pgq_ext.upgrade.sql
 
 SRCS = structure/tables.sql functions/track_batch.sql functions/track_event.sql \
        functions/track_tick.sql functions/version.sql
@@ -16,6 +16,9 @@ include $(PGXS)
 
 pgq_ext.sql: $(SRCS)
 	$(CATSQL) structure/install.sql > $@
+
+pgq_ext.upgrade.sql: $(SRCS)
+	$(CATSQL) structure/upgrade.sql > $@
 
 test: pgq_ext.sql
 	make installcheck || { less regression.diffs ; exit 1; }
