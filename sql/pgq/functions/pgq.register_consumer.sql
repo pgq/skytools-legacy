@@ -29,7 +29,7 @@ create or replace function pgq.register_consumer_at(
     x_tick_pos bigint)
 returns integer as $$
 -- ----------------------------------------------------------------------
--- Function: pgq.register_consumer(3)
+-- Function: pgq.register_consumer_at(3)
 --
 --      Extended registration, allows to specify tick_id.
 --
