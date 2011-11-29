@@ -25,6 +25,7 @@ DB_LIST = "select datname from pg_database "\
 
 # dont support upgrade from 2.x (yet?)
 version_list = [
+    # schema, ver, filename, recheck_func
     ['pgq', '3.0', None, None],
     ['londiste', '3.0', None, None],
 ]
@@ -57,15 +58,23 @@ class DbUpgrade(skytools.DBScript):
         """Upgrade all schemas in single db."""
 
         curs = db.cursor()
-        for schema, ver, fn, recheck_fn in version_list:
+        ignore = {}
+        for schema, ver, fn, recheck_func in version_list:
+            # skip schema?
+            if schema in ignore:
+                continue
             if not skytools.exists_schema(curs, schema):
+                ignore[schema] = 1
                 continue
 
-            if check_version(curs, schema, ver, recheck_fn):
+            # new enough?
+            if check_version(curs, schema, ver, recheck_func):
                 continue
 
+            # too old schema, no way to upgrade
             if fn is None:
                 self.log.info('%s: Cannot upgrade %s, too old version', dbname, schema)
+                ignore[schema] = 1
                 continue
 
             curs = db.cursor()
