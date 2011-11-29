@@ -7,9 +7,11 @@ import logging, logging.handlers
 import skytools
 
 _service_name = 'unknown_svc'
-def set_service_name(service_name):
-    global _service_name
+_job_name = 'unknown_job'
+def set_service_name(service_name, job_name):
+    global _service_name, _job_name
     _service_name = service_name
+    _job_name = job_name
 
 
 # configurable file logger
@@ -58,7 +60,7 @@ class UdpLogServerHandler(logging.handlers.DatagramHandler):
             hostaddr = socket.gethostbyname(hostname)
         except:
             hostaddr = "0.0.0.0"
-        jobname = record.name
+        jobname = _job_name
         svcname = _service_name
         pkt = self._log_template % (time.time()*1000, txt_level, skytools.quote_json(msg),
                 jobname, svcname, hostname, hostaddr)
@@ -141,11 +143,11 @@ class LogDBHandler(logging.handlers.SocketHandler):
         if record.levelno == logging.INFO and msg and msg[0] == "{":
             self.aggregate_stats(msg)
             if time.time() - self.last_stat_flush >= self.stat_flush_period:
-                self.flush_stats(record.name)
+                self.flush_stats(_job_name)
             return
 
         if record.levelno < logging.INFO:
-            self.flush_stats(record.name)
+            self.flush_stats(_job_name)
 
         # dont send more than one line
         ln = msg.find('\n')
@@ -153,7 +155,7 @@ class LogDBHandler(logging.handlers.SocketHandler):
             msg = msg[:ln]
 
         txt_level = self._level_map.get(record.levelno, "ERROR")
-        self.send_to_logdb(record.name, txt_level, msg)
+        self.send_to_logdb(_job_name, txt_level, msg)
 
     def aggregate_stats(self, msg):
         """Sum stats together, to lessen load on logdb."""

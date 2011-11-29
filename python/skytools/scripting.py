@@ -154,7 +154,7 @@ def _init_log(job_name, service_name, cf, log_level, is_daemon):
         # python logging.config braindamage:
         # cannot specify external classess without such hack
         logging.skylog = skytools.skylog
-        skytools.skylog.set_service_name(service_name)
+        skytools.skylog.set_service_name(service_name, job_name)
 
         # load general config
         flist = ['skylog.ini', '~/.skylog.ini', '/etc/skylog.ini']
