@@ -8,10 +8,44 @@ import skytools
 
 _service_name = 'unknown_svc'
 _job_name = 'unknown_job'
+_hostname = socket.gethostname()
+_log_extra = {
+    'job_name': _job_name,
+    'service_name': _service_name,
+    'hostname': _hostname,
+}
 def set_service_name(service_name, job_name):
+    """Set info about current script."""
     global _service_name, _job_name
+
     _service_name = service_name
     _job_name = job_name
+
+    _log_extra['job_name'] = _job_name
+    _log_extra['service_name'] = _service_name
+
+#
+# How to make extra fields available to all log records:
+# 1. Use own getLogger()
+#    - messages logged otherwise (eg. from some libs)
+#      will crash the logging.
+# 2. Fix record in own handlers
+#    - works only with custom handlers, standard handlers will
+#      crash is used with custom fmt string.
+# 3. Change root logger
+#    - can't do it after non-root loggers are initialized,
+#      doing it before will depend on import order.
+# 4. Update LogRecord.__dict__
+#    - fails, as formatter uses obj.__dict__ directly.
+# 5. Change LogRecord class
+#    - ugly but seems to work.
+#
+_OldLogRecord = logging.LogRecord
+class _NewLogRecord(_OldLogRecord):
+    def __init__(self, *args):
+        _OldLogRecord.__init__(self, *args)
+        self.__dict__.update(_log_extra)
+logging.LogRecord = _NewLogRecord
 
 
 # configurable file logger
@@ -55,7 +89,7 @@ class UdpLogServerHandler(logging.handlers.DatagramHandler):
         if len(msg) > self.MAXMSG:
             msg = msg[:self.MAXMSG]
         txt_level = self._level_map.get(record.levelno, "ERROR")
-        hostname = socket.gethostname()
+        hostname = _hostname
         try:
             hostaddr = socket.gethostbyname(hostname)
         except:
@@ -200,7 +234,7 @@ class SysLogHostnameHandler(logging.handlers.SysLogHandler):
         msg = self.format(record)
         format_string = '<%d> %s %s %s\000'
         msg = format_string % (self.encodePriority(self.facility,self.mapPriority(record.levelname)),
-                               socket.gethostname(),
+                               _hostname,
                                _service_name,
                                msg)
         try:
