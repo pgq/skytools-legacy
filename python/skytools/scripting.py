@@ -118,16 +118,6 @@ def run_single_process(runnable, daemon, pidfile):
 # logging setup
 #
 
-logging.TRACE = TRACE = 5
-
-class SkyLogger (logging.getLoggerClass()):
-    def trace (self, msg, *args, **kwargs):
-        return self.log (TRACE, msg, *args, **kwargs)
-
-# start using our class when instantiating a logger
-logging.addLevelName (TRACE, 'TRACE')
-logging.setLoggerClass (SkyLogger)
-
 _log_config_done = 0
 _log_init_done = {}
 
@@ -308,7 +298,7 @@ class BaseScript(object):
         if self.options.quiet:
             self.log_level = logging.WARNING
         if self.options.verbose > 1:
-            self.log_level = logging.TRACE
+            self.log_level = skytools.skylog.TRACE
         elif self.options.verbose:
             self.log_level = logging.DEBUG
         if self.options.ini:

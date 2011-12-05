@@ -184,7 +184,7 @@ class LogDBHandler(logging.handlers.SocketHandler):
 
         if self.sock is None:
             self.createSocket()
-        
+
         if self.sock:
             logcur = self.sock.cursor()
             query = "select * from log.add(%s, %s, %s)"
@@ -214,3 +214,22 @@ class SysLogHostnameHandler(logging.handlers.SysLogHandler):
             raise
         except:
             self.handleError(record)
+
+
+TRACE = 5
+
+class SkyLogger (logging.getLoggerClass()):
+    def trace (self, msg, *args, **kwargs):
+        return self.log (TRACE, msg, *args, **kwargs)
+
+_skylogger_installed = False
+
+def getLogger (*args, **kwargs):
+    global _skylogger_installed
+    if not _skylogger_installed:
+        # start using our class when instantiating a logger
+        logging.addLevelName (TRACE, 'TRACE')
+        logging.setLoggerClass (SkyLogger)
+        logging.TRACE = TRACE
+        _skylogger_installed = True
+    return logging.getLogger (*args, **kwargs)

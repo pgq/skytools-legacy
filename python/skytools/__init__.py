@@ -110,6 +110,8 @@ _symbols = {
     'run_query_row': 'skytools.querybuilder:run_query_row',
     # skytools.utf8
     'safe_utf8_decode': 'skytools.utf8:safe_utf8_decode',
+    # skytools.skylog
+    'getLogger': 'skytools.skylog:getLogger',
 }
 
 __all__ = _symbols.keys()
@@ -130,4 +132,3 @@ else:
     from skytools.scripting import *
     from skytools.adminscript import *
     from skytools.querybuilder import *
-
