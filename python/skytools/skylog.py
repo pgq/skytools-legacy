@@ -220,7 +220,8 @@ TRACE = 5
 
 class SkyLogger (logging.getLoggerClass()):
     def trace (self, msg, *args, **kwargs):
-        return self.log (TRACE, msg, *args, **kwargs)
+        if self.isEnabledFor (TRACE):
+            self._log (TRACE, msg, args, **kwargs)
 
 _skylogger_installed = False
 
