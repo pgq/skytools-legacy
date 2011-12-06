@@ -44,7 +44,7 @@ pgq.sql: $(SRCS)
 
 # fixme: use LDRS here, to upgrade triggers
 pgq.upgrade.sql: $(SRCS)
-	$(CATSQL) structure/func_internal.sql structure/func_public.sql > $@
+	$(CATSQL) structure/upgrade.sql > $@
 
 #
 # docs

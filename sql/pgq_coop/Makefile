@@ -2,7 +2,6 @@
 DATA_built = pgq_coop.sql pgq_coop.upgrade.sql
 
 SQL_FULL = structure/schema.sql structure/functions.sql structure/grants.sql
-SQL_UPGRADE = structure/functions.sql
 
 FUNCS = $(shell sed -n -e '/^\\/{s/\\i //;p}' structure/functions.sql)
 SRCS = $(SQL_FULL) $(FUNCS)
@@ -26,7 +25,7 @@ pgq_coop.sql: $(SRCS)
 	$(CATSQL) structure/install.sql > $@
 
 pgq_coop.upgrade.sql: $(SRCS)
-	$(CATSQL) $(SQL_UPGRADE) > $@
+	$(CATSQL) structure/upgrade.sql > $@
 
 #
 # docs

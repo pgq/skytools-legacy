@@ -7,9 +7,45 @@ import logging, logging.handlers
 import skytools
 
 _service_name = 'unknown_svc'
-def set_service_name(service_name):
-    global _service_name
+_job_name = 'unknown_job'
+_hostname = socket.gethostname()
+_log_extra = {
+    'job_name': _job_name,
+    'service_name': _service_name,
+    'hostname': _hostname,
+}
+def set_service_name(service_name, job_name):
+    """Set info about current script."""
+    global _service_name, _job_name
+
     _service_name = service_name
+    _job_name = job_name
+
+    _log_extra['job_name'] = _job_name
+    _log_extra['service_name'] = _service_name
+
+#
+# How to make extra fields available to all log records:
+# 1. Use own getLogger()
+#    - messages logged otherwise (eg. from some libs)
+#      will crash the logging.
+# 2. Fix record in own handlers
+#    - works only with custom handlers, standard handlers will
+#      crash is used with custom fmt string.
+# 3. Change root logger
+#    - can't do it after non-root loggers are initialized,
+#      doing it before will depend on import order.
+# 4. Update LogRecord.__dict__
+#    - fails, as formatter uses obj.__dict__ directly.
+# 5. Change LogRecord class
+#    - ugly but seems to work.
+#
+_OldLogRecord = logging.LogRecord
+class _NewLogRecord(_OldLogRecord):
+    def __init__(self, *args):
+        _OldLogRecord.__init__(self, *args)
+        self.__dict__.update(_log_extra)
+logging.LogRecord = _NewLogRecord
 
 
 # configurable file logger
@@ -53,12 +89,12 @@ class UdpLogServerHandler(logging.handlers.DatagramHandler):
         if len(msg) > self.MAXMSG:
             msg = msg[:self.MAXMSG]
         txt_level = self._level_map.get(record.levelno, "ERROR")
-        hostname = socket.gethostname()
+        hostname = _hostname
         try:
             hostaddr = socket.gethostbyname(hostname)
         except:
             hostaddr = "0.0.0.0"
-        jobname = record.name
+        jobname = _job_name
         svcname = _service_name
         pkt = self._log_template % (time.time()*1000, txt_level, skytools.quote_json(msg),
                 jobname, svcname, hostname, hostaddr)
@@ -141,11 +177,11 @@ class LogDBHandler(logging.handlers.SocketHandler):
         if record.levelno == logging.INFO and msg and msg[0] == "{":
             self.aggregate_stats(msg)
             if time.time() - self.last_stat_flush >= self.stat_flush_period:
-                self.flush_stats(record.name)
+                self.flush_stats(_job_name)
             return
 
         if record.levelno < logging.INFO:
-            self.flush_stats(record.name)
+            self.flush_stats(_job_name)
 
         # dont send more than one line
         ln = msg.find('\n')
@@ -153,7 +189,7 @@ class LogDBHandler(logging.handlers.SocketHandler):
             msg = msg[:ln]
 
         txt_level = self._level_map.get(record.levelno, "ERROR")
-        self.send_to_logdb(record.name, txt_level, msg)
+        self.send_to_logdb(_job_name, txt_level, msg)
 
     def aggregate_stats(self, msg):
         """Sum stats together, to lessen load on logdb."""
@@ -198,7 +234,7 @@ class SysLogHostnameHandler(logging.handlers.SysLogHandler):
         msg = self.format(record)
         format_string = '<%d> %s %s %s\000'
         msg = format_string % (self.encodePriority(self.facility,self.mapPriority(record.levelname)),
-                               socket.gethostname(),
+                               _hostname,
                                _service_name,
                                msg)
         try:

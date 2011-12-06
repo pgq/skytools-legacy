@@ -65,7 +65,7 @@ select * from londiste.get_table_list('part2_set');
 select * from londiste.get_table_list('combined_set');
 
 --
--- Test all combinations on 3-table merge
+-- Test all combinations on 3-node merge
 --
 
 select * from londiste.global_add_table('part3_set', 'tblmerge');

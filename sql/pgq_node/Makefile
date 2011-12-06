@@ -24,7 +24,7 @@ pgq_node.sql: $(SRCS)
 	$(CATSQL) structure/install.sql > $@
 
 pgq_node.upgrade.sql: $(SRCS)
-	$(CATSQL) structure/functions.sql > $@
+	$(CATSQL) structure/upgrade.sql > $@
 
 #
 # docs

@@ -11,11 +11,11 @@ HTMLS = README.html INSTALL.html \
 	TODO.html pgq-sql.html pgq-nodupes.html \
 	$(SCRIPT_HTMLS) faq.html set.notes.html skytools3.html devnotes.html
 
-SCRIPT_TXTS = walmgr.txt qadmin.txt scriptmgr.txt skytools_upgrade.txt
+SCRIPT_TXTS = londiste3.txt walmgr3.txt qadmin.txt scriptmgr.txt skytools_upgrade.txt
 SCRIPT_HTMLS = $(SCRIPT_TXTS:.txt=.html)
 
 MAN5 =
-MAN1_SFX = scriptmgr.1 skytools_upgrade.1 walmgr.1
+MAN1_SFX = scriptmgr.1 skytools_upgrade.1 walmgr3.1 londiste3.1
 MAN1 = qadmin.1 pgqd.1
 
 FQHTML = $(addprefix html/, $(HTMLS))
