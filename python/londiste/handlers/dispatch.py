@@ -183,8 +183,6 @@ EVENT_TYPES = ['I', 'U', 'D']
 PART_FUNC = 'public.create_partition'
 PART_FUNC_ARGS = ['parent', 'part', 'pkeys', 'part_field', 'part_time',
                   'period']
-PART_FUNC_CALL = 'select %s(%s)' % (PART_FUNC,
-        ', '.join('%%(%s)s' % arg for arg in PART_FUNC_ARGS))
 
 
 
@@ -702,6 +700,7 @@ class Dispatcher(BaseHandler):
             conf.part_template = self.args.get('part_template')
             conf.pre_part = self.args.get('pre_part')
             conf.post_part = self.args.get('post_part')
+            conf.part_func = self.args.get('part_func', PART_FUNC)
         # set row mode and event types to process
         conf.row_mode = self.get_arg('row_mode', ROW_MODES)
         event_types = self.args.get('event_types', '*')
@@ -882,13 +881,13 @@ class Dispatcher(BaseHandler):
         if not exec_with_vals(self.conf.part_template):
             self.log.debug('part_template not provided, using part func')
             # if part func exists call it with val arguments
-            if skytools.exists_function(curs, PART_FUNC, len(PART_FUNC_ARGS)):
-                self.log.debug('check_part.exec: func:%s, args: %s' %\
-                        (PART_FUNC_CALL, vals))
-                curs.execute(PART_FUNC_CALL, vals)
+            pfargs = ', '.join('%%(%s)s' % arg for arg in PART_FUNC_ARGS)
+            pfcall = 'select %s(%s)' % (self.part_func, pfargs)
+            if skytools.exists_function(curs, self.part_func, len(PART_FUNC_ARGS)):
+                self.log.debug('check_part.exec: func:%s, args: %s' % (pfcall, vals))
+                curs.execute(pfcall, vals)
             else:
-                self.log.debug('part func %s not found, cloning table' %\
-                        PART_FUNC)
+                self.log.debug('part func %s not found, cloning table' % self.part_func)
                 struct = TableStruct(curs, self.dest_table)
                 struct.create(curs, T_ALL, dst)
         exec_with_vals(self.conf.post_part)
