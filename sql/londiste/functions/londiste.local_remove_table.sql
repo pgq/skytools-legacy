@@ -38,10 +38,7 @@ begin
         update londiste.table_info
             set local = false,
                 custom_snapshot = null,
-
-                ---- should we keep those?
-                -- skip_truncate = null,
-                -- table_attrs = null,
+                table_attrs = null,
                 -- dropped_ddl = null,
                 merge_state = null,
                 dest_table = null
