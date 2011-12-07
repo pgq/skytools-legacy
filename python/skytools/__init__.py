@@ -2,14 +2,53 @@
 """Tools for Python database scripts."""
 
 _symbols = {
-    # skytools.timeutil
-    'FixedOffsetTimezone': 'skytools.timeutil:FixedOffsetTimezone',
-    'parse_iso_timestamp': 'skytools.timeutil:parse_iso_timestamp',
-    # skytools.gzlog
-    'gzip_append': 'skytools.gzlog:gzip_append',
+    # skytools.adminscript
+    'AdminScript': 'skytools.adminscript:AdminScript',
     # skytools.config
     'Config': 'skytools.config:Config',
+    # skytools.dbstruct
+    'SeqStruct': 'skytools.dbstruct:SeqStruct',
+    'TableStruct': 'skytools.dbstruct:TableStruct',
+    'T_ALL': 'skytools.dbstruct:T_ALL',
+    'T_CONSTRAINT': 'skytools.dbstruct:T_CONSTRAINT',
+    'T_DEFAULT': 'skytools.dbstruct:T_DEFAULT',
+    'T_GRANT': 'skytools.dbstruct:T_GRANT',
+    'T_INDEX': 'skytools.dbstruct:T_INDEX',
+    'T_OWNER': 'skytools.dbstruct:T_OWNER',
+    'T_PARENT': 'skytools.dbstruct:T_PARENT',
+    'T_PKEY': 'skytools.dbstruct:T_PKEY',
+    'T_RULE': 'skytools.dbstruct:T_RULE',
+    'T_SEQUENCE': 'skytools.dbstruct:T_SEQUENCE',
+    'T_TABLE': 'skytools.dbstruct:T_TABLE',
+    'T_TRIGGER': 'skytools.dbstruct:T_TRIGGER',
+    # skytools.gzlog
+    'gzip_append': 'skytools.gzlog:gzip_append',
+    # skytools.parsing
+    'dedent': 'skytools.parsing:dedent',
+    'parse_acl': 'skytools.parsing:parse_acl',
+    'parse_logtriga_sql': 'skytools.parsing:parse_logtriga_sql',
+    'parse_pgarray': 'skytools.parsing:parse_pgarray',
+    'parse_sqltriga_sql': 'skytools.parsing:parse_sqltriga_sql',
+    'parse_statements': 'skytools.parsing:parse_statements',
+    'parse_tabbed_table': 'skytools.parsing:parse_tabbed_table',
+    'sql_tokenizer': 'skytools.parsing:sql_tokenizer',
+    # skytools.psycopgwrapper
+    'connect_database': 'skytools.psycopgwrapper:connect_database',
+    'DBError': 'skytools.psycopgwrapper:DBError',
+    # skytools.querybuilder
+    'PLPyQuery': 'skytools.querybuilder:PLPyQuery',
+    'PLPyQueryBuilder': 'skytools.querybuilder:PLPyQueryBuilder',
+    'QueryBuilder': 'skytools.querybuilder:QueryBuilder',
+    'plpy_exec': 'skytools.querybuilder:plpy_exec',
+    'run_exists': 'skytools.querybuilder:run_exists',
+    'run_lookup': 'skytools.querybuilder:run_lookup',
+    'run_query': 'skytools.querybuilder:run_query',
+    'run_query_row': 'skytools.querybuilder:run_query_row',
     # skytools.quoting
+    'db_urldecode': 'skytools.quoting:db_urldecode',
+    'db_urlencode': 'skytools.quoting:db_urlencode',
+    'json_decode': 'skytools.quoting:json_decode',
+    'json_encode': 'skytools.quoting:json_encode',
     'quote_bytea_copy': 'skytools.quoting:quote_bytea_copy',
     'quote_bytea_literal': 'skytools.quoting:quote_bytea_literal',
     'quote_bytea_raw': 'skytools.quoting:quote_bytea_raw',
@@ -19,21 +58,32 @@ _symbols = {
     'quote_json': 'skytools.quoting:quote_json',
     'quote_literal': 'skytools.quoting:quote_literal',
     'quote_statement': 'skytools.quoting:quote_statement',
-    'db_urldecode': 'skytools.quoting:db_urldecode',
-    'db_urlencode': 'skytools.quoting:db_urlencode',
     'unescape': 'skytools.quoting:unescape',
     'unescape_copy': 'skytools.quoting:unescape_copy',
     'unquote_fqident': 'skytools.quoting:unquote_fqident',
     'unquote_ident': 'skytools.quoting:unquote_ident',
     'unquote_literal': 'skytools.quoting:unquote_literal',
-    'json_decode': 'skytools.quoting:json_decode',
-    'json_encode': 'skytools.quoting:json_encode',
+    # skytools.scripting
+    'BaseScript': 'skytools.scripting:BaseScript',
+    'daemonize': 'skytools.scripting:daemonize',
+    'DBScript': 'skytools.scripting:DBScript',
+    'signal_pidfile': 'skytools.scripting:signal_pidfile',
+    'UsageError': 'skytools.scripting:UsageError',
+    'I_AUTOCOMMIT': 'skytools.scripting:I_AUTOCOMMIT',
+    'I_READ_COMMITTED': 'skytools.scripting:I_READ_COMMITTED',
+    'I_SERIALIZABLE': 'skytools.scripting:I_SERIALIZABLE',
+    # skytools.skylog
+    'getLogger': 'skytools.skylog:getLogger',
+    # skytools.sockutil
+    'set_cloexec': 'skytools.sockutil:set_cloexec',
+    'set_nonblocking': 'skytools.sockutil:set_nonblocking',
+    'set_tcp_keepalive': 'skytools.sockutil:set_tcp_keepalive',
     # skytools.sqltools
     'dbdict': 'skytools.sqltools:dbdict',
     'CopyPipe': 'skytools.sqltools:CopyPipe',
-    'DBObject': 'skytools.sqltools:DBObject',
     'DBFunction': 'skytools.sqltools:DBFunction',
     'DBLanguage': 'skytools.sqltools:DBLanguage',
+    'DBObject': 'skytools.sqltools:DBObject',
     'DBSchema': 'skytools.sqltools:DBSchema',
     'DBTable': 'skytools.sqltools:DBTable',
     'Snapshot': 'skytools.sqltools:Snapshot',
@@ -57,57 +107,9 @@ _symbols = {
     'mk_delete_sql': 'skytools.sqltools:mk_delete_sql',
     'mk_insert_sql': 'skytools.sqltools:mk_insert_sql',
     'mk_update_sql': 'skytools.sqltools:mk_update_sql',
-    # skytools.psycopgwrapper
-    'connect_database': 'skytools.psycopgwrapper:connect_database',
-    'DBError': 'skytools.psycopgwrapper:DBError',
-    # skytools.sockutil
-    'set_tcp_keepalive': 'skytools.sockutil:set_tcp_keepalive',
-    'set_cloexec': 'skytools.sockutil:set_cloexec',
-    'set_nonblocking': 'skytools.sockutil:set_nonblocking',
-    # skytools.scripting
-    'BaseScript': 'skytools.scripting:BaseScript',
-    'daemonize': 'skytools.scripting:daemonize',
-    'DBScript': 'skytools.scripting:DBScript',
-    'UsageError': 'skytools.scripting:UsageError',
-    'signal_pidfile': 'skytools.scripting:signal_pidfile',
-    'I_AUTOCOMMIT': 'skytools.scripting:I_AUTOCOMMIT',
-    'I_READ_COMMITTED': 'skytools.scripting:I_READ_COMMITTED',
-    'I_SERIALIZABLE': 'skytools.scripting:I_SERIALIZABLE',
-    # skytools.adminscript
-    'AdminScript': 'skytools.adminscript:AdminScript',
-    # skytools.parsing
-    'parse_acl': 'skytools.parsing:parse_acl',
-    'parse_logtriga_sql': 'skytools.parsing:parse_logtriga_sql',
-    'parse_pgarray': 'skytools.parsing:parse_pgarray',
-    'parse_sqltriga_sql': 'skytools.parsing:parse_sqltriga_sql',
-    'parse_statements': 'skytools.parsing:parse_statements',
-    'parse_tabbed_table': 'skytools.parsing:parse_tabbed_table',
-    'sql_tokenizer': 'skytools.parsing:sql_tokenizer',
-    'dedent': 'skytools.parsing:dedent',
-    # skytools.dbstruct
-    'SeqStruct': 'skytools.dbstruct:SeqStruct',
-    'TableStruct': 'skytools.dbstruct:TableStruct',
-    'T_ALL': 'skytools.dbstruct:T_ALL',
-    'T_CONSTRAINT': 'skytools.dbstruct:T_CONSTRAINT',
-    'T_DEFAULT': 'skytools.dbstruct:T_DEFAULT',
-    'T_GRANT': 'skytools.dbstruct:T_GRANT',
-    'T_INDEX': 'skytools.dbstruct:T_INDEX',
-    'T_OWNER': 'skytools.dbstruct:T_OWNER',
-    'T_PARENT': 'skytools.dbstruct:T_PARENT',
-    'T_PKEY': 'skytools.dbstruct:T_PKEY',
-    'T_RULE': 'skytools.dbstruct:T_RULE',
-    'T_SEQUENCE': 'skytools.dbstruct:T_SEQUENCE',
-    'T_TABLE': 'skytools.dbstruct:T_TABLE',
-    'T_TRIGGER': 'skytools.dbstruct:T_TRIGGER',
-    # skytools.querybuilder
-    'PLPyQuery': 'skytools.querybuilder:PLPyQuery',
-    'QueryBuilder': 'skytools.querybuilder:QueryBuilder',
-    'PLPyQueryBuilder': 'skytools.querybuilder:PLPyQueryBuilder',
-    'plpy_exec': 'skytools.querybuilder:plpy_exec',
-    'run_exists': 'skytools.querybuilder:run_exists',
-    'run_lookup': 'skytools.querybuilder:run_lookup',
-    'run_query': 'skytools.querybuilder:run_query',
-    'run_query_row': 'skytools.querybuilder:run_query_row',
+    # skytools.timeutil
+    'FixedOffsetTimezone': 'skytools.timeutil:FixedOffsetTimezone',
+    'parse_iso_timestamp': 'skytools.timeutil:parse_iso_timestamp',
     # skytools.utf8
     'safe_utf8_decode': 'skytools.utf8:safe_utf8_decode',
 }
@@ -130,4 +132,3 @@ else:
     from skytools.scripting import *
     from skytools.adminscript import *
     from skytools.querybuilder import *
-

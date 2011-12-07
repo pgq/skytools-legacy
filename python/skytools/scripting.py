@@ -305,7 +305,9 @@ class BaseScript(object):
             self.go_daemon = 1
         if self.options.quiet:
             self.log_level = logging.WARNING
-        if self.options.verbose:
+        if self.options.verbose > 1:
+            self.log_level = skytools.skylog.TRACE
+        elif self.options.verbose:
             self.log_level = logging.DEBUG
         if self.options.ini:
             self.print_ini()
@@ -401,7 +403,7 @@ class BaseScript(object):
         # generic options
         p.add_option("-q", "--quiet", action="store_true",
                      help = "log only errors and warnings")
-        p.add_option("-v", "--verbose", action="store_true",
+        p.add_option("-v", "--verbose", action="count",
                      help = "log verbosely")
         p.add_option("-d", "--daemon", action="store_true",
                      help = "go background")
