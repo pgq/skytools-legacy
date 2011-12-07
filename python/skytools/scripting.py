@@ -3,7 +3,7 @@
 
 """
 
-import sys, os, signal, optparse, time, errno, select, re
+import sys, os, signal, optparse, time, errno, select
 import logging, logging.handlers, logging.config
 
 import skytools
@@ -722,8 +722,13 @@ class DBScript(BaseScript):
         else:
             if not connstr:
                 connstr = self.cf.get(dbname)
+
             # connstr might contain password, it is not a good idea to log it
-            filtered_connstr = re.sub(' password=\S+', ' password=***HIDDEN***', connstr)
+            filtered_connstr = connstr
+            pos = connstr.lower().find('password')
+            if pos >= 0:
+                filtered_connstr = connstr[:pos] + ' [...]'
+
             self.log.debug("Connect '%s' to '%s'" % (cache, filtered_connstr))
             dbc = DBCachedConn(cache, connstr, params['max_age'], setup_func = self.connection_hook)
             self.db_cache[cache] = dbc
