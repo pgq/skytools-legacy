@@ -69,7 +69,7 @@ begin
 
     -- let the unregister_location send event if needed
     select f.ret_code, f.ret_note
-        from pgq_node.unregister_location(i_queue_name, i_node_name)
+        from pgq_node.unregister_location(i_queue_name, i_node_name) f
         into ret_code, ret_note;
 
     select 200, 'Node dropped' into ret_code, ret_note;

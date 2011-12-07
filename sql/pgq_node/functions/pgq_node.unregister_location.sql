@@ -29,8 +29,13 @@ declare
     sub          record;
     node         record;
 begin
-    select * into node from pgq_node.node_info
-      where queue_name = i_queue_name;
+    select n.node_name, n.node_type, s.provider_node
+        into node
+        from pgq_node.node_info n
+        left join pgq_node.local_state s
+        on (s.consumer_name = n.worker_name
+            and s.queue_name = n.queue_name)
+        where n.queue_name = i_queue_name;
     if found then
         if node.node_name = i_node_name then
             select 403, 'Cannot drop nodes own location' into ret_code, ret_note;

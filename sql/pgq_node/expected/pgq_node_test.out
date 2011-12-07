@@ -420,4 +420,58 @@ select * from pgq_node.get_worker_state('mqueue');
       100 | Ok       | leaf      | node2     |             13 | node1         | dbname=node1      | f      | f        |           | node2_worker |                  |              13 |                 | aqueue         | branch
 (1 row)
 
+select * from pgq_node.drop_node('asd', 'asd');
+ ret_code |      ret_note      
+----------+--------------------
+      304 | No such queue: asd
+(1 row)
+
+select * from pgq_node.drop_node('mqueue', 'node3');
+ ret_code |   ret_note   
+----------+--------------
+      200 | Node dropped
+(1 row)
+
+select * from pgq_node.drop_node('mqueue', 'node2');
+ ret_code |   ret_note   
+----------+--------------
+      200 | Node dropped
+(1 row)
+
+select * from pgq_node.drop_node('mqueue', 'node1');
+ ret_code |       ret_note        
+----------+-----------------------
+      304 | No such queue: mqueue
+(1 row)
+
+select * from pgq_node.drop_node('aqueue', 'node5');
+ ret_code |   ret_note   
+----------+--------------
+      200 | Node dropped
+(1 row)
+
+select * from pgq_node.drop_node('aqueue', 'node4');
+ ret_code |   ret_note   
+----------+--------------
+      200 | Node dropped
+(1 row)
+
+select * from pgq_node.drop_node('aqueue', 'node1');
+ ret_code |   ret_note   
+----------+--------------
+      200 | Node dropped
+(1 row)
+
+select * from pgq_node.drop_node('aqueue', 'node2');
+ ret_code |       ret_note        
+----------+-----------------------
+      304 | No such queue: aqueue
+(1 row)
+
+select * from pgq_node.drop_node('aqueue', 'node3');
+ ret_code |       ret_note        
+----------+-----------------------
+      304 | No such queue: aqueue
+(1 row)
+
 \q

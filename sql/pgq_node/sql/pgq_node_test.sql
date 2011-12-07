@@ -98,6 +98,16 @@ select * from pgq_node.register_location('mqueue', 'node3', 'dbname=node3', fals
 select * from pgq_node.create_node('mqueue', 'leaf', 'node2', 'node2_worker', 'node1', 13, 'aqueue');
 select * from pgq_node.get_worker_state('mqueue');
 
+select * from pgq_node.drop_node('asd', 'asd');
+select * from pgq_node.drop_node('mqueue', 'node3');
+select * from pgq_node.drop_node('mqueue', 'node2');
+select * from pgq_node.drop_node('mqueue', 'node1');
+select * from pgq_node.drop_node('aqueue', 'node5');
+select * from pgq_node.drop_node('aqueue', 'node4');
+select * from pgq_node.drop_node('aqueue', 'node1');
+select * from pgq_node.drop_node('aqueue', 'node2');
+select * from pgq_node.drop_node('aqueue', 'node3');
+
 \q
 
 select * from pgq_node.subscribe_node('aqueue', 'node2');
