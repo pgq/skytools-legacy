@@ -6,6 +6,12 @@ import logging, logging.handlers
 
 import skytools
 
+# add TRACE level
+TRACE = 5
+logging.TRACE = TRACE
+logging.addLevelName(TRACE, 'TRACE')
+
+# extra info to be added to each log record
 _service_name = 'unknown_svc'
 _job_name = 'unknown_job'
 _hostname = socket.gethostname()
@@ -251,22 +257,55 @@ class SysLogHostnameHandler(logging.handlers.SysLogHandler):
         except:
             self.handleError(record)
 
+try:
+    from logging import LoggerAdapter
+except ImportError:
+    # LoggerAdapter is missing from python 2.5
+    class LoggerAdapter(object):
+        def __init__(self, logger, extra):
+            self.logger = logger
+            self.extra = extra
+        def process(self, msg, kwargs):
+            kwargs["extra"] = self.extra
+            return msg, kwargs
+        def debug(self, msg, *args, **kwargs):
+            msg, kwargs = self.process(msg, kwargs)
+            self.logger.debug(msg, *args, **kwargs)
+        def info(self, msg, *args, **kwargs):
+            msg, kwargs = self.process(msg, kwargs)
+            self.logger.info(msg, *args, **kwargs)
+        def warning(self, msg, *args, **kwargs):
+            msg, kwargs = self.process(msg, kwargs)
+            self.logger.warning(msg, *args, **kwargs)
+        def error(self, msg, *args, **kwargs):
+            msg, kwargs = self.process(msg, kwargs)
+            self.logger.error(msg, *args, **kwargs)
+        def exception(self, msg, *args, **kwargs):
+            msg, kwargs = self.process(msg, kwargs)
+            kwargs["exc_info"] = 1
+            self.logger.error(msg, *args, **kwargs)
+        def critical(self, msg, *args, **kwargs):
+            msg, kwargs = self.process(msg, kwargs)
+            self.logger.critical(msg, *args, **kwargs)
+        def log(self, level, msg, *args, **kwargs):
+            msg, kwargs = self.process(msg, kwargs)
+            self.logger.log(level, msg, *args, **kwargs)
+        def isEnabledFor(self, level):
+            return self.logger.isEnabledFor(level)
 
-TRACE = 5
+class SkyLogger(LoggerAdapter):
+    """Add trace level."""
+    def trace(self, msg, *args, **kwargs):
+        self.log(TRACE, msg, *args, **kwargs)
 
-class SkyLogger (logging.getLoggerClass()):
-    def trace (self, msg, *args, **kwargs):
-        if self.isEnabledFor (TRACE):
-            self._log (TRACE, msg, args, **kwargs)
+def getLogger(name=None, **kwargs_extra):
+    """Get logger with extra functionality.
 
-_skylogger_installed = False
+    Adds additional log levels, and extra fields to log record.
 
-def getLogger (*args, **kwargs):
-    global _skylogger_installed
-    if not _skylogger_installed:
-        # start using our class when instantiating a logger
-        logging.addLevelName (TRACE, 'TRACE')
-        logging.setLoggerClass (SkyLogger)
-        logging.TRACE = TRACE
-        _skylogger_installed = True
-    return logging.getLogger (*args, **kwargs)
+    name - name for logging.getLogger()
+    kwargs_extra - extra fields to add to log record
+    """
+    log = logging.getLogger(name)
+    return SkyLogger(log, kwargs_extra)
+
