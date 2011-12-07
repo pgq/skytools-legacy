@@ -36,10 +36,14 @@ def signal_pidfile(pidfile, sig):
 
     Returns True is successful, False if pidfile does not exist
     or process itself is dead.  Any other errors will passed
-    as exceptions.
-    """
+    as exceptions."""
+
+    ln = ''
     try:
-        pid = int(open(pidfile, 'r').readline())
+        f = open(pidfile, 'r')
+        ln = f.readline().strip()
+        f.close()
+        pid = int(ln)
         os.kill(pid, sig)
         return True
     except IOError, ex:
@@ -49,6 +53,10 @@ def signal_pidfile(pidfile, sig):
         if ex.errno != errno.ESRCH:
             raise
     except ValueError, ex:
+        # this leaves slight race when someone is just creating the file,
+        # but more common case is old empty file.
+        if not ln:
+            return False
         raise ValueError('Corrupt pidfile: %s' % pidfile)
     return False
 
