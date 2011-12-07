@@ -263,7 +263,7 @@ begin
         loop
             -- if table from some other source is already marked as local,
             -- raise error
-            if _local then
+            if _local and coalesce(new_state, 'x') <> 'ok' then
                 select 405, 'Found local table '|| _desc
                         || ' in queue ' || _queue_name
                         || ', use remove-table first to remove all previous '
@@ -274,7 +274,7 @@ begin
 
            -- when table comes from multiple sources, merge_all switch is
            -- required
-           if not _merge_all then
+           if not _merge_all and coalesce(new_state, 'x') <> 'ok' then
                select 405, 'Found multiple sources for table '|| _desc
                        || ', use merge-all or no-merge to continue'
                into ret_code, ret_note;
