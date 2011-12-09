@@ -155,3 +155,25 @@ select pgq_coop.unregister_subconsumer('testqueue', 'maincons', 'subcons2', 0);
                       0
 (1 row)
 
+-- test auto-creation
+select pgq_coop.next_batch('testqueue', 'cmain', 'sc1');
+ next_batch 
+------------
+           
+(1 row)
+
+select pgq_coop.next_batch('testqueue', 'cmain', 'sc2');
+ next_batch 
+------------
+           
+(1 row)
+
+select consumer_name, last_tick from pgq.get_consumer_info();
+ consumer_name | last_tick 
+---------------+-----------
+ cmain         |         3
+ cmain.sc1     |          
+ cmain.sc2     |          
+ maincons      |         3
+(4 rows)
+

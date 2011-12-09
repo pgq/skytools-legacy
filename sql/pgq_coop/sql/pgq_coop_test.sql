@@ -44,3 +44,7 @@ select pgq_coop.unregister_subconsumer('testqueue', 'maincons', 'subcons2', 0);
 select pgq_coop.unregister_subconsumer('testqueue', 'maincons', 'subcons2', 1);
 select pgq_coop.unregister_subconsumer('testqueue', 'maincons', 'subcons2', 0);
 
+-- test auto-creation
+select pgq_coop.next_batch('testqueue', 'cmain', 'sc1');
+select pgq_coop.next_batch('testqueue', 'cmain', 'sc2');
+select consumer_name, last_tick from pgq.get_consumer_info();
