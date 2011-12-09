@@ -88,14 +88,16 @@ class Syncer(skytools.DBScript):
 
     def work(self):
         """Syncer main function."""
-        dst_db = self.get_database('db', isolation_level = skytools.I_SERIALIZABLE)
+
+        # 'SELECT 1' and COPY must use same snapshot, so change isolation level.
+        dst_db = self.get_database('db', isolation_level = skytools.I_REPEATABLE_READ)
         provider_loc = self.get_provider_location(dst_db)
 
         lock_db = self.get_database('lock_db', connstr = provider_loc)
         setup_db = self.get_database('setup_db', autocommit = 1, connstr = provider_loc)
 
         src_db = self.get_database('provider_db', connstr = provider_loc,
-                                   isolation_level = skytools.I_SERIALIZABLE)
+                                   isolation_level = skytools.I_REPEATABLE_READ)
 
         setup_curs = setup_db.cursor()
 

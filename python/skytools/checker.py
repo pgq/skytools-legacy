@@ -320,9 +320,9 @@ class Syncer(skytools.DBScript):
         lock_db = self.get_database('lock_db', connstr = cstr1)
 
         src_db = self.get_database('src_db', connstr = cstr1,
-                isolation_level = skytools.I_SERIALIZABLE)
+                isolation_level = skytools.I_REPEATABLE_READ)
         dst_db = self.get_database('dst_db', connstr = cstr2,
-                isolation_level = skytools.I_SERIALIZABLE)
+                isolation_level = skytools.I_REPEATABLE_READ)
 
         lock_curs = lock_db.cursor()
         setup_curs = setup_db.cursor()
