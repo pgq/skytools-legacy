@@ -25,9 +25,22 @@ class Repairer(Syncer):
     total_dst = 0
     pkey_list = []
     common_fields = []
+    apply_curs = None
+
+    def init_optparse(self, p=None):
+        """Initialize cmdline switches."""
+        p = super(Repairer, self).init_optparse(p)
+        p.add_option("--apply", action="store_true", help="apply fixes")
+        return p
 
     def process_sync(self, src_tbl, dst_tbl, src_db, dst_db):
         """Actual comparision."""
+
+        apply_db = None
+
+        if self.options.apply:
+            apply_db = self.get_database('db', cache='applydb', autocommit=1)
+            self.apply_curs = apply_db.cursor()
 
         src_curs = src_db.cursor()
         dst_curs = dst_db.cursor()
@@ -226,9 +239,12 @@ class Repairer(Syncer):
 
     def show_fix(self, tbl, q, desc):
         """Print/write/apply repair sql."""
-        self.log.debug("missed %s: %s" % (desc, q))
-        fn = "fix.%s.sql" % tbl
-        open(fn, "a").write("%s\n" % q)
+        self.log.info("missed %s: %s" % (desc, q))
+        if self.apply_curs:
+            self.apply_curs.execute(q)
+        else:
+            fn = "fix.%s.sql" % tbl
+            open(fn, "a").write("%s\n" % q)
 
     def addeq(self, list, f, v):
         """Add quoted SET."""

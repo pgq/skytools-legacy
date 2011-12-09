@@ -110,8 +110,6 @@ class Londiste(skytools.DBScript):
                 help = "add: include add possible tables")
         g.add_option("--dest-table",
                 help = "add: redirect changes to different table")
-        g.add_option("--force", action="store_true",
-                help = "add: ignore table differences, repair: ignore lag")
         g.add_option("--expect-sync", action="store_true", dest="expect_sync",
                 help = "add: no copy needed", default=False)
         g.add_option("--skip-truncate", action="store_true", dest="skip_truncate",
@@ -138,7 +136,13 @@ class Londiste(skytools.DBScript):
                 help="don't merge tables from source queues", default=False)
         g.add_option("--max-parallel-copy", type = "int",
                 help="max number of parallel copy processes")
+        p.add_option_group(g)
 
+        g = optparse.OptionGroup(p, "other options options")
+        g.add_option("--force", action="store_true",
+                help = "add: ignore table differences, repair: ignore lag")
+        g.add_option("--apply", action = "store_true",
+                help="repair: apply fixes automatically")
         p.add_option_group(g)
 
         return p
