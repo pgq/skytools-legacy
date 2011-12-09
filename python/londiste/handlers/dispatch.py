@@ -882,12 +882,12 @@ class Dispatcher(BaseHandler):
             self.log.debug('part_template not provided, using part func')
             # if part func exists call it with val arguments
             pfargs = ', '.join('%%(%s)s' % arg for arg in PART_FUNC_ARGS)
-            pfcall = 'select %s(%s)' % (self.part_func, pfargs)
-            if skytools.exists_function(curs, self.part_func, len(PART_FUNC_ARGS)):
+            pfcall = 'select %s(%s)' % (self.conf.part_func, pfargs)
+            if skytools.exists_function(curs, self.conf.part_func, len(PART_FUNC_ARGS)):
                 self.log.debug('check_part.exec: func:%s, args: %s' % (pfcall, vals))
                 curs.execute(pfcall, vals)
             else:
-                self.log.debug('part func %s not found, cloning table' % self.part_func)
+                self.log.debug('part func %s not found, cloning table' % self.conf.part_func)
                 struct = TableStruct(curs, self.dest_table)
                 struct.create(curs, T_ALL, dst)
         exec_with_vals(self.conf.post_part)
