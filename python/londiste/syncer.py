@@ -13,6 +13,8 @@ class ATable:
 class Syncer(skytools.DBScript):
     """Walks tables in primary key order and checks if data matches."""
 
+    bad_tables = 0
+
     def __init__(self, args):
         """Syncer init."""
         skytools.DBScript.__init__(self, 'londiste3', args)
@@ -133,6 +135,9 @@ class Syncer(skytools.DBScript):
             src_db.commit()
             dst_db.commit()
 
+        # signal caller about bad tables
+        sys.exit(self.bad_tables)
+
     def force_tick(self, setup_curs):
         q = "select pgq.force_tick(%s)"
         setup_curs.execute(q, [self.queue_name])
@@ -221,7 +226,9 @@ class Syncer(skytools.DBScript):
         lock_db.commit()
 
         # do work
-        self.process_sync(src_tbl, dst_tbl, src_db, dst_db)
+        bad = self.process_sync(src_tbl, dst_tbl, src_db, dst_db)
+        if bad:
+            self.bad_tables += 1
 
         # done
         src_db.commit()
