@@ -178,8 +178,11 @@ class sk3_install(install):
 # check if building C is allowed
 c_modules = []
 if BUILD_C_MOD:
-    ext = Extension("skytools._cquoting", ['python/modules/cquoting.c'])
-    c_modules.append(ext)
+    ext = [
+        Extension("skytools._cquoting", ['python/modules/cquoting.c']),
+        Extension("skytools.hashtext", ['python/modules/hashtext.c']),
+        ]
+    c_modules.extend(ext)
 
 # run actual setup
 setup(
@@ -206,4 +209,3 @@ setup(
         'install': sk3_install,
     },
 )
-
