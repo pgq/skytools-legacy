@@ -1,5 +1,5 @@
 \set ECHO off
-\i pgq_ext.sql
+\i structure/install.sql
 \set ECHO all
 
 --
