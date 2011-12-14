@@ -14,7 +14,10 @@
 config.mak
 config.log
 config.status
+config.guess
+config.sub
 configure
+install-sh
 autom4te.cache
 aclocal.m4
 source.list
@@ -54,6 +57,7 @@ sql/pgq/docs
 sql/pgq_coop/pgq_coop.sql
 sql/pgq_coop/pgq_coop.upgrade.sql
 sql/pgq_ext/pgq_ext.sql
+sql/pgq_ext/pgq_ext.upgrade.sql
 sql/ticker/pgqd
 sql/txid/txid.sql.in
 tests/londiste/conf
@@ -63,6 +67,7 @@ tmp_files.lst
 sql/ticker/pgqd.ini.h
 
 build
+build.sk3
 doc/londiste.5
 doc/man
 reconfigure.sh
