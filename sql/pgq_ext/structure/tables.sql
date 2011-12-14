@@ -10,10 +10,11 @@ grant usage on schema pgq_ext to public;
 -- batch tracking
 --
 create table pgq_ext.completed_batch (
-    consumer_id   text not null,
-    last_batch_id bigint not null,
+    consumer_id     text not null,
+    subconsumer_id  text not null,
+    last_batch_id   bigint not null,
 
-    primary key (consumer_id)
+    primary key (consumer_id, subconsumer_id)
 );
 
 
@@ -21,18 +22,20 @@ create table pgq_ext.completed_batch (
 -- event tracking
 --
 create table pgq_ext.completed_event (
-    consumer_id   text not null,
-    batch_id      bigint not null,
-    event_id      bigint not null,
+    consumer_id     text not null,
+    subconsumer_id  text not null,
+    batch_id        bigint not null,
+    event_id        bigint not null,
 
-    primary key (consumer_id, batch_id, event_id)
+    primary key (consumer_id, subconsumer_id, batch_id, event_id)
 );
 
 create table pgq_ext.partial_batch (
-    consumer_id   text not null,
-    cur_batch_id  bigint not null,
+    consumer_id     text not null,
+    subconsumer_id  text not null,
+    cur_batch_id    bigint not null,
 
-    primary key (consumer_id)
+    primary key (consumer_id, subconsumer_id)
 );
 
 --
@@ -40,9 +43,10 @@ create table pgq_ext.partial_batch (
 -- no access functions provided here
 --
 create table pgq_ext.completed_tick (
-    consumer_id   text not null,
-    last_tick_id  bigint not null,
+    consumer_id     text not null,
+    subconsumer_id  text not null,
+    last_tick_id    bigint not null,
 
-    primary key (consumer_id)
+    primary key (consumer_id, subconsumer_id)
 );
 

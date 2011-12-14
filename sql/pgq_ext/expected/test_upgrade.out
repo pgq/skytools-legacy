@@ -1,7 +1,7 @@
 \set ECHO off
  upgrade_schema 
 ----------------
-              0
+              4
 (1 row)
 
 --
@@ -83,9 +83,9 @@ select pgq_ext.set_batch_done('c', 3);
 (1 row)
 
 select * from pgq_ext.completed_event order by 1,2;
- consumer_id | subconsumer_id | batch_id | event_id 
--------------+----------------+----------+----------
- c           |                |        3 |      101
+ consumer_id | batch_id | event_id | subconsumer_id 
+-------------+----------+----------+----------------
+ c           |        3 |      101 | 
 (1 row)
 
 --

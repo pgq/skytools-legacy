@@ -1,3 +1,7 @@
+\i functions/pgq_ext.upgrade_schema.sql
+
+select pgq_ext.upgrade_schema();
+
 \i functions/pgq_ext.is_batch_done.sql
 \i functions/pgq_ext.set_batch_done.sql
 

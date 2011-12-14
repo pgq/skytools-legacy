@@ -4,7 +4,7 @@ DATA_built = pgq_ext.sql pgq_ext.upgrade.sql
 
 SRCS = $(wildcard functions/*.sql structure/*.sql)
 
-REGRESS = test_pgq_ext
+REGRESS = test_pgq_ext test_upgrade
 REGRESS_OPTS = --load-language=plpgsql
 
 CATSQL = ../../scripts/catsql.py
