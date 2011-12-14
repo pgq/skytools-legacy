@@ -83,7 +83,7 @@ run londiste3 $v conf/londiste_db4.ini status
 
 msg "Run londiste3 daemon for each node"
 for db in $db_list; do
-  run psql -d $db -c "update pgq.queue set queue_ticker_idle_period='5 secs'"
+  run psql -d $db -c "update pgq.queue set queue_ticker_idle_period='2 secs'"
   run londiste3 $v -d conf/londiste_$db.ini worker
 done
 
@@ -195,8 +195,15 @@ msg "Wait a bit"
 run sleep 20
 msg "Check table structure"
 run psql -d db5 -c '\d mytable'
-run psql -d db5 -c 'select * from mytable'
+run psql -d db5 -c 'select * from mytable where data2 is not null'
 run sleep 10
+run psql -d db5 -c "select * from mytable where data2 is not null"
+
+msg "Test repair"
+run psql -d db3 -c "set session_replication_role='replica'; delete from mytable where data='row5'"
+run londiste3 conf/londiste_db3.ini repair --apply mytable
+msg "Test compare"
+run londiste3 conf/londiste_db3.ini compare mytable
 do_check
 fi
 
