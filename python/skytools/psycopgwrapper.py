@@ -54,20 +54,24 @@ Plain .fetchall() / .fetchone() give exact same result.
 
 """
 
-# no exports
-__all__ = ['connect_database', 'DBError']
+__all__ = ['connect_database', 'DBError', 'I_AUTOCOMMIT', 'I_READ_COMMITTED',
+           'I_REPEATABLE_READ', 'I_SERIALIZABLE']
 
-##from psycopg2.psycopg1 import connect as _pgconnect
-# psycopg2.psycopg1.cursor is too backwards compatible,
-# to the point of avoiding optimized access.
-# only backwards compat thing we need is dict* methods
-
-import sys, socket
-import psycopg2.extensions, psycopg2.extras
-from psycopg2 import Error as DBError
+import sys
+import socket
+import psycopg2.extensions
+import psycopg2.extras
 import skytools
 
+from psycopg2 import Error as DBError
 from skytools.sockutil import set_tcp_keepalive
+
+
+I_AUTOCOMMIT = psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT
+I_READ_COMMITTED = psycopg2.extensions.ISOLATION_LEVEL_READ_COMMITTED
+I_REPEATABLE_READ = psycopg2.extensions.ISOLATION_LEVEL_REPEATABLE_READ
+I_SERIALIZABLE = psycopg2.extensions.ISOLATION_LEVEL_SERIALIZABLE
+
 
 class _CompatRow(psycopg2.extras.DictRow):
     """Make DictRow more dict-like."""

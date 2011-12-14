@@ -94,9 +94,9 @@ class CopyTable(Replicator):
         elif tbl_stat.copy_role:
             cmode = 0
 
-        # change to SERIALIZABLE isolation level
+        # We need to see COPY snapshot from txid_current_snapshot() later.
         oldiso = src_db.isolation_level
-        src_db.set_isolation_level(skytools.I_SERIALIZABLE)
+        src_db.set_isolation_level(skytools.I_REPEATABLE_READ)
         src_db.commit()
 
         self.sync_database_encodings(src_db, dst_db)

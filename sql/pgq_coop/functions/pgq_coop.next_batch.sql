@@ -120,6 +120,16 @@ declare
     _sub_id integer;
     _dead record;
 begin
+    -- automatically register subconsumers
+    perform 1 from pgq.subscription s, pgq.consumer c, pgq.queue q
+        where q.queue_name = i_queue_name
+          and s.sub_queue = q.queue_id
+          and s.sub_consumer = c.co_id
+          and c.co_name = i_consumer_name || '.' || i_subconsumer_name;
+    if not found then
+        perform pgq_coop.register_subconsumer(i_queue_name, i_consumer_name, i_subconsumer_name);
+    end if;
+
     -- fetch master consumer details, lock the row
     select q.queue_id, c.co_id, s.sub_next_tick
         into _queue_id, _consumer_id, _cur_tick

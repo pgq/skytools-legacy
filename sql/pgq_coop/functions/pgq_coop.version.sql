@@ -8,7 +8,7 @@ returns text as $$
 --      with suffix that is only bumped when pgq_coop database code changes.
 -- ----------------------------------------------------------------------
 begin
-    return '3.0.0.2';
+    return '3.0.0.3';
 end;
 $$ language plpgsql;
 

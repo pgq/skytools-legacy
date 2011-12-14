@@ -18,7 +18,7 @@ except ImportError:
 __pychecker__ = 'no-badexcept'
 
 __all__ = ['BaseScript', 'signal_pidfile', 'UsageError', 'daemonize',
-            'DBScript', 'I_AUTOCOMMIT', 'I_READ_COMMITTED', 'I_SERIALIZABLE']
+            'DBScript']
 
 class UsageError(Exception):
     """User induced error."""
@@ -637,17 +637,6 @@ class BaseScript(object):
 #: how old connections need to be closed
 DEF_CONN_AGE = 20*60  # 20 min
 
-#: isolation level not set
-I_DEFAULT = -1
-
-#: isolation level constant for AUTOCOMMIT
-I_AUTOCOMMIT = 0
-#: isolation level constant for READ COMMITTED
-I_READ_COMMITTED = 1
-#: isolation level constant for SERIALIZABLE
-I_SERIALIZABLE = 2
-
-
 class DBScript(BaseScript):
     """Base class for database scripts.
 
@@ -708,7 +697,7 @@ class DBScript(BaseScript):
         elif params.get('autocommit', 0):
             params['isolation_level'] = 0
         elif not 'isolation_level' in params:
-            params['isolation_level'] = I_READ_COMMITTED
+            params['isolation_level'] = skytools.I_READ_COMMITTED
 
         if not 'max_age' in params:
             params['max_age'] = max_age
@@ -933,7 +922,7 @@ class DBCachedConn(object):
         self.conn_time = 0
         self.max_age = max_age
         self.autocommit = -1
-        self.isolation_level = I_DEFAULT
+        self.isolation_level = -1
         self.verbose = verbose
         self.setup_func = setup_func
         self.listen_channel_list = []
@@ -943,11 +932,11 @@ class DBCachedConn(object):
             return None
         return self.conn.cursor().fileno()
 
-    def get_connection(self, isolation_level = I_DEFAULT, listen_channel_list = []):
+    def get_connection(self, isolation_level = -1, listen_channel_list = []):
 
         # default isolation_level is READ COMMITTED
         if isolation_level < 0:
-            isolation_level = I_READ_COMMITTED
+            isolation_level = skytools.I_READ_COMMITTED
 
         # new conn?
         if not self.conn:
@@ -978,7 +967,7 @@ class DBCachedConn(object):
         for ch in new_clist:
             if ch not in self.listen_channel_list:
                 curs.execute("LISTEN %s" % skytools.quote_ident(ch))
-        if self.isolation_level != I_AUTOCOMMIT:
+        if self.isolation_level != skytools.I_AUTOCOMMIT:
             self.conn.commit()
         self.listen_channel_list = new_clist[:]
 

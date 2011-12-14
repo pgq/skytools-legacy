@@ -47,6 +47,8 @@ class Comparator(Syncer):
 
         if src_str != dst_str:
             self.log.warning("%s: Results do not match!" % dst_tbl)
+            return 1
+        return 0
 
 if __name__ == '__main__':
     script = Comparator(sys.argv[1:])

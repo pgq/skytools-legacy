@@ -13,6 +13,8 @@ class ATable:
 class Syncer(skytools.DBScript):
     """Walks tables in primary key order and checks if data matches."""
 
+    bad_tables = 0
+
     def __init__(self, args):
         """Syncer init."""
         skytools.DBScript.__init__(self, 'londiste3', args)
@@ -88,14 +90,16 @@ class Syncer(skytools.DBScript):
 
     def work(self):
         """Syncer main function."""
-        dst_db = self.get_database('db', isolation_level = skytools.I_SERIALIZABLE)
+
+        # 'SELECT 1' and COPY must use same snapshot, so change isolation level.
+        dst_db = self.get_database('db', isolation_level = skytools.I_REPEATABLE_READ)
         provider_loc = self.get_provider_location(dst_db)
 
         lock_db = self.get_database('lock_db', connstr = provider_loc)
         setup_db = self.get_database('setup_db', autocommit = 1, connstr = provider_loc)
 
         src_db = self.get_database('provider_db', connstr = provider_loc,
-                                   isolation_level = skytools.I_SERIALIZABLE)
+                                   isolation_level = skytools.I_REPEATABLE_READ)
 
         setup_curs = setup_db.cursor()
 
@@ -130,6 +134,9 @@ class Syncer(skytools.DBScript):
             lock_db.commit()
             src_db.commit()
             dst_db.commit()
+
+        # signal caller about bad tables
+        sys.exit(self.bad_tables)
 
     def force_tick(self, setup_curs):
         q = "select pgq.force_tick(%s)"
@@ -219,7 +226,9 @@ class Syncer(skytools.DBScript):
         lock_db.commit()
 
         # do work
-        self.process_sync(src_tbl, dst_tbl, src_db, dst_db)
+        bad = self.process_sync(src_tbl, dst_tbl, src_db, dst_db)
+        if bad:
+            self.bad_tables += 1
 
         # done
         src_db.commit()

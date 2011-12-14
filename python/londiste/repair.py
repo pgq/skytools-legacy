@@ -5,7 +5,7 @@ Walks tables by primary key and searcher
 missing inserts/updates/deletes.
 """
 
-import sys, os, skytools
+import sys, os, skytools, subprocess
 
 from londiste.syncer import Syncer
 
@@ -14,34 +14,6 @@ __all__ = ['Repairer']
 def unescape(s):
     """Remove copy escapes."""
     return skytools.unescape_copy(s)
-
-def get_pkey_list(curs, tbl):
-    """Get list of pkey fields in right order."""
-
-    oid = skytools.get_table_oid(curs, tbl)
-    q = """SELECT k.attname FROM pg_index i, pg_attribute k
-            WHERE i.indrelid = %s AND k.attrelid = i.indexrelid
-              AND i.indisprimary AND k.attnum > 0 AND NOT k.attisdropped
-            ORDER BY k.attnum"""
-    curs.execute(q, [oid])
-    list = []
-    for row in curs.fetchall():
-        list.append(row[0])
-    return list
-
-def get_column_list(curs, tbl):
-    """Get list of columns in right order."""
-
-    oid = skytools.get_table_oid(curs, tbl)
-    q = """SELECT a.attname FROM pg_attribute a
-            WHERE a.attrelid = %s
-              AND a.attnum > 0 AND NOT a.attisdropped
-            ORDER BY a.attnum"""
-    curs.execute(q, [oid])
-    list = []
-    for row in curs.fetchall():
-        list.append(row[0])
-    return list
 
 class Repairer(Syncer):
     """Walks tables in primary key order and checks if data matches."""
@@ -53,9 +25,22 @@ class Repairer(Syncer):
     total_dst = 0
     pkey_list = []
     common_fields = []
+    apply_curs = None
+
+    def init_optparse(self, p=None):
+        """Initialize cmdline switches."""
+        p = super(Repairer, self).init_optparse(p)
+        p.add_option("--apply", action="store_true", help="apply fixes")
+        return p
 
     def process_sync(self, src_tbl, dst_tbl, src_db, dst_db):
         """Actual comparision."""
+
+        apply_db = None
+
+        if self.options.apply:
+            apply_db = self.get_database('db', cache='applydb', autocommit=1)
+            self.apply_curs = apply_db.cursor()
 
         src_curs = src_db.cursor()
         dst_curs = dst_db.cursor()
@@ -78,17 +63,9 @@ class Repairer(Syncer):
         dst_db.commit()
         
         self.log.info("Sorting src table: %s" % dump_src)
-
-        s_in, s_out = os.popen4("sort --version")
-        s_ver = s_out.read()
-        del s_in, s_out
-        if s_ver.find("coreutils") > 0:
-            args = "-S 30%"
-        else:
-            args = ""
-        os.system("sort %s -T . -o %s.sorted %s" % (args, dump_src, dump_src))
+        self.do_sort(dump_src, dump_src + '.sorted')
         self.log.info("Sorting dst table: %s" % dump_dst)
-        os.system("sort %s -T . -o %s.sorted %s" % (args, dump_dst, dump_dst))
+        self.do_sort(dump_dst, dump_dst + '.sorted')
 
         self.dump_compare(dst_tbl, dump_src + ".sorted", dump_dst + ".sorted")
 
@@ -97,17 +74,37 @@ class Repairer(Syncer):
         os.unlink(dump_src + ".sorted")
         os.unlink(dump_dst + ".sorted")
 
+    def do_sort(self, src, dst):
+        p = subprocess.Popen(["sort", "--version"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        s_ver = p.communicate()[0]
+        del p
+
+        xenv = os.environ.copy()
+        xenv['LANG'] = 'C'
+        xenv['LC_ALL'] = 'C'
+
+        cmdline = ['sort', '-T', '.']
+        if s_ver.find("coreutils") > 0:
+            cmdline.append('-S')
+            cmdline.append('30%')
+        cmdline.append('-o')
+        cmdline.append(dst)
+        cmdline.append(src)
+        p = subprocess.Popen(cmdline, env = xenv)
+        if p.wait() != 0:
+            raise Exception('sort failed')
+
     def load_common_columns(self, src_tbl, dst_tbl, src_curs, dst_curs):
         """Get common fields, put pkeys in start."""
 
-        self.pkey_list = get_pkey_list(src_curs, src_tbl)
-        dst_pkey = get_pkey_list(dst_curs, dst_tbl)
+        self.pkey_list = skytools.get_table_pkeys(src_curs, src_tbl)
+        dst_pkey = skytools.get_table_pkeys(dst_curs, dst_tbl)
         if dst_pkey != self.pkey_list:
             self.log.error('pkeys do not match')
             sys.exit(1)
 
-        src_cols = get_column_list(src_curs, src_tbl)
-        dst_cols = get_column_list(dst_curs, dst_tbl)
+        src_cols = skytools.get_table_columns(src_curs, src_tbl)
+        dst_cols = skytools.get_table_columns(dst_curs, dst_tbl)
         field_list = []
         for f in self.pkey_list:
             field_list.append(f)
@@ -242,9 +239,12 @@ class Repairer(Syncer):
 
     def show_fix(self, tbl, q, desc):
         """Print/write/apply repair sql."""
-        self.log.debug("missed %s: %s" % (desc, q))
-        fn = "fix.%s.sql" % tbl
-        open(fn, "a").write("%s\n" % q)
+        self.log.info("missed %s: %s" % (desc, q))
+        if self.apply_curs:
+            self.apply_curs.execute(q)
+        else:
+            fn = "fix.%s.sql" % tbl
+            open(fn, "a").write("%s\n" % q)
 
     def addeq(self, list, f, v):
         """Add quoted SET."""

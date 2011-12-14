@@ -35,6 +35,10 @@ _symbols = {
     # skytools.psycopgwrapper
     'connect_database': 'skytools.psycopgwrapper:connect_database',
     'DBError': 'skytools.psycopgwrapper:DBError',
+    'I_AUTOCOMMIT': 'skytools.psycopgwrapper:I_AUTOCOMMIT',
+    'I_READ_COMMITTED': 'skytools.psycopgwrapper:I_READ_COMMITTED',
+    'I_REPEATABLE_READ': 'skytools.psycopgwrapper:I_REPEATABLE_READ',
+    'I_SERIALIZABLE': 'skytools.psycopgwrapper:I_SERIALIZABLE',
     # skytools.querybuilder
     'PLPyQuery': 'skytools.querybuilder:PLPyQuery',
     'PLPyQueryBuilder': 'skytools.querybuilder:PLPyQueryBuilder',
@@ -69,9 +73,6 @@ _symbols = {
     'DBScript': 'skytools.scripting:DBScript',
     'signal_pidfile': 'skytools.scripting:signal_pidfile',
     'UsageError': 'skytools.scripting:UsageError',
-    'I_AUTOCOMMIT': 'skytools.scripting:I_AUTOCOMMIT',
-    'I_READ_COMMITTED': 'skytools.scripting:I_READ_COMMITTED',
-    'I_SERIALIZABLE': 'skytools.scripting:I_SERIALIZABLE',
     # skytools.skylog
     'getLogger': 'skytools.skylog:getLogger',
     # skytools.sockutil
