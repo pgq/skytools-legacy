@@ -297,6 +297,8 @@ class SkyLogger(LoggerAdapter):
     """Add trace level."""
     def trace(self, msg, *args, **kwargs):
         self.log(TRACE, msg, *args, **kwargs)
+    def addHandler(self, hdlr):
+        self.logger.addHandler(hdlr)
 
 def getLogger(name=None, **kwargs_extra):
     """Get logger with extra functionality.
