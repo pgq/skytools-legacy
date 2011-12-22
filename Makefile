@@ -77,9 +77,7 @@ debclean: distclean
 boot: configure
 
 configure: configure.ac lib/m4/usual.m4
-	aclocal -I lib/m4
-	autoheader
-	autoconf
+	./autogen.sh
 
 tags:
 	ctags `find python -name '*.py'`
