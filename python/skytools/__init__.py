@@ -53,6 +53,7 @@ _symbols = {
     'db_urlencode': 'skytools.quoting:db_urlencode',
     'json_decode': 'skytools.quoting:json_decode',
     'json_encode': 'skytools.quoting:json_encode',
+    'make_pgarray': 'skytools.quoting:make_pgarray',
     'quote_bytea_copy': 'skytools.quoting:quote_bytea_copy',
     'quote_bytea_literal': 'skytools.quoting:quote_bytea_literal',
     'quote_bytea_raw': 'skytools.quoting:quote_bytea_raw',

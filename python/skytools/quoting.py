@@ -14,6 +14,7 @@ __all__ = [
     "quote_ident", "quote_fqident", "quote_json", "unescape_copy",
     "unquote_ident", "unquote_fqident",
     "json_encode", "json_decode",
+    "make_pgarray",
 ]
 
 try:
@@ -191,6 +192,45 @@ def json_decode(s):
     [1]
     """
     return json.loads(s)
+
+#
+# Create Postgres array
+#
+
+# any chars not in "good" set?  main bad ones: [ ,{}\"]
+_pgarray_bad_rx = r"[^0-9a-z_.%&=()<>*/+-]"
+_pgarray_bad_rc = None
+
+def _quote_pgarray_elem(s):
+    if s is None:
+        return 'NULL'
+    s = str(s)
+    if _pgarray_bad_rc.search(s):
+        s = s.replace('\\', '\\\\')
+        return '"' + s.replace('"', r'\"') + '"'
+    elif not s:
+        return '""'
+    return s
+
+def make_pgarray(lst):
+    r"""Formats Python list as Postgres array.
+    Reverse of parse_pgarray().
+
+    >>> make_pgarray([])
+    '{}'
+    >>> make_pgarray(['foo_3',1,'',None])
+    '{foo_3,1,"",NULL}'
+    >>> make_pgarray([None,',','\\',"'",'"',"{","}",'_'])
+    '{NULL,",","\\\\","\'","\\"","{","}",_}'
+    """
+
+    global _pgarray_bad_rc
+    if _pgarray_bad_rc is None:
+        _pgarray_bad_rc = re.compile(_pgarray_bad_rx)
+
+    items = [_quote_pgarray_elem(v) for v in lst]
+    return '{' + ','.join(items) + '}'
+
 
 if __name__ == '__main__':
     import doctest
