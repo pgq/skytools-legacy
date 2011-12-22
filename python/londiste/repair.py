@@ -41,6 +41,7 @@ class Repairer(Syncer):
         if self.options.apply:
             apply_db = self.get_database('db', cache='applydb', autocommit=1)
             self.apply_curs = apply_db.cursor()
+            self.apply_curs.execute("set session_replication_role = 'replica'")
 
         src_curs = src_db.cursor()
         dst_curs = dst_db.cursor()
