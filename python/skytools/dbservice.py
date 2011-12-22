@@ -103,17 +103,28 @@ def get_record_lists(tbl, field):
         dict.setdefault( id, [] ).append(rec)
     return dict
 
+def _make_record_convert(row):
+    """Converts complex values."""
+    d = row.copy()
+    for k, v in d.items():
+        if isinstance(v, list):
+            d[k] = skytools.make_pgarray(v)
+    return skytools.db_urlencode(d)
+
 def make_record(row):
     """ Takes record as dict and returns it as urlencoded string.
         Used to send data out of db service layer.or to fake incoming calls
     """
+    for v in row.values():
+        if isinstance(v, list):
+            return _make_record_convert(row)
     return skytools.db_urlencode(row)
 
 def make_record_array(rowlist):
     """ Takes list of records got from plpy execute and turns it into postgers aray string.
         Used to send data out of db service layer.
     """
-    return '{' + ','.join( map(skytools.db_urlencode, rowlist) ) +  '}'
+    return '{' + ','.join( map(make_record, rowlist) ) +  '}'
 
 def get_result_items(list, name):
     """ Get return values from result
