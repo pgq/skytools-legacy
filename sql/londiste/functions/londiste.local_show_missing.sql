@@ -20,7 +20,7 @@ begin
                   and n.nspname not in ('pgq', 'pgq_ext', 'pgq_node', 'londiste', 'pg_catalog', 'information_schema')
                   and n.nspname !~ '^pg_(toast|temp)'
                   and not exists (select 1 from londiste.table_info
-                                   where queue_name = i_queue_name
+                                   where queue_name = i_queue_name and local
                                      and coalesce(dest_table, table_name) = (n.nspname || '.' || r.relname))
                 order by 1, 2
         loop
