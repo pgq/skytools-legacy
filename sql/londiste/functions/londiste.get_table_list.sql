@@ -79,6 +79,11 @@ begin
         -- be more robust against late joiners
         q_part1 := coalesce(q_part_ddl, q_part1);
 
+        -- turn the logic off if no merge is happening
+        if n_parts = 1 then
+            q_part1 := null;
+        end if;
+
         if q_part1 is not null then
             if i_queue_name = q_part1 then
                 -- lead

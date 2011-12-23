@@ -67,6 +67,19 @@ select * from londiste.get_table_list('branch_set');
  public.tmp       | f     |             |                 |             |             |           |        0 | 
 (2 rows)
 
+select * from londiste.local_set_table_state('branch_set', 'public.slavedata', null, 'in-copy');
+ ret_code |                   ret_note                    
+----------+-----------------------------------------------
+      200 | Table public.slavedata state set to 'in-copy'
+(1 row)
+
+select * from londiste.get_table_list('branch_set');
+    table_name    | local | merge_state | custom_snapshot | table_attrs | dropped_ddl | copy_role | copy_pos | dest_table 
+------------------+-------+-------------+-----------------+-------------+-------------+-----------+----------+------------
+ public.slavedata | t     | in-copy     |                 |             |             |           |        0 | 
+ public.tmp       | f     |             |                 |             |             |           |        0 | 
+(2 rows)
+
 select * from londiste.global_remove_table('branch_set', 'public.tmp');
  ret_code |         ret_note          
 ----------+---------------------------
