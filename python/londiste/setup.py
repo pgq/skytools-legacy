@@ -131,15 +131,16 @@ class LondisteSetup(CascadeAdmin):
         args = self.expand_arg_list(dst_db, 'r', False, args, needs_tbl)
 
         # dont check for exist/not here (root handling)
-        problems = False
-        for tbl in args:
-            tbl = skytools.fq_name(tbl)
-            if (tbl in src_tbls) and not src_tbls[tbl]['local']:
-                self.log.error("Table %s does not exist on provider, need to switch to different provider" % tbl)
-                problems = True
-        if problems:
-            self.log.error("Problems, canceling operation")
-            sys.exit(1)
+        if not self.is_root():
+            problems = False
+            for tbl in args:
+                tbl = skytools.fq_name(tbl)
+                if (tbl in src_tbls) and not src_tbls[tbl]['local']:
+                    self.log.error("Table %s does not exist on provider, need to switch to different provider" % tbl)
+                    problems = True
+            if problems:
+                self.log.error("Problems, canceling operation")
+                sys.exit(1)
 
         # pick proper create flags
         if self.options.create_full:
