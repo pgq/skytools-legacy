@@ -105,11 +105,13 @@ class CopyTable(Replicator):
 
         # just in case, drop all fkeys (in case "replay" was skipped)
         # !! this may commit, so must be done before anything else !!
-        self.drop_fkeys(dst_db, tbl_stat.dest_table)
+        if cmode > 0:
+            self.drop_fkeys(dst_db, tbl_stat.dest_table)
 
         # now start ddl-dropping tx
-        q = "lock table " + skytools.quote_fqident(tbl_stat.dest_table)
-        dst_curs.execute(q)
+        if cmode > 0:
+            q = "lock table " + skytools.quote_fqident(tbl_stat.dest_table)
+            dst_curs.execute(q)
 
         # find dst struct
         src_struct = TableStruct(src_curs, src_real_table)
@@ -179,7 +181,7 @@ class CopyTable(Replicator):
             dst_db.commit()
 
             # start waiting for other copy processes to finish
-            while tbl_stat.copy_role == 'lead':
+            while tbl_stat.copy_role:
                 self.log.info('waiting for other partitions to finish copy')
                 time.sleep(10)
                 tbl_stat = self.reload_table_stat(dst_curs, tbl_stat.name)
