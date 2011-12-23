@@ -136,8 +136,8 @@ for db in full1 full2; do
 cnt=0
 while test $cnt -ne $parts; do
  sleep 5
- cnt=`psql ${db} -Atc "select count(*) from londiste.table_info"`
- echo "$db cnt=$cnt"
+ cnt=`psql ${db} -Atc "select count(*)-1 from londiste.table_info"`
+ echo "$db cnt=$cnt parts=$parts"
 done
 done
 
