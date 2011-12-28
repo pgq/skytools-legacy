@@ -47,7 +47,7 @@ modules-install: config.mak
 
 SITEDIR = site-packages
 
-python-install: config.mak sub-all
+python-install: config.mak
 	$(PYTHON) setup_pkgloader.py install --prefix=$(prefix) --root=$(DESTDIR)/ $(BROKEN_PYTHON)
 	$(PYTHON) setup_skytools.py install --prefix=$(prefix) --root=$(DESTDIR)/ $(BROKEN_PYTHON)
 	$(MAKE) -C doc DESTDIR=$(DESTDIR) install
