@@ -105,7 +105,7 @@ endif
 html/%.html: %.txt $(COMMON)
 	@mkdir -p html
 	LANG=C cat $< \
-	| sed -e '/^include/b;s,\([A-Za-z.0-9]*\)[.]txt,link:\1.html[],g' \
+	| sed -e '/^include/b' -e 's,\([A-Za-z.0-9]*\)[.]txt,link:\1.html[],g' \
 	| $(ASCIIDOC) $(AFLAGS) -a toc `$(GETATTRS) $<` -o - - \
 	| sed -e "/^[/][*] Workarounds/r ../misc/extra.css" \
 	> $@
