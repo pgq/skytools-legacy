@@ -202,11 +202,12 @@ class QueryBuilder:
             # get arg name, check if exists
             k = expr[a1 + 1 : a2]
             # split name from type
-            k = k.split(":", 1)
-            kparam = k[0]
-            try:
-                ktype = k[1]
-            except IndexError:
+            tpos = k.rfind(':')
+            if tpos > 0:
+                kparam = k[:tpos]
+                ktype = k[tpos+1 : ]
+            else:
+                kparam = k
                 ktype = type
 
             # params==None means params are checked later
