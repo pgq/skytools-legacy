@@ -340,12 +340,13 @@ class TableAPI:
     _table = None   # schema name and table name
     _where = None   # where condition used for update and delete
     _id = None      # name of the primary key filed
+    _id_type = None # column type of primary key
     _op = None      # operation currently carried out
     _ctx = None     # context object for username and version
     _logging = True # should tapi log data changed
     _row = None     # row identifer from calling program
 
-    def __init__(self, ctx, table, create_log = True ):
+    def __init__(self, ctx, table, create_log = True, id_type='int8' ):
         """ Table name is used to construct insert update and delete statements
             Table must have primary key field whose name is in format id_<table>
             Tablename should be in format schema.tablename
@@ -353,7 +354,8 @@ class TableAPI:
         self._ctx = ctx
         self._table = skytools.quote_fqident(table)
         self._id = "id_" + skytools.fq_name_parts(table)[1]
-        self._where = skytools.quote_ident(self._id) + " = {" + self._id + "}"
+        self._id_type = id_type
+        self._where = '%s = {%s:%s}' % (skytools.quote_ident(self._id), self._id, self._id_type)
         self._logging = create_log
 
     def _log(self, result, original = None):
