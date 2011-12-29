@@ -168,6 +168,7 @@ def _parse_arglist(arglist):
     args = {}
     for arg in arglist or []:
         key, _, val = arg.partition('=')
+        key = key.strip()
         if key in args:
             raise Exception('multiple handler arguments: %s' % key)
         args[key] = val.strip()
