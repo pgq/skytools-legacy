@@ -6,6 +6,14 @@ _symbols = {
     'AdminScript': 'skytools.adminscript:AdminScript',
     # skytools.config
     'Config': 'skytools.config:Config',
+    # skytools.dbservice
+    'DBService': 'skytools.dbservice:DBService',
+    'ServiceContext': 'skytools.dbservice:ServiceContext',
+    'TableAPI': 'skytools.dbservice:TableAPI',
+    'get_record': 'skytools.dbservice:get_record',
+    'get_record_list': 'skytools.dbservice:get_record_list',
+    'make_record': 'skytools.dbservice:make_record',
+    'make_record_array': 'skytools.dbservice:make_record_array',
     # skytools.dbstruct
     'SeqStruct': 'skytools.dbstruct:SeqStruct',
     'TableStruct': 'skytools.dbstruct:TableStruct',

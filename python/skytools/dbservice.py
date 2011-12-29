@@ -7,10 +7,13 @@ import re, skytools
 
 from skytools import dbdict
 
-__all__ = ['DBService',  'dbdict',
+__all__ = ['DBService',
     'get_record', 'get_record_list',
-    'make_record', 'make_record_array', 'log_result', 'transform_fields',
-    'ServiceContext', 'TableAPI']
+    'make_record', 'make_record_array',
+    #'log_result', 'transform_fields',
+    'ServiceContext',
+    #'TableAPI',
+]
 
 try:
     import plpy
