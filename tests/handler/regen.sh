@@ -123,3 +123,52 @@ run_sql hdst 'select * from mytable order by id'
 
 ../zcheck.sh
 
+
+
+
+msg "== dispatcher =="
+
+msg "Create table on root node and fill couple of rows"
+run_sql hsrc "create table logtable (id int4 primary key, data text, tstamp timestamptz default now())"
+for n in 1 2 3; do
+  run_sql hsrc "insert into logtable values ($n, 'row$n', '2011-0$n-01')"
+done
+
+msg "Register table on root node"
+run londiste3 $v conf/londiste_hsrc.ini add-table logtable
+
+msg "Register table on other node with creation"
+run_sql hdst "create table logtable (id int4 primary key, data text, tstamp timestamptz default now())"
+run_sql hdst "drop role if exists reporting"
+run_sql hdst "create group reporting"
+run_sql hdst "grant select on logtable to reporting"
+run_sql hdst '\i ../../sql/dispatch/create_partition.sql'
+
+for db in hdst; do
+  run londiste3 $v conf/londiste_$db.ini add-table logtable --handler=monthly_field --handler-arg="part_field=tstamp" --handler-arg="encoding=utf8"
+done
+
+msg "Wait until table is in sync"
+cnt=0
+while test $cnt -ne 2; do
+  sleep 3
+  cnt=`psql -A -t -d hdst -c "select count(*) from londiste.table_info where merge_state = 'ok'"`
+  echo "  cnt=$cnt"
+done
+
+msg "Do some updates"
+for n in 4 5 6; do
+  run_sql hsrc "insert into logtable values ($n, 'row$n', '2011-0$n-01')"
+done
+
+run sleep 10
+
+msg "Check status"
+run londiste3 $v conf/londiste_hsrc.ini status
+
+run sleep 5
+
+run_sql hdst 'select * from logtable order by id'
+
+../zcheck.sh
+
