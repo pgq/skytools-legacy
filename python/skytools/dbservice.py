@@ -7,12 +7,10 @@ import re, skytools
 
 from skytools import dbdict
 
-__all__ = ['DBService',
+__all__ = ['DBService', 'ServiceContext',
     'get_record', 'get_record_list',
     'make_record', 'make_record_array',
-    #'log_result', 'transform_fields',
-    'ServiceContext',
-    #'TableAPI',
+    #'log_result', 'transform_fields', 'TableAPI',
 ]
 
 try:
