@@ -3,12 +3,17 @@
 """
 
 import sys, time, skytools
+from londiste.handler import build_handler, load_handler_modules
 
 class ATable:
     def __init__(self, row):
         self.table_name = row['table_name']
         self.dest_table = row['dest_table'] or row['table_name']
         self.merge_state = row['merge_state']
+        attrs = row['table_attrs'] or ''
+        self.table_attrs = skytools.db_urldecode(attrs)
+        hstr = self.table_attrs.get('handler', '')
+        self.plugin = build_handler(self.table_name, hstr, row['dest_table'])
 
 class Syncer(skytools.DBScript):
     """Walks tables in primary key order and checks if data matches."""
@@ -34,6 +39,8 @@ class Syncer(skytools.DBScript):
 
         if self.pidfile:
             self.pidfile += ".repair"
+
+        load_handler_modules(self.cf)
 
     def set_lock_timeout(self, curs):
         ms = int(1000 * self.lock_timeout)
@@ -74,7 +81,7 @@ class Syncer(skytools.DBScript):
         Returns tuple of (dict(name->ATable), namelist)"""
 
         curs = db.cursor()
-        q = "select table_name, merge_state, dest_table"\
+        q = "select table_name, merge_state, dest_table, table_attrs"\
             " from londiste.get_table_list(%s) where local"
         curs.execute(q, [self.queue_name])
         rows = curs.fetchall()
