@@ -291,11 +291,25 @@ class TGrant(TElem):
     """Info about permissions."""
     type = T_GRANT
     SQL = "SELECT relacl FROM pg_class where oid = %(oid)s"
+
+    # Sync with: src/include/utils/acl.h
     acl_map = {
-        'r': 'SELECT', 'w': 'UPDATE',     'a': 'INSERT',  'd': 'DELETE',
-        'R': 'RULE',   'x': 'REFERENCES', 't': 'TRIGGER', 'X': 'EXECUTE',
-        'U': 'USAGE',  'C': 'CREATE',     'T': 'TEMPORARY'
+        'a': 'INSERT',
+        'r': 'SELECT',
+        'w': 'UPDATE',
+        'd': 'DELETE',
+        'D': 'TRUNCATE',
+        'x': 'REFERENCES',
+        't': 'TRIGGER',
+        'X': 'EXECUTE',
+        'U': 'USAGE',
+        'C': 'CREATE',
+        'T': 'TEMPORARY',
+        'c': 'CONNECT',
+        # old
+        'R': 'RULE',
     }
+
     def acl_to_grants(self, acl):
         if acl == "arwdRxt":   # ALL for tables
             return "ALL"
