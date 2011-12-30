@@ -886,10 +886,6 @@ class Dispatcher(BaseHandler):
             if skytools.exists_function(curs, self.conf.part_func, len(PART_FUNC_ARGS)):
                 self.log.debug('check_part.exec: func:%s, args: %s' % (pfcall, vals))
                 curs.execute(pfcall, vals)
-
-                # load grants from master table
-                struct = TableStruct(curs, self.dest_table)
-                struct.create(curs, T_GRANT, dst)
             else:
                 self.log.debug('part func %s not found, cloning table' % self.conf.part_func)
                 struct = TableStruct(curs, self.dest_table)

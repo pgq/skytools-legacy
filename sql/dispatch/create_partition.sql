@@ -1,12 +1,5 @@
 -- drop old function with timestamp
-DROP FUNCTION IF EXISTS public.create_partition(
-    text,
-    text,
-    text,
-    text,
-    timestamp,
-    text
-);
+DROP FUNCTION IF EXISTS public.create_partition(text, text, text, text, timestamp, text);
 
 CREATE OR REPLACE FUNCTION public.create_partition(
     i_table text,
@@ -15,9 +8,7 @@ CREATE OR REPLACE FUNCTION public.create_partition(
     i_part_field text,
     i_part_time timestamptz,
     i_part_period text
-) RETURNS int
-AS $$
-
+) RETURNS int AS $$
 ------------------------------------------------------------------------
 -- Function: public.create_partition
 --
@@ -40,24 +31,30 @@ declare
     chk_start       text;
     chk_end         text;
     part_start      timestamptz;
-    table_schema    text;
-    table_name      text;
+    parent_schema   text;
+    parent_name     text;
     part_schema     text;
     part_name       text;
     pos             int4;
     fq_table        text;
     fq_part         text;
+    g               record;
+    sql             text;
+    pgver           integer;
 begin
+    -- load postgres version (XYYZZ).
+    show server_version_num into pgver;
+
     -- parent table schema and name + quoted name
     pos := position('.' in i_table);
     if pos > 0 then
-        table_schema := substring(i_table for pos - 1);
-        table_name := substring(i_table from pos + 1);
+        parent_schema := substring(i_table for pos - 1);
+        parent_name := substring(i_table from pos + 1);
     else
-        table_schema := 'public';
-        table_name := i_table;
+        parent_schema := 'public';
+        parent_name := i_table;
     end if;
-    fq_table := quote_ident(table_schema) || '.' || quote_ident(table_name);
+    fq_table := quote_ident(parent_schema) || '.' || quote_ident(parent_name);
 
     -- part table schema and name + quoted name
     pos := position('.' in i_part);
@@ -80,24 +77,46 @@ begin
           and t.relname = part_name;
     if found then
         return 0;
-    else
-        -- need to use 'like' to get indexes
-        execute 'create table ' || fq_part
-            || ' (like ' || fq_table || ' including indexes including constraints)'
-            -- || ' () '
-            || ' inherits (' || fq_table || ')';
-
-        if i_part_field != '' then
-            part_start := date_trunc(i_part_period, i_part_time);
-            chk_start := to_char(part_start, 'YYYY-MM-DD HH24:MI:SS');
-            chk_end := to_char(part_start + ('1 '||i_part_period)::interval,
-			       'YYYY-MM-DD HH24:MI:SS');
-            execute 'alter table '|| fq_part ||' add check(' || i_part_field || ' >= '''
-            || chk_start ||''' and ' || i_part_field || ' < ''' || chk_end || ''')';
-        end if;
     end if;
+
+    -- need to use 'like' to get indexes
+    sql := 'create table ' || fq_part || ' (like ' || fq_table;
+    if pgver >= 90000 then
+        sql := sql || ' including all';
+    else
+        sql := sql || ' including indexes including constraints';
+    end if;
+    sql := sql || ') inherits (' || fq_table || ')';
+    execute sql;
+
+    if i_part_field != '' then
+        part_start := date_trunc(i_part_period, i_part_time);
+        chk_start := to_char(part_start, 'YYYY-MM-DD HH24:MI:SS');
+        chk_end := to_char(part_start + ('1 '||i_part_period)::interval,
+                           'YYYY-MM-DD HH24:MI:SS');
+        sql := 'alter table '|| fq_part || ' add check('
+            || i_part_field || ' >= ''' || chk_start || ''' and '
+            || i_part_field || ' < ''' || chk_end || ''')';
+        execute sql;
+    end if;
+
+    -- load grants from parent table
+    for g in
+        select grantor, grantee, privilege_type, is_grantable
+            from information_schema.table_privileges
+            where table_schema = parent_schema
+                and table_name = parent_name
+    loop
+        sql := 'grant ' || g.privilege_type || ' on ' || fq_part
+            || ' to ' || quote_ident(g.grantee);
+        if g.is_grantable = 'YES' and g.grantor <> g.grantee then
+            sql := sql || ' with grant option';
+        end if;
+        execute sql;
+    end loop;
+
     return 1;
 end;
 
-$$
-LANGUAGE plpgsql;
+$$ language plpgsql;
+

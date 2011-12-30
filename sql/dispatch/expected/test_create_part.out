@@ -1,4 +1,8 @@
 \set ECHO none
+drop role if exists ptest1;
+drop role if exists ptest2;
+create group ptest1;
+create group ptest2;
 create table events (
     id int4 primary key,
     txt text not null,
@@ -6,6 +10,8 @@ create table events (
     someval int4 check (someval > 0)
 );
 create index ctime_idx on events (ctime);
+grant select,delete on events to ptest1;
+grant select,update,delete on events to ptest2 with grant option;
 select create_partition('events', 'events_2011_01', 'id', 'ctime', '2011-01-01', 'month');
  create_partition 
 ------------------
@@ -37,3 +43,5 @@ select count(*) from pg_constraint where conrelid = 'public.events_2011_01'::reg
 (1 row)
 
 -- \d events_2011_01
+-- \dp events
+-- \dp events_2011_01
