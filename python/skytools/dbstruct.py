@@ -313,7 +313,18 @@ class TGrant(TElem):
     def acl_to_grants(self, acl):
         if acl == "arwdRxt":   # ALL for tables
             return "ALL"
-        return ", ".join([ self.acl_map[c] for c in acl ])
+        i = 0
+        lst1 = []
+        lst2 = []
+        while i < len(acl):
+            a = self.acl_map[acl[i]]
+            if i+1 < len(acl) and acl[i+1] == '*':
+                lst2.append(a)
+                i += 2
+            else:
+                lst1.append(a)
+                i += 1
+        return ", ".join(lst1), ", ".join(lst2)
 
     def parse_relacl(self, relacl):
         """Parse ACL to tuple of (user, acl, who)"""
@@ -336,11 +347,18 @@ class TGrant(TElem):
         if not new_name:
             new_name = self.name
 
+        qtarget = quote_fqident(new_name)
+
         sql_list = []
-        for user, acl, who in self.acl_list:
-            astr = self.acl_to_grants(acl)
-            sql = "GRANT %s ON %s\n  TO %s;" % (astr, quote_fqident(new_name), quote_ident(user))
-            sql_list.append(sql)
+        for role, acl, who in self.acl_list:
+            qrole = quote_ident(role)
+            astr1, astr2 = self.acl_to_grants(acl)
+            if astr1:
+                sql = "GRANT %s ON %s\n  TO %s;" % (astr1, qtarget, qrole)
+                sql_list.append(sql)
+            if astr2:
+                sql = "GRANT %s ON %s\n  TO %s WITH GRANT OPTION;" % (astr2, qtarget, qrole)
+                sql_list.append(sql)
         return "\n".join(sql_list)
 
     def get_drop_sql(self, curs):
