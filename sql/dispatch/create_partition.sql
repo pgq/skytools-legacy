@@ -1,14 +1,12 @@
--- drop old function with timestamp
-DROP FUNCTION IF EXISTS public.create_partition(text, text, text, text, timestamp, text);
 
-CREATE OR REPLACE FUNCTION public.create_partition(
+create or replace function public.create_partition(
     i_table text,
     i_part  text,
     i_pkeys text,
     i_part_field text,
     i_part_time timestamptz,
     i_part_period text
-) RETURNS int AS $$
+) returns int as $$
 ------------------------------------------------------------------------
 -- Function: public.create_partition
 --
@@ -31,6 +29,7 @@ declare
     chk_start       text;
     chk_end         text;
     part_start      timestamptz;
+    part_end        timestamptz;
     parent_schema   text;
     parent_name     text;
     part_schema     text;
@@ -42,6 +41,10 @@ declare
     sql             text;
     pgver           integer;
 begin
+    if i_table is null or i_part is null then
+        raise exception 'need table and part';
+    end if;
+
     -- load postgres version (XYYZZ).
     show server_version_num into pgver;
 
@@ -84,19 +87,19 @@ begin
     if pgver >= 90000 then
         sql := sql || ' including all';
     else
-        sql := sql || ' including indexes including constraints';
+        sql := sql || ' including indexes including constraints including defaults';
     end if;
     sql := sql || ') inherits (' || fq_table || ')';
     execute sql;
 
     if i_part_field != '' then
         part_start := date_trunc(i_part_period, i_part_time);
-        chk_start := to_char(part_start, 'YYYY-MM-DD HH24:MI:SS');
-        chk_end := to_char(part_start + ('1 '||i_part_period)::interval,
-                           'YYYY-MM-DD HH24:MI:SS');
-        sql := 'alter table '|| fq_part || ' add check('
-            || i_part_field || ' >= ''' || chk_start || ''' and '
-            || i_part_field || ' < ''' || chk_end || ''')';
+        part_end := part_start + ('1 ' || i_part_period)::interval;
+        chk_start := quote_literal(to_char(part_start, 'YYYY-MM-DD HH24:MI:SS'));
+        chk_end := quote_literal(to_char(part_end, 'YYYY-MM-DD HH24:MI:SS'));
+        sql := 'alter table '|| fq_part || ' add check ('
+            || quote_ident(i_part_field) || ' >= ' || chk_start || ' and '
+            || quote_ident(i_part_field) || ' < ' || chk_end || ')';
         execute sql;
     end if;
 
@@ -109,7 +112,7 @@ begin
     loop
         sql := 'grant ' || g.privilege_type || ' on ' || fq_part
             || ' to ' || quote_ident(g.grantee);
-        if g.is_grantable = 'YES' and g.grantor <> g.grantee then
+        if g.is_grantable = 'YES' then
             sql := sql || ' with grant option';
         end if;
         execute sql;
@@ -117,6 +120,8 @@ begin
 
     return 1;
 end;
-
 $$ language plpgsql;
+
+-- drop old function with timestamp
+drop function if exists public.create_partition(text, text, text, text, timestamp, text);
 
