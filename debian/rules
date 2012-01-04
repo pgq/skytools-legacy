@@ -42,16 +42,14 @@ override_dh_auto_clean: config.mak debian/control
 # it so that we have binary packages for postgresql-8.4-pgq3 and 9.0.
 override_dh_auto_install: 
 	mkdir -p $(CURDIR)/debian/tmp
-	dh_auto_install -- SQLDIR=/usr/share/skytools3
+	dh_auto_install
 	# now care about any previous supported versions
 	for version in $$(pg_buildext supported-versions .) ; do \
 		echo "### Building for PostgreSQL $$version" && \
-		for d in sql/pgq sql/pgq_node sql/pgq_ext sql/pgq_coop sql/txid sql/londiste; do \
-			make PG_CONFIG=/usr/lib/postgresql/$$version/bin/pg_config \
+		make -C sql clean install \
+			PG_CONFIG=/usr/lib/postgresql/$$version/bin/pg_config \
 			DESTDIR=$(CURDIR)/debian/tmp \
-	                     -C $$d clean install \
-	                || exit 1 ;\
-		done; \
+		|| exit 1 ; \
 	done
 
 orig: config.mak
