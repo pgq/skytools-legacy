@@ -51,16 +51,6 @@ Description: Skype tools for PostgreSQL replication, londiste and PGQ
  is based on snapshot based event handling ideas from Slony-I, written for
  general usage.
 
-Package: postgresql-9.1-pgq3
-Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, postgresql-9.1
-Provides: skytools-modules
-Conflicts: skytools-modules-9.1
-Replaces: skytools-modules-9.1
-Description: Skype tools for PostgreSQL replication, londiste and PGQ
- This is the PGQ extension used by Skype replication, londiste. It consists
- of PL/pgsql, and C code in database.
-
 Package: postgresql-PGVERSION-pgq3
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, postgresql-PGVERSION

@@ -13,4 +13,3 @@ usr/share/postgresql/8.4/contrib/pgq.sql
 usr/share/postgresql/8.4/contrib/pgq_coop.sql
 usr/share/postgresql/8.4/contrib/londiste.upgrade.sql
 usr/share/postgresql/8.4/contrib/uninstall_pgq.sql
-pgq_core_upgrade_to_v3.0.sql usr/share/postgresql/8.4/contrib/
