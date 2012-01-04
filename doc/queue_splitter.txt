@@ -1,0 +1,99 @@
+= queue_splitter(1) =
+
+== NAME ==
+
+queue_splitter - PgQ consumer that transports events from one queue into several target queues
+
+== SYNOPSIS ==
+
+  queue_splitter.py [switches] config.ini 
+
+== DESCRIPTION ==
+
+queue_spliter is PgQ consumer that transports events from source queue into 
+several target queues.  `ev_extra1` field in each event shows into which
+target queue it must go.  (`pgq.logutriga()` puts there the table name.)
+
+One use case is to move events from OLTP database to batch processing server.
+By using queue spliter it is possible to move all kinds of events for batch
+processing with one consumer thus keeping OLTP database less crowded.
+
+== QUICK-START ==
+
+Basic queue_splitter setup and usage can be summarized by the following
+steps:
+
+ 1. pgq must be installed both in source and target databases.
+    See pgqadm man page for details.  Target database must also
+    have pgq_ext schema installed.
+
+ 2. edit a queue_splitter configuration file, say queue_splitter_sourcedb_sourceq_targetdb.ini
+
+ 3. create source and target queues 
+
+      $ pgqadm.py ticker.ini create <queue>
+
+ 4. launch queue splitter in daemon mode
+
+      $ queue_splitter.py queue_splitter_sourcedb_sourceq_targetdb.ini -d
+
+ 5. start producing and consuming events 
+
+== CONFIG ==
+
+include::common.config.txt[]
+
+=== queue_splitter parameters ===
+
+src_db::
+  Source database.
+
+dst_db::
+  Target database.
+
+=== Example config file ===
+
+  [queue_splitter]
+  job_name        = queue_spliter_sourcedb_sourceq_targetdb
+
+  src_db          = dbname=sourcedb
+  dst_db          = dbname=targetdb
+
+  pgq_queue_name  = sourceq
+
+  logfile         = ~/log/%(job_name)s.log
+  pidfile         = ~/pid/%(job_name)s.pid
+
+== COMMAND LINE SWITCHES ==
+
+include::common.switches.txt[]
+
+== USECASE ==
+
+How to to process events created in secondary database
+with several queues but have only one queue in primary
+database.  This also shows how to insert events into
+queues with regular SQL easily.
+
+   CREATE SCHEMA queue;
+   CREATE TABLE queue.event1 (
+        -- this should correspond to event internal structure
+	-- here you can put checks that correct data is put into queue
+   	id int4,
+	name text,
+	-- not needed, but good to have:
+	primary key (id)
+   );
+   -- put data into queue in urlencoded format, skip actual insert
+   CREATE TRIGGER redirect_queue1_trg BEFORE INSERT ON queue.event1
+   FOR EACH ROW EXECUTE PROCEDURE pgq.logutriga('singlequeue', 'SKIP');
+   -- repeat the above for event2
+
+   -- now the data can be inserted:
+   INSERT INTO queue.event1 (id, name) VALUES (1, 'user');
+
+If the queue_splitter is put on "singlequeue", it spreads the event
+on target to queues named "queue.event1", "queue.event2", etc.
+This keeps PgQ load on primary database minimal both CPU-wise
+and maintenance-wise.
+
