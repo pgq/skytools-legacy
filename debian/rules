@@ -25,10 +25,10 @@ ORIG_EXCLUDE=--exclude-vcs --exclude=debian
 include /usr/share/postgresql-common/pgxs_debian_control.mk
 
 config.mak:
-	autoreconf -I lib/m4
+	./autogen.sh
 	./configure --prefix=/usr --with-asciidoc --with-sk3-subdir
 
-override_dh_auto_configure:
+override_dh_auto_configure: config.mak
 
 override_dh_auto_clean: config.mak debian/control
 	make -C doc realclean
@@ -36,9 +36,6 @@ override_dh_auto_clean: config.mak debian/control
 	for version in $$(pg_buildext supported-versions .) ; do \
 		rm -rf debian/postgresql-$${version}-pgq3; \
 	done
-
-override_dh_auto_build: config.mak lib/build
-	dh_auto_build -- SQLDIR=/usr/share/skytools3
 
 # upstream build system will build fine for one given PostgreSQL version,
 # then we build the PostgreSQL module and files for yet another version of
