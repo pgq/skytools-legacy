@@ -54,8 +54,10 @@ override_dh_auto_install:
 		done; \
 	done
 
-orig: clean
-	cd .. && tar czf skytools3_$(PKGVERS).orig.tar.gz $(ORIG_EXCLUDE) skytools
+orig: config.mak
+	rm -rf dist
+	make tgz
+	mv dist/*.tar.gz ../skytools3_$(PKGVERS).orig.tar.gz
 
 %:
 	dh $@
