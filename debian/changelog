@@ -1,3 +1,9 @@
+skytools3 (3.0b1) experimental; urgency=low
+
+  * test beta 1
+
+ -- Marko Kreen <marko.kreen@skype.net>  Thu, 05 Jan 2012 21:01:23 +0200
+
 skytools3 (3.0~rc2-1) experimental; urgency=low
 
   * Fix skytools3-walmgr dependencies (support 9.1)
