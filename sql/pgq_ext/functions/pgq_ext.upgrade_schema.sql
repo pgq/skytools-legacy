@@ -4,6 +4,8 @@ returns int4 as $$
 -- updates table structure if necessary
 declare
     cnt int4 = 0;
+    tbl text;
+    sql text;
 begin
     -- pgq_ext.completed_batch: subconsumer_id
     perform 1 from information_schema.columns
@@ -84,6 +86,21 @@ begin
             primary key (consumer_id, subconsumer_id, batch_id, event_id);
         cnt := cnt + 1;
     end if;
+
+    -- add default value to subconsumer_id column
+    for tbl in
+        select table_name
+           from information_schema.columns
+           where table_schema = 'pgq_ext'
+             and table_name in ('completed_tick', 'completed_event', 'partial_batch', 'completed_batch')
+             and column_name = 'subconsumer_id'
+             and column_default is null
+    loop
+        sql := 'alter table pgq_ext.' || tbl
+            || ' alter column subconsumer_id set default ' || quote_literal('');
+        execute sql;
+        cnt := cnt + 1;
+    end loop;
 
     return cnt;
 end;

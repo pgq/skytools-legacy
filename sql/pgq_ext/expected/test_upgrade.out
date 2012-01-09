@@ -1,7 +1,7 @@
 \set ECHO off
  upgrade_schema 
 ----------------
-              4
+              8
 (1 row)
 
 --
