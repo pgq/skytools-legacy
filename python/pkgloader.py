@@ -70,7 +70,10 @@ def require(pkg, reqver):
 
     # check if it is actually useful
     ver_str = mod.__version__
-    ver_str = ver_str.split('-', 1)[0]
+    for i, c in enumerate(ver_str):
+        if c != '.' and not c.isdigit():
+            ver_str = ver_str[:i]
+            break
     full_ver = tuple([int(x) for x in ver_str.split('.')])
     if full_ver[0] != reqval[0] or reqval > full_ver:
         raise ImportError("Request for package '%s' ver '%s', have '%s'" % (
