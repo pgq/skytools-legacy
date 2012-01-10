@@ -34,6 +34,12 @@ begin
     end loop;
 
     -- rotate step 2
+    if nrot = 0 then
+        select count(1) from pgq.queue
+            where queue_rotation_period is not null
+                and queue_switch_step2 is null
+            into nrot;
+    end if;
     if nrot > 0 then
         func_name := 'pgq.maint_rotate_tables_step2';
         func_arg := NULL;
