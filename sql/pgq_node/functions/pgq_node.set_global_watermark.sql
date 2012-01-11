@@ -44,10 +44,6 @@ begin
             if _wm is null then
                 raise exception 'local_watermark=NULL from get_node_info()?';
             end if;
-        elsif i_watermark is null then
-            select 500, 'bad usage: wm=null on non-root node'
-                into ret_code, ret_note;
-            return;
         end if;
 
         -- move watermark
@@ -62,6 +58,12 @@ begin
             where queue_name = i_queue_name
                 and consumer_name = this.worker_name;
     elsif this.node_type = 'branch' then
+        if i_watermark is null then
+            select 500, 'bad usage: wm=null on branch node'
+                into ret_code, ret_note;
+            return;
+        end if;
+
         -- tick can be missing if we are processing
         -- old batches that set watermark outside
         -- current range
