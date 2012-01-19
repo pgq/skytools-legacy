@@ -34,14 +34,14 @@ When building code from GIT:
 == Building from GIT ==
 
   ## fetch git tree
-  $ git clone git://github.com/markokr/skytools-dev.git
+  $ git clone git://github.com/markokr/skytools.git
 
   ## fetch libusual submodule
   $ git submodule init
   $ git submodule update
 
   ## generate ./configure script
-  $ make boot
+  $ ./autogen.sh
 
   ## now build as usual (--with-asciidoc is required when building from GIT)
   $ ./configure --prefix=... --with-asciidoc
@@ -53,19 +53,12 @@ The main Makefile provides a target for building a +.deb+ package
 suitable for installation.  Following additional packages are needed
 to build the debian package:
 
-  devscripts yada
+  devscripts autotools-dev python-all-dev python-support xmlto asciidoc
+  libpq-dev postgresql-server-dev-all
 
-Then the build:
+Then build:
 
-  $ make deb83
-
-You can build skytools for older PostgreSQL systems by choosing one of
-+deb82+, +deb81+ or +deb80+ targets.
-
-The build should give you two debian package files to install, such as
-+skytools_2.1.5_i386.deb+ and
-+skytools-modules-8.2_2.1.5_i386.deb+. See the Installation section
-for notes about where to install those packages.
+  $ make deb
 
 == Optional arguments to ./configure ==
 
