@@ -9,14 +9,17 @@
 --      pgq.event_*                 - Data tables
 --      pgq.retry_queue             - Events to be retried later
 --
--- Its basically generalized and simplified Slony-I structure:
---      sl_node                     - pgq.consumer
---      sl_set                      - pgq.queue
---      sl_subscriber + sl_confirm  - pgq.subscription
---      sl_event                    - pgq.tick
---      sl_setsync                  - pgq_ext.completed_*
---      sl_log_*                    - slony1 has per-cluster data tables,
---                                    pgq has per-queue data tables.
+-- 
+-- Standard triggers store events in the pgq.event_* data tables
+-- There is one top event table pgq.event_<queue_id> for each queue
+-- inherited from pgq.event_template wuith three tables for actual data
+-- pgq.event_<queue_id>_0 to pgq.event_<queue_id>_2.
+--
+-- The active table is rotated at interval, so that if all the consubers
+-- have passed some poin the oldes one can be emptied using TRUNCATE command
+-- for efficiency
+-- 
+-- 
 -- ----------------------------------------------------------------------
 
 set client_min_messages = 'warning';

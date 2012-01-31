@@ -6,15 +6,23 @@ returns integer as $$
 -- ----------------------------------------------------------------------
 -- Function: pgq_coop.register_subconsumer(3)
 --
---	Subscribe a subconsumer on a queue.
+--	    Subscribe a subconsumer on a queue.
 --
 --      Subconsumer will be registered as another consumer on queue,
 --      whose name will be i_consumer_name and i_subconsumer_name
 --      combined.
 --
 -- Returns:
---	0 - if already registered
---	1 - if this is a new registration
+--	    0 - if already registered
+--	    1 - if this is a new registration
+--
+-- Calls:
+--      pgq.register_consumer(i_queue_name, i_consumer_name)
+--      pgq.register_consumer(i_queue_name, _subcon_name);
+--
+-- Tables directly manipulated:
+--      update - pgq.subscription
+-- 
 -- ----------------------------------------------------------------------
 declare
     _subcon_name text; -- consumer + subconsumer

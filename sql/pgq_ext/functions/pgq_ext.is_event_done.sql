@@ -5,6 +5,25 @@ create or replace function pgq_ext.is_event_done(
     a_batch_id bigint,
     a_event_id bigint)
 returns boolean as $$
+-- ----------------------------------------------------------------------
+-- Function: pgq_ext.is_event_done(4)
+--
+--	    Checks if a certain consumer and subconsumer have "done" and event
+--      in a batch  
+--
+-- Parameters:
+--      a_consumer - consumer name
+--      a_subconsumer - subconsumer name
+--      a_batch_id - a batch id
+--      a_event_id - an event id
+--
+-- Returns:
+--	    true if event is done, else false 
+-- Calls:
+--      None
+-- Tables directly manipulated:
+--      None
+-- ----------------------------------------------------------------------
 declare
     res   bigint;
 begin
@@ -22,6 +41,24 @@ create or replace function pgq_ext.is_event_done(
     a_batch_id bigint,
     a_event_id bigint)
 returns boolean as $$
+-- ----------------------------------------------------------------------
+-- Function: pgq_ext.is_event_done(3)
+--
+--	    Checks if a certain consumer has "done" and event
+--      in a batch  
+--
+-- Parameters:
+--      a_consumer - consumer name
+--      a_batch_id - a batch id
+--      a_event_id - an event id
+--
+-- Returns:
+--	    true if event is done, else false 
+-- Calls:
+--      Nonpgq_ext.is_event_done(4)
+-- Tables directly manipulated:
+--      None
+-- ----------------------------------------------------------------------
 begin
     return pgq_ext.is_event_done(a_consumer, '', a_batch_id, a_event_id);
 end;

@@ -15,6 +15,11 @@ as $$
 --      i_queue_name  - queue name
 --      i_consumer_name  - consumer name
 --      i_new_provider - node name for new provider
+-- Returns:
+--      ret_code - error code
+--      200 - ok
+--      404 - no such consumer or new node
+--      ret_note - description
 -- ----------------------------------------------------------------------
 begin
     perform 1 from pgq_node.node_location

@@ -10,6 +10,9 @@ as $$
 -- Function: pgq_node.set_consumer_error(3)
 --
 --      If batch processing fails, consumer can store it's last error in db.
+-- Returns:
+--      100 - ok
+--      101 - consumer not known
 -- ----------------------------------------------------------------------
 begin
     update pgq_node.local_state

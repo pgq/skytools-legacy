@@ -8,6 +8,14 @@ returns integer as $$
 -- Returns:
 --      0 - queue already exists
 --      1 - queue created
+-- Calls:
+--      pgq.grant_perms(i_queue_name);
+--      pgq.ticker(i_queue_name);
+--      pgq.tune_storage(i_queue_name);
+-- Tables directly manipulated:
+--      insert - pgq.queue
+--      create - pgq.event_N () inherits (pgq.event_template)
+--      create - pgq.event_N_0 .. pgq.event_N_M () inherits (pgq.event_N)
 -- ----------------------------------------------------------------------
 declare
     tblpfx   text;

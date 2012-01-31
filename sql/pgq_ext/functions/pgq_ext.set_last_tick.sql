@@ -4,6 +4,26 @@ create or replace function pgq_ext.set_last_tick(
     a_subconsumer text,
     a_tick_id bigint)
 returns integer as $$
+-- ----------------------------------------------------------------------
+-- Function: pgq_ext.set_last_tick(3)
+--
+--	    records last completed tick for consumer,
+--      removes row if a_tick_id is NULL 
+--
+-- Parameters:
+--      a_consumer - consumer name
+--      a_subconsumer - subconsumer name
+--      a_tick_id - a tick id
+--
+-- Returns:
+--      1
+-- Calls:
+--      None
+-- Tables directly manipulated:
+--      delete - pgq_ext.completed_tick
+--      update - pgq_ext.completed_tick
+--      insert - pgq_ext.completed_tick 
+-- ----------------------------------------------------------------------
 begin
     if a_tick_id is null then
         delete from pgq_ext.completed_tick
@@ -29,6 +49,23 @@ create or replace function pgq_ext.set_last_tick(
     a_consumer text,
     a_tick_id bigint)
 returns integer as $$
+-- ----------------------------------------------------------------------
+-- Function: pgq_ext.set_last_tick(2)
+--
+--	    records last completed tick for consumer,
+--      removes row if a_tick_id is NULL 
+--
+-- Parameters:
+--      a_consumer - consumer name
+--      a_tick_id - a tick id
+--
+-- Returns:
+--      1
+-- Calls:
+--      pgq_ext.set_last_tick(2)
+-- Tables directly manipulated:
+--      None
+-- ----------------------------------------------------------------------
 begin
     return pgq_ext.set_last_tick(a_consumer, '', a_tick_id);
 end;

@@ -12,14 +12,20 @@ as $$
 --
 --      Multi-step root demotion to branch.
 --
---      Step 1: disable writing to queue.
---      Step 2: wait until writers go away, do tick.
---      Step 3: change type, register.
+--      Must be be called for each step in sequence:
+--
+--      Step 1 - disable writing to queue.
+--      Step 2 - wait until writers go away, do tick.
+--      Step 3 - change type, register.
 --
 -- Parameters:
 --      i_queue_name    - queue name
 --      i_step          - step number
 --      i_new_provider  - new provider node
+-- Returns:
+--      200 - success
+--      404 - node not initialized for queue 
+--      301 - node is not root
 -- ----------------------------------------------------------------------
 declare
     n_type      text;

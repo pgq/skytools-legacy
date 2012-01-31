@@ -17,7 +17,9 @@ returns record as $$
 --      i_watermark         - partition tick_id that came inside combined-root batch
 --
 -- Returns:
---      nothing
+--      200 - success
+--      201 - no partition queue
+--      401 - worker registration not found
 -- ----------------------------------------------------------------------
 declare
     n record;

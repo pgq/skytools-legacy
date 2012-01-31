@@ -34,6 +34,10 @@ as $$
 --      prev_tick_id        - Start tick id.
 --      prev_tick_time      - Start tick time.
 --      prev_tick_event_seq - value from event id sequence at the time tick was issued.
+-- Calls:
+--      pgq.next_batch_custom(5)
+-- Tables directly manipulated:
+--      None
 -- ----------------------------------------------------------------------
 begin
     select f.batch_id, f.cur_tick_id, f.prev_tick_id,
@@ -118,6 +122,10 @@ as $$
 --      prev_tick_id        - Start tick id.
 --      prev_tick_time      - Start tick time.
 --      prev_tick_event_seq - value from event id sequence at the time tick was issued.
+-- Calls:
+--      pgq.insert_event_raw(11)
+-- Tables directly manipulated:
+--      update - pgq.subscription
 -- ----------------------------------------------------------------------
 declare
     errmsg          text;

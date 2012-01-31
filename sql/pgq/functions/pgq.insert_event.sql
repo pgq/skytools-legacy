@@ -12,6 +12,8 @@ returns bigint as $$
 --
 -- Returns:
 --      Event ID
+-- Calls:
+--      pgq.insert_event(7)
 -- ----------------------------------------------------------------------
 begin
     return pgq.insert_event(queue_name, ev_type, ev_data, null, null, null, null);
@@ -40,6 +42,10 @@ returns bigint as $$
 --
 -- Returns:
 --      Event ID
+-- Calls:
+--      pgq.insert_event_raw(11)
+-- Tables directly manipulated:
+--      insert - pgq.insert_event_raw(11), a C function, inserts into current event_N_M table
 -- ----------------------------------------------------------------------
 begin
     return pgq.insert_event_raw(queue_name, null, now(), null, null,

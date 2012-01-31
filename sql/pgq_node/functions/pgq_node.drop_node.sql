@@ -23,6 +23,10 @@ returns record as $$
 --      200 - Ok
 --      304 - No such queue
 --      406 - That is a provider
+-- Calls:
+--      None
+-- Tables directly manipulated:
+--      None
 ------------------------------------------------------------------------
 declare
     _is_local   boolean;

@@ -2,6 +2,24 @@
 create or replace function pgq_ext.upgrade_schema()
 returns int4 as $$
 -- updates table structure if necessary
+-- ----------------------------------------------------------------------
+-- Function: pgq_ext.upgrade_schema()
+--
+--	    Upgrades tables to have column subconsumer_id 
+--
+-- Parameters:
+--      None
+--
+-- Returns:
+--	    number of tables updated 
+-- Calls:
+--      None
+-- Tables directly manipulated:
+--      alter - pgq_ext.completed_batch
+--      alter - pgq_ext.completed_tick
+--      alter - pgq_ext.partial_batch
+--      alter - pgq_ext.completed_event
+-- ----------------------------------------------------------------------
 declare
     cnt int4 = 0;
     tbl text;

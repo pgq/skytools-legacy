@@ -11,6 +11,11 @@ as $$
 --
 -- Parameters:
 --      i_queue_name  - queue name
+--
+-- Returns:
+--      200 - success
+--      404 - node not initialized for queue 
+--      301 - node is not branch
 -- ----------------------------------------------------------------------
 declare
     n_name      text;

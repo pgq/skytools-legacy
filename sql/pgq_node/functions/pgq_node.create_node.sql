@@ -25,12 +25,18 @@ returns record as $$
 --      i_combined_queue - merge-leaf: target queue
 --
 -- Returns:
+--      200 - Ok
 --      401 - node already initialized
+--      ???? - maybe we coud use more error codes ?
 --
 -- Node Types:
 --      root - master node
 --      branch - subscriber node that can be provider to others
 --      leaf - subscriber node that cannot be provider to others
+-- Calls:
+--      None
+-- Tables directly manipulated:
+--      None
 -- ----------------------------------------------------------------------
 declare
     _wm_consumer text;

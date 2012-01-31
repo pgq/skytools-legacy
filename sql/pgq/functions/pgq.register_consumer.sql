@@ -16,6 +16,10 @@ returns integer as $$
 -- Returns:
 --      0  - if already registered
 --      1  - if new registration
+-- Calls:
+--      pgq.register_consumer_at(3)
+-- Tables directly manipulated:
+--      None
 -- ----------------------------------------------------------------------
 begin
     return pgq.register_consumer_at(x_queue_name, x_consumer_id, NULL);
@@ -43,6 +47,10 @@ returns integer as $$
 --
 -- Returns:
 --      0/1 whether consumer has already registered.
+-- Calls:
+--      None
+-- Tables directly manipulated:
+--      update/insert - pgq.subscription
 -- ----------------------------------------------------------------------
 declare
     tmp         text;

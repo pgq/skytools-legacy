@@ -11,6 +11,10 @@ returns integer as $$
 --
 -- Returns:
 --	1 if success (batch was found), 0 otherwise
+-- Calls:
+--      None
+-- Tables directly manipulated:
+--      update - pgq.subscription
 -- ----------------------------------------------------------------------
 begin
     -- we are dealing with subconsumer, so nullify all tick info

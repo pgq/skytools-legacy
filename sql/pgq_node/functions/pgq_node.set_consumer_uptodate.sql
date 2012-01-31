@@ -17,7 +17,8 @@ returns record as $$
 --      i_uptodate - new flag state
 --
 -- Returns:
---      nothing
+--      200 - ok
+--      404 - consumer not known
 -- ----------------------------------------------------------------------
 begin
     update pgq_node.local_state

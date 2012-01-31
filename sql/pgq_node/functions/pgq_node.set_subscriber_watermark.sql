@@ -11,6 +11,8 @@ returns record as $$
 --
 --      Notify provider about subscribers lowest watermark.
 --
+--      Called on provider at interval by each worker  
+--
 -- Parameters:
 --      i_queue_name - cascaded queue name
 --      i_node_name - subscriber node name

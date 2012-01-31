@@ -19,8 +19,16 @@ as $$
 -- Parameters:
 --      x_batch_id      - id of a active batch.
 --
--- Returns:
---      Info
+-- Returns: ??? pls check
+--      queue_name      - which queue this batch came from
+--      consumer_name   - batch processed by
+--      batch_start     - start time of batch
+--      batch_end       - end time of batch
+--      prev_tick_id    - start tick for this batch
+--      tick_id         - end tick for this batch
+--      lag             - now() - tick_id.time 
+--      seq_start       - start event id for batch
+--      seq_end         - end event id for batch
 -- ----------------------------------------------------------------------
 begin
     select q.queue_name, c.co_name,

@@ -17,6 +17,10 @@ returns integer as $$
 --  
 -- Returns:
 --     0 if event was already in queue, 1 otherwise.
+-- Calls:
+--      None
+-- Tables directly manipulated:
+--      update - pgq.queue
 -- ----------------------------------------------------------------------
 declare
     v_param_name    text;

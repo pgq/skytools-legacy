@@ -29,6 +29,8 @@ returns setof record as $$
 --
 -- Returns:
 --      List of events.
+-- Calls:
+--      pgq.batch_event_sql(i_batch_id) - internal function which generates SQL optimised specially for getting events in this batch
 -- ----------------------------------------------------------------------
 declare
     _cname  text;
@@ -97,6 +99,8 @@ returns setof record as $$
 --
 -- Returns:
 --      List of events.
+-- Calls:
+--      pgq.get_batch_cursor(4)
 -- ----------------------------------------------------------------------
 begin
     for ev_id, ev_time, ev_txid, ev_retry, ev_type, ev_data,

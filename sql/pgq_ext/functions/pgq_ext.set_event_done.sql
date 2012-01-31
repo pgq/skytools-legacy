@@ -5,6 +5,28 @@ create or replace function pgq_ext.set_event_done(
     a_batch_id bigint,
     a_event_id bigint)
 returns boolean as $$
+-- ----------------------------------------------------------------------
+-- Function: pgq_ext.set_event_done(4)
+--
+--	    Marks and event done in a batch for a certain consumer and subconsumer
+--
+-- Parameters:
+--      a_consumer - consumer name
+--      a_subconsumer - subconsumer name
+--      a_batch_id - a batch id
+--      a_event_id - an event id
+--
+-- Returns:
+--      false if already done
+--	    true on success 
+-- Calls:
+--      None
+-- Tables directly manipulated:
+--      insert - pgq_ext.partial_batch
+--      delete - pgq_ext.completed_event
+--      update - pgq_ext.partial_batch
+--      insert - pgq_ext.completed_event
+-- ----------------------------------------------------------------------
 declare
     old_batch bigint;
 begin
@@ -56,6 +78,24 @@ create or replace function pgq_ext.set_event_done(
     a_batch_id bigint,
     a_event_id bigint)
 returns boolean as $$
+-- ----------------------------------------------------------------------
+-- Function: pgq_ext.set_event_done(3)
+--
+--	    Marks and event done in a batch for a certain consumer and subconsumer
+--
+-- Parameters:
+--      a_consumer - consumer name
+--      a_batch_id - a batch id
+--      a_event_id - an event id
+--
+-- Returns:
+--      false if already done
+--	    true on success 
+-- Calls:
+--      pgq_ext.set_event_done(4)
+-- Tables directly manipulated:
+--      None
+-- ----------------------------------------------------------------------
 begin
     return pgq_ext.set_event_done(a_consumer, '', a_batch_id, a_event_id);
 end;

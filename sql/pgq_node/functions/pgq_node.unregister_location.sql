@@ -20,7 +20,8 @@ returns record as $$
 --
 -- Return Codes:
 --      200 - Ok
---      404 - No such set
+--      301 - Location not found
+--      403 - Cannot drop nodes own or parent location
 -- ----------------------------------------------------------------------
 declare
     _queue_name  text;

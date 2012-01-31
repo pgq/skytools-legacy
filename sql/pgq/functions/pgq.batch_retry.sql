@@ -12,7 +12,11 @@ returns integer as $$
 --      i_retry_time    - Time when the event should be put back into queue
 --
 -- Returns:
---     nothing
+--     number of events inserted
+-- Calls:
+--      None
+-- Tables directly manipulated:
+--      pgq.retry_queue
 -- ----------------------------------------------------------------------
 declare
     _retry timestamptz;

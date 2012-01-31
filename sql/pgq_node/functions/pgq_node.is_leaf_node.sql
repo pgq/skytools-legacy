@@ -7,6 +7,8 @@ returns bool as $$
 --
 -- Parameters:
 --      i_queue_name  - queue name
+-- Returns:
+--      true - if this this the leaf node for queue 
 -- ----------------------------------------------------------------------
 declare
     res bool;

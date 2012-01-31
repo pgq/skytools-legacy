@@ -22,6 +22,9 @@ returns record as $$
 --
 -- Returns:
 --      ret_code - error code
+--      200 - ok
+--      201 - already registered
+--      401 - no such queue
 --      ret_note - description
 -- ----------------------------------------------------------------------
 declare

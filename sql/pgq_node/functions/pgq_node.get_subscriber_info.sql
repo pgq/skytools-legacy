@@ -12,7 +12,8 @@ returns setof record as $$
 --      Get subscriber list for the local node.
 --
 --      It may be out-of-date, due to in-progress
---      administrative change.  Node's local provider info
+--      administrative change.
+--      Node's local provider info ( pgq_node.get_node_info() or pgq_node.get_worker_state(1) )
 --      is the authoritative source.
 --
 -- Parameters:

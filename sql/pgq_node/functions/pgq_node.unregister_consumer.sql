@@ -16,6 +16,8 @@ returns record as $$
 --
 -- Returns:
 --      ret_code - error code
+--      200 - ok
+--      404 - no such queue
 --      ret_note - description
 -- ----------------------------------------------------------------------
 begin

@@ -14,6 +14,14 @@ returns bigint as $$
 --	i_queue_name		- Name of the queue
 --	i_consumer_name		- Name of the consumer
 --	i_subconsumer_name	- Name of the subconsumer
+--
+-- Calls:
+--      pgq.register_consumer(i_queue_name, i_consumer_name)
+--      pgq.register_consumer(i_queue_name, _subcon_name);
+--
+-- Tables directly manipulated:
+--      update - pgq.subscription
+-- 
 -- ----------------------------------------------------------------------
 begin
     return pgq_coop.next_batch_custom(i_queue_name, i_consumer_name, i_subconsumer_name, NULL, NULL, NULL, NULL);
@@ -102,13 +110,18 @@ returns bigint as $$
 --	Result NULL means nothing to work with, for a moment
 --
 -- Parameters:
---	i_queue_name		- Name of the queue
---	i_consumer_name		- Name of the consumer
---	i_subconsumer_name	- Name of the subconsumer
+--      i_queue_name        - Name of the queue
+--      i_consumer_name     - Name of the consumer
+--      i_subconsumer_name  - Name of the subconsumer
 --      i_min_lag           - Consumer wants events older than that
 --      i_min_count         - Consumer wants batch to contain at least this many events
 --      i_min_interval      - Consumer wants batch to cover at least this much time
 --      i_dead_interval     - Take over other subconsumer batch if inactive
+-- Calls:
+--      pgq.register_subconsumer(i_queue_name, i_consumer_name, i_subconsumer_name)
+--      pgq.next_batch_custom(i_queue_name, i_consumer_name, i_min_lag, i_min_count, i_min_interval)
+-- Tables directly manipulated:
+--      update - pgq.subscription
 -- ----------------------------------------------------------------------
 declare
     _queue_id integer;

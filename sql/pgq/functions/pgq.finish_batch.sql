@@ -12,7 +12,11 @@ returns integer as $$
 --      x_batch_id      - id of batch.
 --
 -- Returns:
---      If batch 1 if batch was found, 0 otherwise.
+--      1 if batch was found, 0 otherwise.
+-- Calls:
+--      None
+-- Tables directly manipulated:
+--      update - pgq.subscription
 -- ----------------------------------------------------------------------
 begin
     update pgq.subscription

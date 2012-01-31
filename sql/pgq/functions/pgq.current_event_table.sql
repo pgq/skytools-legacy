@@ -7,6 +7,12 @@ returns text as $$
 --      Event can be added to it without going via functions,
 --      e.g. by COPY.
 --
+--      If queue is disabled and GUC session_replication_role <> 'replica'
+--      then raises exception.
+--
+--      or expressed in a different way - an even table of a disabled queue
+--      is returned only on replica
+--
 -- Note:
 --      The result is valid only during current transaction.
 --

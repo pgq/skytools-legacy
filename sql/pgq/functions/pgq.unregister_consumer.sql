@@ -14,7 +14,12 @@ returns integer as $$
 --      x_consumer_name     - Name of the consumer
 --
 -- Returns:
---      nothing
+--      number of (sub)consumers unregistered
+-- Calls:
+--      None
+-- Tables directly manipulated:
+--      delete - pgq.retry_queue
+--      delete - pgq.subscription
 -- ----------------------------------------------------------------------
 declare
     x_sub_id integer;

@@ -17,7 +17,12 @@ returns integer as $$
 --      1 - Close the batch, ignoring the events.
 --
 -- Returns:
---	nothing?
+--	    0 - no consumer found
+--      1 - consumer found and unregistered
+--
+-- Tables directly manipulated:
+--      delete - pgq.subscription
+--
 -- ----------------------------------------------------------------------
 declare
     _current_batch bigint;

@@ -15,6 +15,10 @@ as $$
 --      i_queue_name - cascaded queue name
 --      i_consumer_name - cascaded consumer name
 --      i_paused   - new flag state
+-- Returns:
+--      200 - ok
+--      201 - already paused
+--      404 - consumer not found
 -- ----------------------------------------------------------------------
 declare
     old_flag    boolean;

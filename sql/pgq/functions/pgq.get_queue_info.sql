@@ -24,6 +24,21 @@ returns setof record as $$
 --
 -- Returns:
 --      List of pgq.ret_queue_info records.
+--     queue_name                  - queue name
+--     queue_ntables               - number of tables in this queue
+--     queue_cur_table             - ???
+--     queue_rotation_period       - how often the event_N_M tables in this queue are rotated
+--     queue_switch_time           - ??? when was this queue last rotated
+--     queue_external_ticker       - ???
+--     queue_ticker_paused         - ??? is ticker paused in this queue
+--     queue_ticker_max_count      - max number of events before a tick is issued
+--     queue_ticker_max_lag        - maks time without a tick
+--     queue_ticker_idle_period    - how often the ticker should check this queue
+--     ticker_lag                  - time from last tick
+--     ev_per_sec                  - how many events per second this queue serves
+--     ev_new                      - ???
+--     last_tick_id                - last tick id for this queue
+--
 -- ----------------------------------------------------------------------
 begin
     for queue_name, queue_ntables, queue_cur_table, queue_rotation_period,
@@ -67,6 +82,7 @@ returns setof record as $$
 --
 -- Returns:
 --      One pgq.ret_queue_info record.
+--      contente same as forpgq.get_queue_info() 
 -- ----------------------------------------------------------------------
 declare
     _ticker_lag interval;

@@ -4,7 +4,7 @@ create or replace function pgq.event_retry(
     x_retry_time timestamptz)
 returns integer as $$
 -- ----------------------------------------------------------------------
--- Function: pgq.event_retry(3)
+-- Function: pgq.event_retry(3a)
 --
 --     Put the event into retry queue, to be processed again later.
 --
@@ -14,7 +14,12 @@ returns integer as $$
 --      x_retry_time    - Time when the event should be put back into queue
 --
 -- Returns:
---     nothing
+--     1 - success
+--     0 - event already in retry queue
+-- Calls:
+--      None
+-- Tables directly manipulated:
+--      insert - pgq.retry_queue
 -- ----------------------------------------------------------------------
 begin
     insert into pgq.retry_queue (ev_retry_after, ev_queue,
@@ -46,7 +51,7 @@ create or replace function pgq.event_retry(
     x_retry_seconds integer)
 returns integer as $$
 -- ----------------------------------------------------------------------
--- Function: pgq.event_retry(3)
+-- Function: pgq.event_retry(3b)
 --
 --     Put the event into retry queue, to be processed later again.
 --
@@ -56,7 +61,12 @@ returns integer as $$
 --      x_retry_seconds - Time when the event should be put back into queue
 --
 -- Returns:
---     nothing
+--     1 - success
+--     0 - event already in retry queue
+-- Calls:
+--      pgq.event_retry(3a)
+-- Tables directly manipulated:
+--      None
 -- ----------------------------------------------------------------------
 declare
     new_retry  timestamptz;

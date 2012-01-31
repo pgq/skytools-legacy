@@ -16,6 +16,9 @@ as $$
 --      i_queue_name - cascaded queue name
 --      i_consumer_name - cascaded consumer name
 --      i_tick_id   - tick id
+-- Returns:
+--      200 - ok
+--      404 - consumer not known
 -- ----------------------------------------------------------------------
 begin
     update pgq_node.local_state

@@ -7,7 +7,16 @@ returns integer as $$
 --
 -- Parameters:
 --      x_queue_name    - queue name
---      x_force         - ignore consumers
+--      x_force         - ignore (drop) existing consumers
+-- Returns:
+--      1 - success
+-- Calls:
+--      pgq.unregister_consumer(queue_name, consumer_name)
+--      perform pgq.ticker(i_queue_name);
+--      perform pgq.tune_storage(i_queue_name);
+-- Tables directly manipulated:
+--      delete - pgq.queue
+--      drop - pgq.event_N (), pgq.event_N_0 .. pgq.event_N_M 
 -- ----------------------------------------------------------------------
 declare
     tblname  text;
