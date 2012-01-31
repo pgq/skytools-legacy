@@ -49,7 +49,7 @@ upload: dox
 #
 
 test: pgq_node.sql
-	$(MAKE) installcheck || { less regression.diffs; exit 1; }
+	$(MAKE) installcheck || { filterdiff --format=unified regression.diffs | less; exit 1; }
 
 ack:
 	cp results/*.out expected/
