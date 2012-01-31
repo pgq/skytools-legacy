@@ -97,6 +97,8 @@ class Londiste(skytools.DBScript):
                 help = "takeover: old node was root")
         g.add_option("--dead-branch", action = 'store_true',
                 help = "takeover: old node was branch")
+        g.add_option("--sync-watermark",
+                help = "create-branch: list of node names to sync wm with")
         p.add_option_group(g)
         g = optparse.OptionGroup(p, "repair queue position")
         g.add_option("--rewind", action = "store_true",

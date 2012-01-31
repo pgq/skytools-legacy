@@ -35,6 +35,8 @@ select * from pgq.ticker('aqueue');
 select * from pgq_node.set_subscriber_watermark('aqueue', 'node2', 3);
 select queue_name, consumer_name, last_tick from pgq.get_consumer_info();
 
+select * from pgq_node.set_node_attrs('aqueue', 'test=1');
+
 select * from pgq_node.get_node_info('aqueue');
 select * from pgq_node.get_subscriber_info('aqueue');
 

@@ -50,6 +50,7 @@ create table pgq_node.node_location (
 --      provider_node       - provider node name
 --      worker_name         - consumer name that maintains this node
 --      combined_queue      - on 'leaf' the target combined set name
+--      node_attrs          - urlencoded fields for worker
 --
 -- Node types:
 --      root            - data + batches is generated here
@@ -62,6 +63,7 @@ create table pgq_node.node_info (
     node_name       text not null,
     worker_name     text,
     combined_queue  text,
+    node_attrs      text,
 
     foreign key (queue_name, node_name) references pgq_node.node_location,
     check (node_type in ('root', 'branch', 'leaf')),

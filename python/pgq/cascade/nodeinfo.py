@@ -6,6 +6,7 @@
 __all__ = ['MemberInfo', 'NodeInfo', 'QueueInfo']
 
 import datetime
+import skytools
 
 # node types
 ROOT = 'root'
@@ -49,6 +50,7 @@ class NodeInfo:
     combined_queue = None
     combined_type = None
     last_tick = None
+    node_attrs = {}
 
     def __init__(self, queue_name, row, main_worker = True, node_name = None):
         self.queue_name = queue_name
@@ -82,6 +84,12 @@ class NodeInfo:
         self.combined_queue = row['combined_queue']
         self.combined_type = row['combined_type']
         self.last_tick = row['worker_last_tick']
+
+        self.node_attrs = {}
+        if 'node_attrs' in row:
+            a = row['node_attrs']
+            if a:
+                self.node_attrs = skytools.db_urldecode(a)
 
     def __get_target_queue(self):
         qname = None
@@ -128,6 +136,10 @@ class NodeInfo:
         if not self.uptodate:
             txt += ", NOT UPTODATE"
         lst.append(txt)
+
+        for k, v in self.node_attrs.items():
+            txt = "Attr: %s=%s" % (k, v)
+            lst.append(txt)
 
         for cname, row in self.cascaded_consumer_map.items():
             err = row['cur_error']

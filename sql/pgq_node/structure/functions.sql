@@ -51,6 +51,7 @@ select pgq_node.upgrade_schema();
 
 \i functions/pgq_node.demote_root.sql
 \i functions/pgq_node.promote_branch.sql
+\i functions/pgq_node.set_node_attrs.sql
 
 -- Group: Provider side operations - worker
 \i   functions/pgq_node.register_subscriber.sql

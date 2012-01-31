@@ -94,6 +94,8 @@ class CascadeAdmin(skytools.AdminScript):
                     help = "tag some node as dead")
         g.add_option("--dead-branch", action="store_true",
                     help = "tag some node as dead")
+        g.add_option("--sync-watermark",
+                    help = "list of node names to sync with")
         p.add_option_group(g)
         return p
 
@@ -147,6 +149,7 @@ class CascadeAdmin(skytools.AdminScript):
             return
 
         self.log.info("Initializing node")
+        node_attrs = {}
 
         worker_name = self.options.worker
         if not worker_name:
@@ -154,6 +157,11 @@ class CascadeAdmin(skytools.AdminScript):
         combined_queue = self.options.merge
         if combined_queue and node_type != 'leaf':
             raise Exception('--merge can be used only for leafs')
+
+        if self.options.sync_watermark:
+            if node_type != 'branch':
+                raise UsageError('--sync-watermark can be used only for branch nodes')
+            node_attrs['sync_watermark'] = self.options.sync_watermark
 
         # register member
         if node_type == 'root':
@@ -220,6 +228,11 @@ class CascadeAdmin(skytools.AdminScript):
 
 
         self.extra_init(node_type, db, provider_db)
+
+        if node_attrs:
+            s_attrs = skytools.db_urlencode(node_attrs)
+            self.exec_cmd(db, "select * from pgq_node.set_node_attrs(%s, %s)",
+                          [self.queue_name, s_attrs])
 
         self.log.info("Done")
 

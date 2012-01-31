@@ -1,4 +1,6 @@
 
+drop function if exists pgq_node.get_node_info(text);
+
 create or replace function pgq_node.get_node_info(
     in i_queue_name text,
 
@@ -17,7 +19,8 @@ create or replace function pgq_node.get_node_info(
     out worker_name text,
     out worker_paused bool,
     out worker_uptodate bool,
-    out worker_last_tick bigint
+    out worker_last_tick bigint,
+    out node_attrs text
 ) returns record as $$
 -- ----------------------------------------------------------------------
 -- Function: pgq_node.get_node_info(1)
@@ -46,10 +49,12 @@ declare
 begin
     select 100, 'Ok', n.node_type, n.node_name,
            c.node_type, c.queue_name, w.provider_node, l.node_location,
-           n.worker_name, w.paused, w.uptodate, w.last_tick_id
+           n.worker_name, w.paused, w.uptodate, w.last_tick_id,
+           n.node_attrs
       into ret_code, ret_note, node_type, node_name,
            combined_type, combined_queue, provider_node, provider_location,
-           worker_name, worker_paused, worker_uptodate, worker_last_tick
+           worker_name, worker_paused, worker_uptodate, worker_last_tick,
+           node_attrs
       from pgq_node.node_info n
            left join pgq_node.node_info c on (c.queue_name = n.combined_queue)
            left join pgq_node.local_state w on (w.queue_name = n.queue_name and w.consumer_name = n.worker_name)
