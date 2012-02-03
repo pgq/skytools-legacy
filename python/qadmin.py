@@ -1112,7 +1112,7 @@ class AdminConsole:
     def cmd_install(self, params):
         pgq_objs = [
             skytools.DBLanguage("plpgsql"),
-            skytools.DBFunction("txid_current_snapshot", 0, sql_file="txid.sql"),
+            #skytools.DBFunction("txid_current_snapshot", 0, sql_file="txid.sql"),
             skytools.DBSchema("pgq", sql_file="pgq.sql"),
             skytools.DBSchema("pgq_ext", sql_file="pgq_ext.sql"),
             skytools.DBSchema("pgq_node", sql_file="pgq_node.sql"),
