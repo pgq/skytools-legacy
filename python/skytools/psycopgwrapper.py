@@ -11,7 +11,7 @@ Interface provided is psycopg1:
 
 import sys
 
-__all__ = []
+__all__ = ['I_AUTOCOMMIT', 'I_READ_COMMITTED', 'I_REPEATABLE_READ', 'I_SERIALIZABLE']
 
 try:
     ##from psycopg2.psycopg1 import connect as _pgconnect
@@ -21,6 +21,11 @@ try:
 
     import psycopg2.extensions, psycopg2.extras
     from psycopg2.extensions import QuotedString
+
+    I_AUTOCOMMIT = psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT
+    I_READ_COMMITTED = psycopg2.extensions.ISOLATION_LEVEL_READ_COMMITTED
+    I_REPEATABLE_READ = psycopg2.extensions.ISOLATION_LEVEL_REPEATABLE_READ
+    I_SERIALIZABLE = psycopg2.extensions.ISOLATION_LEVEL_SERIALIZABLE
 
     class _CompatRow(psycopg2.extras.DictRow):
         """Make DictRow more dict-like."""
@@ -75,6 +80,10 @@ try:
 
 except ImportError:
     # use psycopg 1
+    I_AUTOCOMMIT = 0
+    I_READ_COMMITTED = 1
+    I_REPEATABLE_READ = 2
+    I_SERIALIZABLE = 2
     try:
         from psycopg import connect as _pgconnect
         from psycopg import QuotedString

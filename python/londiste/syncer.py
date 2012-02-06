@@ -63,9 +63,9 @@ class Syncer(skytools.DBScript):
         setup_db = self.get_database('provider_db', cache='setup_db', autocommit = 1)
 
         src_db = self.get_database('provider_db',
-                                   isolation_level = skytools.I_SERIALIZABLE)
+                                   isolation_level = skytools.I_REPEATABLE_READ)
         dst_db = self.get_database('subscriber_db',
-                                   isolation_level = skytools.I_SERIALIZABLE)
+                                   isolation_level = skytools.I_REPEATABLE_READ)
 
         setup_curs = setup_db.cursor()
 

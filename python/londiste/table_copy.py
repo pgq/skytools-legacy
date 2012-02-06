@@ -29,8 +29,8 @@ class CopyTable(Replicator):
         src_db.commit()
         dst_db.commit()
 
-        # change to SERIALIZABLE isolation level
-        src_db.set_isolation_level(skytools.I_SERIALIZABLE)
+        # we need to get the COPY snapshot later
+        src_db.set_isolation_level(skytools.I_REPEATABLE_READ)
         src_db.commit()
 
         self.sync_database_encodings(src_db, dst_db)
@@ -72,7 +72,7 @@ class CopyTable(Replicator):
         src_db.commit()
 
         # restore READ COMMITTED behaviour
-        src_db.set_isolation_level(1)
+        src_db.set_isolation_level(skytools.I_READ_COMMITTED)
         src_db.commit()
 
         # create previously dropped objects

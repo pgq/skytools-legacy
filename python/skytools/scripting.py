@@ -6,10 +6,10 @@ import logging, logging.handlers, logging.config
 
 from skytools.config import *
 from skytools.psycopgwrapper import connect_database
+from skytools.psycopgwrapper import I_AUTOCOMMIT, I_READ_COMMITTED, I_SERIALIZABLE
 import skytools.skylog
 
-__all__ = ['DBScript', 'I_AUTOCOMMIT', 'I_READ_COMMITTED', 'I_SERIALIZABLE',
-           'signal_pidfile']
+__all__ = ['DBScript', 'signal_pidfile']
 #__all__ += ['daemonize', 'run_single_process']
 
 #
@@ -167,16 +167,6 @@ def _init_log(job_name, service_name, cf, log_level):
 
 #: how old connections need to be closed
 DEF_CONN_AGE = 20*60  # 20 min
-
-#: isolation level not set
-I_DEFAULT = -1
-
-#: isolation level constant for AUTOCOMMIT
-I_AUTOCOMMIT = 0
-#: isolation level constant for READ COMMITTED
-I_READ_COMMITTED = 1
-#: isolation level constant for SERIALIZABLE
-I_SERIALIZABLE = 2
 
 class DBCachedConn(object):
     """Cache a db connection."""
