@@ -249,6 +249,9 @@ class BaseScript(object):
         #   1 - enabled, unless non-daemon on console (os.isatty())
         #   2 - always enabled
         #use_skylog = 0
+
+        # how many seconds to sleep after catching a exception
+        #exception_sleep = 20
     """
     service_name = None
     job_name = None
@@ -472,6 +475,7 @@ class BaseScript(object):
         self.job_name = self.cf.get("job_name")
         self.pidfile = self.cf.getfile("pidfile", '')
         self.loop_delay = self.cf.getfloat("loop_delay", 1.0)
+        self.exception_sleep = self.cf.getfloat("exception_sleep", 20)
 
     def hook_sighup(self, sig, frame):
         "Internal SIGHUP handler.  Minimal code here."
@@ -588,7 +592,7 @@ class BaseScript(object):
         # reset and sleep
         self.reset()
         if prefer_looping and self.looping and self.loop_delay > 0:
-            self.sleep(20)
+            self.sleep(self.exception_sleep)
             return -1
         sys.exit(1)
 
