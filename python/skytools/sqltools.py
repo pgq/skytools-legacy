@@ -26,7 +26,10 @@ class dbdict(dict):
     # obj.foo access
     def __getattr__(self, k):
         "Return attribute."
-        return self[k]
+        try:
+            return self[k]
+        except KeyError:
+            raise AttributeError(k)
     def __setattr__(self, k, v):
         "Set attribute."
         self[k] = v
