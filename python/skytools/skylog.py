@@ -293,6 +293,10 @@ except ImportError:
         def isEnabledFor(self, level):
             return self.logger.isEnabledFor(level)
 
+# add missing aliases (that are in Logger class)
+LoggerAdapter.fatal = LoggerAdapter.critical
+LoggerAdapter.warn = LoggerAdapter.warning
+
 class SkyLogger(LoggerAdapter):
     """Add trace level."""
     def trace(self, msg, *args, **kwargs):
@@ -310,4 +314,3 @@ def getLogger(name=None, **kwargs_extra):
     """
     log = logging.getLogger(name)
     return SkyLogger(log, kwargs_extra)
-
