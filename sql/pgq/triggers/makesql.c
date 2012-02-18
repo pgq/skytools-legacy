@@ -27,6 +27,7 @@
 #include <catalog/pg_operator.h>
 #include <lib/stringinfo.h>
 #include <utils/typcache.h>
+#include <utils/rel.h>
 
 #include "common.h"
 #include "stringutil.h"

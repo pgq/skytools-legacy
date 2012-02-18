@@ -28,6 +28,7 @@
 #include <utils/hsearch.h>
 #include <utils/syscache.h>
 #include <utils/builtins.h>
+#include <utils/rel.h>
 
 #include "common.h"
 #include "stringutil.h"

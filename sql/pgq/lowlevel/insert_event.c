@@ -23,6 +23,7 @@
 #include "executor/spi.h"
 #include "lib/stringinfo.h"
 #include "utils/builtins.h"
+#include "utils/datetime.h"
 #include "utils/hsearch.h"
 #include "access/xact.h"
 
