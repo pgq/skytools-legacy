@@ -1,0 +1,212 @@
+= Setting up simple Londiste3 replication =
+
+== Introduction ==
+
+This sample does the following actions:
+
+ * sets up te databases 
+   - creates a database 'l3simple_db1', which will be master
+   - populates this with pgbench schema and data
+   - adds primary and foreign keys to make the db more realistic
+   - makes a copy of the database ('l3simple_db2') to be used as slave
+ * sets up replication from the master to slave database
+   - creates the root node on 'l3simple_db1'
+   - creates a leaf node on 'l3simple_db2'
+   - starts the ticker daemon
+   - adds all tables to replication set on both databases
+   - waits the replication to complete
+
+It also runs pgbench a to test that the replication actually happens and works properly.
+
+
+== Set up schema for root database ==
+
+=== Create database ===
+
+Run the following SQL: 
+----
+CREATE DATABASE l3simple_db1;
+----
+
+=== Set up pgbench schema ===
+
+In this HowTo we are using pgbench for setting up the schema,
+populating it with sampledata and later running SQL loads to be replicated.
+
+
+Run command :
+----
+/usr/lib/postgresql/9.1/bin/pgbench -i -s 2 -F 80 l3simple_db1
+----
+
+=== And add primary and foreign keys needed for replication ===
+
+Standard pgbench schema lacks Primary Key on the history table.
+As Londiste need primary keys we add one. We also add Foreign Keys between tables,
+as these may help detect possible replication failures.
+
+create file /tmp/prepare_pgbenchdb_for_londiste.sql with the following ...
+----
+
+-- add primary key to history table
+ALTER TABLE pgbench_history ADD COLUMN hid SERIAL PRIMARY KEY;
+
+-- add foreign keys
+ALTER TABLE pgbench_tellers ADD CONSTRAINT pgbench_tellers_branches_fk FOREIGN KEY(bid) REFERENCES pgbench_branches;
+ALTER TABLE pgbench_accounts ADD CONSTRAINT pgbench_accounts_branches_fk FOREIGN KEY(bid) REFERENCES pgbench_branches;
+ALTER TABLE pgbench_history ADD CONSTRAINT pgbench_history_branches_fk FOREIGN KEY(bid) REFERENCES pgbench_branches;
+ALTER TABLE pgbench_history ADD CONSTRAINT pgbench_history_tellers_fk FOREIGN KEY(tid) REFERENCES pgbench_tellers;
+ALTER TABLE pgbench_history ADD CONSTRAINT pgbench_history_accounts_fk FOREIGN KEY(aid) REFERENCES pgbench_accounts;
+
+----
+
+then load it into database:
+
+----
+psql l3simple_db1 -f /tmp/prepare_pgbenchdb_for_londiste.sql
+----
+
+
+Create and populate target database:
+
+----
+psql -d postgres -c "CREATE DATABASE l3simple_db2;"
+pg_dump -s l3simple_db1 | psql l3simple_db2
+----
+
+Create configuration file st3simple/st3_l3simple_db1.ini
+
+----
+[londiste3]
+job_name = st3_l3simple_db1
+db = dbname=l3simple_db1
+queue_name = replika
+logfile = st3simple/log/st3_l3simple_db1.log
+pidfile = st3simple/pid/st3_l3simple_db1.pid
+----
+
+
+Create Londiste root node:
+
+----
+londiste3 st3simple/st3_l3simple_db1.ini create-root node1 dbname=l3simple_db1
+----
+
+Run worker daemon for root node:
+
+----
+londiste3 -d st3simple/st3_l3simple_db1.ini worker
+----
+
+Create configuration file st3simple/st3_l3simple_db2.ini
+for worker daemon on target node:
+
+----
+[londiste3]
+job_name = st3_l3simple_db2
+db = dbname=l3simple_db2
+queue_name = replika
+logfile = st3simple/log/st3_l3simple_db2.log
+pidfile = st3simple/pid/st3_l3simple_db2.pid
+----
+
+Initialize node in target database:
+
+----
+londiste3 st3simple/st3_l3simple_db2.ini create-leaf node2 dbname=l3simple_db2 --provider=dbname=l3simple_db1
+----
+
+Launch worker daemon for target database.
+
+----
+londiste3 -d st3simple/st3_l3simple_db2.ini worker
+----
+
+Create config file `st3simple/pgqd.ini`
+for PgQ ticker daemon:
+
+----
+[pgqd]
+
+logfile = st3simple/log/pgqd.log
+pidfile = st3simple/pid/pgqd.pid
+----
+
+Launch ticker daemon:
+
+----
+pgqd -d st3simple/pgqd.ini
+----
+
+To generate some data traffic on the master database while replicating,
+run the following command in background:
+
+----
+/usr/lib/postgresql/9.1/bin/pgbench -T 120 -c 5 l3simple_db1 -f /tmp/throttled.pgbench
+----
+
+the /tmp/throttled.pgbench contains the standard pgbencg workload, except that
+ther are random length waits between commands.
+
+Now add all the tables to replication, first on root node and then on the leaf 
+
+Run command :
+----
+londiste3 st3simple/st3_l3simple_db1.ini add-table --all
+londiste3 st3simple/st3_l3simple_db2.ini add-table --all
+----
+
+
+== Checking and testing ==
+
+To test our newly set up replication
+
+The following command will run pgbench full speed with 5 parallel
+database connections generating database traffic
+for 10 seconds
+
+----
+/usr/lib/postgresql/9.1/bin/pgbench -T 10 -c 5 l3simple_db2
+----
+
+After this is done, you can check that the tables on both sides have the same data with
+
+----
+londiste3 st3simple/st3_l3simple_db2.ini compare
+----
+
+Compare command will establish the same logical point in time on provider and
+subscriber nodes and then count and checksum the rows on both sides.
+
+The result will look like this
+
+----
+2011-12-25 08:24:42,138 29189 INFO Locking public.pgbench_accounts
+2011-12-25 08:24:42,147 29189 INFO Syncing public.pgbench_accounts
+2011-12-25 08:24:45,233 29189 INFO Counting public.pgbench_accounts
+2011-12-25 08:24:46,154 29189 INFO srcdb: 200000 rows, checksum=3864719477
+2011-12-25 08:24:46,953 29189 INFO dstdb: 200000 rows, checksum=3864719477
+2011-12-25 08:24:46,961 29189 INFO Locking public.pgbench_branches
+2011-12-25 08:24:46,965 29189 INFO Syncing public.pgbench_branches
+2011-12-25 08:24:50,528 29189 INFO Counting public.pgbench_branches
+2011-12-25 08:24:50,549 29189 INFO srcdb: 2 rows, checksum=-82377983
+2011-12-25 08:24:50,556 29189 INFO dstdb: 2 rows, checksum=-82377983
+2011-12-25 08:24:50,568 29189 INFO Locking public.pgbench_history
+2011-12-25 08:24:50,572 29189 INFO Syncing public.pgbench_history
+2011-12-25 08:24:53,641 29189 INFO Counting public.pgbench_history
+2011-12-25 08:24:53,660 29189 INFO srcdb: 1310 rows, checksum=-34927328558
+2011-12-25 08:24:53,670 29189 INFO dstdb: 1310 rows, checksum=-34927328558
+2011-12-25 08:24:53,675 29189 INFO Locking public.pgbench_tellers
+2011-12-25 08:24:53,677 29189 INFO Syncing public.pgbench_tellers
+2011-12-25 08:24:56,733 29189 INFO Counting public.pgbench_tellers
+2011-12-25 08:24:56,737 29189 INFO srcdb: 20 rows, checksum=518235101
+2011-12-25 08:24:56,740 29189 INFO dstdb: 20 rows, checksum=518235101
+----
+
+the "checksum" is computed by adding up hashtext() sums for all database rows. 
+
+
+== Done ==
+
+The setup of simple 2 node cluster is done.
+

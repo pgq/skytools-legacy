@@ -1,10 +1,6 @@
 = SkyTools - tools for PostgreSQL =
 
-This is a package of tools in use in Skype for replication and
-failover.  Also it includes a generic queuing mechanism PgQ and
-utility library for Python scripts.
-
-== Dependencies ==
+== Builing ==
 
 Skytools modules use some other code to run, you need to install the
 following dependencies on the system where you want to build and run
@@ -21,9 +17,7 @@ When building code from GIT:
 
 === Runtime dependencies ===
 
-  python
-  psycopg2 or psycopg1
-  rsync
+  python  psycopg2  rsync
 
 == Building from source tarball ==
 
@@ -33,18 +27,22 @@ When building code from GIT:
 
 == Building from GIT ==
 
-  ## fetch git tree
+Fetch git tree:
+
   $ git clone git://github.com/markokr/skytools.git
 
-  ## fetch libusual submodule
+Fetch libusual submodule:
+
   $ git submodule init
   $ git submodule update
 
-  ## generate ./configure script
+Generate ./configure script:
+
   $ ./autogen.sh
 
-  ## now build as usual (--with-asciidoc is required when building from GIT)
-  $ ./configure --prefix=... --with-asciidoc
+Now build as usual:
+
+  $ ./configure --prefix=...
   $ make
 
 == Building a debian package ==

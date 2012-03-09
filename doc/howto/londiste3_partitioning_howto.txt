@@ -1,0 +1,210 @@
+= Setting up Londiste3 replication to partitions =
+
+== Introduction ==
+
+This sample shows how to use Londiste `part` handler module to split
+one big table between two databases.
+
+The target databases will have `partconf` schema which is usually
+used to drive PL/Proxy.  Here it is used simply to provide
+configuration to `part` handler.
+
+== Setting up the Root Database ==
+
+=== Create database ===
+
+Run the following SQL: 
+----
+CREATE DATABASE l3part_root;
+----
+
+=== Set up pgbench schema ===
+
+In this HowTo we are using pgbench for setting up the schema,
+populating it with sampledata and later running SQL loads to be replicated.
+
+
+This command will create pgbanch tables and fill them with data:
+----
+/usr/lib/postgresql/9.1/bin/pgbench -i -s 2 -F 80 l3part_root
+----
+
+=== Change primary key columns to text ===
+
+Standard pgbench schema has integer primary key columns for its tables.
+The standard partitioning handler is able to partition only text columns,
+so we change the primary key column types to text
+
+
+----
+alter table pgbench_accounts alter column aid type text;
+alter table pgbench_branches alter column bid type text;
+alter table pgbench_tellers  alter column tid type text;
+----
+
+Now create the partition databases to replicate to.
+Each of these will get roughly half of the individual data rows.
+
+
+Create database for partition #0:
+----
+createdb l3part_part0;
+----
+
+And create a partition configuration table in this database
+----
+
+CREATE SCHEMA partconf;
+CREATE TABLE partconf.conf (
+    part_nr integer,
+    max_part integer,
+    db_code bigint,
+    is_primary boolean,
+    max_slot integer,
+    cluster_name text
+);
+insert into partconf.conf(part_nr, max_part) values(0,1);
+
+----
+
+
+Create database for partition #1:
+----
+CREATE DATABASE l3part_part1;
+----
+
+
+----
+
+CREATE SCHEMA partconf;
+CREATE TABLE partconf.conf (
+    part_nr integer,
+    max_part integer,
+    db_code bigint,
+    is_primary boolean,
+    max_slot integer,
+    cluster_name text
+);
+insert into partconf.conf(part_nr, max_part) values(1,1);
+----
+
+Next create configuration files file for root node and both partitions
+
+st3partsplit/st3_l3part_root.ini
+----
+[londiste3]
+job_name = st3_l3part_root
+db = dbname=l3part_root
+queue_name = replika
+logfile = st3partsplit/log/st3_l3part_root.log
+pidfile = st3partsplit/pid/st3_l3part_root.pid
+----
+
+st3partsplit/st3_l3part_part0.ini
+----
+[londiste3]
+job_name = st3_l3part_part0
+db = dbname=l3part_part0
+queue_name = replika
+logfile = st3partsplit/log/st3_l3part_part0.log
+pidfile = st3partsplit/pid/st3_l3part_part0.pid
+----
+
+st3partsplit/st3_l3part_part1.ini
+----
+[londiste3]
+job_name = st3_l3part_part1
+db = dbname=l3part_part1
+queue_name = replika
+logfile = st3partsplit/log/st3_l3part_part1.log
+pidfile = st3partsplit/pid/st3_l3part_part1.pid
+----
+
+Then create root node:
+
+----
+londiste3 st3partsplit/st3_l3part_root.ini create-root node1 dbname=l3part_root
+----
+
+And start the worker on root:
+----
+londiste3 -d st3partsplit/st3_l3part_root.ini worker
+----
+
+
+
+And create leaf nodes and start the workers on partitions :
+
+----
+londiste3 st3partsplit/st3_l3part_part0.ini create-leaf node2_0 dbname=l3part_part0 --provider=dbname=l3part_root
+londiste3 -d st3partsplit/st3_l3part_part0.ini worker
+----
+
+Second node:
+----
+londiste3 st3partsplit/st3_l3part_part1.ini create-leaf node2_1 dbname=l3part_part1 --provider=dbname=l3part_root
+londiste3 -d st3partsplit/st3_l3part_part1.ini worker
+----
+
+
+
+Create config file st3partsplit/pgqd.ini for `pgqd` ("the ticker")
+----
+[pgqd]
+
+logfile = st3partsplit/log/pgqd.log
+pidfile = st3partsplit/pid/pgqd.pid
+
+----
+
+
+Start the ticker process :
+----
+pgqd -d st3partsplit/pgqd.ini
+----
+
+
+
+Now add the replicated tables to root and partitions.
+Here we use `--create` switch to add them to partition,
+which means Londiste takes schema from root node and
+creates tables on target nodes automatically.
+
+The `--handler=part` tells londiste to use the `part` handler for replication,
+the `--handler-arg=key=*id` specifyies which key field to partition on.
+
+
+
+Run command the following commands :
+----
+londiste3 st3partsplit/st3_l3part_root.ini add-table pgbench_accounts --handler=part --handler-arg=key=aid
+londiste3 st3partsplit/st3_l3part_part0.ini add-table pgbench_accounts --create --handler=part --handler-arg=key=aid
+londiste3 st3partsplit/st3_l3part_part1.ini add-table pgbench_accounts --create --handler=part --handler-arg=key=aid
+
+londiste3 st3partsplit/st3_l3part_root.ini add-table pgbench_branches --handler=part --handler-arg=key=bid
+londiste3 st3partsplit/st3_l3part_part0.ini add-table pgbench_branches --create --handler=part --handler-arg=key=bid
+londiste3 st3partsplit/st3_l3part_part1.ini add-table pgbench_branches --create --handler=part --handler-arg=key=bid
+
+londiste3 st3partsplit/st3_l3part_root.ini add-table pgbench_tellers --handler=part --handler-arg=key=tid
+londiste3 st3partsplit/st3_l3part_part0.ini add-table pgbench_tellers --create --handler=part --handler-arg=key=tid
+londiste3 st3partsplit/st3_l3part_part1.ini add-table pgbench_tellers --create --handler=part --handler-arg=key=tid
+----
+
+The following command will run pgbench full speed with 5 parallel
+database connections for 10 seconds.
+
+----
+/usr/lib/postgresql/9.1/bin/pgbench -T 10 -c 5 l3part_root
+----
+
+After this is done, you can check that the tables on both sides hanve the same data with
+
+----
+londiste3 st3partsplit/st3_l3part_part0.ini compare
+londiste3 st3partsplit/st3_l3part_part0.ini compare
+----
+
+Except of course that they dont - each partition will only have roughly half
+the data from the root. But the row counts and checksums of the partitions
+should both add up to the numbers on the master.
+

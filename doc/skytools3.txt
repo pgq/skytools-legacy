@@ -22,7 +22,7 @@ New features in Skytools 3
 * Cascading is implemented as generic layer on top of PgQ - *Cascaded PgQ*.
   - Its goal is to keep identical copy of queue contents in several nodes.
   - Not replication-specific - can be used for any queue.
-  - Advanced admin operations: switchover, failover, change-provider, pause/resume.
+  - Advanced admin operations: takeover, change-provider, pause/resume.
   - For terminology and technical details see here: set.notes.txt.
 
 * New Londiste features:
@@ -51,7 +51,10 @@ New features in Skytools 3
     were introduced in 2.1.x, but were not on by default.  Now they are
     used by default.
 
-  - Londiste processes events via 'handlers'.  (table partitioning)
+  - Londiste processes events via 'handlers'.  Thus we can do table partitioning
+    in Londiste, instead of custom consumer, which means all Londiste features
+    are available in such situation - like proper initial COPY.
+    To see list of them: `londiste3 x.ini show-handlers`.
 
   - Target table can use different name (--dest-table)
 
@@ -59,15 +62,10 @@ New features in Skytools 3
   user-friendly, this is an experiment on interactive console with
   heavy emphasis on tab-completion.
 
-* New multi-database ticker.  It is possible to set up one process that
+* New multi-database ticker: `pgqd`.  It is possible to set up one process that
   maintains all PgQ databases in one PostgreSQL instance.  It will
   auto-detect both databases and whether they have PgQ installed.
   This also makes core PgQ usable without need for Python.
-
-* New cascaded dispatcher script.  Previous 3 dispatcher scripts
-  (bulk_loader, cube_dispatcher, table_dispatcher) shared quite
-  a lot of logic for partitionaing, differing on few details.
-  So instead of porting all 3 to cascaded consuming, I merged them.
 
 Minor improvements
 ------------------
@@ -95,55 +93,16 @@ Minor improvements
 
 * PgQ does not handle "failed events" anymore.
 
-Open questions
---------------
+* Skytools 3 modules are parallel installable with Skytools 2.
+  Solved via loader module (like http://faq.pygtk.org/index.py?req=all#2.4[pygtk]).
+  
+    import pkgloader
+    pkgloader.require('skytools', '3.0')
+    import skytools
 
-* New ticker
-  - Name for final executable: pgqd, pgq-ticker, or something else?
-  - Should it serialize retry and maint operations on different dbs?
-  - Should it serialize ticking?
-
-* Python modules
-  - Skytools 3 modules should be parallel installable with Skytools 2.
-    we decided to solve it via loader module
-    (like http://faq.pygtk.org/index.py?req=all#2.4[pygtk]).
-    The question is should we have Skytools-specific loader or more generic.
-    And what should the name be?
-
-      import skytools_loader
-      skytools_loader.require('3.0')
-
-      vs
-
-      import pkgloader
-      pkgloader.require('skytools', '3.0')
-
-* Londiste EXECUTE command
-  - Should the scripts have ability to inform Londiste of the tables
-    they operate on, so that nodes that do not have such tables
-    can ignore the script.
-
-* Is there good reason not to drop following modules:
-  - logtriga(), pgq.logtriga() - non-automatic triggers
-  - cube_dispatcher, table_dispatcher, bulk_loader - they are merged into queue_loader
 
 Further reading
 ---------------
 
-* Skytools 3 todo list: TODO.txt
-* QAdmin design and todo list: qadmin.txt
-* Technical notes about cascading: set.notes.txt
-* Notes for contributors: devnotes.txt
-
-* Python API docs:
-  - http://skytools.projects.postgresql.org/skytools-3.0/api/[skytools, pgq, londiste modules]
-
-* Database API docs:
-  - http://skytools.projects.postgresql.org/skytools-3.0/pgq/[PgQ]
-  - http://skytools.projects.postgresql.org/skytools-3.0/pgq_node/[Cascaded PgQ]
-  - http://skytools.projects.postgresql.org/skytools-3.0/pgq_coop/[Cooperative PgQ]
-  - http://skytools.projects.postgresql.org/skytools-3.0/londiste/[Londiste]
-
-* Londiste Demo:
-  - http://skytools.projects.postgresql.org/skytools-3.0/demo.html[]
+* http://skytools.projects.postgresql.org/skytools-3.0/[Documentation] for skytools3.
 

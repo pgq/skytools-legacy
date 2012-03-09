@@ -8,62 +8,10 @@
 It is bunch of database management tools we use
 and various frameworks / modules they depend on.
 
-Main components are:
-
-==== Python scripts ====
-
-Main tools:
-
-   walmgr:: walshipping manager
-   londiste:: replication on top of pgq
-   pgqadm:: pgq administration and maintenance
-   setadm:: cascaded pgq administration
- 
-Special scripts:
- 
-   bulk_loader
-   cube_dispatcher
-   table_dispatcher
- 
-Queue copy
-
-   queue_mover:: copy queue contents from one db to another
-   queue_splitter:: copy queue contents to another db splitting it into several queues
- 
-Operate bunch of scripts together
-
-   scriptmgr
-
-==== Python modules ====
-
-   pgq
-   skytools
-   londiste
- 
-==== SQL modules ====
-   
-   londiste
-   pgq
-   pgq_node
-   pgq_ext
-
-=== Where is the code located? ===
-
-Code layout:
-
- debian/
- doc/
- python/bin/
- python/londiste/   - Londiste python modules
- python/modules/    - C extension modules for Python (string handling)
- python/pgq/        - pgq and cascaded pgq python modules
- python/skytools/   - python modules for generic database scripting
- scripts/           - Special purpose python scripts (python)
- sql/londiste/      - database code for londiste (plpgsql)
- sql/pgq/           - PgQ database code (C + plpgsql)
- sql/pgq_ext/       - PgQ event/batch tracking on remote database (plpgsql)
- sql/pgq_node/      - cascaded pgq support (plpgsql)
- sql/txid/          - Obsolete txid code for Postgres 8.2 and below
+Main components are `pgq` SQL module which implements generic
+queue in database, Python module for writing consumers for it,
+Londiste replication on top of them and walmgr for setting up
+WAL-based standby servers.
 
 == PgQ - The generic queue ==
 
@@ -100,6 +48,37 @@ Such framework could be written for any language.
 Yes, PgQ was created by generalizing queueing parts from Slony-I.
 
 === Dump-restore ===
+
+Database which contains `pgq` schema can be dumped and restored with
+`pg_dump`, but extra steps must be taken because PgQ tables
+contains transaction id-s and snapsnot which are extracted from
+Postgres code.  PgQ depends on transaction id values going always
+higher.  Thus restoring database in new Postgres clusten will break
+PgQ if that cluster has txids smaller than they were in old cluster.
+
+Postgres interally uses rolling 32-bit txids which on export are
+combined with 'txid epoch', which simply is count how many times
+the 32-bit txid has already cycled.  Thus the way to make sure
+new cluster has highed txids than old one is to set the epoch higher
+in new cluster than it was in old cluster.
+
+To see epoch in old cluster in running database:
+
+  SELECT (txid_current() >> 32) as epoch;
+  epoch
+  -----
+    1
+
+To see epoch on shut down database:
+
+  $ pg_resetxlog -n $DATADIR
+  ...
+  Latest checkpoint's NextXID:   0/3938   (epoch -> 0)
+  ...
+
+To set epoch in new cluster - it must be shut down first:
+
+  $ pg_resetxlog -e $NEWEPOCH $DATADIR
 
 == Londiste - The replication tool ==
 

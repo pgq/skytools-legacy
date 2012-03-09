@@ -1,0 +1,398 @@
+= Setting up backup and streaming replication with walmgr3 =
+
+Hannu Krosing
+
+== Introduction ==
+
+This is a HowTo for setting up PostgreSQL for backup
+and then continue to setting up both wal-based and streaming'
+replication using waplmgr3
+
+The samle commandlines and configuration files are produced by
+running command
+
+-----
+python WALManager.py
+-----
+
+in directory python/testwrappers. This test/sample
+
+ * sets up a postgresql master server using directory /tmp/test_master
+ * creates a sample database tyhere using pgbench
+ * creates walmgr3 master configuration file /tmp/test_master/wal-master.ini
+ * creates a directory and configuration file "on slave" - /tmp/test_slave/wal-slave.ini
+ * runs walmgr3 setup command, which modifies postgresql.conf file on master server for replication
+ * restarts master server for changes of "walmgr3 ... setup" to take effect
+ * runs walmgr3 backup command, which creates a backup of master database and wal files on slace server
+ * modifies master's postgresql.conf and pg_hba.conf file some more for enabling Streaming Replication
+ * runs walmgr3 restore command ON SLAVE which moves backup directory into the right place for slave
+   server and then starts the slave server
+ * verifies that replication is running by running a SQL UPDATE query on master and checking the results on slave.
+
+== Preparation ==
+
+For things to work you need to have passwordless ssh access
+from master to slave set up using public/private key pair
+
+This can be done using walmgr3
+
+----
+1. Set up passwordless ssh-key on Master and write configuration file
+
+       master$ walmgr3 --ssh-keygen --init-master --slave <slave_hostname>
+
+2. Set up passwordless ssh authentication from Master to Slave and write configuration file on Slave
+
+       slave$ walmgr3 --init-slave --ssh-add-key=/tmp/id_rsa.pub
+----
+
+or directly from commandline
+
+----
+master$ test -f ~/.ssh/id_dsa.pub || ssh-keygen -t dsa
+master$ cat ~/.ssh/id_dsa.pub | ssh slave cat \>\> .ssh/authorized_keys
+----
+
+== setting up an population master database ===
+
+This part is for playing with walmgr3 without disturbing your existing
+databases.
+
+You can skip this part, if you already have a database you want to replicate.
+
+=== create database server ===
+
+Create database master server directory structure under /tmp/test_master
+by running the command :
+
+----
+/usr/lib/postgresql/9.1/bin/initdb -D /tmp/test_master
+----
+
+This database wil run as the user who was logged in at the time of
+creation, vs. the default user 'postgres'
+
+Change the port and socket directory (and set up some logging if you want
+to see what's going on in the database)
+
+Edit /tmp/test_master/postgresql.conf and set up the following
+
+----
+ unix_socket_directory = /tmp
+ port = 55401
+ # optional, for logging
+ log_connections = on
+ log_disconnections = on
+----
+
+Now you are ready to start up this server
+
+----
+/usr/lib/postgresql/9.1/bin/pg_ctl -D /tmp/test_master -l /tmp/test_master/postgresql.log start
+----
+
+you can use "tail /tmp/test_master/postgresql.log" to check that server started up correctly, and
+
+----
+psql -h /tmp -p 55401 -l
+----
+
+to check that it accepts connections
+
+=== create database and generate some data for it ===
+
+Create database to be used 
+
+----
+createdb pgbdb;
+----
+
+and initialise a pgbench database structure and data in this database
+
+----
+/usr/lib/postgresql/9.1/bin/pgbench -i -s 1 -F 80 pgbdb -h /tmp -p 55401
+----
+
+== Setting up the replication ==
+
+OK. Now we have a database server to replicate, so lets configure walmgr3
+
+=== setting up master ===
+
+First we need a master configuration file /tmp/test_master/wal-master.ini :
+
+----
+[walmgr]
+job_name             = wal-master
+logfile              = /tmp/test_master/%(job_name)s.log
+pidfile              = /tmp/test_master/%(job_name)s.pid
+use_skylog           = 0
+
+master_db            = port=55401 host=/tmp dbname=template1
+master_data          = /tmp/test_master
+master_config        = /tmp/test_master/postgresql.conf
+master_bin           = /usr/lib/postgresql/9.1/bin/
+
+# set this only if you can afford database restarts during setup and stop.
+# master_restart_cmd   = pg_ctlcluster 9.1 main restart
+
+slave = 127.0.0.1
+slave_config = /tmp/test_slave/wal-slave.ini
+
+walmgr_data          = /tmp/test_slave_walmanager/backup/
+
+completed_wals       = %(walmgr_data)s/logs.complete
+partial_wals         = %(walmgr_data)s/logs.partial
+full_backup          = %(walmgr_data)s/data.master
+config_backup        = %(walmgr_data)s/config.backup
+
+# syncdaemon update frequency
+loop_delay           = 10.0
+# use record based shipping available since 8.2
+use_xlog_functions   = 0
+
+# pass -z to rsync, useful on low bandwidth links
+compression          = 0
+
+# keep symlinks for pg_xlog and pg_log
+keep_symlinks        = 1
+
+# tell walmgr to set wal_level to hot_standby during setup
+hot_standby          = 1
+
+# periodic sync
+#command_interval     = 600
+#periodic_command     = /var/lib/postgresql/walshipping/periodic.sh
+----
+
+The things to takew notice hera ar that
+
+  * walmgr_data is a directory _on_the_slave_host_
+  * it is a bad idea to put slave_config in slave data directory (that
+     would be /tmp/test_slave/data/ as defined in wal-slave.ini below)
+     as then it gets overwritten when doing the restore.
+
+
+=== setting up slave ===
+
+You also need a walmgr3 conf file on slave, /tmp/test_slave/wal-slave.ini :
+
+----
+[walmgr]
+job_name             = wal-standby
+logfile              = /tmp/test_slave_walmanager/%(job_name)s.log
+use_skylog           = 0
+
+slave_data           = /tmp/test_slave/data
+slave_bin            = /usr/lib/postgresql/9.1/bin/
+slave_stop_cmd       = /usr/lib/postgresql/9.1/bin//pg_ctl -D /tmp/test_slave/data stop
+slave_start_cmd      = /usr/lib/postgresql/9.1/bin//pg_ctl -D /tmp/test_slave/data -l /tmp/test_slave/data/postgresql.log start
+#slave_config_dir     = /tmp/test_slave
+slave_config_dir     = /tmp/test_slave/data
+
+walmgr_data          = /tmp/test_slave_walmanager/backup/
+completed_wals       = %(walmgr_data)s/logs.complete
+partial_wals         = %(walmgr_data)s/logs.partial
+full_backup          = %(walmgr_data)s/data.master
+config_backup        = %(walmgr_data)s/config.backup
+
+backup_datadir       = no
+keep_backups         = 0
+# archive_command =
+
+# primary database connect string for hot standby -- enabling
+# this will cause the slave to be started in hot standby mode.
+primary_conninfo     = host=127.0.0.1 port=55401 host=/tmp
+---
+
+=== Configuring postgreSQL for replication using walmgr3 ===
+
+Running the command :
+----
+walmgr3 /tmp/test_master/wal-master.ini setup
+----
+
+Modifies master postgresql ini file (/tmp/test_master/postgresql.conf)
+with these values
+----
+wal_level = 'hot_standby'
+archive_mode = 'on'
+archive_command = '/usr/local/bin/walmgr3 /tmp/test_master/wal-master.ini xarchive %p %f'
+----
+
+To enable streaming replication, you will need see that max_wal_senders
+is above 0 in /tmp/test_master/postgresql.conf
+
+----
+setting: max_wal_senders = 3
+----
+
+And yoy need to specifically enable the access to "replication" in /tmp/test_master/pg_hba.conf
+(Replication has to be enabled by name, database wildcard * does not cover it)
+
+----
+local replication ubuntu trust
+----
+
+it is "local" here, as this test/sample does the replication iover local socket,
+follow the commenst in pg_hba.conf for your case.
+
+And again, fo the changes to take effect, you need to restart the server
+
+----
+/usr/lib/postgresql/9.1/bin/pg_ctl -D /tmp/test_master restart
+----
+
+== Making the backup ==
+
+Once the configuration files are in place, making a backup is as simple as running 
+
+----
+walmgr3 /tmp/test_master/wal-master.ini backup
+----
+
+If all goes well, this is what gets output (or written to logsfiles, if so configured)
+
+----
+0  2012-01-27 16:58:31,464 30870 INFO Backup lock obtained.
+2012-01-27 16:58:31,485 30750 INFO Execute SQL: select pg_start_backup('FullBackup'); [port=55401 host=/tmp dbname=template1]
+2012-01-27 16:58:36,779 30750 INFO Checking tablespaces
+2012-01-27 16:58:36,786 30750 INFO pg_log does not exist, skipping
+2012-01-27 16:58:36,873 30750 INFO Backup conf files from /tmp/test_master
+2012-01-27 16:58:38,599 31256 INFO First useful WAL file is: 000000010000000000000002
+2012-01-27 16:58:45,442 31633 INFO Backup lock released.
+2012-01-27 16:58:45,461 30750 INFO Full backup successful
+----
+
+and there will be a copy of your masters data directory on slave host
+under /tmp/test_slave_walmanager/backup/data.master, WAL files in
+files in /tmp/test_slave_walmanager/backup/logs.complete/ and copies
+of configuration files in /tmp/test_slave_walmanager/backup/config.backup/
+
+=== Backup is done ===
+
+If your aim is to just make copies, you can stop this howto here
+
+== Starting a Hot Standby replica ==
+
+=== Setting Up the replica ===
+
+If you want your replica to be usable for read-only queries, and not
+just report "server is starting up" when you try to connect, then your
+slave postgresql.conf neeeds to have "hot_standby = on" set:
+
+In our sample we also change the port, so we can run both servers on the
+same host.
+
+Editi /tmp/test_slave_walmanager/backup/config.backup/postgresql.conf
+
+----
+hot_standby = on
+port = 55402
+----
+
+=== starting the replica ===
+
+You restore backup to your the replica server and start it in one command 
+
+----
+walmgr3 /tmp/test_slave/wal-slave.ini restore
+----
+
+Herew is what it outputs if everything runs ok
+
+----
+0 server starting
+2012-01-27 16:58:45,709 31636 WARNING backup_datadir is disabled, deleting old data dir
+2012-01-27 16:58:45,709 31636 INFO Move /tmp/test_slave_walmanager/backup//data.master to /tmp/test_slave/data
+2012-01-27 16:58:45,766 31636 INFO Write /tmp/test_slave/data/recovery.conf
+2012-01-27 16:58:45,768 31636 INFO Restoring configuration files
+2012-01-27 16:58:45,771 31636 INFO Starting postmaster: /usr/lib/postgresql/9.1/bin//pg_ctl -D /tmp/test_slave/data -l /tmp/test_slave/data/postgresql.log start
+----
+
+Now you have a streaming replica running at port 55402 and master at port 55401
+
+== Testing replication ==
+
+You can test that replication is really working by opening connections
+to both master and server and then watching changes done on master appear
+instantaneously oin the slave:
+
+Check the initial replicated state on slave
+
+----
+ubuntu@ubuntu-VirtualBox:~/skytools-markokr/python/testwrappers$ psql -h /tmp -p 55402 pgbdb
+psql (9.1.1)
+Type "help" for help.
+
+pgbdb=# select * from pgbench_tellers;
+ tid | bid | tbalance | filler 
+-----+-----+----------+--------
+   1 |   1 |        0 | 
+   2 |   1 |        0 | 
+   3 |   1 |        0 | 
+   4 |   1 |        0 | 
+   5 |   1 |        0 | 
+   6 |   1 |        0 | 
+   7 |   1 |        0 | 
+   8 |   1 |        0 | 
+   9 |   1 |        0 | 
+  10 |   1 |        0 | 
+(10 rows)
+----
+
+Update the pgbench_tellers table on master
+
+----
+pgbdb=# \q
+ubuntu@ubuntu-VirtualBox:~/skytools-markokr/python/testwrappers$ psql -h /tmp -p 55401 pgbdb
+psql (9.1.1)
+Type "help" for help.
+
+pgbdb=# update pgbench_tellers set filler = random();
+UPDATE 10
+pgbdb=# select * from pgbench_tellers;
+ tid | bid | tbalance |                                        filler                                        
+-----+-----+----------+--------------------------------------------------------------------------------------
+   1 |   1 |        0 | 0.755602441262454                                                                   
+   2 |   1 |        0 | 0.130802480038255                                                                   
+   3 |   1 |        0 | 0.725358869414777                                                                   
+   4 |   1 |        0 | 0.65205558296293                                                                    
+   5 |   1 |        0 | 0.0436737341806293                                                                  
+   6 |   1 |        0 | 0.797202748246491                                                                   
+   7 |   1 |        0 | 0.909699931740761                                                                   
+   8 |   1 |        0 | 0.981106289196759                                                                   
+   9 |   1 |        0 | 0.656265312805772                                                                   
+  10 |   1 |        0 | 0.759600875433534                                                                   
+(10 rows)
+
+pgbdb=# \q
+----
+
+And check that it is the same on slave
+
+----
+ubuntu@ubuntu-VirtualBox:~/skytools-markokr/python/testwrappers$ psql -h /tmp -p 55402 pgbdb
+psql (9.1.1)
+Type "help" for help.
+
+pgbdb=# select * from pgbench_tellers;
+ tid | bid | tbalance |                                        filler                                        
+-----+-----+----------+--------------------------------------------------------------------------------------
+   1 |   1 |        0 | 0.755602441262454                                                                   
+   2 |   1 |        0 | 0.130802480038255                                                                   
+   3 |   1 |        0 | 0.725358869414777                                                                   
+   4 |   1 |        0 | 0.65205558296293                                                                    
+   5 |   1 |        0 | 0.0436737341806293                                                                  
+   6 |   1 |        0 | 0.797202748246491                                                                   
+   7 |   1 |        0 | 0.909699931740761                                                                   
+   8 |   1 |        0 | 0.981106289196759                                                                   
+   9 |   1 |        0 | 0.656265312805772                                                                   
+  10 |   1 |        0 | 0.759600875433534                                                                   
+(10 rows)
+
+pgbdb=# 
+-----
+
+The replication is done now!
+

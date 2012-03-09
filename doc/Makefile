@@ -7,19 +7,24 @@ EPYDOC = epydoc
 EPYARGS = --no-private --url="http://pgfoundry.org/projects/skytools/" \
 	--name="Skytools" --html --no-private -v
 
-HTMLS = README.html INSTALL.html \
+TOPHTML = README.html INSTALL.html index.html
+DOCHTML = \
 	TODO.html pgq-sql.html pgq-nodupes.html \
-	$(SCRIPT_HTMLS) faq.html set.notes.html skytools3.html devnotes.html
+	faq.html set.notes.html skytools3.html devnotes.html pgqd.html \
+	londiste3.html walmgr3.html qadmin.html scriptmgr.html \
+	skytools_upgrade.html queue_mover.html queue_splitter.html \
+	howto/londiste3_cascaded_rep_howto.html \
+	howto/londiste3_merge_howto.html \
+	howto/londiste3_partitioning_howto.html \
+	howto/londiste3_simple_rep_howto.html \
+	howto/setup_walmgr_replication.html
 
-SCRIPT_TXTS = londiste3.txt walmgr3.txt qadmin.txt scriptmgr.txt skytools_upgrade.txt \
-	      queue_mover.txt queue_splitter.txt
-SCRIPT_HTMLS = $(SCRIPT_TXTS:.txt=.html)
 
 MAN5 =
 MAN1_SFX = scriptmgr.1 skytools_upgrade.1 queue_mover.1 queue_splitter.1
 MAN1 = qadmin.1 pgqd.1 walmgr3.1 londiste3.1
 
-FQHTML = $(addprefix html/doc/, $(HTMLS))
+FQHTML = $(addprefix html/doc/, $(DOCHTML)) $(addprefix html/, $(TOPHTML))
 FQMAN1 = $(addprefix man/, $(MAN1))
 FQMAN1_SFX = $(addprefix man/, $(MAN1_SFX))
 FQMAN5 = $(addprefix man/, $(MAN5))
@@ -33,13 +38,13 @@ FIXMAN = python ../misc/fixman.py
 #AFLAGS = -a linkcss
 #AFLAGS = -a stylesheet=extra.css
 
-all: $(FQMAN) $(FQHTML)
+all: $(FQMAN)
 
 man: $(FQMAN)
 
 html: $(FQHTML)
 
-install: $(FQMAN) $(FQHTML)
+install: $(FQMAN)
 	mkdir -p $(DESTDIR)/$(mandir)/man1
 	mkdir -p $(DESTDIR)/$(mandir)/man5
 	mkdir -p $(DESTDIR)/$(docdir)
@@ -53,6 +58,8 @@ install: $(FQMAN) $(FQHTML)
 	for m in $(FQMAN5); do \
 	  install -m 644 $$m $(DESTDIR)/$(mandir)/man5 || exit 1; \
 	done
+
+htmlinstall: $(FQHTML)
 	for h in $(FQHTML); do \
 	  install -m 644 $$h $(DESTDIR)/$(docdir) || exit 1; \
 	done
@@ -84,13 +91,13 @@ apiupload: apidoc
 	-rsync -rtlz ../sql/londiste/docs/html/* $(web)/londiste/
 
 clean:
-	rm -rf html *.xml
+	rm -rf html *.xml api
 
 distclean: clean
 	rm -rf ../sql/pgq/docs/pgq
 
 realclean: distclean
-	rm -f *.[15] *.xml *.html
+	rm -rf man *.xml *.html
 
 ifneq ($(ASCIIDOC),no)
 ifneq ($(XMLTO),no)
@@ -104,31 +111,37 @@ man/%.1: man/%.xml
 endif
 
 html/doc/%.html: %.txt $(COMMON)
-	@mkdir -p html/doc
+	@mkdir -p $(dir $@)
 	LANG=C cat $< \
 	| sed -e '/^include/b' -e 's,\([A-Za-z.0-9]*\)[.]txt,link:\1.html[],g' \
 	| $(ASCIIDOC) $(AFLAGS) -a toc `$(GETATTRS) $<` -o - - \
 	| sed -e "/^[/][*] Workarounds/r ../misc/extra.css" \
 	> $@
 
-html/doc/README.html: ../README
-	@mkdir -p html/doc
+html/README.html: ../README
+	@mkdir -p $(dir $@)
 	cat $< \
 	| sed -e 's,doc/\([!-~]*\)[.]txt,link:\1.html[],g' \
 	      -e 's,http:[!-~]*,&[],g' \
-	| $(ASCIIDOC) $(AFLAGS) -o - - \
+	| $(ASCIIDOC) $(AFLAGS) -a toc -o - - \
 	| sed -e "/^[/][*] Workarounds/r ../misc/extra.css" \
 	> $@
 
-html/doc/INSTALL.html: ../INSTALL
-	@mkdir -p html
+html/INSTALL.html: ../INSTALL
+	@mkdir -p $(dir $@)
+	$(ASCIIDOC) $(AFLAGS) -o - $< \
+	| sed -e "/^[/][*] Workarounds/r ../misc/extra.css" \
+	> $@
+
+html/index.html: index.txt
+	@mkdir -p $(dir $@)
 	$(ASCIIDOC) $(AFLAGS) -o - $< \
 	| sed -e "/^[/][*] Workarounds/r ../misc/extra.css" \
 	> $@
 endif
 
 web: $(FQHTMLS)
-	rsync -avz $(FQHTML) $(web)/doc/
+	rsync -avz html/* $(web)/
 
 
 

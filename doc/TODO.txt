@@ -4,23 +4,23 @@
 Gut feeling about priorities:
 
 High::
-  Needer for wider deployment / 3.0-final.
+  Needed soon.
 Medium::
   Good if done, but can be postponed.
 Low::
   Interesting idea, but OK if not done.
 
-== High Priority ==
+== Medium Priority ==
+
+* tests: takeover testing
+  - wal behind
+  - wal ahead
+  - branch behind
 
 * londiste takeover: check if all tables exist and are in sync.
   Inform user.  Should the takeover stop if problems?
   How can such state be checked on-the-fly?
   Perhaps `londiste missing` should show in-copy tables.
-
-* docs:
-  - londiste manpage
-  - qadmin manpage
-  - pgqd manpage
 
 * cascade takeover: wal failover queue sync.  WAL-failover can be
   behind/ahead from regular replication with partial batch.  Need
@@ -36,14 +36,10 @@ Low::
   . Replay rest of batches fully
   . Promote to root
 
-* tests: takeover testing
-  - wal behind
-  - wal ahead
-  - branch behind
+* Load public connect string for local node:
+  - from .ini (db=, public_db=?)
+  - with query sql
 
-== Medium Priority ==
-
-* Load public connect string from .ini
 * Load provider connect string:
   - from ini (not good)
   - describe connstr + query to look up node names?
@@ -54,17 +50,6 @@ Low::
   - pgq.CoopConsumer
   - skytools.DBStruct
   - londiste handlers
-
-* cascade watermark limit nodes.  A way to avoid affecting root
-  with lagging downstream nodes.  Need to tag some nodes to coordinate
-  watermark with each other and not send it upstream to root.
-
-* automatic sql upgrade mechanism - check version in db, apply .sql
-  if contains newer version.
-
-* integrate skytools.checker.  It is generic 'check/repair' script
-  that can also automatically apply fixes.  Should rebase londiste
-  check/repair on that.
 
 * londiste add-table: automatic serial handling, --noserial switch?  Currently,
   `--create-full` does not create sequence on target, even if source
@@ -78,8 +63,6 @@ Low::
 * qadmin: merge cascade commands (medium) - may need api redesign
   to avoid duplicating pgq.cascade code?
 
-* dbscript: configurable error timeout (currently it's hardwired to 20s)
-
 * londiste replay: when buffering queries, check their size.  Current
   buffering is by count - flushed if 200 events have been collected.
   That does not take account that some rows can be very large.
@@ -90,10 +73,6 @@ Low::
   nodes can be slow if there are many nodes or some of them are
   generally slow  (GP, bad network, etc).  Perhaps we can use
   psycopg2 async mode for that.  Or threading.
-
-* developer docs for:
-  - DBScript, pgq.Consumer, pgq.CascadedConsumer?
-  - Update pgq/sql docs for current pgq.
 
 == Low Priority ==
 

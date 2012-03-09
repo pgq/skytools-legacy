@@ -1,0 +1,259 @@
+
+= How to Set up Cascaded Replication in londiste =
+
+== Basic cluster setup ==
+
+Basic configuration for cascaded replication setup.
+
+The configuration file for ticker (pgqd) restricting ticker to only the 5
+replicated databases:
+
+----
+$ cat conf/pgqd.ini
+[pgqd]
+database_list = db1,db2,db3,db4,db5
+logfile = log/pgqd.log
+pidfile = pid/pgqd.pid
+----
+
+The ini files for databases are are created similar to the one below, only
+the "db1" part changes
+
+----
+$ cat conf/londiste_db1.ini
+[londiste3]
+job_name = londiste_db1
+db = dbname=db1
+queue_name = replika
+logfile = log/%(job_name)s.log
+pidfile = pid/%(job_name)s.pid
+
+pgq_autocommit = 1
+pgq_lazy_fetch = 0
+----
+
+After creating the ini files we are ready to install londiste3 and initialize nodes
+
+----
+$ londiste3 -q conf/londiste_db1.ini create-root node1 dbname=db1
+$ londiste3 -q conf/londiste_db2.ini create-branch node2 dbname=db2 --provider=dbname=db1
+$ londiste3 -q conf/londiste_db3.ini create-branch node3 dbname=db3 --provider=dbname=db1
+$ londiste3 -q conf/londiste_db4.ini create-branch node4 dbname=db4 --provider=dbname=db2
+$ londiste3 -q conf/londiste_db5.ini create-branch node5 dbname=db5 --provider=dbname=db3
+----
+
+Now that schemas are installed, we can start the ticker
+
+----
+$ pgqd -q -d conf/pgqd.ini
+----
+
+To see the topology of replication, you can run the status command against any node:
+
+----
+$ londiste3 -q conf/londiste_db4.ini status
+Queue: replika   Local node: node4
+
+node1 (root)
+  |                           Tables: 0/0/0
+  |                           Lag: 4s, Tick: 2, NOT UPTODATE
+  +--node3 (branch)
+  |                           Tables: 0/0/0
+  |                           Lag: 12s, Tick: 1, NOT UPTODATE
+  +--node2 (branch)
+     |                        Tables: 0/0/0
+     |                        Lag: 12s, Tick: 1, NOT UPTODATE
+     +--node4 (branch)
+                              Tables: 0/0/0
+                              Lag: 11s, Tick: 1, NOT UPTODATE
+----
+
+And you need a londiste worker process on each node to actually carry out
+the actions
+
+----
+$ londiste3 -q -d conf/londiste_db1.ini worker
+$ londiste3 -q -d conf/londiste_db2.ini worker
+$ londiste3 -q -d conf/londiste_db3.ini worker
+$ londiste3 -q -d conf/londiste_db4.ini worker
+$ londiste3 -q -d conf/londiste_db5.ini worker
+----
+
+== Adding tables and data ==
+
+Now let's play with data.
+
+Create table on root node and fill couple of rows
+
+----
+$ psql -d db1 -c create table mytable (id serial primary key, data text)
+$ psql -d db1 -c insert into mytable (data) values ('row1')
+$ psql -d db1 -c insert into mytable (data) values ('row2')
+$ psql -d db1 -c insert into mytable (data) values ('row3')
+$ psql -d db1 -c insert into mytable (data) values ('row4')
+----
+
+Creat some load on table
+
+----
+$ ./loadgen.py -d conf/gen1.ini
+----
+
+Register table on root node
+
+----
+$ londiste3 -q conf/londiste_db1.ini add-table mytable
+$ londiste3 -q conf/londiste_db1.ini add-seq mytable_id_seq
+----
+
+Register table on other node with creation
+
+----
+$ psql -d db2 -c create sequence mytable_id_seq
+CREATE SEQUENCE
+$ londiste3 -q conf/londiste_db1.ini add-seq mytable_id_seq
+$ londiste3 -q conf/londiste_db2.ini add-table mytable --create-full
+$ psql -d db3 -c create sequence mytable_id_seq
+CREATE SEQUENCE
+$ londiste3 -q conf/londiste_db1.ini add-seq mytable_id_seq
+$ londiste3 -q conf/londiste_db3.ini add-table mytable --create-full
+$ psql -d db4 -c create sequence mytable_id_seq
+CREATE SEQUENCE
+$ londiste3 -q conf/londiste_db1.ini add-seq mytable_id_seq
+$ londiste3 -q conf/londiste_db4.ini add-table mytable --create-full
+$ psql -d db5 -c create sequence mytable_id_seq
+CREATE SEQUENCE
+$ londiste3 -q conf/londiste_db1.ini add-seq mytable_id_seq
+$ londiste3 -q conf/londiste_db5.ini add-table mytable --create-full
+----
+
+
+== Change topology ==
+
+The main advantage of skytools3 cascaded replication is how easy it is to
+change the replication topology.
+
+
+----
+$ londiste3 -q conf/londiste_db4.ini change-provider --provider=node2
+$ londiste3 -q conf/londiste_db4.ini status
+Queue: replika   Local node: node4
+
+node1 (root)
+  |                           Tables: 1/0/0
+  |                           Lag: 1s, Tick: 57
+  +--node2 (branch)
+  |  |                        Tables: 1/0/0
+  |  |                        Lag: 1s, Tick: 57
+  |  +--node4 (branch)
+  |                           Tables: 1/0/0
+  |                           Lag: 1s, Tick: 57
+  +--node3 (branch)
+     |                        Tables: 1/0/0
+     |                        Lag: 1s, Tick: 57
+     +--node5 (branch)
+                              Tables: 1/0/0
+                              Lag: 7s, Tick: 53
+                              ERR: londiste_db5: duplicate key value violates unique constraint "mytable_pkey"
+----
+
+Now let's move it to node 3
+
+----
+$ londiste3 -q conf/londiste_db4.ini change-provider --provider=node3
+$ londiste3 -q conf/londiste_db4.ini status
+Queue: replika   Local node: node4
+
+node1 (root)
+  |                           Tables: 1/0/0
+  |                           Lag: 0s, Tick: 59
+  +--node2 (branch)
+  |                           Tables: 1/0/0
+  |                           Lag: 3s, Tick: 59
+  +--node3 (branch)
+     |                        Tables: 1/0/0
+     |                        Lag: 3s, Tick: 59
+     +--node4 (branch)
+     |                        Tables: 1/0/0
+     |                        Lag: 3s, Tick: 58
+     +--node5 (branch)
+                              Tables: 1/0/0
+                              Lag: 12s, Tick: 53
+----
+
+
+
+----
+$ londiste3 -q conf/londiste_db5.ini change-provider --provider=node2
+$ londiste3 -q conf/londiste_db1.ini status
+Queue: replika   Local node: node1
+
+node1 (root)
+  |                           Tables: 1/0/0
+  |                           Lag: 1s, Tick: 64
+  +--node2 (branch)
+  |  |                        Tables: 1/0/0
+  |  |                        Lag: 1s, Tick: 64
+  |  +--node5 (branch)
+  |                           Tables: 1/0/0
+  |                           Lag: 1s, Tick: 64
+  +--node3 (branch)
+     |                        Tables: 1/0/0
+     |                        Lag: 1s, Tick: 64
+     +--node4 (branch)
+                              Tables: 1/0/0
+                              Lag: 1s, Tick: 64
+----
+
+The topology change can also be accomplished from the "other" end,
+using the `takeover` command:
+
+----
+$ londiste3 -q conf/londiste_db3.ini takeover node2
+$ londiste3 -q conf/londiste_db2.ini status
+Queue: replika   Local node: node2
+
+node1 (root)
+  |                           Tables: 1/0/0
+  |                           Lag: 0s, Tick: 66
+  +--node3 (branch)
+     |                        Tables: 1/0/0
+     |                        Lag: 0s, Tick: 66
+     +--node4 (branch)
+     |                        Tables: 1/0/0
+     |                        Lag: 3s, Tick: 66
+     +--node2 (branch)
+        |                     Tables: 1/0/0
+        |                     Lag: 0s, Tick: 66
+        +--node5 (branch)
+                              Tables: 1/0/0
+                              Lag: 3s, Tick: 65
+----
+
+The takeover command is in fact the only way to change the root node
+
+----
+$ londiste3 -q conf/londiste_db2.ini takeover node1
+$ londiste3 -q conf/londiste_db2.ini status
+Queue: replika   Local node: node2
+
+node2 (root)
+  |                           Tables: 1/0/0
+  |                           Lag: 1s, Tick: 72
+  +--node5 (branch)
+  |                           Tables: 1/0/0
+  |                           Lag: 1s, Tick: 72
+  +--node1 (branch)
+     |                        Tables: 1/0/0
+     |                        Lag: 1s, Tick: 71
+     +--node3 (branch)
+        |                     Tables: 1/0/0
+        |                     Lag: 3s, Tick: 71
+        +--node4 (branch)
+                              Tables: 1/0/0
+                              Lag: 3s, Tick: 71
+----
+
+That's it!
+
+

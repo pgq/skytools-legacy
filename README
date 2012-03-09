@@ -7,7 +7,7 @@ standby servers.
 
 == Overview ==
 
-It contains following tools:
+It contains following modules:
 
 === PgQ ===
 
@@ -41,10 +41,10 @@ Skytools.
 
 Documentation:
 
-- PgQ ticker daemon (pgqd) usage: link:pgqd.html[]
-- PgQ admin tool (qadm) usage: link:qadmin.html[]
-- PgQ SQL API overview: link:pgq-sql.html[]
-- PgQ SQL reference: http://skytools.projects.postgresql.org/skytools-3.0/pgq/
+- PgQ ticker daemon (pgqd) usage: link:doc/pgqd.html[]
+- PgQ admin tool (qadm) usage: link:doc/qadmin.html[]
+- PgQ SQL API overview: link:doc/pgq-sql.html[]
+- PgQ SQL reference: link:pgq/[]
 
 === Londiste ===
 
@@ -59,11 +59,10 @@ Features:
 
 Documentation:
 
-- Londiste script usage: doc/londiste.cmdline.txt
+- Londiste script usage: doc/londiste3.txt
   (also available as `man 1 londiste`)
-- Londiste configuration: doc/londiste.config.txt
-  (also available as `man 5 londiste`)
-- Londiste reference: doc/londiste.ref.txt
+
+- Londiste HOWTOS: doc/howto/
 
 === walmgr ===
 
@@ -75,51 +74,51 @@ so less than whole file is lost in case of loss of master database server.
 
 == Source tree contents ==
 
-  doc/ 
+doc/::
     Documentation in asciidoc format.  Source for both html
     and man pages.
 
-  python/
+python/::
     Python modules and primary executables - walmgr, londiste, qadmin, pgqadm.
 
-  python/pgq/
+python/pgq/::
     Python framework for PgQ.
 
-  python/londiste/
+python/londiste/::
     Londiste replication.
 
-  python/skytools/
+python/skytools/::
     Low-level utilities for writing database scripts in Python.
 
-  sql/
+sql/::
     Database modules.
 
-  sql/pgq/
+sql/pgq/::
     Table definitions and functions for PgQ queueing.
 
-  sql/pgq_node/
+sql/pgq_node/::
     Framework for cascaded consuming.
 
-  sql/pgq_coop/
+sql/pgq_coop/::
     Functions for cooperative consuming.
 
-  sql/londiste/
+sql/londiste/::
     Table definitions and functions for Londiste replication.
 
-  sql/ticker/
+sql/ticker/::
     PgQ ticker written in C.
  
-  scripts/
+scripts/::
     Python scripts with lesser priority.
 
-  lib/
+lib/::
     libusual C libary, for pgqd.
 
-  debian/
+debian/::
     Debian packaging.  This is for creating private packages,
     official Debian packages uses it's own packagin code.
 
-  misc/
+misc/::
     Random scripts used for building.
 
 == Upgrade from 2.1 ==

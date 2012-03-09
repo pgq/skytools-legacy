@@ -1,0 +1,47 @@
+= Skytools 3 Documentation =
+
+== Overview ==
+
+* link:README.html[Package overview]
+* link:INSTALL.html[Installation help]
+* link:doc/faq.html[FAQ]
+* link:doc/skytools3.html[Skytools 3.0 Release Notes]
+
+== HOWTOs ==
+
+* link:doc/howto/londiste3_simple_rep_howto.html[Setting up simple replication with 2 nodes]
+* link:doc/howto/londiste3_cascaded_rep_howto.html[Setting up cascaded replication with 5 nodes]
+* link:doc/howto/londiste3_merge_howto.html[Merging 2 partitions to one big database]
+* link:doc/howto/londiste3_partitioning_howto.html[Replicating from one master to 2 partitions]
+* link:doc/howto/setup_walmgr_replication.html[Setting up walmgr]
+
+== Manpages ==
+
+* link:doc/londiste3.html[londiste3] - Londiste command line interface.
+* link:doc/qadmin.html[qadmin] - psql-like console for managing queues
+* link:doc/queue_mover.html[queue_mover] - copy queue to another database
+* link:doc/queue_splitter.html[queue_splitter] - split queue into different queues
+* link:doc/scriptmgr.html[scriptmgr] - bulk start/stopping of skytools scripts
+* link:doc/skytools_upgrade.html[skytools_upgrade] - Update database modules
+* link:doc/walmgr3.html[walmgr3] - tool for managing WAL-base replication
+
+== API docs ==
+
+* Python link:api/[API] documentation
+* SQL API documentation:
+  - link:pgq[]: SQL module for generic queue
+  - link:pgq_coop[]: SQL module for sharing workload
+  - link:pgq_ext[]: batch tracking in target database
+  - link:pgq_node[]: cascaded queueing
+  - link:londiste[]: Londiste state
+
+== Internal ==
+
+* link:doc/devnotes.html[Notes for contributors]
+* link:doc/set.notes.html[Technical notes for cascading]
+* link:doc/TODO.html[TODO list]
+
+// == Old docs ==
+// * link:doc/pgq-nodupes.html[]
+// * link:doc/pgq-sql.html[]
+

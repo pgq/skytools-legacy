@@ -66,7 +66,7 @@ deb:
 	debuild -uc -us -b
 
 tgz: config.mak clean
-	$(MAKE) -C doc man html
+	$(MAKE) -C doc man
 	rm -f source.list
 	$(PYTHON) setup_skytools.py sdist -t source.cfg -m source.list
 
