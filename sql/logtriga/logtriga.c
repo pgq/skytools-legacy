@@ -19,6 +19,7 @@
 #include "catalog/pg_operator.h"
 #include "catalog/pg_type.h"
 #include "utils/typcache.h"
+#include "utils/rel.h"
 
 #include "textbuf.h"
 
