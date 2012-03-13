@@ -28,7 +28,8 @@ clean: sub-clean
 distclean: sub-distclean
 sub-all sub-install sub-clean sub-distclean:
 	for dir in $(SUBDIRS); do \
-		$(MAKE) -C $$dir $(subst sub-,,$@) DESTDIR=$(DESTDIR); \
+		$(MAKE) -C $$dir $(subst sub-,,$@) DESTDIR=$(DESTDIR) \
+		|| exit 1; \
 	done
 
 lowlevel/pgq_lowlevel.sql: sub-all
