@@ -1,3 +1,43 @@
+
+2012-03-13  -  SkyTools 2.1.13  -  "Pailapsiin Overdose"
+
+  * Convert SkyTools to use symbolic isolation level constants.
+    Pscyopg 2.4.2/2.4.3 have renumbered isolation levels, which
+    made "londiste copy" lose data.  Pscyopg 2.4.4 fixes it.
+
+    But make SkyTools conform to new Pscyopg conventions so Londiste
+    can survive such changes in the future.  This also makes Londiste
+    work with those 2 Pscyopg versions.
+
+  * Use REPEATABLE READ isolation level on copy.  Pre-9.1 READ_COMMITTED
+    and SERIALIZABLE were the same.  9.1+ introduce new SERIALIZABLE
+    which does more than we want.
+
+  * londiste add-table: make trigger check sql 9.1-compatible.
+    (Sébastien Lardière)
+
+  * Make C modules compile on 9.2.
+
+  * v2.1.12 broke psycopg <= 2.0.9.  Fix.
+    (Dimitri Fontaine)
+
+  * Fix rare crash in pgq.insert_event() & pgq triggers.
+    (Backport from 3.0)
+
+  * walmgr:
+    - Sync changes from 3.0 branch.
+      (Martin Pihlak)
+
+    - Add support for detecting stale locks and releasing them
+      instead of aborting
+      (Steve Singer)
+
+    - Move the pg_stop_backup() into a finally: block.
+      Some instances were reported where the base backup failed with some issue
+      but pg_stop_backup() hadn't been called and had to be called manually.
+      This should make that less likely
+      (Steve Singer)
+
 2010-11-10  -  SkyTools 2.1.12  -  "Portable Minefield"
 
 To apply Londiste database-side fixes, run 'londiste.upgrade.sql'
