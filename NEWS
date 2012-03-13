@@ -9,7 +9,7 @@
     can survive such changes in the future.  This also makes Londiste
     work with those 2 Pscyopg versions.
 
-  * Use REPEATABLE READ isolation level on copy.  Pre-9.1 READ_COMMITTED
+  * Use REPEATABLE READ isolation level on copy.  Pre-9.1 REPEATABLE READ
     and SERIALIZABLE were the same.  9.1+ introduce new SERIALIZABLE
     which does more than we want.
 
