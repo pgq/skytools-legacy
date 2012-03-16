@@ -158,7 +158,11 @@ _handler_list = _handler_map.keys()
 
 def register_handler_module(modname):
     """Import and module and register handlers."""
-    __import__(modname)
+    try:
+        __import__(modname)
+    except ImportError:
+        print "Failed to load handler module: %s" % (modname,)
+        return
     m = sys.modules[modname]
     for h in m.__londiste_handlers__:
         _handler_map[h.handler_name] = h
