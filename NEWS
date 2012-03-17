@@ -1,9 +1,11 @@
-2012-xx-xx  -  SkyTools 3.0  -  ""
+2012-03-17  -  SkyTools 3.0  -  "Business Advantage"
 
-  * Cascaded queues
-  * Londiste: Parallel copy
-  * Londiste: EXECUTE
-  * Londiste: handlers
-  * qadmin
-  * pgqd
+  = Major New Features =
+
+    * Cascaded queues
+    * Londiste: Parallel copy
+    * Londiste: EXECUTE
+    * Londiste: handlers
+    * QAdmin
+    * pgqd
 
