@@ -33,6 +33,7 @@ _symbols = {
     'gzip_append': 'skytools.gzlog:gzip_append',
     # skytools.parsing
     'dedent': 'skytools.parsing:dedent',
+    'hsize_to_bytes': 'skytools.parsing:hsize_to_bytes',
     'parse_acl': 'skytools.parsing:parse_acl',
     'parse_logtriga_sql': 'skytools.parsing:parse_logtriga_sql',
     'parse_pgarray': 'skytools.parsing:parse_pgarray',

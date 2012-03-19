@@ -3,6 +3,8 @@
 
 import os, os.path, ConfigParser, socket
 
+import skytools
+
 __all__ = ['Config']
 
 class Config(object):
@@ -160,6 +162,19 @@ class Config(object):
         fn = os.path.expanduser(fn)
 
         return fn
+
+    def getbytes(self, key, default=None):
+        """Reads a size value in human format, if not set then default.
+
+        Examples: 1, 2 B, 3K, 4 MB
+        """
+        try:
+            s = self.cf.get(self.main_section, key)
+        except ConfigParser.NoOptionError:
+            if default is None:
+                raise Exception("Config value not set: " + key)
+            s = default
+        return skytools.hsize_to_bytes(s)
 
     def get_wildcard(self, key, values=[], default=None):
         """Reads a wildcard property from conf and returns its string value, if not set then default."""

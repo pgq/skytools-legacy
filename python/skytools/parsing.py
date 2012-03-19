@@ -7,7 +7,7 @@ import skytools
 __all__ = [
     "parse_pgarray", "parse_logtriga_sql", "parse_tabbed_table",
     "parse_statements", 'sql_tokenizer', 'parse_sqltriga_sql',
-    "parse_acl", "dedent"]
+    "parse_acl", "dedent", "hsize_to_bytes"]
 
 _rc_listelem = re.compile(r'( [^,"}]+ | ["] ( [^"\\]+ | [\\]. )* ["] )', re.X)
 
@@ -219,7 +219,7 @@ def parse_sqltriga_sql(op, sql, pklist=None, splitkeys=False):
 
 def parse_tabbed_table(txt):
     r"""Parse a tab-separated table into list of dicts.
-    
+
     Expect first row to be column names.
 
     Very primitive.
@@ -434,7 +434,18 @@ def dedent(doc):
     res.append('')
     return '\n'.join(res)
 
+
+def hsize_to_bytes (input):
+    """ Convert sizes from human format to bytes (string to integer) """
+
+    assert isinstance (input, str)
+    m = re.match (r"^([0-9]+) *([KMGTPEZY]?)B?$", input.strip(), re.IGNORECASE)
+    if not m: raise ValueError ("cannot parse: %s" % input)
+    units = ['', 'K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y']
+    bytes = int(m.group(1)) * 1024 ** units.index(m.group(2).upper())
+    return bytes
+
+
 if __name__ == '__main__':
     import doctest
     doctest.testmod()
-
