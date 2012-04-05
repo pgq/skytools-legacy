@@ -333,19 +333,24 @@ except ImportError:
         def log(self, level, msg, *args, **kwargs):
             msg, kwargs = self.process(msg, kwargs)
             self.logger.log(level, msg, *args, **kwargs)
-        def isEnabledFor(self, level):
-            return self.logger.isEnabledFor(level)
 
 # add missing aliases (that are in Logger class)
 LoggerAdapter.fatal = LoggerAdapter.critical
 LoggerAdapter.warn = LoggerAdapter.warning
 
 class SkyLogger(LoggerAdapter):
-    """Add trace level."""
+    def __init__(self, logger, extra):
+        LoggerAdapter.__init__(self, logger, extra)
+        self.name = logger.name
     def trace(self, msg, *args, **kwargs):
+        """Log 'msg % args' with severity 'TRACE'."""
         self.log(TRACE, msg, *args, **kwargs)
     def addHandler(self, hdlr):
+        """Add the specified handler to this logger."""
         self.logger.addHandler(hdlr)
+    def isEnabledFor(self, level):
+        """See if the underlying logger is enabled for the specified level."""
+        return self.logger.isEnabledFor(level)
 
 def getLogger(name=None, **kwargs_extra):
     """Get logger with extra functionality.
