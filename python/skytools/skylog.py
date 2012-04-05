@@ -232,7 +232,48 @@ class LogDBHandler(logging.handlers.SocketHandler):
             query = "select * from log.add(%s, %s, %s)"
             logcur.execute(query, [type, service, msg])
 
-# send messages to syslog
+# fix unicode bug in SysLogHandler
+class SysLogHandler(logging.handlers.SysLogHandler):
+    """Fixes unicode bug in logging.handlers.SysLogHandler."""
+
+    def emit(self, record):
+        """
+        Emit a record.
+
+        The record is formatted, and then sent to the syslog server. If
+        exception information is present, it is NOT sent to the server.
+        """
+        msg = self.format(record) + '\000'
+        """
+        We need to convert record level to lowercase, maybe this will
+        change in the future.
+        """
+        prio = '<%d>' % self.encodePriority(self.facility,
+                                            self.mapPriority(record.levelname))
+        # Message is a string. Convert to bytes as required by RFC 5424
+        if type(msg) is unicode:
+            msg = msg.encode('utf-8')
+            ## this puts BOM in wrong place
+            #if codecs:
+            #    msg = codecs.BOM_UTF8 + msg
+        msg = prio + msg
+        try:
+            if self.unixsocket:
+                try:
+                    self.socket.send(msg)
+                except socket.error:
+                    self._connect_unixsocket(self.address)
+                    self.socket.send(msg)
+            elif self.socktype == socket.SOCK_DGRAM:
+                self.socket.sendto(msg, self.address)
+            else:
+                self.socket.sendall(msg)
+        except (KeyboardInterrupt, SystemExit):
+            raise
+        except:
+            self.handleError(record)
+
+
 class SysLogHostnameHandler(logging.handlers.SysLogHandler):
     """Slightly modified standard SysLogHandler - sends also hostname and service type"""
 
@@ -243,6 +284,8 @@ class SysLogHostnameHandler(logging.handlers.SysLogHandler):
                                _hostname,
                                _service_name,
                                msg)
+        if type(msg) is unicode:
+            msg = msg.encode('utf-8')
         try:
             if self.unixsocket:
                 try:
