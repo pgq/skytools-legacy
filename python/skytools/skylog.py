@@ -236,6 +236,9 @@ class LogDBHandler(logging.handlers.SocketHandler):
 class SysLogHandler(logging.handlers.SysLogHandler):
     """Fixes unicode bug in logging.handlers.SysLogHandler."""
 
+    # be compatible with both 2.6 and 2.7
+    socktype = socket.SOCK_DGRAM
+
     def emit(self, record):
         """
         Emit a record.
