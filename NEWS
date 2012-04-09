@@ -1,3 +1,22 @@
+2012-04-09  -  SkyTools 3.0.1  -  "All The Snow You Can Eat"
+
+  = Features =
+
+    * skytools.config: new .getbytes() method to suppoer
+      human-readable sizes.
+
+  = Fixes =
+
+    * skytools.skylog: Wrap logger.handlers.SysLogHandler to work
+      around broken BOM addition when logging unicode() strings.
+
+    * skytools.skylog: Improve compatibility with direct
+      logger module usage.
+
+    * debian/skytools.ini: include in tgz
+
+    * pgqd(libusual): ignore EINTR on close()
+
 2012-03-17  -  SkyTools 3.0  -  "Business Advantage"
 
   = Major New Features =
