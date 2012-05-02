@@ -1,0 +1,40 @@
+
+= SQL permissions (draft) =
+
+== Setup ==
+
+Currently following no-login roles are created during upgrade:
+`pgq_reader`, `pgq_writer`, `pgq_admin`, `londiste_reader`, `londiste_writer`.
+
+Actual grants are not applied to functions, instead default
+`public:execute` grants are kept.  New grants can be applied
+manually:
+
+newgrants_<schema>.sql::
+    applies new rights, drop old public access
+
+oldgrants_<schema>.sql::
+    restores old rights - public execute privilege to all functions
+
+== New roles ==
+
+pgq_reader::
+    Can consume queues (source-side)
+
+pgq_writer::
+    Can write into queues (source-side / dest-side)
+    Can use `pgq_node`/`pgq_ext` schema as regular
+    consumer (dest-side)
+
+pgq_admin::
+    Admin operations on queues, required for CascadedWorker on dest-side.
+    Member of `pgq_reader` and `pgq_writer`.
+
+londiste_reader::
+    Member of `pgq_reader`, needs additional read access to tables.
+    (source-side)
+
+londiste_writer::
+    Member of `pgq_admin`, needs additional write access to tables.
+    (dest-side)
+

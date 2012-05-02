@@ -1,9 +1,12 @@
 
-DATA_built = pgq_node.sql pgq_node.upgrade.sql
+DATA_built = pgq_node.sql pgq_node.upgrade.sql \
+	     structure/newgrants_pgq_node.sql \
+	     structure/oldgrants_pgq_node.sql
 
 LDRS = structure/functions.sql
 FUNCS = $(shell sed -e 's/^[^\\].*//' -e 's/\\i //' $(LDRS))
-SRCS = structure/tables.sql structure/functions.sql $(FUNCS)
+SRCS = structure/tables.sql structure/functions.sql structure/grants.sql \
+       $(FUNCS)
 
 REGRESS = pgq_node_test
 REGRESS_OPTS = --load-language=plpgsql
@@ -15,6 +18,7 @@ include $(PGXS)
 NDOC = NaturalDocs
 NDOCARGS = -r -o html docs/html -p docs -i docs/sql
 CATSQL = ../../scripts/catsql.py
+GRANTFU = ../../scripts/grantfu.py
 
 #
 # combined SQL files
@@ -25,6 +29,16 @@ pgq_node.sql: $(SRCS)
 
 pgq_node.upgrade.sql: $(SRCS)
 	$(CATSQL) structure/upgrade.sql > $@
+
+structure/newgrants_pgq_node.sql: structure/grants.ini
+	$(GRANTFU) -r -d -t $< > $@
+
+structure/oldgrants_pgq_node.sql: structure/grants.ini structure/grants.sql
+	echo "begin;" > $@
+	$(GRANTFU) -R -o $< >> $@
+	cat structure/grants.sql >> $@
+	echo "commit;" >> $@
+
 
 #
 # docs

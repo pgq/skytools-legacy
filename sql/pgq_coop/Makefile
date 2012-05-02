@@ -1,5 +1,7 @@
 
-DATA_built = pgq_coop.sql pgq_coop.upgrade.sql
+DATA_built = pgq_coop.sql pgq_coop.upgrade.sql \
+	     structure/newgrants_pgq_coop.sql \
+	     structure/oldgrants_pgq_coop.sql
 
 SQL_FULL = structure/schema.sql structure/functions.sql structure/grants.sql
 
@@ -16,6 +18,8 @@ include $(PGXS)
 NDOC = NaturalDocs
 NDOCARGS = -r -o html docs/html -p docs -i docs/sql
 CATSQL = ../../scripts/catsql.py
+GRANTFU = ../../scripts/grantfu.py
+
 
 #
 # combined SQL files
@@ -26,6 +30,15 @@ pgq_coop.sql: $(SRCS)
 
 pgq_coop.upgrade.sql: $(SRCS)
 	$(CATSQL) structure/upgrade.sql > $@
+
+structure/newgrants_pgq_coop.sql: structure/grants.ini
+	$(GRANTFU) -t -r -d $< > $@
+
+structure/oldgrants_pgq_coop.sql: structure/grants.ini structure/grants.sql
+	echo "begin;" > $@
+	$(GRANTFU) -R -o $< >> $@
+	cat structure/grants.sql >> $@
+	echo "commit;" >> $@
 
 #
 # docs
