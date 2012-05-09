@@ -36,4 +36,19 @@ select * from londiste.get_seq_list('seqbranch');
 select * from londiste.local_remove_seq('seqbranch', 'masterseq');
 select * from londiste.local_remove_seq('seqbranch', 'masterseq');
 
+-- seq auto-removal
+create table seqtable (
+    id1 serial primary key,
+    id2 bigserial not null
+);
 
+select * from londiste.local_add_table('seqroot', 'seqtable');
+select * from londiste.local_add_seq('seqroot', 'seqtable_id1_seq');
+select * from londiste.local_add_seq('seqroot', 'seqtable_id2_seq');
+
+select * from londiste.get_table_list('seqroot');
+select * from londiste.get_seq_list('seqroot');
+
+select * from londiste.local_remove_table('seqroot', 'seqtable');
+
+select * from londiste.get_seq_list('seqroot');
