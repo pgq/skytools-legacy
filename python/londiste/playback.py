@@ -634,10 +634,13 @@ class Replicator(CascadedWorker):
             return
 
         fqname = skytools.quote_fqident(t.dest_table)
-        if dst_curs.connection.server_version >= 80400:
-            sql = "TRUNCATE ONLY %s;" % fqname
-        else:
-            sql = "TRUNCATE %s;" % fqname
+
+        #
+        # Always use CASCADE, because without it the
+        # operation cannot work with FKeys, on both
+        # slave and master.
+        #
+        sql = "TRUNCATE %s CASCADE;" % fqname
 
         self.flush_sql(dst_curs)
         dst_curs.execute(sql)
