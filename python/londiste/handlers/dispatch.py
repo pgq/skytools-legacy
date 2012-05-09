@@ -838,6 +838,8 @@ class Dispatcher(BaseHandler):
             dtm = datetime.datetime.now()
         elif self.conf.part_mode == 'date_field':
             dt_str = data[self.conf.part_field]
+            if dt_str is None:
+                raise Exception('part_field(%s) is NULL: %s' % (self.conf.part_field, ev))
             dtm = datetime.datetime.strptime(dt_str[:19], "%Y-%m-%d %H:%M:%S")
         else:
             raise UsageError('Bad value for part_mode: %s' %\
