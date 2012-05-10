@@ -1265,7 +1265,7 @@ primary_conninfo     = %(primary_conninfo)s
                 stop_time = time.localtime()
 
                 # Obtain the last restart point information
-                ctl = PgControlData(self.cf.getfile("slave_bin", ""), dst, False)
+                ctl = PgControlData(self.cf.getfile("slave_bin", ""), dst, True)
 
                 # TODO: The newly created backup directory probably still contains
                 # backup_label.old and recovery.conf files. Remove these.
