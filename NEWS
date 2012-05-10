@@ -1,3 +1,38 @@
+2012-05-10  -  SkyTools 3.0.2  -  "Consumes 30% Less Brain Than Competing Products"
+
+  = Features =
+
+    * Draft implementation of fine-grained grants for SQL
+      functions.  See commit doc/sql-grants.txt for details.
+      New roles are created during upgrade, but new grants
+      need to be applied manually.
+
+    * pgq.create_queue: instead pre-determined grants,
+      copy grants for event tables from pgq.event_template.
+
+    * simple_consumer.py script, for simply event processing
+      by simply launching a SQL function for each event.
+
+    * londiste.handlers.part: make hash function configurable
+
+    * psycopgwrapper: allow name= argument to .cursor()
+
+  = Fixes =
+
+    * londiste: Always use TRUNCATE CASCADE
+
+    * pgq.cascade.CascadedWorker: publish_local_wm() is missing a commit
+
+    * walmgr: fix backup from slave (Sergey Burladyan)
+
+  = Cleanups =
+
+    * pgq.insert_event(): outer wrapper does not need to be secdef
+
+    * source.cfg: minor improvements
+
+    * sql/pgq: use terse verbosity in regtests
+
 2012-04-18  -  SkyTools 3.0.1  -  "All The Snow You Can Eat"
 
   = Features =
