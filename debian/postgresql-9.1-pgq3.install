@@ -12,3 +12,13 @@ usr/share/postgresql/9.1/contrib/pgq.sql
 usr/share/postgresql/9.1/contrib/pgq_coop.sql
 usr/share/postgresql/9.1/contrib/londiste.upgrade.sql
 usr/share/postgresql/9.1/contrib/uninstall_pgq.sql
+usr/share/postgresql/9.1/contrib/newgrants_londiste.sql
+usr/share/postgresql/9.1/contrib/newgrants_pgq_coop.sql
+usr/share/postgresql/9.1/contrib/newgrants_pgq_ext.sql
+usr/share/postgresql/9.1/contrib/newgrants_pgq_node.sql
+usr/share/postgresql/9.1/contrib/newgrants_pgq.sql
+usr/share/postgresql/9.1/contrib/oldgrants_londiste.sql
+usr/share/postgresql/9.1/contrib/oldgrants_pgq_coop.sql
+usr/share/postgresql/9.1/contrib/oldgrants_pgq_ext.sql
+usr/share/postgresql/9.1/contrib/oldgrants_pgq_node.sql
+usr/share/postgresql/9.1/contrib/oldgrants_pgq.sql
