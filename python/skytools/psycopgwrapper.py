@@ -107,8 +107,14 @@ class _CompatCursor(psycopg2.extras.DictCursor):
 class _CompatConnection(psycopg2.extensions.connection):
     """Connection object that uses _CompatCursor."""
     my_name = '?'
-    def cursor(self):
-        return psycopg2.extensions.connection.cursor(self, cursor_factory = _CompatCursor)
+    def cursor(self, name = None):
+        if name:
+            return psycopg2.extensions.connection.cursor(self,
+                    cursor_factory = _CompatCursor,
+                    name = name)
+        else:
+            return psycopg2.extensions.connection.cursor(self,
+                    cursor_factory = _CompatCursor)
 
 def connect_database(connstr, keepalive = True,
                      tcp_keepidle = 4 * 60,     # 7200

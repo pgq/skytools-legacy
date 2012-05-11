@@ -12,6 +12,7 @@ DOCHTML = \
 	TODO.html pgq-sql.html pgq-nodupes.html \
 	faq.html set.notes.html skytools3.html devnotes.html pgqd.html \
 	londiste3.html walmgr3.html qadmin.html scriptmgr.html \
+	sql-grants.html \
 	skytools_upgrade.html queue_mover.html queue_splitter.html \
 	howto/londiste3_cascaded_rep_howto.html \
 	howto/londiste3_merge_howto.html \

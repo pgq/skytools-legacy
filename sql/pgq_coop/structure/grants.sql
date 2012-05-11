@@ -1,3 +1,3 @@
 
-grant usage on schema pgq_coop to public;
+GRANT usage ON SCHEMA pgq_coop TO public;
 
