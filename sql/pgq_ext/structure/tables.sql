@@ -52,7 +52,6 @@ set client_min_messages = 'warning';
 set default_with_oids = 'off';
 
 create schema pgq_ext;
-grant usage on schema pgq_ext to public;
 
 
 --

@@ -1,3 +1,4 @@
+\set VERBOSITY 'terse'
 select * from pgq.maint_tables_to_vacuum();
  maint_tables_to_vacuum 
 ------------------------
@@ -340,8 +341,6 @@ select pgq.insert_event('myqueue', 'test', 'event');
 update pgq.queue set queue_disable_insert = true where queue_name = 'myqueue';
 select pgq.insert_event('myqueue', 'test', 'event');
 ERROR:  Insert into queue disallowed
-CONTEXT:  PL/pgSQL function "insert_event" line 19 at RETURN
-PL/pgSQL function "insert_event" line 15 at RETURN
 update pgq.queue set queue_disable_insert = false where queue_name = 'myqueue';
 select pgq.insert_event('myqueue', 'test', 'event');
  insert_event 
@@ -366,15 +365,11 @@ select pgq.insert_event('myqueue', 'test', 'event2');
 
 select pgq.insert_event('myqueue', 'test', 'event3');
 ERROR:  Queue 'myqueue' allows max 2 events from one TX
-CONTEXT:  PL/pgSQL function "insert_event" line 19 at RETURN
-PL/pgSQL function "insert_event" line 15 at RETURN
 end;
 update pgq.queue set queue_per_tx_limit = 0 where queue_name = 'myqueue';
 begin;
 select pgq.insert_event('myqueue', 'test', 'event1');
 ERROR:  Queue 'myqueue' allows max 0 events from one TX
-CONTEXT:  PL/pgSQL function "insert_event" line 19 at RETURN
-PL/pgSQL function "insert_event" line 15 at RETURN
 select pgq.insert_event('myqueue', 'test', 'event2');
 ERROR:  current transaction is aborted, commands ignored until end of transaction block
 select pgq.insert_event('myqueue', 'test', 'event3');

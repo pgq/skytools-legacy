@@ -1,6 +1,6 @@
 
 DOCS = README.pgq
-DATA_built = pgq.sql pgq.upgrade.sql
+DATA_built = pgq.sql pgq.upgrade.sql structure/oldgrants_pgq.sql structure/newgrants_pgq.sql
 DATA = structure/uninstall_pgq.sql
 
 # scripts that load other sql files
@@ -9,7 +9,7 @@ FUNCS = $(shell sed -e 's/^[^\\].*//' -e 's/\\i //' $(LDRS))
 SRCS = structure/tables.sql structure/grants.sql structure/install.sql \
        structure/uninstall_pgq.sql $(FUNCS)
 
-REGRESS = pgq_init pgq_core logutriga sqltriga trunctrg
+REGRESS = pgq_init pgq_core pgq_perms logutriga sqltriga trunctrg
 REGRESS_OPTS = --load-language=plpgsql
 
 PG_CONFIG = pg_config
@@ -19,6 +19,7 @@ include $(PGXS)
 NDOC = NaturalDocs
 NDOCARGS = -r -o html docs/html -p docs -i docs/sql
 CATSQL = ../../scripts/catsql.py
+GRANTFU = ../../scripts/grantfu.py
 
 SUBDIRS = lowlevel triggers
 
@@ -48,6 +49,15 @@ pgq.sql: $(SRCS)
 # fixme: use LDRS here, to upgrade triggers
 pgq.upgrade.sql: $(SRCS)
 	$(CATSQL) structure/upgrade.sql > $@
+
+structure/newgrants_pgq.sql: structure/grants.ini
+	$(GRANTFU) -t -r -d $< > $@
+
+structure/oldgrants_pgq.sql: structure/grants.ini structure/grants.sql
+	echo "begin;" > $@
+	$(GRANTFU) -R -o $< >> $@
+	cat structure/grants.sql >> $@
+	echo "commit;" >> $@
 
 #
 # docs
@@ -79,3 +89,4 @@ test: pgq.sql
 ack:
 	cp results/*.out expected/
 
+.PHONY: test ack upload cleandox dox

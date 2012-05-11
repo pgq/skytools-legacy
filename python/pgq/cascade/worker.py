@@ -227,6 +227,7 @@ class CascadedWorker(CascadedConsumer):
         src_curs = src_db.cursor()
         q = "select * from pgq_node.set_subscriber_watermark(%s, %s, %s)"
         src_curs.execute(q, [self.pgq_queue_name, st.node_name, wm])
+        src_db.commit()
 
         # if last part fails, dont repeat it immediately
         self.local_wm_publish_time = t

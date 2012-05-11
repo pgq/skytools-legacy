@@ -1,3 +1,4 @@
+\set VERBOSITY 'terse'
 
 -- start testing
 create table rtest (
