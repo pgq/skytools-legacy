@@ -49,7 +49,8 @@ def check_version(curs, schema, new_ver_str, recheck_func=None):
     q = "select %s()" % funcname
     curs.execute(q)
     old_ver_str = curs.fetchone()[0]
-    return is_version_ge(old_ver_str, new_ver_str)
+    ok = is_version_ge(old_ver_str, new_ver_str)
+    return ok, old_ver_str
 
 
 class DbUpgrade(skytools.DBScript):
@@ -69,7 +70,8 @@ class DbUpgrade(skytools.DBScript):
                 continue
 
             # new enough?
-            if check_version(curs, schema, ver, recheck_func):
+            ok, oldver = check_version(curs, schema, ver, recheck_func)
+            if ok:
                 continue
 
             # too old schema, no way to upgrade
@@ -80,6 +82,7 @@ class DbUpgrade(skytools.DBScript):
 
             curs = db.cursor()
             curs.execute('begin')
+            self.log.info("%s: Upgrading '%s' version %s to %s", dbname, schema, oldver, ver)
             skytools.installer_apply_file(db, fn, self.log)
             curs.execute('commit')
 
