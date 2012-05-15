@@ -879,7 +879,9 @@ class Dispatcher(BaseHandler):
                 curs.execute(sql)
                 return True
             return False
+
         exec_with_vals(self.conf.pre_part)
+
         if not exec_with_vals(self.conf.part_template):
             self.log.debug('part_template not provided, using part func')
             # if part func exists call it with val arguments
@@ -889,9 +891,17 @@ class Dispatcher(BaseHandler):
                 self.log.debug('check_part.exec: func:%s, args: %s' % (pfcall, vals))
                 curs.execute(pfcall, vals)
             else:
+                #
+                # Otherwise crete simple clone.
+                #
+                # FixMe: differences from create_partitions():
+                # - check constraints
+                # - inheritance
+                #
                 self.log.debug('part func %s not found, cloning table' % self.conf.part_func)
                 struct = TableStruct(curs, self.dest_table)
                 struct.create(curs, T_ALL, dst)
+
         exec_with_vals(self.conf.post_part)
         self.log.info("Created table: %s" % dst)
 
