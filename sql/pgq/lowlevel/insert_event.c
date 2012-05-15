@@ -108,7 +108,6 @@ struct QueueState {
 /*
  * Cached plans.
  */
-static void *queue_check_plan;
 static void *queue_plan;
 static HTAB *insert_cache;
 
