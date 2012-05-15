@@ -20,6 +20,7 @@
 #include "funcapi.h"
 
 #include "catalog/pg_type.h"
+#include "commands/trigger.h"
 #include "executor/spi.h"
 #include "lib/stringinfo.h"
 #include "utils/builtins.h"
@@ -307,8 +308,20 @@ Datum pgq_insert_event_raw(PG_FUNCTION_ARGS)
 
 	load_queue_info(qname, &state);
 
+	/*
+	 * Check if queue has disable_insert flag set.
+	 */
+#if defined(PG_VERSION_NUM) && PG_VERSION_NUM >= 80300
+	/* 8.3+: allow insert_event() even if connection is in 'replica' role */
+	if (state.disabled) {
+		if (SessionReplicationRole != SESSION_REPLICATION_ROLE_REPLICA)
+			elog(ERROR, "Insert into queue disallowed");
+	}
+#else
+	/* pre-8.3 */
 	if (state.disabled)
 		elog(ERROR, "Insert into queue disallowed");
+#endif
 
 	if (PG_ARGISNULL(1))
 		ev_id = state.next_event_id;
