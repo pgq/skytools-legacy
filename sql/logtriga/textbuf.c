@@ -1,5 +1,7 @@
 
 #include <postgres.h>
+
+#include "utils/elog.h"
 #include "funcapi.h"
 #include "mb/pg_wchar.h"
 #include "parser/keywords.h"
