@@ -45,6 +45,8 @@ class LondisteSetup(CascadeAdmin):
                     help = "no copy needed", default=False)
         p.add_option("--skip-truncate", action="store_true", dest="skip_truncate",
                     help = "dont delete old data", default=False)
+        p.add_option("--copy-node", dest="copy_node",
+                help = "add: use NODE as source for initial copy")
         p.add_option("--copy-condition", dest="copy_condition",
                 help = "copy: where expression")
         p.add_option("--force", action="store_true",
@@ -216,6 +218,9 @@ class LondisteSetup(CascadeAdmin):
             p = londiste.handler.build_handler(tbl, hstr, self.options.dest_table)
             attrs['handler'] = hstr
             p.add(tgargs)
+
+        if self.options.copy_node:
+            attrs['copy_node'] = self.options.copy_node
 
         if self.options.expect_sync:
             tgargs.append('expect_sync')
@@ -430,6 +435,17 @@ class LondisteSetup(CascadeAdmin):
         db.commit()
 
     def get_provider_db(self):
+
+        # use custom node for copy
+        if self.options.copy_node:
+            source_node = self.options.copy_node
+            m = self.queue_info.get_member(source_node)
+            if not m:
+                raise UsageError("Cannot find node <%s>", source_node)
+            if source_node == self.local_node:
+                raise UsageError("Cannot use itself as provider")
+            self.provider_location = m.location
+
         if not self.provider_location:
             db = self.get_database('db')
             q = 'select * from pgq_node.get_node_info(%s)'

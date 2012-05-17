@@ -239,14 +239,38 @@ class CopyTable(Replicator):
         return Replicator.work(self)
 
     def register_copy_consumer(self):
-        # fetch parent consumer state
         dst_db = self.get_database('db')
-        q = "select * from pgq_node.get_consumer_state(%s, %s)"
-        rows = self.exec_cmd(dst_db, q, [ self.queue_name, self.old_consumer_name ])
-        state = rows[0]
-        loc = state['provider_location']
+        dst_curs = dst_db.cursor()
 
-        self.register_consumer(loc)
+        # fetch table attrs
+        q = "select * from londiste.get_table_list(%s) where table_name = %s"
+        dst_curs.execute(q, [ self.queue_name, self.copy_table_name ])
+        rows = dst_curs.fetchall()
+        attrs = {}
+        if len(rows) > 0:
+            v_attrs = rows[0]['table_attrs']
+            if v_attrs:
+                attrs = skytools.db_urldecode(v_attrs)
+
+        # do we have node here?
+        if 'copy_node' in attrs:
+            # take node from attrs
+            source_node = attrs['copy_node']
+            q = "select * from pgq_node.get_queue_locations(%s) where node_name = %s"
+            dst_curs.execute(q, [ self.queue_name, source_node ])
+            rows = dst_curs.fetchall()
+            if len(rows):
+                source_location = rows[0]['node_location']
+        else:
+            # fetch parent consumer state
+            q = "select * from pgq_node.get_consumer_state(%s, %s)"
+            rows = self.exec_cmd(dst_db, q, [ self.queue_name, self.old_consumer_name ])
+            state = rows[0]
+            source_node = state['provider_node']
+            source_location = state['provider_location']
+
+        self.log.info("Using '%s' as source node", source_node)
+        self.register_consumer(source_location)
 
 if __name__ == '__main__':
     script = CopyTable(sys.argv[1:])
