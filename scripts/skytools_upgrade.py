@@ -43,9 +43,9 @@ def check_version(curs, schema, new_ver_str, recheck_func=None):
     funcname = "%s.version" % schema
     if not skytools.exists_function(curs, funcname, 0):
         if recheck_func is not None:
-            return recheck_func(curs)
+            return recheck_func(curs), 'NULL'
         else:
-            return 0
+            return 0, 'NULL'
     q = "select %s()" % funcname
     curs.execute(q)
     old_ver_str = curs.fetchone()[0]
