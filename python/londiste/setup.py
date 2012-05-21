@@ -441,9 +441,9 @@ class LondisteSetup(CascadeAdmin):
             source_node = self.options.copy_node
             m = self.queue_info.get_member(source_node)
             if not m:
-                raise UsageError("Cannot find node <%s>", source_node)
+                raise skytools.UsageError("Cannot find node <%s>", source_node)
             if source_node == self.local_node:
-                raise UsageError("Cannot use itself as provider")
+                raise skytools.UsageError("Cannot use itself as provider")
             self.provider_location = m.location
 
         if not self.provider_location:
