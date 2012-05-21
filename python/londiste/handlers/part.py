@@ -40,8 +40,8 @@ class PartHandler(TableHandler):
         # hash function & full expression
         hashfunc = args.get('hashfunc', self.DEFAULT_HASHFUNC)
         self.hashexpr = self.DEFAULT_HASHEXPR % (
-                skytools.quite_fqident(hashfunc),
-                skytools.quite_ident(self.key))
+                skytools.quote_fqident(hashfunc),
+                skytools.quote_ident(self.key))
         self.hashexpr = args.get('hashexpr', self.hashexpr)
 
     def reset(self):
