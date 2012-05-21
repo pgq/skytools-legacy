@@ -48,6 +48,15 @@ begin
         end if;
     end if;
 
+    --
+    -- There may be obsolete subscriptions around
+    -- drop them silently.
+    --
+    perform pgq_node.unregister_subscriber(i_queue_name, i_node_name);
+
+    --
+    -- Actual removal
+    --
     delete from pgq_node.node_location
      where queue_name = i_queue_name
        and node_name = i_node_name;
