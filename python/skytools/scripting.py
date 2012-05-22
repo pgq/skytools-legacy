@@ -627,8 +627,10 @@ class BaseScript(object):
         """
 
         # set signals
-        signal.signal(signal.SIGHUP, self.hook_sighup)
-        signal.signal(signal.SIGINT, self.hook_sigint)
+        if hasattr(signal, 'SIGHUP'):
+            signal.signal(signal.SIGHUP, self.hook_sighup)
+        if hasattr(signal, 'SIGINT'):
+            signal.signal(signal.SIGINT, self.hook_sigint)
 
     # define some aliases (short-cuts / backward compatibility cruft)
     stat_add = stat_put                 # Old, deprecated function.
