@@ -598,7 +598,11 @@ class BaseScript(object):
 
     def sleep(self, secs):
         """Make script sleep for some amount of time."""
-        time.sleep(secs)
+        try:
+            time.sleep(secs)
+        except IOError, ex:
+            if ex.errno != errno.EINTR:
+                raise
 
     def exception_hook(self, det, emsg):
         """Called on after exception processing.
