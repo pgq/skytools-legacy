@@ -14,7 +14,7 @@ GRANTFU = ../../scripts/grantfu.py
 
 REGRESS = londiste_install londiste_provider londiste_subscriber \
 	  londiste_fkeys londiste_execute londiste_seqs londiste_merge \
-	  londiste_leaf
+	  londiste_leaf londiste_create_part
 # londiste_denytrigger
 
 REGRESS_OPTS = --dbname=regression

@@ -47,3 +47,6 @@ select londiste.upgrade_schema();
 \i functions/londiste.is_replica_func.sql
 \i functions/londiste.version.sql
 
+-- Group: Utility functions for handlers
+\i functions/londiste.create_partition.sql
+
