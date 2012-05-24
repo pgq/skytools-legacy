@@ -38,6 +38,7 @@ declare
     fq_table        text;
     fq_part         text;
     g               record;
+    r               record;
     sql             text;
     pgver           integer;
 begin
@@ -92,6 +93,7 @@ begin
     sql := sql || ') inherits (' || fq_table || ')';
     execute sql;
 
+    -- extra check constraint
     if i_part_field != '' then
         part_start := date_trunc(i_part_period, i_part_time);
         part_end := part_start + ('1 ' || i_part_period)::interval;
@@ -115,6 +117,18 @@ begin
         if g.is_grantable = 'YES' then
             sql := sql || ' with grant option';
         end if;
+        execute sql;
+    end loop;
+
+    -- copy rules
+    for r in
+        select rulename, definition,
+               substring(definition from ' TO (([a-z0-9._]+|"([^"]+|"")+")+)') as oldtbl
+          from pg_catalog.pg_rules
+         where schemaname = parent_schema
+           and tablename = parent_name
+    loop
+        sql := replace(r.definition, r.oldtbl, fq_part);
         execute sql;
     end loop;
 
