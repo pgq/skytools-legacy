@@ -125,18 +125,6 @@ begin
         execute sql;
     end loop;
 
-    -- copy rules
-    for r in
-        select rulename, definition,
-               substring(definition from ' TO (([a-z0-9._]+|"([^"]+|"")+")+)') as oldtbl
-          from pg_catalog.pg_rules
-         where schemaname = parent_schema
-           and tablename = parent_name
-    loop
-        sql := replace(r.definition, r.oldtbl, fq_part);
-        execute sql;
-    end loop;
-
     return 1;
 end;
 $$ language plpgsql;

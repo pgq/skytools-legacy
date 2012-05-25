@@ -50,7 +50,7 @@ select count(*) from pg_constraint where conrelid = 'public.events_2011_01'::reg
 select count(*) from pg_rules where schemaname = 'public' and tablename = 'events_2011_01';
  count 
 -------
-     1
+     0
 (1 row)
 
 -- \d events_2011_01
