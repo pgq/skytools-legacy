@@ -13,6 +13,9 @@ create or replace function londiste.create_partition(
 --      Creates child table for aggregation function for either monthly or daily if it does not exist yet.
 --      Locks parent table for child table creating.
 --
+-- Problem:
+--      Grants and rules should be part of CREATE TABLE x (LIKE y INCLUDING ALL)'.
+--
 -- Parameters:
 --      i_table - name of parent table
 --      i_part - name of partition table to create
@@ -42,6 +45,9 @@ declare
     r               record;
     sql             text;
     pgver           integer;
+    r_oldtbl        text;
+    r_extra         text;
+    r_sql           text;
 begin
     if i_table is null or i_part is null then
         raise exception 'need table and part';
@@ -127,14 +133,44 @@ begin
 
     -- copy rules
     for r in
-        select rulename, definition,
-               substring(definition from ' TO (([a-z0-9._]+|"([^"]+|"")+")+)') as oldtbl
-          from pg_catalog.pg_rules
-         where schemaname = parent_schema
-           and tablename = parent_name
+        select rw.rulename, rw.ev_enabled, pg_get_ruledef(rw.oid) as definition
+          from pg_catalog.pg_rewrite rw
+         where rw.ev_class = fq_table::regclass::oid
+           and rw.rulename <> '_RETURN'::name
     loop
-        sql := replace(r.definition, r.oldtbl, fq_part);
+        -- try to skip rule name
+        r_extra := 'CREATE RULE ' || quote_ident(r.rulename) || ' AS';
+        r_sql := substr(r.definition, 1, char_length(r_extra));
+        if r_sql = r_extra then
+            r_sql := substr(r.definition, char_length(r_extra));
+        else
+            raise exception 'failed to match rule name';
+        end if;
+
+        -- no clue what name was used in defn, so find it from sql
+        r_oldtbl := substring(r_sql from ' TO (([[:alnum:]_.]+|"([^"]+|"")+")+)[[:space:]]');
+        if char_length(r_oldtbl) > 0 then
+            sql := replace(r.definition, r_oldtbl, fq_part);
+        else
+            raise exception 'failed to find original table name';
+        end if;
         execute sql;
+
+        -- rule flags
+        r_extra := NULL;
+        if r.ev_enabled = 'R' then
+            r_extra = ' ENABLE REPLICA RULE ';
+        elsif r.ev_enabled = 'A' then
+            r_extra = ' ENABLE ALWAYS RULE ';
+        elsif r.ev_enabled = 'D' then
+            r_extra = ' DISABLE RULE ';
+        elsif r.ev_enabled <> 'O' then
+            raise exception 'unknown rule option: %', r.ev_enabled;
+        end if;
+        if r_extra is not null then
+            sql := 'ALTER TABLE ' || fq_part || r_extra
+                || quote_ident(r.rulename);
+        end if;
     end loop;
 
     return 1;
