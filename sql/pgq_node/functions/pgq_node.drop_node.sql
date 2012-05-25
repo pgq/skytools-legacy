@@ -42,7 +42,10 @@ begin
         where n.queue_name = i_queue_name;
 
     if not found then
-        select 304, 'No such queue: ' || i_queue_name into ret_code, ret_note;
+        -- proceed with cleaning anyway, as there schenarios
+        -- where some data is left around
+        _is_prov := false;
+        _is_local := true;
         return;
     end if;
 
