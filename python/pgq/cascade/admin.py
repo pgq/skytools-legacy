@@ -814,7 +814,7 @@ class CascadeAdmin(skytools.AdminScript):
             self.log.warning("ignoring cmd for dead node '%s': %s" % (
                 node_name, skytools.quote_statement(sql, args)))
             return None
-        return self.exec_cmd(db, sql, args, quiet = quiet)
+        return self.exec_cmd(db, sql, args, quiet = quiet, prefix=node_name)
 
     #
     # Various operation on nodes.
