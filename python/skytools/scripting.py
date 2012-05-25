@@ -22,7 +22,6 @@ __all__ = ['BaseScript', 'signal_pidfile', 'UsageError', 'daemonize',
 
 class UsageError(Exception):
     """User induced error."""
-    pass
 
 #
 # utils
