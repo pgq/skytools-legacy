@@ -124,7 +124,7 @@ create function testmatrix(
 returns setof record as $$
 begin
     for p1s, p2s, p3s in
-        select p1.state, p2.state, p3.state
+        select p1.state::name, p2.state::name, p3.state::name
         from states p1, states p2, states p3
         where position('!' in p1.state) + position('!' in p2.state) + position('!' in p3.state) < 2
         order by 1,2,3
