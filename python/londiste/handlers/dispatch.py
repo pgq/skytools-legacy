@@ -86,8 +86,8 @@ part_template:
 row_mode:
     how rows are applied to target table
     * plain - each event creates SQL statement to run (default)
-    * keep_all - change updates to DELETE + INSERT
-    * keep_latest - change updates to inserts, ignore deletes
+    * keep_latest - change updates to DELETE + INSERT, ignore deletes
+    * keep_all - change updates to inserts, ignore deletes
 
 event_types:
     event types to process, separated by comma. Other events are ignored.
