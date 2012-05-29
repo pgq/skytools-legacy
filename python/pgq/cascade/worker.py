@@ -332,13 +332,17 @@ class CascadedWorker(CascadedConsumer):
         """
 
         # merge-leaf on branch should not update tick pos
-        wst = self._worker_state
-        if wst.wait_behind:
+        st = self._worker_state
+        if st.wait_behind:
             dst_db.commit()
+
+            # still need to publish wm info
+            if st.local_wm_publish and self.main_worker:
+                self.publish_local_wm(src_db, dst_db)
+
             return
 
         if self.main_worker:
-            st = self._worker_state
             dst_curs = dst_db.cursor()
 
             self.flush_events(dst_curs)
