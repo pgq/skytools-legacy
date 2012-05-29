@@ -180,9 +180,9 @@ METHODS = [METH_CORRECT, METH_DELETE, METH_MERGED, METH_INSERT]
 
 EVENT_TYPES = ['I', 'U', 'D']
 
-PART_FUNC = 'public.create_partition'
-PART_FUNC_ARGS = ['parent', 'part', 'pkeys', 'part_field', 'part_time',
-                  'period']
+PART_FUNC_OLD = 'public.create_partition'
+PART_FUNC_NEW = 'londiste.create_partition'
+PART_FUNC_ARGS = ['parent', 'part', 'pkeys', 'part_field', 'part_time', 'period']
 
 
 
@@ -700,7 +700,7 @@ class Dispatcher(BaseHandler):
             conf.part_template = self.args.get('part_template')
             conf.pre_part = self.args.get('pre_part')
             conf.post_part = self.args.get('post_part')
-            conf.part_func = self.args.get('part_func', PART_FUNC)
+            conf.part_func = self.args.get('part_func', PART_FUNC_NEW)
         # set row mode and event types to process
         conf.row_mode = self.get_arg('row_mode', ROW_MODES)
         event_types = self.args.get('event_types', '*')
@@ -886,8 +886,17 @@ class Dispatcher(BaseHandler):
             self.log.debug('part_template not provided, using part func')
             # if part func exists call it with val arguments
             pfargs = ', '.join('%%(%s)s' % arg for arg in PART_FUNC_ARGS)
+
+            # set up configured function
             pfcall = 'select %s(%s)' % (self.conf.part_func, pfargs)
-            if skytools.exists_function(curs, self.conf.part_func, len(PART_FUNC_ARGS)):
+            have_func = skytools.exists_function(curs, self.conf.part_func, len(PART_FUNC_ARGS))
+
+            # backwards compat
+            if not have_func and self.conf.part_func == PART_FUNC_NEW:
+                pfcall = 'select %s(%s)' % (PART_FUNC_OLD, pfargs)
+                have_func = skytools.exists_function(curs, PART_FUNC_OLD, len(PART_FUNC_ARGS))
+
+            if have_func:
                 self.log.debug('check_part.exec: func:%s, args: %s' % (pfcall, vals))
                 curs.execute(pfcall, vals)
             else:
