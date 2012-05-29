@@ -273,6 +273,11 @@ Do full copy of the table, again.
   --handler-arg='handler_arg'::
     Argument to custom handler.
 
+  --copy-node='NODE_NAME'::
+    Do initial copy from that node instead from provider.
+    Useful if provider does not contain table data locally
+    or is simply under load.
+
   --copy-condition='copy_condition'::
     Set WHERE expression for copy.
 
