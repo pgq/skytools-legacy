@@ -133,7 +133,7 @@ class LondisteSetup(CascadeAdmin):
         args = self.expand_arg_list(dst_db, 'r', False, args, needs_tbl)
 
         # dont check for exist/not here (root handling)
-        if not self.is_root():
+        if not self.is_root() and not self.options.expect_sync:
             problems = False
             for tbl in args:
                 tbl = skytools.fq_name(tbl)
@@ -183,7 +183,7 @@ class LondisteSetup(CascadeAdmin):
                 src_dest_table = src_tbls[tbl]['dest_table']
                 if not skytools.exists_table(src_curs, src_dest_table):
                     # table not present on provider - nowhere to get the DDL from
-                    self.log.warning('Table %s missing on provider, skipping' % desc)
+                    self.log.warning('Table %s missing on provider, cannot create, skipping' % desc)
                     return
                 schema = skytools.fq_name_parts(dest_table)[0]
                 if not skytools.exists_schema(dst_curs, schema):
