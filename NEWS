@@ -1,3 +1,46 @@
+2012-05-30  -  SkyTools 3.0.3  -  "Biometric Authentication by Yodeling"
+
+  = Features =
+
+    * londiste copy: copy table from another node (add-table --copy-node=NODE)
+    * londiste remove-table: drop sequence too
+    * public.create_partition: move under londiste schema, it's now generic enough
+    * londiste.create_partitions: Support copying rules from master table
+    * handlers.dispatch: use londiste.create_partitions, use old func as fallback
+    * walmgr: add option for init-slave to add password from file to .pgpass
+    * walmgr: add command synch-standby
+
+  = Fixes =
+
+    * CascadedWorker: merge-leaf-to-branch needs to publish wm info
+    * pgq_node.create_node: create branch nodes with disable_insert set
+    * pgq.insert_event: ignore disable_insert if in 'replica' role
+    * create_partition: public grant needs special casing
+    * skytools.dbstruct: better rule name redirection
+    * debian: add build-deps, force debian/control rebuild
+    * pgq_node.unregister_location: do automatic unsubscribe
+    * pgq_node.drop_node: drop queue data even if node_info is empty
+    * londiste add-table: --expect-sync does not require table existance on provider
+
+  = Cleanups =
+
+    * skytools_upgrade: show old version before upgrade
+    * CascadeAdmin: add node name prefix messages from db
+    * handlers.dispatch: add comment about differences from part_func
+    * londiste.find_table_oid: drop old version - 9.1+ panics when argument name changes
+    * dbservice.get_record_list: do not use parse_pgarray on python lists
+
+  = Win32 =
+
+    * skytools.scripting: catch EINTR from sleep()
+    * signal_pidfile: support sig=0 on win32
+    * skytools.scripting: detect if signal name exists
+
+  = Schema version changes =
+
+    * pgq_node.version(): 3.0.0.18
+    * londiste.version(): 3.0.0.16
+
 2012-05-10  -  SkyTools 3.0.2  -  "Consumes 30% Less Brain Than Competing Products"
 
   = Features =
