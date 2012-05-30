@@ -46,7 +46,6 @@ begin
         -- where some data is left around
         _is_prov := false;
         _is_local := true;
-        return;
     end if;
 
     -- drop local state
