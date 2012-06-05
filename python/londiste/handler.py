@@ -120,7 +120,12 @@ class BaseHandler:
         return True
 
 class TableHandler(BaseHandler):
-    """Default Londiste handler, inserts events into tables with plain SQL."""
+    """Default Londiste handler, inserts events into tables with plain SQL.
+    
+    Parameters:
+      encoding=ENC - Validate and fix incoming data from encoding.
+                     Only 'utf8' is supported at the moment.
+    """
     handler_name = 'londiste'
 
     sql_command = {

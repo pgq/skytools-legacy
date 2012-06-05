@@ -1,7 +1,10 @@
-"""Event filtering by hash.
+"""Event filtering by hash, for partitioned databases.
 
 Parameters:
-
+  key=COLUMN: column name to use for hashing
+  hashfunc=FUNCNAME: function to use for hashing. (default: partconf.get_hash_raw)
+  hashexpr=EXPR: full expression to use for hashing (deprecated)
+  encoding=ENC: validate and fix incoming data (only utf8 supported atm)
 
 On root node:
 * Hash of key field will be added to ev_extra3.
@@ -10,9 +13,11 @@ On root node:
         ev_extra3='hash='||partconf.get_hash_raw(key_column)
 
 On branch/leaf node:
-
 * On COPY time, the SELECT on provider side gets filtered by hash.
 * On replay time, the events gets filtered by looking at hash in ev_extra3.
+
+Local config:
+* Local hash value and mask are loaded from partconf.conf table.
 
 """
 
@@ -22,6 +27,7 @@ from londiste.handler import TableHandler
 __all__ = ['PartHandler']
 
 class PartHandler(TableHandler):
+    __doc__ = __doc__
     handler_name = 'part'
 
     DEFAULT_HASHFUNC = "partconf.get_hash_raw"
