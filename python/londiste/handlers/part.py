@@ -78,7 +78,7 @@ class PartHandler(TableHandler):
     def real_copy(self, tablename, src_curs, dst_curs, column_list, cond_list):
         """Copy only slots needed locally."""
         self.load_part_info(dst_curs)
-        w = "%s & %d = %d" % (self.hashexpr, self.max_part, self.local_part)
+        w = "(%s & %d) = %d" % (self.hashexpr, self.max_part, self.local_part)
         self.log.debug('part: copy_condition=%s' % w)
         cond_list.append(w)
 
