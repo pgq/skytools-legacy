@@ -149,7 +149,7 @@ import datetime
 import codecs
 import re
 import skytools
-from londiste.handler import BaseHandler
+from londiste.handler import BaseHandler, EncodingValidator
 from skytools import quote_ident, quote_fqident, UsageError
 from skytools.dbstruct import *
 from skytools.utf8 import safe_utf8_decode
@@ -599,54 +599,6 @@ class KeepLatestRowHandler(RowHandler):
 ROW_HANDLERS = {'plain': RowHandler,
                 'keep_all': KeepAllRowHandler,
                 'keep_latest': KeepLatestRowHandler}
-
-
-
-#------------------------------------------------------------------------------
-# ENCODING VALIDATOR
-#------------------------------------------------------------------------------
-
-class EncodingValidator:
-    def __init__(self, log, encoding = 'utf-8', replacement = u'\ufffd'):
-        """validates the correctness of given encoding. when data contains 
-        illegal symbols, replaces them with <replacement> and logs the
-        incident"""
-        self.log = log
-        self.columns = None
-        self.error_count = 0
-
-    def show_error(self, col, val, pfx, unew):
-        if pfx:
-            col = pfx + '.' + col
-        self.log.info('Fixed invalid UTF8 in column <%s>', col)
-        self.log.debug('<%s>: old=%r new=%r', col, val, unew)
-
-    def validate_copy(self, data, columns, pfx=""):
-        """Validate tab-separated fields"""
-
-        ok, _unicode = safe_utf8_decode(data)
-        if ok:
-            return data
-
-        # log error
-        vals = data.split('\t')
-        for i, v in enumerate(vals):
-            ok, tmp = safe_utf8_decode(v)
-            if not ok:
-                self.show_error(columns[i], v, pfx, tmp)
-
-        # return safe data
-        return _unicode.encode('utf8')
-
-    def validate_dict(self, data, pfx=""):
-        """validates data in dict"""
-        for k, v in data.items():
-            if v:
-                ok, u = safe_utf8_decode(v)
-                if not ok:
-                    self.show_error(k, v, pfx, u)
-                    data[k] = u.encode('utf8')
-        return data
 
 
 #------------------------------------------------------------------------------
