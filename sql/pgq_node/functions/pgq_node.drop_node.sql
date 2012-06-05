@@ -78,7 +78,8 @@ begin
         from pgq_node.unregister_location(i_queue_name, i_node_name) f
         into ret_code, ret_note;
 
-    select 200, 'Node dropped' into ret_code, ret_note;
+    select 200, 'Node dropped: ' || i_node_name
+        into ret_code, ret_note;
     return;
 end;
 $$ language plpgsql security definer;
