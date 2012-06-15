@@ -72,10 +72,9 @@ def run_single_process(runnable, daemon, pidfile):
 
     try:
         if pidfile:
-            f = open(pidfile, 'w')
+            data = str(os.getpid())
+            skytools.write_atomic(pidfile, data)
             own_pidfile = True
-            f.write(str(os.getpid()))
-            f.close()
 
         runnable.run()
     finally:
