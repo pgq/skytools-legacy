@@ -29,6 +29,8 @@ _symbols = {
     'T_SEQUENCE': 'skytools.dbstruct:T_SEQUENCE',
     'T_TABLE': 'skytools.dbstruct:T_TABLE',
     'T_TRIGGER': 'skytools.dbstruct:T_TRIGGER',
+    # skytools.fileutil
+    'write_atomic': 'skytools.fileutil:write_atomic',
     # skytools.gzlog
     'gzip_append': 'skytools.gzlog:gzip_append',
     # skytools.parsing
