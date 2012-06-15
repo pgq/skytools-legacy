@@ -17,80 +17,10 @@ except ImportError:
 
 __pychecker__ = 'no-badexcept'
 
-__all__ = ['BaseScript', 'signal_pidfile', 'UsageError', 'daemonize',
-            'DBScript']
+__all__ = ['BaseScript', 'UsageError', 'daemonize', 'DBScript']
 
 class UsageError(Exception):
     """User induced error."""
-
-#
-# utils
-#
-
-def signal_pidfile(pidfile, sig):
-    """Send a signal to process whose ID is located in pidfile.
-
-    Read only first line of pidfile to support multiline
-    pidfiles like postmaster.pid.
-
-    Returns True is successful, False if pidfile does not exist
-    or process itself is dead.  Any other errors will passed
-    as exceptions."""
-
-    ln = ''
-    try:
-        f = open(pidfile, 'r')
-        ln = f.readline().strip()
-        f.close()
-        pid = int(ln)
-        if sig == 0 and sys.platform == 'win32':
-            return win32_detect_pid(pid)
-        os.kill(pid, sig)
-        return True
-    except IOError, ex:
-        if ex.errno != errno.ENOENT:
-            raise
-    except OSError, ex:
-        if ex.errno != errno.ESRCH:
-            raise
-    except ValueError, ex:
-        # this leaves slight race when someone is just creating the file,
-        # but more common case is old empty file.
-        if not ln:
-            return False
-        raise ValueError('Corrupt pidfile: %s' % pidfile)
-    return False
-
-def win32_detect_pid(pid):
-    """Process detection for win32."""
-
-    # avoid pywin32 dependecy, use ctypes instead
-    import ctypes
-
-    # win32 constants
-    PROCESS_QUERY_INFORMATION = 1024
-    STILL_ACTIVE = 259
-    ERROR_INVALID_PARAMETER = 87
-    ERROR_ACCESS_DENIED = 5
-
-    # Load kernel32.dll
-    k = ctypes.windll.kernel32
-    OpenProcess = k.OpenProcess
-    OpenProcess.restype = ctypes.c_void_p
-
-    # query pid exit code
-    h = OpenProcess(PROCESS_QUERY_INFORMATION, 0, pid)
-    if h == None:
-        err = k.GetLastError()
-        if err == ERROR_INVALID_PARAMETER:
-            return False
-        if err == ERROR_ACCESS_DENIED:
-            return True
-        raise OSError(errno.EFAULT, "Unknown win32error: " + str(err))
-    code = ctypes.c_int()
-    k.GetExitCodeProcess(h, ctypes.byref(code))
-    k.CloseHandle(h)
-    return code.value == STILL_ACTIVE
 
 #
 # daemon mode
@@ -127,7 +57,7 @@ def run_single_process(runnable, daemon, pidfile):
 
     # check if another process is running
     if pidfile and os.path.isfile(pidfile):
-        if signal_pidfile(pidfile, 0):
+        if skytools.signal_pidfile(pidfile, 0):
             print("Pidfile exists, another process running?")
             sys.exit(1)
         else:
@@ -468,7 +398,7 @@ class BaseScript(object):
         if not self.pidfile:
             self.log.warning("No pidfile in config, nothing to do")
         elif os.path.isfile(self.pidfile):
-            alive = signal_pidfile(self.pidfile, sig)
+            alive = skytools.signal_pidfile(self.pidfile, sig)
             if not alive:
                 self.log.warning("pidfile exists, but process not running")
         else:
