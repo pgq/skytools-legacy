@@ -30,6 +30,12 @@ begin
         return 0;
     end if;
 
+    -- if DB is in invalid state, stop
+    if txid_current() < cf.queue_switch_step1 then
+        raise exception 'queue % maint failure: step1=%, current=%',
+                i_queue_name, cf.queue_switch_step1, txid_current();
+    end if;
+
     -- find lowest tick for that queue
     select min(sub_last_tick) into lowest_tick_id
       from pgq.subscription
