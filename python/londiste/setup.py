@@ -53,6 +53,8 @@ class LondisteSetup(CascadeAdmin):
                     help="force", default=False)
         p.add_option("--all", action="store_true",
                     help="include all tables", default=False)
+        p.add_option("--wait-sync", action="store_true",
+                help = "add: wait until all tables are in sync"),
         p.add_option("--create", action="store_true",
                     help="create, minimal", default=False)
         p.add_option("--create-full", action="store_true",
@@ -160,6 +162,11 @@ class LondisteSetup(CascadeAdmin):
         # seems ok
         for tbl in args:
             self.add_table(src_db, dst_db, tbl, create_flags, src_tbls)
+
+        # wait
+        if self.options.wait_sync:
+            self.wait_for_sync(dst_db)
+
 
     def add_table(self, src_db, dst_db, tbl, create_flags, src_tbls):
         # use full names
@@ -550,4 +557,53 @@ class LondisteSetup(CascadeAdmin):
             else:
                 n_half += 1
         node.add_info_line('Tables: %d/%d/%d' % (n_ok, n_half, n_ign))
+
+    def cmd_wait_sync(self):
+        self.load_local_info()
+
+        dst_db = self.get_database('db')
+        self.wait_for_sync(dst_db)
+
+    def wait_for_sync(self, dst_db):
+        self.log.info("Waiting until all tables are in sync")
+        q = "select table_name, merge_state, local"\
+            " from londiste.get_table_list(%s) where local"
+        dst_curs = dst_db.cursor()
+
+        partial = {}
+        done_pos = 1
+        startup_info = 0
+        while 1:
+            dst_curs.execute(q, [self.queue_name])
+            rows = dst_curs.fetchall()
+            dst_db.commit()
+
+            cur_count = 0
+            done_list = []
+            for row in rows:
+                if not row['local']:
+                    continue
+                tbl = row['table_name']
+                if row['merge_state'] != 'ok':
+                    partial[tbl] = 0
+                    cur_count += 1
+                elif tbl in partial:
+                    if partial[tbl] == 0:
+                        partial[tbl] = 1
+                        done_list.append(tbl)
+
+            if not startup_info:
+                self.log.info("%d table(s) to copy", len(partial))
+                startup_info = 1
+
+            for done in done_list:
+                self.log.info("%s: finished (%d/%d)", done, done_pos, len(partial))
+                done_pos += 1
+
+            if cur_count == 0:
+                break
+
+            self.sleep(2)
+
+        self.log.info("All done")
 

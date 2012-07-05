@@ -240,6 +240,9 @@ Do full copy of the table, again.
   --all::
     Include all possible tables.
 
+  --wait-sync::
+    Wait until newly added tables are synced fully.
+
   --dest-table='table'::
     Redirect changes to different table.
 
@@ -329,6 +332,19 @@ Execute SQL files on each nodes of the set.
 === show-handlers ['handler'] ===
 
 Show info about all or a specific handler.
+
+=== wait-sync ===
+
+Wait until all added tables are copied over.
+
+=== wait-provider ===
+
+Wait until local node passes latest queue position on provider.
+
+=== wait-root ===
+
+Wait until local node passes latest queue position on root.
+
 
 == INTERNAL COMMAND ==
 
