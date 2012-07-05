@@ -108,6 +108,7 @@ _symbols = {
     'exists_table': 'skytools.sqltools:exists_table',
     'exists_temp_table': 'skytools.sqltools:exists_temp_table',
     'exists_type': 'skytools.sqltools:exists_type',
+    'exists_view': 'skytools.sqltools:exists_view',
     'fq_name': 'skytools.sqltools:fq_name',
     'fq_name_parts': 'skytools.sqltools:fq_name_parts',
     'full_copy': 'skytools.sqltools:full_copy',
