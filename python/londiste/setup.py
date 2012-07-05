@@ -6,6 +6,7 @@
 import sys, os, re, skytools
 
 from pgq.cascade.admin import CascadeAdmin
+from londiste.exec_attrs import ExecAttrs
 
 import londiste.handler
 
@@ -422,6 +423,19 @@ class LondisteSetup(CascadeAdmin):
         db = self.get_database('db')
         curs = db.cursor()
 
+        tables = self.fetch_set_tables(curs)
+        seqs = self.fetch_seqs(curs)
+
+        # generate local maps
+        local_tables = {}
+        local_seqs = {}
+        for tbl in tables:
+            if tbl['local']:
+                local_tables[tbl['table_name']] = tbl['dest_table']
+        for seq in seqs:
+            if seq['local']:
+                local_seqs[seq['seq_name']] = seq['seq_name']
+
         # set replica role for EXECUTE transaction
         if db.server_version >= 80300:
             curs.execute("set local session_replication_role = 'local'")
@@ -429,14 +443,20 @@ class LondisteSetup(CascadeAdmin):
         for fn in files:
             fname = os.path.basename(fn)
             sql = open(fn, "r").read()
-            q = "select * from londiste.execute_start(%s, %s, %s, true)"
-            res = self.exec_cmd(db, q, [self.queue_name, fname, sql], commit = False)
+            attrs = ExecAttrs(sql = sql)
+            q = "select * from londiste.execute_start(%s, %s, %s, true, %s)"
+            res = self.exec_cmd(db, q, [self.queue_name, fname, sql, attrs.to_urlenc()], commit = False)
             ret = res[0]['ret_code']
             if ret >= 300:
                 self.log.warning("Skipping execution of '%s'" % fname)
                 continue
-            for stmt in skytools.parse_statements(sql):
-                curs.execute(stmt)
+            if attrs.need_execute(curs, local_tables, local_seqs):
+                self.log.info("%s: executing sql", fname)
+                xsql = attrs.process_sql(sql, local_tables, local_seqs)
+                for stmt in skytools.parse_statements(xsql):
+                    curs.execute(stmt)
+            else:
+                self.log.info("%s: This SQL does not need to run on this node.", fname)
             q = "select * from londiste.execute_finish(%s, %s)"
             self.exec_cmd(db, q, [self.queue_name, fname], commit = False)
         db.commit()

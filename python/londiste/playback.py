@@ -8,6 +8,7 @@ import skytools
 from pgq.cascade.worker import CascadedWorker
 
 from londiste.handler import *
+from londiste.exec_attrs import ExecAttrs
 
 __all__ = ['Replicator', 'TableState',
     'TABLE_MISSING', 'TABLE_IN_COPY', 'TABLE_CATCHING_UP',
@@ -653,20 +654,42 @@ class Replicator(CascadedWorker):
 
         # parse event
         fname = ev.extra1
+        s_attrs = ev.extra2
+        exec_attrs = ExecAttrs(urlenc = s_attrs)
         sql = ev.data
 
         # fixme: curs?
         pgver = dst_curs.connection.server_version
         if pgver >= 80300:
             dst_curs.execute("set local session_replication_role = 'local'")
-        q = "select * from londiste.execute_start(%s, %s, %s, false)"
-        res = self.exec_cmd(dst_curs, q, [self.queue_name, fname, sql], commit = False)
+
+        seq_map = {}
+        q = "select seq_name, local from londiste.get_seq_list(%s) where local"
+        dst_curs.execute(q, [self.queue_name])
+        for row in dst_curs.fetchall():
+            seq_map[row['seq_name']] = row['seq_name']
+
+        tbl_map = {}
+        for tbl, t in self.table_map.items():
+            if not t.local:
+                continue
+            tbl_map[t.name] = t.dest_table
+
+        q = "select * from londiste.execute_start(%s, %s, %s, false, %s)"
+        res = self.exec_cmd(dst_curs, q, [self.queue_name, fname, sql, s_attrs], commit = False)
         ret = res[0]['ret_code']
         if ret >= 300:
             self.log.warning("Skipping execution of '%s'", fname)
             return
-        for stmt in skytools.parse_statements(sql):
-            dst_curs.execute(stmt)
+
+        if exec_attrs.need_execute(dst_curs, tbl_map, seq_map):
+            self.log.info("%s: executing sql")
+            xsql = exec_attrs.process_sql(sql, tbl_map, seq_map)
+            for stmt in skytools.parse_statements(xsql):
+                dst_curs.execute(stmt)
+        else:
+            self.log.info("%s: execution not needed on this node")
+
         q = "select * from londiste.execute_finish(%s, %s)"
         self.exec_cmd(dst_curs, q, [self.queue_name, fname], commit = False)
         if pgver >= 80300:

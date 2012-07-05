@@ -28,6 +28,15 @@ begin
         alter table londiste.table_info add column dest_table text;
     end if;
 
+    -- applied_execute.dest_table
+    perform 1 from information_schema.columns
+      where table_schema = 'londiste'
+        and table_name = 'applied_execute'
+        and column_name = 'execute_attrs';
+    if not found then
+        alter table londiste.applied_execute add column execute_attrs text;
+    end if;
+
     -- create roles
     perform 1 from pg_catalog.pg_roles where rolname = 'londiste_writer';
     if not found then

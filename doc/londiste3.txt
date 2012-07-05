@@ -327,7 +327,68 @@ Repair data on subscriber.
 
 === execute [filepath] ===
 
-Execute SQL files on each nodes of the set.
+Execute SQL files on each node of the cascaded queue.  The SQL file is
+executed locally in single transaction and inserted into queue in same
+transaction.  Thus guaranteeing that is will be replayed in subscriber
+databases at correct position.
+
+The filename is stored in `londiste.applied_execute` table, and checked
+before execution.  If same filename already exists, the SQL execution
+is skipped.
+
+==== SQL meta-data attributes ====
+
+SQL file can contain attributes that limit where the SQL is executed:
+
+  --*--
+  --*-- Local-Table: mytable, othertable,
+  --*--              thirdtable
+  --*-- Local-Sequence: thisseq
+  --*--
+
+The magic comments are searched only in file start, before any actual SQL
+statement is seen.  Empty lines and lines with regular SQL comments
+are ignored.
+
+Supported keys:
+
+  Local-Table::
+    Table must be added to local node with `add-table`.
+
+  Local-Sequence::
+    Sequence must be added to local node with `add-seq`.
+
+  Local-Destination::
+    Table must be added to local node and actual destination table must exists.
+    This is for cases where table is added to some nodes with handler
+    that does not need actual table to exist.
+
+  Need-Table::
+    Physical table must exist in database.  It does not matter if it is
+    replicated or not.
+
+  Need-Sequence::
+    Sequence must exist in database.
+
+  Need-Function::
+    Database function must exists.  The function name is in form `function_name(nargs)`.
+    If the `(nargs)` portion is missed then nargs is taken as 0.
+
+  Need-View::
+    A view must exist in database.
+
+  Need-Schema::
+    Schema mist exist in database.
+
+Londiste supports table renaming, where table is attached to queue with one name
+but events are applied to local table with different name.  To make this
+work with EXECUTE, the Local-Toble and Local-Destination support tag replacement,
+where queue's table name that is mentioned in attribute is replaced
+with actual table name in local database:
+
+  --*-- Local-Table: mytable
+  ALTER TABLE @mytable@ ...;
+
 
 === show-handlers ['handler'] ===
 
