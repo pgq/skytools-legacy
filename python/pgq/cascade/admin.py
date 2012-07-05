@@ -497,17 +497,20 @@ class CascadeAdmin(skytools.AdminScript):
             pass
 
         try:
-            # drop node info
-            db = self.get_node_database(node_name)
-            q = "select * from pgq_node.drop_node(%s, %s)"
-            self.exec_cmd(db, q, [self.queue_name, node_name])
-
             # unregister node location from root node (event will be added to queue)
             root_db = self.find_root_db()
             q = "select * from pgq_node.unregister_location(%s, %s)"
             self.exec_cmd(root_db, q, [self.queue_name, node_name])
         except skytools.DBError, d:
-            self.log.warning("Removal failure: %s", str(d))
+            self.log.warning("Unregister from root failed: %s", str(d))
+
+        try:
+            # drop node info
+            db = self.get_node_database(node_name)
+            q = "select * from pgq_node.drop_node(%s, %s)"
+            self.exec_cmd(db, q, [self.queue_name, node_name])
+        except skytools.DBError, d:
+            self.log.warning("Local drop failure: %s", str(d))
 
         # brute force removal
         for n in self.queue_info.member_map.values():
