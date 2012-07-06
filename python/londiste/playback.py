@@ -473,13 +473,18 @@ class Replicator(CascadedWorker):
             pmap = self.get_state_map(src_db.cursor())
             src_db.commit()
             for t in self.get_tables_in_state(TABLE_MISSING):
-                if t.name not in pmap:
-                    self.log.warning("Table %s not available on provider" % t.name)
-                    continue
-                pt = pmap[t.name]
-                if pt.state != TABLE_OK: # or pt.custom_snapshot: # FIXME: does snapsnot matter?
-                    self.log.info("Table %s not OK on provider, waiting" % t.name)
-                    continue
+                if 'copy_node' in t.table_attrs:
+                    # should we go and check this node?
+                    pass
+                else:
+                    # regular provider is used
+                    if t.name not in pmap:
+                        self.log.warning("Table %s not available on provider" % t.name)
+                        continue
+                    pt = pmap[t.name]
+                    if pt.state != TABLE_OK: # or pt.custom_snapshot: # FIXME: does snapsnot matter?
+                        self.log.info("Table %s not OK on provider, waiting" % t.name)
+                        continue
 
                 # dont allow more copies than configured
                 if npossible == 0:
