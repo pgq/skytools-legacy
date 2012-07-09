@@ -34,6 +34,7 @@ select londiste.upgrade_schema();
 \i functions/londiste.local_set_table_state.sql
 \i functions/londiste.local_set_table_attrs.sql
 \i functions/londiste.local_set_table_struct.sql
+\i functions/londiste.periodic_maintenance.sql
 
 -- Group: Utility functions
 \i functions/londiste.find_column_types.sql
