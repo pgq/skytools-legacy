@@ -429,10 +429,10 @@ class LondisteSetup(CascadeAdmin):
         # generate local maps
         local_tables = {}
         local_seqs = {}
-        for tbl in tables:
+        for tbl in tables.values():
             if tbl['local']:
                 local_tables[tbl['table_name']] = tbl['dest_table']
-        for seq in seqs:
+        for seq in seqs.values():
             if seq['local']:
                 local_seqs[seq['seq_name']] = seq['seq_name']
 
