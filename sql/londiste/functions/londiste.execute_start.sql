@@ -45,8 +45,7 @@ begin
     end if;
 
     perform 1 from londiste.applied_execute
-        where queue_name = i_queue_name
-            and execute_file = i_file_name;
+        where execute_file = i_file_name;
     if found then
         select 301, 'EXECUTE(' || i_file_name || ') already applied'
             into ret_code, ret_note;

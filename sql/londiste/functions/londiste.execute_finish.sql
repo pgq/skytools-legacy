@@ -27,8 +27,7 @@ begin
     select execute_sql, execute_attrs
         into sql, attrs
         from londiste.applied_execute
-        where queue_name = i_queue_name
-            and execute_file = i_file_name;
+        where execute_file = i_file_name;
     if not found then
         select 404, 'execute_file called without execute_start'
             into ret_code, ret_note;
