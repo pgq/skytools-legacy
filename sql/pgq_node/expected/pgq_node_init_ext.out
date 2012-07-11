@@ -1,0 +1,22 @@
+create extension pgq;
+\set ECHO none
+ upgrade_schema 
+----------------
+              0
+(1 row)
+
+create extension pgq_node from unpackaged;
+select array_length(extconfig, 1) as dumpable from pg_catalog.pg_extension where extname = 'pgq_node';
+ dumpable 
+----------
+        4
+(1 row)
+
+drop extension pgq_node;
+create extension pgq_node;
+select array_length(extconfig, 1) as dumpable from pg_catalog.pg_extension where extname = 'pgq_node';
+ dumpable 
+----------
+        4
+(1 row)
+

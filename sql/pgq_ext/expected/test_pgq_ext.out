@@ -1,9 +1,3 @@
-\set ECHO off
- upgrade_schema 
-----------------
-              0
-(1 row)
-
 --
 -- test batch tracking
 --

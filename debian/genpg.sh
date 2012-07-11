@@ -38,4 +38,15 @@ usr/share/postgresql/$v/contrib/oldgrants_pgq_node.sql
 usr/share/postgresql/$v/contrib/oldgrants_pgq.sql
 EOF
 
+if test "$v" = "9.1" -o "$v" = "9.2"; then
+  modver="3.1"
+  for mod in pgq pgq_node pgq_coop pgq_ext londiste; do
+    (
+      echo "usr/share/postgresql/$v/extension/${mod}.control"
+      echo "usr/share/postgresql/$v/extension/${mod}--${modver}.sql"
+      echo "usr/share/postgresql/$v/extension/${mod}--unpackaged--${modver}.sql"
+    ) >> "postgresql-$v-pgq3.install"
+  done
+fi
+
 done

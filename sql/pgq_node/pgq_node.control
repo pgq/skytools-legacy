@@ -1,0 +1,7 @@
+# pgq_node
+comment = 'Cascaded queue infrastructure'
+default_version = '3.1'
+relocatable = false
+superuser = true
+schema = 'pg_catalog'
+requires = 'pgq'
