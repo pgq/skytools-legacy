@@ -28,7 +28,7 @@ as $$
 --
 -- Returns:
 --      200 - Proceed.
---      301 - Already applied
+--      201 - Already applied
 --      401 - Not root.
 --      404 - No such queue
 -- ----------------------------------------------------------------------
@@ -47,7 +47,7 @@ begin
     perform 1 from londiste.applied_execute
         where execute_file = i_file_name;
     if found then
-        select 301, 'EXECUTE(' || i_file_name || ') already applied'
+        select 201, 'EXECUTE: "' || i_file_name || '" already applied, skipping'
             into ret_code, ret_note;
         return;
     end if;

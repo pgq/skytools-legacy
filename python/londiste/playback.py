@@ -676,15 +676,13 @@ class Replicator(CascadedWorker):
 
         tbl_map = {}
         for tbl, t in self.table_map.items():
-            if not t.local:
-                continue
             tbl_map[t.name] = t.dest_table
 
         q = "select * from londiste.execute_start(%s, %s, %s, false, %s)"
         res = self.exec_cmd(dst_curs, q, [self.queue_name, fname, sql, s_attrs], commit = False)
         ret = res[0]['ret_code']
-        if ret >= 300:
-            self.log.warning("Skipping execution of '%s'", fname)
+        if ret > 200:
+            self.log.info("Skipping execution of '%s'", fname)
             return
 
         if exec_attrs.need_execute(dst_curs, tbl_map, seq_map):

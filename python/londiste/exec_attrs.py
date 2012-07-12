@@ -175,14 +175,14 @@ class ExecAttrsException(skytools.UsageError):
 
 class ExecAttrs:
     """Container and parser for EXECUTE attributes."""
-    def __init__(self, sql=None, ustr=None):
+    def __init__(self, sql=None, urlenc=None):
         """Create container and parse either sql or urlenc string."""
 
         self.attrs = {}
-        if sql and ustr:
-            raise Exception("Both sql and ustr set.")
-        if ustr:
-            self.parse_urlenc(ustr)
+        if sql and urlenc:
+            raise Exception("Both sql and urlenc set.")
+        if urlenc:
+            self.parse_urlenc(urlenc)
         elif sql:
             self.parse_sql(sql)
 
@@ -208,7 +208,7 @@ class ExecAttrs:
     def parse_urlenc(self, ustr):
         """Parse urlencoded string adding values to current container."""
         sdict = skytools.db_urldecode(ustr)
-        for k, v in sdict:
+        for k, v in sdict.items():
             for v1 in v.split(','):
                 self.add_value(k, v1)
 
