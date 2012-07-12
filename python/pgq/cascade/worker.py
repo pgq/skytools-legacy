@@ -222,6 +222,10 @@ class CascadedWorker(CascadedConsumer):
         if st.sync_watermark:
             # dont send local watermark upstream
             wm = self.batch_info['prev_tick_id']
+        elif wm > self.batch_info['cur_tick_id']:
+            # in wait-behind-leaf case, the wm from target can be
+            # ahead from source queue, use current batch then
+            wm = self.batch_info['cur_tick_id']
 
         self.log.debug("Publishing local watermark: %d" % wm)
         src_curs = src_db.cursor()
@@ -229,7 +233,7 @@ class CascadedWorker(CascadedConsumer):
         src_curs.execute(q, [self.pgq_queue_name, st.node_name, wm])
         src_db.commit()
 
-        # if last part fails, dont repeat it immediately
+        # if next part fails, dont repeat it immediately
         self.local_wm_publish_time = t
 
         if st.sync_watermark:
