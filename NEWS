@@ -1,3 +1,39 @@
+
+2012-07-xx  -  SkyTools 3.1  -  ""
+
+  = Features =
+
+    * londiste: Wait commands for londiste
+    * londiste execute: support meta attributes in sql
+    * Convert DB modules to extensions
+
+  = Minor Features =
+
+    * londiste.applied_execute: drop queue_name from pkey
+    * pgq.LocalConsumer: consumer that tracks processed ticks in local file
+    * londiste.periodic_maintenance: cleanup for applied_execute
+    * pgq.maint_operations: include londiste.periodic_maintenance
+    * skytools.exists_view(): new function
+    * skytools.fileutil: new module, contains write_atomic()
+    * londiste.handler: make encoding= param available to part & londiste handlers
+    * debian: build modules for all installed server-dev versions
+
+  = Fixes =
+
+    * handlers.part: clarify COPY expression with braces
+    * handlers: improve documentation
+    * CascadedConsumer: re-initialize provider connection when location changes
+    * pgq_node.drop_node: mention node name in info message
+    * drop-node: move find_root before local drop
+    * pgq.maint_rotate_tables: check txid sanity, fail if bad
+    * sql_tokenizer: allow idents starting with underscore
+    * Move signal_pidfile to 'fileutil' module
+    * BaseScript: write pidfile atomically to avoid corrupt pidfiles.
+    * londiste replay: skip provider checks if copy_node is used
+    * tests/localconsumer: initial test setup
+    * CascadedWorker: don't move watermark on source further than incoming batch.
+    * update walmgr doc
+
 2012-05-30  -  SkyTools 3.0.3  -  "Biometric Authentication by Yodeling"
 
   = Features =
