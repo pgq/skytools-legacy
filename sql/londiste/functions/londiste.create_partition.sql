@@ -10,11 +10,20 @@ create or replace function londiste.create_partition(
 ------------------------------------------------------------------------
 -- Function: public.create_partition
 --
---      Creates child table for aggregation function for either monthly or daily if it does not exist yet.
---      Locks parent table for child table creating.
+--      Creates inherited child table if it does not exist by copying parent table's structure.
+--      Locks parent table to avoid parallel creation.
 --
--- Problem:
---      Grants and rules should be part of CREATE TABLE x (LIKE y INCLUDING ALL)'.
+-- Elements that are copied over by "LIKE x INCLUDING ALL":
+--      * Defaults
+--      * Constraints
+--      * Indexes
+--      * Storage options (9.0+)
+--      * Comments (9.0+)
+--
+-- Elements that are copied over manually because LIKE ALL does not support them:
+--      * Grants
+--      * Triggers
+--      * Rules
 --
 -- Parameters:
 --      i_table - name of parent table
@@ -35,6 +44,7 @@ declare
     part_end        timestamptz;
     parent_schema   text;
     parent_name     text;
+    parent_oid      oid;
     part_schema     text;
     part_name       text;
     pos             int4;
@@ -43,6 +53,7 @@ declare
     q_grantee       text;
     g               record;
     r               record;
+    tg              record;
     sql             text;
     pgver           integer;
     r_oldtbl        text;
@@ -80,6 +91,7 @@ begin
 
     -- allow only single creation at a time, without affecting DML operations
     execute 'lock table ' || fq_table || ' in share update exclusive mode';
+    parent_oid := fq_table::regclass::oid;
 
     -- check if part table exists
     perform 1 from pg_class t, pg_namespace s
@@ -131,11 +143,49 @@ begin
         execute sql;
     end loop;
 
+    -- generate triggers info query
+    sql := 'SELECT tgname, tgenabled,'
+        || '   pg_catalog.pg_get_triggerdef(oid) as tgdef'
+        || ' FROM pg_catalog.pg_trigger '
+        || ' WHERE tgrelid = ' || parent_oid::text
+        || ' AND ';
+    if pgver >= 90000 then
+        sql := sql || ' NOT tgisinternal';
+    else
+        sql := sql || ' NOT tgisconstraint';
+    end if;
+
+    -- copy triggers
+    for tg in execute sql
+    loop
+        sql := regexp_replace(tg.tgdef, E' ON ([[:alnum:]_.]+|"([^"]|"")+")+ ', ' ON ' || fq_part || ' ');
+        if sql = tg.tgdef then
+            raise exception 'Failed to reconstruct the trigger: %', sql;
+        end if;
+        execute sql;
+        if tg.tgenabled = 'O' then
+            -- standard mode
+            r_extra := NULL;
+        elsif tg.tgenabled = 'D' then
+            r_extra := ' DISABLE TRIGGER ';
+        elsif tg.tgenabled = 'A' then
+            r_extra := ' ENABLE ALWAYS TRIGGER ';
+        elsif tg.tgenabled = 'R' then
+            r_extra := ' ENABLE REPLICA TRIGGER ';
+        else
+            raise exception 'Unknown trigger mode: %', tg.tgenabled;
+        end if;
+        if r_extra is not null then
+            sql := 'ALTER TABLE ' || fq_part || r_extra || quote_ident(tg.tgname);
+            execute sql;
+        end if;
+    end loop;
+
     -- copy rules
     for r in
         select rw.rulename, rw.ev_enabled, pg_get_ruledef(rw.oid) as definition
           from pg_catalog.pg_rewrite rw
-         where rw.ev_class = fq_table::regclass::oid
+         where rw.ev_class = parent_oid
            and rw.rulename <> '_RETURN'::name
     loop
         -- try to skip rule name
