@@ -120,9 +120,19 @@ run londiste3 conf/londiste_db5.ini wait-sync
 
 msg "Unregister table2 from root"
 run londiste3 $v conf/londiste_db1.ini remove-table mytable2
-msg "Wait until unregister reaches db5"
 
+msg "Wait until unregister reaches db5"
 run londiste3 conf/londiste_db5.ini wait-root
+
+
+
+run londiste3 conf/londiste_db5.ini status
+
+msg "Test skipped copy"
+run londiste3 $v conf/londiste_db1.ini add-table mytable2
+run londiste3 $v conf/londiste_db5.ini wait-root
+run londiste3 $v conf/londiste_db5.ini add-table mytable2 --find-copy-node
+run londiste3 $v conf/londiste_db5.ini wait-sync
 
 ##
 ## basic setup done

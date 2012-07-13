@@ -134,6 +134,8 @@ class Londiste(skytools.DBScript):
                 help="add: Custom handler for table")
         g.add_option("--handler-arg", action="append",
                 help="add: Argument to custom handler")
+        g.add_option("--find-copy-node", dest="find_copy_node", action="store_true",
+                help = "add: walk upstream to find node to copy from")
         g.add_option("--copy-node", dest="copy_node",
                 help = "add: use NODE as source for initial COPY")
         g.add_option("--copy-condition", dest="copy_condition",
