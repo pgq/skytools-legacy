@@ -120,7 +120,7 @@ class LocalConsumer(pgq.Consumer):
             self.process_local_event(db, batch_id, ev)
 
     def process_local_event(self, db, batch_id, ev):
-        raise Exception('process_remote_batch not implemented')
+        raise Exception('process_local_event not implemented')
 
     def is_batch_done(self):
         """Helper function to keep track of last successful batch
