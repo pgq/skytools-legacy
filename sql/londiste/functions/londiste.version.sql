@@ -1,8 +1,14 @@
 
 create or replace function londiste.version()
 returns text as $$
+-- ----------------------------------------------------------------------
+-- Function: londiste.version(0)
+--
+--      Returns version string for londiste.  ATM it is based on SkyTools version
+--      and only bumped when database code changes.
+-- ----------------------------------------------------------------------
 begin
-    return '3.0.0.16';
+    return '3.1.0.0';
 end;
 $$ language plpgsql;
 
