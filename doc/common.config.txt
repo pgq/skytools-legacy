@@ -26,11 +26,11 @@ ifdef::pgq[]
 
 === Common PgQ consumer parameters ===
 
-  pgq_queue_name::
+  queue_name::
     Queue name to attach to.
     No default.
 
-  pgq_consumer_id::
+  consumer_name::
     Consumers ID to use when registering.
     Default: %(job_name)s
 

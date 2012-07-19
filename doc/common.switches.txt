@@ -14,6 +14,9 @@ Python programs.
   -d, --daemon::
 	make program go background
 
+  --ini::
+        show commented template config file.
+
 Following switches are used to control already running process.
 The pidfile is read from config then signal is sent to process
 id specified there.
