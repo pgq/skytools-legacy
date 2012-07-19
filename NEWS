@@ -1,16 +1,44 @@
 
-2012-07-xx  -  SkyTools 3.1  -  ""
+2012-07-19  -  SkyTools 3.1  -  "Carnival-on-a-Stick"
 
   = Features =
 
-    * londiste: Wait commands for londiste
+    * londiste: Wait commands
+      > londiste $ini add-table .. --wait-sync
+      > londiste $ini wait-sync
+        Wait until all tables are fully copied over.
+      > londiste $ini wait-root
+        Wait for next tick on root reaches local node.
+      > londiste $ini wait-provider
+        Wait for next tick on provider reaches local node.
+
     * londiste execute: support meta attributes in sql
-    * Convert DB modules to extensions
+      This allows execute ADD COLUMN from root, over whole
+      cascade  even when not all nodes contain the table.
+
+        --*-- Local-Table: mytable
+        ALTER TABLE mytable ADD COLUMN foo text;
+
+    * Convert DB modules to extensions (9.1+).  Now following modules
+      are available as extensions: pgq, pgq_node, pgq_coop, pgq_ext, londiste.
+      All the old files are kept in old locations to avoid any breakage.
+
+      Known problems in Postgres extensions infrastructure (as of 9.1.4):
+
+      - pg_dump crashes when extensions has sequence whose value needs to be dumped.
+        Thus pgq.batch_id_seq cannot be made dumpable, thus it's value
+        gets lost during dump+reload.
+
+      - CREATE EXTENSION pgq_coop FROM unpackaged; + DROP EXTENSION pgq_coop;
+        will not drop schema.  Plain CREATE+DROP works fine.
 
   = Minor Features =
 
     * londiste.applied_execute: drop queue_name from pkey
     * pgq.LocalConsumer: consumer that tracks processed ticks in local file
+    * simple_local_consumer: LocalConsumer that runs query for each event.
+    * pgq.Consumer: 'table_filter' config param, filters on ev_extra1,
+      where PgQ triggers put source table name.
     * londiste.periodic_maintenance: cleanup for applied_execute
     * pgq.maint_operations: include londiste.periodic_maintenance
     * skytools.exists_view(): new function
@@ -20,19 +48,14 @@
 
   = Fixes =
 
-    * handlers.part: clarify COPY expression with braces
-    * handlers: improve documentation
     * CascadedConsumer: re-initialize provider connection when location changes
     * pgq_node.drop_node: mention node name in info message
     * drop-node: move find_root before local drop
     * pgq.maint_rotate_tables: check txid sanity, fail if bad
     * sql_tokenizer: allow idents starting with underscore
-    * Move signal_pidfile to 'fileutil' module
     * BaseScript: write pidfile atomically to avoid corrupt pidfiles.
     * londiste replay: skip provider checks if copy_node is used
-    * tests/localconsumer: initial test setup
     * CascadedWorker: don't move watermark on source further than incoming batch.
-    * update walmgr doc
 
 2012-05-30  -  SkyTools 3.0.3  -  "Biometric Authentication by Yodeling"
 
