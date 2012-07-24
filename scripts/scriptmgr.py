@@ -53,11 +53,11 @@ import skytools
 command_usage = """
 %prog [options] INI CMD [subcmd args]
 
-commands:
-  start [-a | jobname ..]    start a job
-  stop [-a | jobname ..]     stop a job
-  restart [-a | jobname ..]  restart job(s)
-  reload [-a | jobname ..]   send reload signal
+Commands:
+  start [-a | -t=service | jobname ...]    start job(s)
+  stop [-a | -t=service | jobname ...]     stop job(s)
+  restart [-a | -t=service | jobname ...]  restart job(s)
+  reload [-a | -t=service | jobname ...]   send reload signal
   status
 """
 
@@ -78,6 +78,7 @@ class ScriptMgr(skytools.DBScript):
     def init_optparse(self, p = None):
         p = skytools.DBScript.init_optparse(self, p)
         p.add_option("-a", "--all", action="store_true", help="apply command to all jobs")
+        p.add_option("-t", "--type", action="store", metavar="SVC", help="apply command to all jobs of this service type")
         p.add_option("-w", "--wait", action="store_true", help="wait for job(s) after signaling")
         p.set_usage(command_usage.strip())
         return p
@@ -100,7 +101,7 @@ class ScriptMgr(skytools.DBScript):
                 'service': svc_name,
                 'script': cf.getfile('script', defscript),
                 'cwd': cf.getfile('cwd'),
-                'disabled': cf.getboolean('disabled', 0),
+                'disabled': disabled,
                 'args': cf.get('args', ''),
             }
             self.svc_list.append(svc)
@@ -153,7 +154,7 @@ class ScriptMgr(skytools.DBScript):
         for job in self.job_list:
             os.chdir(job['cwd'])
             cf = skytools.Config(job['service'], job['config'])
-            pidfile = cf.getfile('pidfile', '')
+            pidfile = job['pidfile']
             name = job['job_name']
             svc = job['service']
             if job['disabled']:
@@ -262,6 +263,10 @@ class ScriptMgr(skytools.DBScript):
         if len(jobs) == 0 and self.options.all:
             for job in self.job_list:
                 jobs.append(job['job_name'])
+        if len(jobs) == 0 and self.options.type:
+            for job in self.job_list:
+                if job['service'] == self.options.type:
+                    jobs.append(job['job_name'])
 
         self.job_list.sort(job_sort_cmp)
 
