@@ -1,10 +1,4 @@
 
-\set ECHO none
-\i ../pgq/pgq.sql
-\i structure/schema.sql
-\i structure/functions.sql
-\set ECHO all
-
 select pgq.create_queue('testqueue');
 update pgq.queue set queue_ticker_max_count = 1 where queue_name = 'testqueue';
 

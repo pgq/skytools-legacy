@@ -20,6 +20,14 @@ create table events (
 );
 create index ctime_idx on events (ctime);
 
+create rule ignore_dups AS
+    on insert to events
+    where (exists (select 1 from events
+                   where (events.id = new.id)))
+    do instead nothing;
+
+
+
 grant select,delete on events to ptest1;
 grant select,update,delete on events to ptest2 with grant option;
 
@@ -30,6 +38,7 @@ select create_partition('events', 'events_2011_01', 'id', 'ctime', '2011-01-01':
 
 select count(*) from pg_indexes where schemaname='public' and tablename = 'events_2011_01';
 select count(*) from pg_constraint where conrelid = 'public.events_2011_01'::regclass;
+select count(*) from pg_rules where schemaname = 'public' and tablename = 'events_2011_01';
 
 -- \d events_2011_01
 -- \dp events

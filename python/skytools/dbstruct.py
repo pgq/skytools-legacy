@@ -192,10 +192,16 @@ class TRule(TElem):
             sql = self.defn
             table = self.table_name
         else:
+            idrx = r'''([a-z0-9._]+|"([^"]+|"")+")+'''
             # fixme: broken / quoting
-            rx = r"\bTO[ ][a-z0-9._]+[ ]DO[ ]"
-            pnew = "TO %s DO " % new_table_name
-            sql = rx_replace(rx, self.defn, pnew)
+            rx = r"\bTO[ ]" + idrx
+            rc = re.compile(rx, re.X)
+            m = rc.search(self.defn)
+            if not m:
+                raise Exception('Cannot find table name in rule')
+            old_tbl = m.group(1)
+            new_tbl = quote_fqident(new_table_name)
+            sql = self.defn.replace(old_tbl, new_tbl)
             table = new_table_name
         if self.enabled != 'O':
             # O - rule fires in origin and local modes

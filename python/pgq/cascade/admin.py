@@ -497,17 +497,20 @@ class CascadeAdmin(skytools.AdminScript):
             pass
 
         try:
-            # drop node info
-            db = self.get_node_database(node_name)
-            q = "select * from pgq_node.drop_node(%s, %s)"
-            self.exec_cmd(db, q, [self.queue_name, node_name])
-
             # unregister node location from root node (event will be added to queue)
             root_db = self.find_root_db()
             q = "select * from pgq_node.unregister_location(%s, %s)"
             self.exec_cmd(root_db, q, [self.queue_name, node_name])
         except skytools.DBError, d:
-            self.log.warning("Removal failure: %s", str(d))
+            self.log.warning("Unregister from root failed: %s", str(d))
+
+        try:
+            # drop node info
+            db = self.get_node_database(node_name)
+            q = "select * from pgq_node.drop_node(%s, %s)"
+            self.exec_cmd(db, q, [self.queue_name, node_name])
+        except skytools.DBError, d:
+            self.log.warning("Local drop failure: %s", str(d))
 
         # brute force removal
         for n in self.queue_info.member_map.values():
@@ -763,6 +766,63 @@ class CascadeAdmin(skytools.AdminScript):
         if n.combined_queue:
             print('Combined Queue: %s  (node type: %s)' % (n.combined_queue, n.combined_type))
 
+    def cmd_wait_root(self):
+        """Wait for next tick from root."""
+
+        self.load_local_info()
+
+        if self.queue_info.local_node.type == 'root':
+            self.log.info("Current node is root, no need to wait")
+            return
+
+        self.log.info("Finding root node")
+        root_node = self.find_root_node()
+        self.log.info("Root is %s", root_node)
+
+        dst_db = self.get_database('db')
+        self.wait_for_node(dst_db, root_node)
+
+    def cmd_wait_provider(self):
+        """Wait for next tick from provider."""
+
+        self.load_local_info()
+
+        if self.queue_info.local_node.type == 'root':
+            self.log.info("Current node is root, no need to wait")
+            return
+
+        dst_db = self.get_database('db')
+        node = self.queue_info.local_node.provider_node
+        self.log.info("Provider is %s", node)
+        self.wait_for_node(dst_db, node)
+
+    def wait_for_node(self, dst_db, node_name):
+        """Core logic for waiting."""
+
+        self.log.info("Fetching last tick for %s", node_name)
+        node_info = self.load_node_info(node_name)
+        tick_id = node_info.last_tick
+
+        self.log.info("Waiting for tick > %d", tick_id)
+
+        q = "select * from pgq_node.get_node_info(%s)"
+        dst_curs = dst_db.cursor()
+
+        while 1:
+            dst_curs.execute(q, [self.queue_name])
+            row = dst_curs.fetchone()
+            dst_db.commit()
+
+            if row['ret_code'] >= 300:
+                self.log.warning("Problem: %s", row['ret_code'], row['ret_note'])
+                return
+
+            if row['worker_last_tick'] > tick_id:
+                self.log.info("Got tick %d, exiting", row['worker_last_tick'])
+                break
+
+            self.sleep(2)
+
     #
     # Shortcuts for operating on nodes.
     #
@@ -814,7 +874,7 @@ class CascadeAdmin(skytools.AdminScript):
             self.log.warning("ignoring cmd for dead node '%s': %s" % (
                 node_name, skytools.quote_statement(sql, args)))
             return None
-        return self.exec_cmd(db, sql, args, quiet = quiet)
+        return self.exec_cmd(db, sql, args, quiet = quiet, prefix=node_name)
 
     #
     # Various operation on nodes.

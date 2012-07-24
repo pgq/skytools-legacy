@@ -34,6 +34,7 @@ select londiste.upgrade_schema();
 \i functions/londiste.local_set_table_state.sql
 \i functions/londiste.local_set_table_attrs.sql
 \i functions/londiste.local_set_table_struct.sql
+\i functions/londiste.periodic_maintenance.sql
 
 -- Group: Utility functions
 \i functions/londiste.find_column_types.sql
@@ -46,4 +47,7 @@ select londiste.upgrade_schema();
 \i functions/londiste.drop_table_triggers.sql
 \i functions/londiste.is_replica_func.sql
 \i functions/londiste.version.sql
+
+-- Group: Utility functions for handlers
+\i functions/londiste.create_partition.sql
 

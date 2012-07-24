@@ -1,4 +1,8 @@
 
+drop function if exists londiste.find_seq_oid(text);
+drop function if exists londiste.find_table_oid(text);
+drop function if exists londiste.find_rel_oid(text, text);
+
 create or replace function londiste.find_rel_oid(i_fqname text, i_kind text)
 returns oid as $$
 -- ----------------------------------------------------------------------

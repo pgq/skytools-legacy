@@ -4,11 +4,11 @@ returns text as $$
 -- ----------------------------------------------------------------------
 -- Function: pgq_coop.version(0)
 --
---      Returns version string for pgq_coop.  ATM its SkyTools version
---      with suffix that is only bumped when pgq_coop database code changes.
+--      Returns version string for pgq_coop.  ATM it is based on SkyTools version
+--      and only bumped when database code changes.
 -- ----------------------------------------------------------------------
 begin
-    return '3.0.0.4';
+    return '3.1.0.0';
 end;
 $$ language plpgsql;
 

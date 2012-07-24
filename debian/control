@@ -2,7 +2,9 @@ Source: skytools3
 Section: database
 Priority: extra
 Maintainer: Dimitri Fontaine <dim@tapoueh.org>
-Build-Depends: debhelper (>= 7.0.50~), autotools-dev, autoconf (>= 2.65), automake, libtool, libevent-dev, python-all-dev, python-support, python-psycopg2, xmlto, asciidoc, libpq-dev, postgresql-server-dev-all
+Build-Depends: debhelper (>= 7.0.50~), autotools-dev, autoconf (>= 2.65), automake, libtool, libevent-dev,
+  python-all-dev, python-support, python-psycopg2, xmlto, asciidoc, libpq-dev, postgresql-server-dev-all,
+  postgresql-server-dev-8.4 | postgresql-server-dev-9.0 | postgresql-server-dev-9.1 | postgresql-server-dev-9.2
 Standards-Version: 3.9.1
 Homepage: http://wiki.postgresql.org/wiki/Skytools
 Vcs-Git: http://github.com/markokr/skytools.git

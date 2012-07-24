@@ -248,7 +248,7 @@ def parse_tabbed_table(txt):
 
 _extstr = r""" ['] (?: [^'\\]+ | \\. | [']['] )* ['] """
 _stdstr = r""" ['] (?: [^']+ | [']['] )* ['] """
-_name = r""" (?: [a-z][a-z0-9_$]* | " (?: [^"]+ | "" )* " ) """
+_name = r""" (?: [a-z_][a-z0-9_$]* | " (?: [^"]+ | "" )* " ) """
 
 _ident   = r""" (?P<ident> %s ) """ % _name
 _fqident = r""" (?P<ident> %s (?: \. %s )* ) """ % (_name, _name)

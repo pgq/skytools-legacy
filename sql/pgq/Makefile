@@ -1,7 +1,20 @@
 
+EXTENSION = pgq
+
 DOCS = README.pgq
-DATA_built = pgq.sql pgq.upgrade.sql structure/oldgrants_pgq.sql structure/newgrants_pgq.sql
-DATA = structure/uninstall_pgq.sql
+
+Extension_data_built = pgq--3.1.sql pgq--unpackaged--3.1.sql
+
+Contrib_data_built = pgq.sql pgq.upgrade.sql structure/oldgrants_pgq.sql structure/newgrants_pgq.sql
+Contrib_data = structure/uninstall_pgq.sql
+
+Contrib_regress   = pgq_init_noext pgq_core pgq_perms logutriga sqltriga $(trunc_test)
+Extension_regress = pgq_init_ext   pgq_core pgq_perms logutriga sqltriga $(trunc_test)
+
+Contrib_install_always = yes
+
+# MAJORVERSION was defined in 8.4
+trunc_test = $(if $(MAJORVERSION),trunctrg)
 
 # scripts that load other sql files
 LDRS = structure/func_internal.sql structure/func_public.sql structure/triggers.sql
@@ -9,12 +22,7 @@ FUNCS = $(shell sed -e 's/^[^\\].*//' -e 's/\\i //' $(LDRS))
 SRCS = structure/tables.sql structure/grants.sql structure/install.sql \
        structure/uninstall_pgq.sql $(FUNCS)
 
-REGRESS = pgq_init pgq_core pgq_perms logutriga sqltriga trunctrg
-REGRESS_OPTS = --load-language=plpgsql
-
-PG_CONFIG = pg_config
-PGXS = $(shell $(PG_CONFIG) --pgxs)
-include $(PGXS)
+include ../common-pgxs.mk
 
 NDOC = NaturalDocs
 NDOCARGS = -r -o html docs/html -p docs -i docs/sql
@@ -42,6 +50,12 @@ triggers/pgq_triggers.sql: sub-all
 #
 # combined SQL files
 #
+
+pgq--3.1.sql: pgq.sql structure/ext_postproc.sql
+	cat $^ > $@
+
+pgq--unpackaged--3.1.sql: pgq.upgrade.sql structure/ext_unpackaged.sql structure/ext_postproc.sql
+	cat $^ > $@
 
 pgq.sql: $(SRCS)
 	$(CATSQL) structure/install.sql > $@
@@ -76,17 +90,6 @@ cleandox:
 
 clean: cleandox
 
-upload: dox
-	rsync -az --delete docs/html/* data1:public_html/pgq-new/
+test: $(Contrib_data_built)
 
-#
-# regtest shortcuts
-#
-
-test: pgq.sql
-	$(MAKE) install installcheck || { filterdiff --format=unified regression.diffs | less; exit 1; }
-
-ack:
-	cp results/*.out expected/
-
-.PHONY: test ack upload cleandox dox
+.PHONY: cleandox dox

@@ -1,7 +1,10 @@
-"""Event filtering by hash.
+"""Event filtering by hash, for partitioned databases.
 
 Parameters:
-
+  key=COLUMN: column name to use for hashing
+  hashfunc=FUNCNAME: function to use for hashing. (default: partconf.get_hash_raw)
+  hashexpr=EXPR: full expression to use for hashing (deprecated)
+  encoding=ENC: validate and fix incoming data (only utf8 supported atm)
 
 On root node:
 * Hash of key field will be added to ev_extra3.
@@ -10,9 +13,11 @@ On root node:
         ev_extra3='hash='||partconf.get_hash_raw(key_column)
 
 On branch/leaf node:
-
 * On COPY time, the SELECT on provider side gets filtered by hash.
 * On replay time, the events gets filtered by looking at hash in ev_extra3.
+
+Local config:
+* Local hash value and mask are loaded from partconf.conf table.
 
 """
 
@@ -22,6 +27,7 @@ from londiste.handler import TableHandler
 __all__ = ['PartHandler']
 
 class PartHandler(TableHandler):
+    __doc__ = __doc__
     handler_name = 'part'
 
     DEFAULT_HASHFUNC = "partconf.get_hash_raw"
@@ -40,8 +46,8 @@ class PartHandler(TableHandler):
         # hash function & full expression
         hashfunc = args.get('hashfunc', self.DEFAULT_HASHFUNC)
         self.hashexpr = self.DEFAULT_HASHEXPR % (
-                skytools.quite_fqident(hashfunc),
-                skytools.quite_ident(self.key))
+                skytools.quote_fqident(hashfunc),
+                skytools.quote_ident(self.key))
         self.hashexpr = args.get('hashexpr', self.hashexpr)
 
     def reset(self):
@@ -78,7 +84,7 @@ class PartHandler(TableHandler):
     def real_copy(self, tablename, src_curs, dst_curs, column_list, cond_list):
         """Copy only slots needed locally."""
         self.load_part_info(dst_curs)
-        w = "%s & %d = %d" % (self.hashexpr, self.max_part, self.local_part)
+        w = "(%s & %d) = %d" % (self.hashexpr, self.max_part, self.local_part)
         self.log.debug('part: copy_condition=%s' % w)
         cond_list.append(w)
 

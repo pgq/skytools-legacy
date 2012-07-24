@@ -13,7 +13,7 @@ except ImportError:
 __all__ = [
     "fq_name_parts", "fq_name", "get_table_oid", "get_table_pkeys",
     "get_table_columns", "exists_schema", "exists_table", "exists_type",
-    "exists_sequence", "exists_temp_table",
+    "exists_sequence", "exists_temp_table", "exists_view",
     "exists_function", "exists_language", "Snapshot", "magic_insert",
     "CopyPipe", "full_copy", "DBObject", "DBSchema", "DBTable", "DBFunction",
     "DBLanguage", "db_install", "installer_find_file", "installer_apply_file",
@@ -135,6 +135,16 @@ def exists_sequence(curs, seq_name):
     schema, name = fq_name_parts(seq_name)
     q = """select count(1) from pg_namespace n, pg_class c
            where c.relnamespace = n.oid and c.relkind = 'S'
+             and n.nspname = %s and c.relname = %s"""
+    curs.execute(q, [schema, name])
+    res = curs.fetchone()
+    return res[0]
+
+def exists_view(curs, view_name):
+    """Does view exists?"""
+    schema, name = fq_name_parts(view_name)
+    q = """select count(1) from pg_namespace n, pg_class c
+           where c.relnamespace = n.oid and c.relkind = 'v'
              and n.nspname = %s and c.relname = %s"""
     curs.execute(q, [schema, name])
     res = curs.fetchone()

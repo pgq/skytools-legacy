@@ -42,8 +42,10 @@ begin
         where n.queue_name = i_queue_name;
 
     if not found then
-        select 304, 'No such queue: ' || i_queue_name into ret_code, ret_note;
-        return;
+        -- proceed with cleaning anyway, as there schenarios
+        -- where some data is left around
+        _is_prov := false;
+        _is_local := true;
     end if;
 
     -- drop local state
@@ -76,7 +78,8 @@ begin
         from pgq_node.unregister_location(i_queue_name, i_node_name) f
         into ret_code, ret_note;
 
-    select 200, 'Node dropped' into ret_code, ret_note;
+    select 200, 'Node dropped: ' || i_node_name
+        into ret_code, ret_note;
     return;
 end;
 $$ language plpgsql security definer;

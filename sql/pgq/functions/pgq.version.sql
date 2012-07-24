@@ -3,11 +3,11 @@ returns text as $$
 -- ----------------------------------------------------------------------
 -- Function: pgq.version(0)
 --
---      Returns verison string for pgq.  ATM its SkyTools version
---      that is only bumped when PGQ database code changes.
+--      Returns version string for pgq.  ATM it is based on SkyTools version
+--      and only bumped when database code changes.
 -- ----------------------------------------------------------------------
 begin
-    return '3.0.0.15';
+    return '3.1.0.0';
 end;
 $$ language plpgsql;
 

@@ -1,0 +1,28 @@
+
+= simple_local_consumer3(1) =
+
+== NAME ==
+
+simple_local_consumer3 - PgQ consumer that executes query for each row
+
+== SYNOPSIS ==
+
+  simple_local_consumer3.py [switches] config.ini 
+
+== DESCRIPTION ==
+
+For each event in batch it will execute query, filling event
+values into it.
+
+Transactionality: query is executed in autocommit mode,
+completed batch is tracked in local file.  It can be switched
+between nodes in cascaded queue.
+
+== CONFIG ==
+
+Run `simple_local_consumer3 --ini` to see commented config template.
+
+== COMMAND LINE SWITCHES ==
+
+include::common.switches.txt[]
+

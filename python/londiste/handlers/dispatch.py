@@ -86,8 +86,8 @@ part_template:
 row_mode:
     how rows are applied to target table
     * plain - each event creates SQL statement to run (default)
-    * keep_all - change updates to DELETE + INSERT
-    * keep_latest - change updates to inserts, ignore deletes
+    * keep_latest - change updates to DELETE + INSERT, ignore deletes
+    * keep_all - change updates to inserts, ignore deletes
 
 event_types:
     event types to process, separated by comma. Other events are ignored.
@@ -149,7 +149,7 @@ import datetime
 import codecs
 import re
 import skytools
-from londiste.handler import BaseHandler
+from londiste.handler import BaseHandler, EncodingValidator
 from skytools import quote_ident, quote_fqident, UsageError
 from skytools.dbstruct import *
 from skytools.utf8 import safe_utf8_decode
@@ -180,9 +180,9 @@ METHODS = [METH_CORRECT, METH_DELETE, METH_MERGED, METH_INSERT]
 
 EVENT_TYPES = ['I', 'U', 'D']
 
-PART_FUNC = 'public.create_partition'
-PART_FUNC_ARGS = ['parent', 'part', 'pkeys', 'part_field', 'part_time',
-                  'period']
+PART_FUNC_OLD = 'public.create_partition'
+PART_FUNC_NEW = 'londiste.create_partition'
+PART_FUNC_ARGS = ['parent', 'part', 'pkeys', 'part_field', 'part_time', 'period']
 
 
 
@@ -601,54 +601,6 @@ ROW_HANDLERS = {'plain': RowHandler,
                 'keep_latest': KeepLatestRowHandler}
 
 
-
-#------------------------------------------------------------------------------
-# ENCODING VALIDATOR
-#------------------------------------------------------------------------------
-
-class EncodingValidator:
-    def __init__(self, log, encoding = 'utf-8', replacement = u'\ufffd'):
-        """validates the correctness of given encoding. when data contains 
-        illegal symbols, replaces them with <replacement> and logs the
-        incident"""
-        self.log = log
-        self.columns = None
-        self.error_count = 0
-
-    def show_error(self, col, val, pfx, unew):
-        if pfx:
-            col = pfx + '.' + col
-        self.log.info('Fixed invalid UTF8 in column <%s>', col)
-        self.log.debug('<%s>: old=%r new=%r', col, val, unew)
-
-    def validate_copy(self, data, columns, pfx=""):
-        """Validate tab-separated fields"""
-
-        ok, _unicode = safe_utf8_decode(data)
-        if ok:
-            return data
-
-        # log error
-        vals = data.split('\t')
-        for i, v in enumerate(vals):
-            ok, tmp = safe_utf8_decode(v)
-            if not ok:
-                self.show_error(columns[i], v, pfx, tmp)
-
-        # return safe data
-        return _unicode.encode('utf8')
-
-    def validate_dict(self, data, pfx=""):
-        """validates data in dict"""
-        for k, v in data.items():
-            if v:
-                ok, u = safe_utf8_decode(v)
-                if not ok:
-                    self.show_error(k, v, pfx, u)
-                    data[k] = u.encode('utf8')
-        return data
-
-
 #------------------------------------------------------------------------------
 # DISPATCHER
 #------------------------------------------------------------------------------
@@ -700,7 +652,7 @@ class Dispatcher(BaseHandler):
             conf.part_template = self.args.get('part_template')
             conf.pre_part = self.args.get('pre_part')
             conf.post_part = self.args.get('post_part')
-            conf.part_func = self.args.get('part_func', PART_FUNC)
+            conf.part_func = self.args.get('part_func', PART_FUNC_NEW)
         # set row mode and event types to process
         conf.row_mode = self.get_arg('row_mode', ROW_MODES)
         event_types = self.args.get('event_types', '*')
@@ -879,19 +831,38 @@ class Dispatcher(BaseHandler):
                 curs.execute(sql)
                 return True
             return False
+
         exec_with_vals(self.conf.pre_part)
+
         if not exec_with_vals(self.conf.part_template):
             self.log.debug('part_template not provided, using part func')
             # if part func exists call it with val arguments
             pfargs = ', '.join('%%(%s)s' % arg for arg in PART_FUNC_ARGS)
+
+            # set up configured function
             pfcall = 'select %s(%s)' % (self.conf.part_func, pfargs)
-            if skytools.exists_function(curs, self.conf.part_func, len(PART_FUNC_ARGS)):
+            have_func = skytools.exists_function(curs, self.conf.part_func, len(PART_FUNC_ARGS))
+
+            # backwards compat
+            if not have_func and self.conf.part_func == PART_FUNC_NEW:
+                pfcall = 'select %s(%s)' % (PART_FUNC_OLD, pfargs)
+                have_func = skytools.exists_function(curs, PART_FUNC_OLD, len(PART_FUNC_ARGS))
+
+            if have_func:
                 self.log.debug('check_part.exec: func:%s, args: %s' % (pfcall, vals))
                 curs.execute(pfcall, vals)
             else:
+                #
+                # Otherwise crete simple clone.
+                #
+                # FixMe: differences from create_partitions():
+                # - check constraints
+                # - inheritance
+                #
                 self.log.debug('part func %s not found, cloning table' % self.conf.part_func)
                 struct = TableStruct(curs, self.dest_table)
                 struct.create(curs, T_ALL, dst)
+
         exec_with_vals(self.conf.post_part)
         self.log.info("Created table: %s" % dst)
 

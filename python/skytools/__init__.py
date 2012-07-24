@@ -29,6 +29,9 @@ _symbols = {
     'T_SEQUENCE': 'skytools.dbstruct:T_SEQUENCE',
     'T_TABLE': 'skytools.dbstruct:T_TABLE',
     'T_TRIGGER': 'skytools.dbstruct:T_TRIGGER',
+    # skytools.fileutil
+    'signal_pidfile': 'skytools.fileutil:signal_pidfile',
+    'write_atomic': 'skytools.fileutil:write_atomic',
     # skytools.gzlog
     'gzip_append': 'skytools.gzlog:gzip_append',
     # skytools.parsing
@@ -81,7 +84,6 @@ _symbols = {
     'BaseScript': 'skytools.scripting:BaseScript',
     'daemonize': 'skytools.scripting:daemonize',
     'DBScript': 'skytools.scripting:DBScript',
-    'signal_pidfile': 'skytools.scripting:signal_pidfile',
     'UsageError': 'skytools.scripting:UsageError',
     # skytools.skylog
     'getLogger': 'skytools.skylog:getLogger',
@@ -106,6 +108,7 @@ _symbols = {
     'exists_table': 'skytools.sqltools:exists_table',
     'exists_temp_table': 'skytools.sqltools:exists_temp_table',
     'exists_type': 'skytools.sqltools:exists_type',
+    'exists_view': 'skytools.sqltools:exists_view',
     'fq_name': 'skytools.sqltools:fq_name',
     'fq_name_parts': 'skytools.sqltools:fq_name_parts',
     'full_copy': 'skytools.sqltools:full_copy',

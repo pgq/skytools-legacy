@@ -20,7 +20,11 @@ __all__ = ['QueueTableHandler', 'QueueSplitterHandler']
 
 
 class QueueTableHandler(BaseHandler):
-    """Queue table handler. Do nothing"""
+    """Queue table handler. Do nothing.
+    
+    Trigger: before-insert, skip trigger.
+    Event-processing: do nothing.
+    """
     handler_name = 'qtable'
 
     def add(self, trigger_arg_list):
@@ -37,6 +41,11 @@ class QueueTableHandler(BaseHandler):
         return False
 
 class QueueSplitterHandler(BaseHandler):
+    """Send events for one table to another queue.
+
+    Parameters:
+      queue=QUEUE   Queue name.
+    """
     handler_name = 'qsplitter'
 
     def __init__(self, table_name, args, dest_table):

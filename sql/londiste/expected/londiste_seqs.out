@@ -120,3 +120,50 @@ select * from londiste.local_remove_seq('seqbranch', 'masterseq');
       404 | Sequence not found: public.masterseq
 (1 row)
 
+-- seq auto-removal
+create table seqtable (
+    id1 serial primary key,
+    id2 bigserial not null
+);
+select * from londiste.local_add_table('seqroot', 'seqtable');
+ ret_code |           ret_note           
+----------+------------------------------
+      200 | Table added: public.seqtable
+(1 row)
+
+select * from londiste.local_add_seq('seqroot', 'seqtable_id1_seq');
+ ret_code |                ret_note                 
+----------+-----------------------------------------
+      200 | Sequence added: public.seqtable_id1_seq
+(1 row)
+
+select * from londiste.local_add_seq('seqroot', 'seqtable_id2_seq');
+ ret_code |                ret_note                 
+----------+-----------------------------------------
+      200 | Sequence added: public.seqtable_id2_seq
+(1 row)
+
+select * from londiste.get_table_list('seqroot');
+   table_name    | local | merge_state | custom_snapshot | table_attrs | dropped_ddl | copy_role | copy_pos | dest_table 
+-----------------+-------+-------------+-----------------+-------------+-------------+-----------+----------+------------
+ public.seqtable | t     | ok          |                 |             |             |           |        0 | 
+(1 row)
+
+select * from londiste.get_seq_list('seqroot');
+        seq_name         | last_value | local 
+-------------------------+------------+-------
+ public.seqtable_id1_seq |      30001 | t
+ public.seqtable_id2_seq |      30001 | t
+(2 rows)
+
+select * from londiste.local_remove_table('seqroot', 'seqtable');
+ ret_code |            ret_note            
+----------+--------------------------------
+      200 | Table removed: public.seqtable
+(1 row)
+
+select * from londiste.get_seq_list('seqroot');
+ seq_name | last_value | local 
+----------+------------+-------
+(0 rows)
+

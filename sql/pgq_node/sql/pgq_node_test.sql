@@ -1,10 +1,4 @@
 
-\set ECHO none
-\i ../pgq/pgq.sql
-\i structure/tables.sql
-\i structure/functions.sql
-\set ECHO all
-
 select * from pgq_node.register_location('aqueue', 'node1', 'dbname=node1', false);
 select * from pgq_node.register_location('aqueue', 'node2', 'dbname=node2', false);
 select * from pgq_node.register_location('aqueue', 'node3', 'dbname=node3', false);
