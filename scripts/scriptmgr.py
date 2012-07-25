@@ -54,11 +54,11 @@ command_usage = """
 %prog [options] INI CMD [subcmd args]
 
 Commands:
-  start [-a | -t=service | jobname ...]    start job(s)
-  stop [-a | -t=service | jobname ...]     stop job(s)
-  restart [-a | -t=service | jobname ...]  restart job(s)
-  reload [-a | -t=service | jobname ...]   send reload signal
-  status
+  start -a | -t=service | jobname [...]    start job(s)
+  stop -a | -t=service | jobname [...]     stop job(s)
+  restart -a | -t=service | jobname [...]  restart job(s)
+  reload -a | -t=service | jobname [...]   send reload signal
+  status [-a | -t=service | jobname ...]
 """
 
 def job_sort_cmp(j1, j2):
@@ -150,8 +150,13 @@ class ScriptMgr(skytools.DBScript):
         self.job_list.append(job)
         self.job_map[job['job_name']] = job
 
-    def cmd_status(self):
-        for job in self.job_list:
+    def cmd_status (self, jobs):
+        for jn in jobs:
+            try:
+                job = self.job_map[jn]
+            except KeyError:
+                self.log.error ("Unknown job: %s", jn)
+                continue
             os.chdir(job['cwd'])
             cf = skytools.Config(job['service'], job['config'])
             pidfile = job['pidfile']
@@ -167,8 +172,13 @@ class ScriptMgr(skytools.DBScript):
             else:
                 print(" STOPPED  [%s] %s" % (svc, name))
 
-    def cmd_info(self):
-        for job in self.job_list:
+    def cmd_info (self, jobs):
+        for jn in jobs:
+            try:
+                job = self.job_map[jn]
+            except KeyError:
+                self.log.error ("Unknown job: %s", jn)
+                continue
             print(job)
 
     def cmd_start(self, job_name):
@@ -254,12 +264,18 @@ class ScriptMgr(skytools.DBScript):
         self.job_list = []
         self.job_map = {}
         self.load_jobs()
+        self.job_list.sort(job_sort_cmp)
 
         if len(self.args) < 2:
             print("need command")
             sys.exit(1)
 
+        cmd = self.args[1]
         jobs = self.args[2:]
+
+        if cmd in ["status", "info"] and len(jobs) == 0 and not self.options.type:
+            self.options.all = True
+
         if len(jobs) == 0 and self.options.all:
             for job in self.job_list:
                 jobs.append(job['job_name'])
@@ -268,14 +284,11 @@ class ScriptMgr(skytools.DBScript):
                 if job['service'] == self.options.type:
                     jobs.append(job['job_name'])
 
-        self.job_list.sort(job_sort_cmp)
-
-        cmd = self.args[1]
         if cmd == "status":
-            self.cmd_status()
+            self.cmd_status(jobs)
             return
         elif cmd == "info":
-            self.cmd_info()
+            self.cmd_info(jobs)
             return
 
         if len(jobs) == 0:
