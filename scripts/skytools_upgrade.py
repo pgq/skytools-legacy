@@ -80,6 +80,10 @@ class DbUpgrade(skytools.DBScript):
                 ignore[schema] = 1
                 continue
 
+            if self.options.not_really:
+                self.log.info ("%s: Would upgrade '%s' version %s to %s", dbname, schema, oldver, ver)
+                continue
+
             curs = db.cursor()
             curs.execute('begin')
             self.log.info("%s: Upgrading '%s' version %s to %s", dbname, schema, oldver, ver)
@@ -90,7 +94,7 @@ class DbUpgrade(skytools.DBScript):
         """Loop over databases."""
 
         self.set_single_loop(1)
-        
+
         self.load_cur_versions()
 
         # loop over all dbs
@@ -152,11 +156,13 @@ class DbUpgrade(skytools.DBScript):
         return self.get_database('db', connstr = cstr, autocommit = 1)
 
     def init_optparse(self, parser=None):
-        """Setup commend-line flags."""
+        """Setup command-line flags."""
         p = skytools.DBScript.init_optparse(self, parser)
         p.set_usage(usage)
         g = optparse.OptionGroup(p, "options for skytools_upgrade")
         g.add_option("--all", action="store_true", help = 'upgrade all databases')
+        g.add_option("--not-really", action = "store_true", dest = "not_really",
+                     default = False, help = "don't actually do anything")
         g.add_option("--user", help = 'username to use')
         g.add_option("--host", help = 'hostname to use')
         g.add_option("--port", help = 'port to use')
@@ -171,4 +177,3 @@ class DbUpgrade(skytools.DBScript):
 if __name__ == '__main__':
     script = DbUpgrade('skytools_upgrade', sys.argv[1:])
     script.start()
-

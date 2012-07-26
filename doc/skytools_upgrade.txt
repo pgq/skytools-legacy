@@ -6,7 +6,7 @@ skytools_upgrade - utility for upgrading Skytools code in databases.
 
 == SYNOPSIS ==
 
-  skytools_upgrade.py connstr [connstr ..]
+  skytools_upgrade.py [switches] connstr [connstr ...]
 
 == DESCRIPTION ==
 
@@ -20,14 +20,21 @@ It connects to given database, then looks for following schemas:
     Londiste replication.
 
 If schema exists, its version is detected by querying .version()
-function under schema.   If the function does not exists, there
-is some heiristics built in to differentiate between 2.1.4 and
-2.1.5 version of ther schemas.
+function under schema.  If the function does not exists, there
+is some heuristics built in to differentiate between 2.1.4 and
+2.1.5 version of the schemas.
 
-If detected that version is older that current, it is upgraded
+If detected that version is older than current, it is upgraded
 by applying upgrade scripts in order.
 
 == COMMAND LINE SWITCHES ==
 
 include::common.switches.txt[]
 
+Options specific to skytools_upgrade:
+
+--all::
+  Upgrade all databases.
+
+--not-really::
+  Don't actually do anything.
