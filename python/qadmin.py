@@ -1176,7 +1176,7 @@ class AdminConsole:
             q = pfx + " from pgq.get_queue_info(%s)"
             curs.execute(q, [queue])
 
-        display_result(curs, 'Queue: %s' % queue)
+        display_result(curs, 'Queue "%s":' % queue)
 
     def cmd_show_consumer(self, params):
         """Show consumer status"""
@@ -1190,7 +1190,7 @@ class AdminConsole:
         q = "select * from pgq.get_consumer_info(%s, %s)"
         curs.execute(q, [q_queue, q_consumer])
 
-        display_result(curs, 'Consumer "%s" on queue "%s"' % (consumer, queue))
+        display_result(curs, 'Consumer "%s" on queue "%s":' % (consumer, queue))
 
     def cmd_show_node(self, params):
         """Show node information."""
@@ -1212,7 +1212,7 @@ class AdminConsole:
                order by 1,2"""
         curs.execute(q, [q_node, q_queue])
 
-        display_result(curs, 'Node "%s" on queue "%s"' % (node, queue))
+        display_result(curs, 'Node "%s" on queue "%s":' % (node, queue))
 
     def cmd_show_batch(self, params):
         batch_id = params.get('batch_id')
@@ -1237,7 +1237,7 @@ class AdminConsole:
         q = "select * from pgq.get_batch_events(%s)"
         curs.execute(q, [batch_id])
 
-        display_result(curs, 'Batch events')
+        display_result(curs, 'Batch events:')
 
     def cmd_register_consumer(self, params):
         queue = params.get("queue", self.cur_queue)
@@ -1403,7 +1403,7 @@ class AdminConsole:
         q = """select * from londiste.local_show_missing(%s)"""
         curs.execute(q, [queue])
 
-        display_result(curs, 'Missing objects queue "%s"' % (queue))
+        display_result(curs, 'Missing objects on queue "%s":' % (queue))
 
     def cmd_londiste_tables(self, params):
         """Show local tables."""
@@ -1414,7 +1414,7 @@ class AdminConsole:
         q = """select * from londiste.get_table_list(%s) where local"""
         curs.execute(q, [queue])
 
-        display_result(curs, 'Local tables on queue "%s"' % (queue))
+        display_result(curs, 'Local tables on queue "%s":' % (queue))
 
     def cmd_londiste_seqs(self, params):
         """Show local seqs."""
@@ -1425,7 +1425,7 @@ class AdminConsole:
         q = """select * from londiste.get_seq_list(%s) where local"""
         curs.execute(q, [queue])
 
-        display_result(curs, 'Sequences on queue "%s"' % (queue))
+        display_result(curs, 'Sequences on queue "%s":' % (queue))
 
     def cmd_londiste_add_table(self, params):
         """Add table."""
