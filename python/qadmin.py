@@ -446,6 +446,7 @@ w_show = List(
     Word('node', w_show_node),
     Word('table', w_show_table),
     Word('sequence', w_show_seq),
+    Word('version', w_done),
     name = "cmd2")
 
 w_install = List(
@@ -634,6 +635,9 @@ top_level.add(
 class AdminConsole:
     cur_queue = None
     cur_database = None
+
+    #server_version = None
+    #pgq_version = None
 
     cmd_file = None
     cmd_str = None
@@ -853,7 +857,7 @@ class AdminConsole:
 
         self.initial_connstr = " ".join(cstr_list)
 
-    def db_connect(self, connstr):
+    def db_connect(self, connstr, quiet=False):
         db = skytools.connect_database(connstr)
         db.set_isolation_level(0) # autocommit
 
@@ -863,14 +867,18 @@ class AdminConsole:
         res = curs.fetchone()
         print 'Server version', res[1]
         self.cur_database = res[0]
+        self.server_version = res[1]
+        #q = "select pgq.version()"
+        #try:
+        #    curs.execute(q)
+        #    res = curs.fetchone()
+        #    self.pgq_version = res[0]
+        #except psycopg2.ProgrammingError:
+        #    self.pgq_version = "<none>"
+        #if not quiet:
+        #    print "qadmin (%s, server %s, pgq %s)" % (__version__, self.server_version, self.pgq_version)
+        #    #print "Connected to %r" % self.initial_connstr
         return db
-
-        #print res
-        #print dir(self.db)
-        #print dir(self.db.cursor())
-        #print self.db.status
-        #print "connected to", repr(self.initial_connstr)
-
 
     def run(self, argv):
         self.parse_cmdline(argv)
@@ -888,7 +896,7 @@ class AdminConsole:
             cmd_str = open(self.cmd_file, "r").read()
 
         try:
-            self.db = self.db_connect(self.initial_connstr)
+            self.db = self.db_connect(self.initial_connstr, quiet=True)
         except psycopg2.Error, d:
             print str(d).strip()
             sys.exit(1)
@@ -911,6 +919,7 @@ class AdminConsole:
         except IOError:
             pass
 
+        #print "Welcome to qadmin %s (server %s), the PgQ interactive terminal." % (__version__, self.server_version)
         print "Use 'show help;' to see available commands."
         while 1:
             try:
@@ -1108,6 +1117,11 @@ class AdminConsole:
             self.cur_queue = qname
 
         print "CONNECT"
+
+    def cmd_show_version (self, params):
+        print "qadmin version %s" % __version__
+        print "server version %s" % self.server_version
+        #print "pgq version %s" % self.pgq_version
 
     def cmd_install(self, params):
         pgq_objs = [
@@ -1509,4 +1523,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
