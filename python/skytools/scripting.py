@@ -510,6 +510,9 @@ class BaseScript(object):
                 else:
                     break
 
+        # run shutdown, safely?
+        self.shutdown()
+
     def run_once(self):
         state = self.run_func_safely(self.work, True)
 
@@ -596,6 +599,14 @@ class BaseScript(object):
             signal.signal(signal.SIGHUP, self.hook_sighup)
         if hasattr(signal, 'SIGINT'):
             signal.signal(signal.SIGINT, self.hook_sigint)
+
+    def shutdown(self):
+        """Will be called just after exiting main loop.
+
+        In case of daemon, if will be called in same process as work(),
+        unlike __init__().
+        """
+        pass
 
     # define some aliases (short-cuts / backward compatibility cruft)
     stat_add = stat_put                 # Old, deprecated function.
