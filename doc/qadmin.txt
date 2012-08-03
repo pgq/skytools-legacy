@@ -129,6 +129,10 @@ Show DDL for the specified sequence.
 
 Show details of one or all consumers on one or all queues.
 
+=== show node [ <node | *> [on <qname>] ]; ===
+
+Show details of one or all nodes on one or all queues.
+
 === show batch <batch_id>; ===
 
 Show details of the batch, default queue must be set (see `connect queue`)
@@ -278,7 +282,6 @@ TODO : is it up-to-date ?
 - drop node <name> [on <qname>];
 - takeover <oldnode>;
 
-- show node [ <node | *> [on <qname>] ];
 - show cascade;
 - show_queue_stats <q>;
 - status

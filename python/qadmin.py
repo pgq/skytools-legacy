@@ -6,20 +6,20 @@
     connect [ queue=.. ] [ node=.. ];
     install pgq | londiste;
 
+    show queue [ <qname | *> ];
     create queue <qname>;
     alter queue <qname | *> set param = , ...;
     drop queue <qname>;
-    show queue [ <qname | *> ];
-    show table <tbl>;
-    show sequence <seq>;
 
+    show consumer [ <cname | *> [on <qname>] ];
     register consumer <consumer> [on <qname> | at <tick_id> | copy <consumer> ]* ;
     unregister consumer <consumer | *> [from <qname>];
-
     register subconsumer <subconsumer> for <consumer> [on <qname>];
     unregister subconsumer <subconsumer | *> for <consumer> [from <qname>] [close [batch]];
 
-    show consumer [ <cname | *> [on <qname>] ];
+    show node [ <node | *> [on <qname>] ];
+    show table <tbl>;
+    show sequence <seq>;
 
 Following commands expect default queue:
 
