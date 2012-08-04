@@ -34,6 +34,13 @@ _symbols = {
     'write_atomic': 'skytools.fileutil:write_atomic',
     # skytools.gzlog
     'gzip_append': 'skytools.gzlog:gzip_append',
+    # skytools.natsort
+    'natsort': 'skytools.natsort:natsort',
+    'natsort_icase': 'skytools.natsort:natsort_icase',
+    'natsorted': 'skytools.natsort:natsorted',
+    'natsorted_icase': 'skytools.natsort:natsorted_icase',
+    'natsort_key': 'skytools.natsort:natsort_key',
+    'natsort_key_icase': 'skytools.natsort:natsort_key_icase',
     # skytools.parsing
     'dedent': 'skytools.parsing:dedent',
     'hsize_to_bytes': 'skytools.parsing:hsize_to_bytes',
