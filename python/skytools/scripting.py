@@ -242,9 +242,9 @@ class BaseScript(object):
         """Script setup.
 
         User class should override work() and optionally __init__(), startup(),
-        reload(), reset() and init_optparse().
+        reload(), reset(), shutdown() and init_optparse().
 
-        NB: in case of daemon, the __init__() and startup()/work() will be
+        NB: In case of daemon, __init__() and startup()/work()/shutdown() will be
         run in different processes.  So nothing fancy should be done in __init__().
 
         @param service_name: unique name for script.
@@ -436,6 +436,7 @@ class BaseScript(object):
             self.cf = self.load_config()
         else:
             self.cf.reload()
+            self.log.info ("Config reloaded")
         self.job_name = self.cf.get("job_name")
         self.pidfile = self.cf.getfile("pidfile", '')
         self.loop_delay = self.cf.getfloat("loop_delay", 1.0)
