@@ -298,7 +298,10 @@ class BaseScript(object):
             self.send_signal(signal.SIGHUP)
 
     def print_version(self):
-        print '%s, Skytools version %s' % (self.service_name, skytools.__version__)
+        service = self.service_name
+        if getattr(self, '__version__', None):
+            service += ' version %s' % self.__version__
+        print '%s, Skytools version %s' % (service, skytools.__version__)
 
     def print_ini(self):
         """Prints out ini file from doc string of the script of default for dbscript
