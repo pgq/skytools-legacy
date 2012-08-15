@@ -6,20 +6,20 @@
     connect [ queue=.. ] [ node=.. ];
     install pgq | londiste;
 
+    show queue [ <qname | *> ];
     create queue <qname>;
     alter queue <qname | *> set param = , ...;
     drop queue <qname>;
-    show queue [ <qname | *> ];
-    show table <tbl>;
-    show sequence <seq>;
 
+    show consumer [ <cname | *> [on <qname>] ];
     register consumer <consumer> [on <qname> | at <tick_id> | copy <consumer> ]* ;
     unregister consumer <consumer | *> [from <qname>];
-
     register subconsumer <subconsumer> for <consumer> [on <qname>];
     unregister subconsumer <subconsumer | *> for <consumer> [from <qname>] [close [batch]];
 
-    show consumer [ <cname | *> [on <qname>] ];
+    show node [ <node | *> [on <qname>] ];
+    show table <tbl>;
+    show sequence <seq>;
 
 Following commands expect default queue:
 
@@ -446,6 +446,7 @@ w_show = List(
     Word('node', w_show_node),
     Word('table', w_show_table),
     Word('sequence', w_show_seq),
+    Word('version', w_done),
     name = "cmd2")
 
 w_install = List(
@@ -634,6 +635,9 @@ top_level.add(
 class AdminConsole:
     cur_queue = None
     cur_database = None
+
+    #server_version = None
+    #pgq_version = None
 
     cmd_file = None
     cmd_str = None
@@ -853,7 +857,7 @@ class AdminConsole:
 
         self.initial_connstr = " ".join(cstr_list)
 
-    def db_connect(self, connstr):
+    def db_connect(self, connstr, quiet=False):
         db = skytools.connect_database(connstr)
         db.set_isolation_level(0) # autocommit
 
@@ -863,14 +867,18 @@ class AdminConsole:
         res = curs.fetchone()
         print 'Server version', res[1]
         self.cur_database = res[0]
+        self.server_version = res[1]
+        #q = "select pgq.version()"
+        #try:
+        #    curs.execute(q)
+        #    res = curs.fetchone()
+        #    self.pgq_version = res[0]
+        #except psycopg2.ProgrammingError:
+        #    self.pgq_version = "<none>"
+        #if not quiet:
+        #    print "qadmin (%s, server %s, pgq %s)" % (__version__, self.server_version, self.pgq_version)
+        #    #print "Connected to %r" % self.initial_connstr
         return db
-
-        #print res
-        #print dir(self.db)
-        #print dir(self.db.cursor())
-        #print self.db.status
-        #print "connected to", repr(self.initial_connstr)
-
 
     def run(self, argv):
         self.parse_cmdline(argv)
@@ -888,7 +896,7 @@ class AdminConsole:
             cmd_str = open(self.cmd_file, "r").read()
 
         try:
-            self.db = self.db_connect(self.initial_connstr)
+            self.db = self.db_connect(self.initial_connstr, quiet=True)
         except psycopg2.Error, d:
             print str(d).strip()
             sys.exit(1)
@@ -911,6 +919,7 @@ class AdminConsole:
         except IOError:
             pass
 
+        #print "Welcome to qadmin %s (server %s), the PgQ interactive terminal." % (__version__, self.server_version)
         print "Use 'show help;' to see available commands."
         while 1:
             try:
@@ -1109,6 +1118,11 @@ class AdminConsole:
 
         print "CONNECT"
 
+    def cmd_show_version (self, params):
+        print "qadmin version %s" % __version__
+        print "server version %s" % self.server_version
+        #print "pgq version %s" % self.pgq_version
+
     def cmd_install(self, params):
         pgq_objs = [
             skytools.DBLanguage("plpgsql"),
@@ -1162,7 +1176,7 @@ class AdminConsole:
             q = pfx + " from pgq.get_queue_info(%s)"
             curs.execute(q, [queue])
 
-        display_result(curs, 'Queue: %s' % queue)
+        display_result(curs, 'Queue "%s":' % queue)
 
     def cmd_show_consumer(self, params):
         """Show consumer status"""
@@ -1176,7 +1190,7 @@ class AdminConsole:
         q = "select * from pgq.get_consumer_info(%s, %s)"
         curs.execute(q, [q_queue, q_consumer])
 
-        display_result(curs, 'Consumer "%s" on queue "%s"' % (consumer, queue))
+        display_result(curs, 'Consumer "%s" on queue "%s":' % (consumer, queue))
 
     def cmd_show_node(self, params):
         """Show node information."""
@@ -1198,7 +1212,7 @@ class AdminConsole:
                order by 1,2"""
         curs.execute(q, [q_node, q_queue])
 
-        display_result(curs, 'Node "%s" on queue "%s"' % (node, queue))
+        display_result(curs, 'Node "%s" on queue "%s":' % (node, queue))
 
     def cmd_show_batch(self, params):
         batch_id = params.get('batch_id')
@@ -1223,7 +1237,7 @@ class AdminConsole:
         q = "select * from pgq.get_batch_events(%s)"
         curs.execute(q, [batch_id])
 
-        display_result(curs, 'Batch events')
+        display_result(curs, 'Batch events:')
 
     def cmd_register_consumer(self, params):
         queue = params.get("queue", self.cur_queue)
@@ -1389,7 +1403,7 @@ class AdminConsole:
         q = """select * from londiste.local_show_missing(%s)"""
         curs.execute(q, [queue])
 
-        display_result(curs, 'Missing objects queue "%s"' % (queue))
+        display_result(curs, 'Missing objects on queue "%s":' % (queue))
 
     def cmd_londiste_tables(self, params):
         """Show local tables."""
@@ -1400,7 +1414,7 @@ class AdminConsole:
         q = """select * from londiste.get_table_list(%s) where local"""
         curs.execute(q, [queue])
 
-        display_result(curs, 'Local tables on queue "%s"' % (queue))
+        display_result(curs, 'Local tables on queue "%s":' % (queue))
 
     def cmd_londiste_seqs(self, params):
         """Show local seqs."""
@@ -1411,7 +1425,7 @@ class AdminConsole:
         q = """select * from londiste.get_seq_list(%s) where local"""
         curs.execute(q, [queue])
 
-        display_result(curs, 'Sequences on queue "%s"' % (queue))
+        display_result(curs, 'Sequences on queue "%s":' % (queue))
 
     def cmd_londiste_add_table(self, params):
         """Add table."""
@@ -1509,4 +1523,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-

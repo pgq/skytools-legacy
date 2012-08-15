@@ -6,14 +6,14 @@ scriptmgr - utility for controlling other skytools scripts.
 
 == SYNOPSIS ==
 
-  scriptmgr.py [switches] config.ini <command> [-a | job_name ... ]
+  scriptmgr.py [switches] config.ini <command> [-a | -t service | job_name...]
 
 == DESCRIPTION ==
 
 scriptmgr is used to manage several scripts together.  It discovers
-potential jobs based on config file glob expression.  From config
-file it gets both job_name and service type (that is the main section
-name eg [cube_dispatcher]).  For each service type there is subsection
+potential jobs based on config file glob expression.  From config file
+it gets both job_name and service type (that is the main section name,
+e.g. [cube_dispatcher]).  For each service type there is subsection
 in the config how to handle it.  Unknown services are ignored.
 
 == COMMANDS ==
@@ -27,27 +27,31 @@ Show status for all known jobs.
 === start ===
 
   scriptmgr config.ini start -a
+  scriptmgr config.ini start -t service
   scriptmgr config.ini start job_name1 job_name2 ...
 
-launch script(s) that are not running.
+Launch script(s) that are not running.
 
 === stop ===
 
   scriptmgr config.ini stop -a
+  scriptmgr config.ini stop -t service
   scriptmgr config.ini stop job_name1 job_name2 ...
 
-stop script(s) that are running.
+Stop script(s) that are running.
 
 === restart ===
 
   scriptmgr config.ini restart -a
+  scriptmgr config.ini restart -t service
   scriptmgr config.ini restart job_name1 job_name2 ...
 
-restart scripts.
+Restart scripts.
 
 === reload ===
 
   scriptmgr config.ini reload -a
+  scriptmgr config.ini reload -t service
   scriptmgr config.ini reload job_name1 job_name2 ...
 
 Send SIGHUP to scripts that are running.
@@ -59,8 +63,8 @@ include::common.config.txt[]
 === scriptmgr parameters ===
 
 config_list::
-  List of glob patters for finding config files.  Example:
-  
+  List of glob patterns for finding config files.  Example:
+
     config_list = ~/dbscripts/conf/*.ini, ~/random/conf/*.ini
 
 === Service section parameters ===
@@ -111,3 +115,8 @@ Options specific to scriptmgr:
 -a, --all::
   Operate on all non-disabled scripts.
 
+-t 'service', --type='service'::
+  Operate on all non-disabled scripts of this service type.
+
+-w, --wait::
+  Wait for script(s) after signalling.

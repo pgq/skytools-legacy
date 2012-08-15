@@ -242,9 +242,9 @@ class BaseScript(object):
         """Script setup.
 
         User class should override work() and optionally __init__(), startup(),
-        reload(), reset() and init_optparse().
+        reload(), reset(), shutdown() and init_optparse().
 
-        NB: in case of daemon, the __init__() and startup()/work() will be
+        NB: In case of daemon, __init__() and startup()/work()/shutdown() will be
         run in different processes.  So nothing fancy should be done in __init__().
 
         @param service_name: unique name for script.
@@ -298,7 +298,10 @@ class BaseScript(object):
             self.send_signal(signal.SIGHUP)
 
     def print_version(self):
-        print '%s, Skytools version %s' % (self.service_name, skytools.__version__)
+        service = self.service_name
+        if getattr(self, '__version__', None):
+            service += ' version %s' % self.__version__
+        print '%s, Skytools version %s' % (service, skytools.__version__)
 
     def print_ini(self):
         """Prints out ini file from doc string of the script of default for dbscript
@@ -433,6 +436,7 @@ class BaseScript(object):
             self.cf = self.load_config()
         else:
             self.cf.reload()
+            self.log.info ("Config reloaded")
         self.job_name = self.cf.get("job_name")
         self.pidfile = self.cf.getfile("pidfile", '')
         self.loop_delay = self.cf.getfloat("loop_delay", 1.0)
@@ -509,6 +513,9 @@ class BaseScript(object):
                         break
                 else:
                     break
+
+        # run shutdown, safely?
+        self.shutdown()
 
     def run_once(self):
         state = self.run_func_safely(self.work, True)
@@ -596,6 +603,14 @@ class BaseScript(object):
             signal.signal(signal.SIGHUP, self.hook_sighup)
         if hasattr(signal, 'SIGINT'):
             signal.signal(signal.SIGINT, self.hook_sigint)
+
+    def shutdown(self):
+        """Will be called just after exiting main loop.
+
+        In case of daemon, if will be called in same process as work(),
+        unlike __init__().
+        """
+        pass
 
     # define some aliases (short-cuts / backward compatibility cruft)
     stat_add = stat_put                 # Old, deprecated function.

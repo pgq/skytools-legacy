@@ -21,8 +21,7 @@ __all__ = [
 ]
 
 class dbdict(dict):
-    """Wrapper on actual dict that allows
-    accessing dict keys as attributes."""
+    """Wrapper on actual dict that allows accessing dict keys as attributes."""
     # obj.foo access
     def __getattr__(self, k):
         "Return attribute."
@@ -34,8 +33,12 @@ class dbdict(dict):
         "Set attribute."
         self[k] = v
     def __delattr__(self, k):
-        "Remove attribute"
+        "Remove attribute."
         del self[k]
+    def merge(self, other):
+        for key in other:
+            if key not in self:
+                self[key] = other[key]
 
 #
 # Fully qualified table name
@@ -637,4 +640,3 @@ def mk_delete_sql(row, tbl, pkey_list, field_map = None):
 if __name__ == '__main__':
     import doctest
     doctest.testmod()
-
