@@ -11,22 +11,22 @@ londiste3 - tool for managing trigger-based replication for PostgreSQL.
 
 == DESCRIPTION ==
 
-Londiste allows to setup and administer the replication, and is run as a
+Londiste allows you to setup and administer the replication, and is run as a
 daemon to handle the replication itself. (Londiste is just a complex
 PgQ Consumer).
 
 See <<examples,EXAMPLES>> below to start your first trigger-based
-replication in few steps.
+replication in a few steps.
 
 The 'command' is one of Node, Replication, Information or Internal
 commands listed below.
 
-Londiste introduces the notion of 'takeover', it is the action when a
+Londiste introduces the notion of 'takeover'.  It is the action when a
 local node takes over the work of another node. The other node can be a
 root node or a branch node and it can be dead or alive when the action
 is run.
 
-Londiste also allows, among many other features,  cascading replication,
+Londiste also allows (among many other features): cascading replication,
 partial replication and custom handlers for replication.
 
 == GENERAL OPTIONS ==
