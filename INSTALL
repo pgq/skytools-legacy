@@ -1,8 +1,8 @@
 = SkyTools - tools for PostgreSQL =
 
-== Builing ==
+== Building ==
 
-Skytools modules use some other code to run, you need to install the
+Skytools modules use some other code to run, so you need to install the
 following dependencies on the system where you want to build and run
 skytool applications.
 
@@ -48,7 +48,7 @@ Now build as usual:
 == Building a debian package ==
 
 The main Makefile provides a target for building a +.deb+ package
-suitable for installation.  Following additional packages are needed
+suitable for installation.  The following additional packages are needed
 to build the debian package:
 
   devscripts autotools-dev python-all-dev python-support xmlto asciidoc
@@ -71,14 +71,14 @@ The following configure options are available:
 --with-pgconfig::
   Name or full path to pg_config (default: pg_config)
 
---with-asciidoc
+--with-asciidoc::
   If asciidoc should be used to re-generate manpages.  Required when
   building from GIT as the generated pages are not in repo.
 
 
 == Documentation ==
 
-Skytools documentation consist of text files, some of them in the
+Skytools documentation consists of text files, some of them in the
 asciidoc format, from which you can produce man and html outputs:
 
   $ cd doc
@@ -99,7 +99,7 @@ walmgr.
 
 In the londiste case, as the replication process will run on only one
 machine (either provider, subscriber or a tier box), things are not
-that straight anymore.
+that simple anymore.
 
 But simple nonetheless: install PgQ on the machine where you want to
 run it, provider being the straightforward choice. Then install
