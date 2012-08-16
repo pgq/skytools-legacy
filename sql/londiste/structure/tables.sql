@@ -146,10 +146,8 @@ create table londiste.applied_execute (
     execute_file        text not null,
     execute_time        timestamptz not null default now(),
     execute_sql         text not null,
-    primary key (queue_name, execute_file),
-    foreign key (queue_name)
-      references pgq_node.node_info (queue_name)
-      on delete cascade
+    execute_attrs       text,
+    primary key (execute_file)
 );
 
 

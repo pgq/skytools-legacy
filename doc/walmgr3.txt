@@ -79,6 +79,15 @@ listed below.
     Provide the connection string to the streaming replication Master
     (used in Slave).
 
+  --add-password='plaintext_file'::
+    Add password for streaming replication from plain text file to .pgpass.
+    Additional fields for password file entry will be extracted from primary-conninfo
+    (used in Slave).
+
+  --remove-password::
+    Remove .pgpass entry, which was used for streaming replication
+    (used in Slave)
+
 == DAEMON OPTIONS ==
 
   -r, --reload::
@@ -122,6 +131,11 @@ Stop archiving and de-configure PostgreSQL archiving.
 Runs periodic command if configured. This enables to execute arbitrary
 commands on interval, useful for synchronizing scripts, config files,
 crontabs etc.
+
+=== synch-standby ===
+
+Enables/disables synchronous streaming replication for given application name(s).
+Does additional check before enabling synchronous mode.
 
 == SLAVE COMMANDS ==
 

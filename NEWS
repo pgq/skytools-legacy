@@ -1,3 +1,140 @@
+
+2012-07-19  -  SkyTools 3.1  -  "Carnival-on-a-Stick"
+
+  = Features =
+
+    * londiste: Wait commands
+      > londiste $ini add-table .. --wait-sync
+      > londiste $ini wait-sync
+        Wait until all tables are fully copied over.
+      > londiste $ini wait-root
+        Wait for next tick on root reaches local node.
+      > londiste $ini wait-provider
+        Wait for next tick on provider reaches local node.
+
+    * londiste execute: support meta attributes in sql
+      This allows execute ADD COLUMN from root, over whole
+      cascade  even when not all nodes contain the table.
+
+        --*-- Local-Table: mytable
+        ALTER TABLE mytable ADD COLUMN foo text;
+
+    * Convert DB modules to extensions (9.1+).  Now following modules
+      are available as extensions: pgq, pgq_node, pgq_coop, pgq_ext, londiste.
+      All the old files are kept in old locations to avoid any breakage.
+
+      Known problems in Postgres extensions infrastructure (as of 9.1.4):
+
+      - pg_dump crashes when extensions has sequence whose value needs to be dumped.
+        Thus pgq.batch_id_seq cannot be made dumpable, thus it's value
+        gets lost during dump+reload.
+
+      - CREATE EXTENSION pgq_coop FROM unpackaged; + DROP EXTENSION pgq_coop;
+        will not drop schema.  Plain CREATE+DROP works fine.
+
+  = Minor Features =
+
+    * londiste.applied_execute: drop queue_name from pkey
+    * pgq.LocalConsumer: consumer that tracks processed ticks in local file
+    * simple_local_consumer: LocalConsumer that runs query for each event.
+    * pgq.Consumer: 'table_filter' config param, filters on ev_extra1,
+      where PgQ triggers put source table name.
+    * londiste.periodic_maintenance: cleanup for applied_execute
+    * pgq.maint_operations: include londiste.periodic_maintenance
+    * skytools.exists_view(): new function
+    * skytools.fileutil: new module, contains write_atomic()
+    * londiste.handler: make encoding= param available to part & londiste handlers
+    * debian: build modules for all installed server-dev versions
+
+  = Fixes =
+
+    * CascadedConsumer: re-initialize provider connection when location changes
+    * pgq_node.drop_node: mention node name in info message
+    * drop-node: move find_root before local drop
+    * pgq.maint_rotate_tables: check txid sanity, fail if bad
+    * sql_tokenizer: allow idents starting with underscore
+    * BaseScript: write pidfile atomically to avoid corrupt pidfiles.
+    * londiste replay: skip provider checks if copy_node is used
+    * CascadedWorker: don't move watermark on source further than incoming batch.
+
+2012-05-30  -  SkyTools 3.0.3  -  "Biometric Authentication by Yodeling"
+
+  = Features =
+
+    * londiste copy: copy table from another node (add-table --copy-node=NODE)
+    * londiste remove-table: drop sequence too
+    * public.create_partition: move under londiste schema, it's now generic enough
+    * londiste.create_partitions: Support copying rules from master table
+    * handlers.dispatch: use londiste.create_partitions, use old func as fallback
+    * walmgr: add option for init-slave to add password from file to .pgpass
+    * walmgr: add command synch-standby
+
+  = Fixes =
+
+    * CascadedWorker: merge-leaf-to-branch needs to publish wm info
+    * pgq_node.create_node: create branch nodes with disable_insert set
+    * pgq.insert_event: ignore disable_insert if in 'replica' role
+    * create_partition: public grant needs special casing
+    * skytools.dbstruct: better rule name redirection
+    * debian: add build-deps, force debian/control rebuild
+    * pgq_node.unregister_location: do automatic unsubscribe
+    * pgq_node.drop_node: drop queue data even if node_info is empty
+    * londiste add-table: --expect-sync does not require table existance on provider
+
+  = Cleanups =
+
+    * skytools_upgrade: show old version before upgrade
+    * CascadeAdmin: add node name prefix messages from db
+    * handlers.dispatch: add comment about differences from part_func
+    * londiste.find_table_oid: drop old version - 9.1+ panics when argument name changes
+    * dbservice.get_record_list: do not use parse_pgarray on python lists
+
+  = Win32 =
+
+    * skytools.scripting: catch EINTR from sleep()
+    * signal_pidfile: support sig=0 on win32
+    * skytools.scripting: detect if signal name exists
+
+  = Schema version changes =
+
+    * pgq_node.version(): 3.0.0.18
+    * londiste.version(): 3.0.0.16
+
+2012-05-10  -  SkyTools 3.0.2  -  "Consumes 30% Less Brain Than Competing Products"
+
+  = Features =
+
+    * Draft implementation of fine-grained grants for SQL
+      functions.  See commit doc/sql-grants.txt for details.
+      New roles are created during upgrade, but new grants
+      need to be applied manually.
+
+    * pgq.create_queue: instead pre-determined grants,
+      copy grants for event tables from pgq.event_template.
+
+    * simple_consumer.py script, for simply event processing
+      by simply launching a SQL function for each event.
+
+    * londiste.handlers.part: make hash function configurable
+
+    * psycopgwrapper: allow name= argument to .cursor()
+
+  = Fixes =
+
+    * londiste: Always use TRUNCATE CASCADE
+
+    * pgq.cascade.CascadedWorker: publish_local_wm() is missing a commit
+
+    * walmgr: fix backup from slave (Sergey Burladyan)
+
+  = Cleanups =
+
+    * pgq.insert_event(): outer wrapper does not need to be secdef
+
+    * source.cfg: minor improvements
+
+    * sql/pgq: use terse verbosity in regtests
+
 2012-04-18  -  SkyTools 3.0.1  -  "All The Snow You Can Eat"
 
   = Features =

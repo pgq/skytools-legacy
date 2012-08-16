@@ -13,12 +13,12 @@ qadmin - Easy to use admin console to examine and administer PgQ queues.
 
 This is a psql-like console for queue administration.
 
-The console offers a large number of command to setup, control and
+The console offers a large number of commands to setup, control and
 manage PgQ queueing system.
 
 It also offers a non-interactive mode to run one or more commands.
 
-qadmin keeps an history file in the home of the user (`~/.qadmin_history`).
+qadmin keeps its history file in the home of the user (`~/.qadmin_history`).
 
 == GENERAL OPTIONS ==
 
@@ -31,7 +31,7 @@ qadmin keeps an history file in the home of the user (`~/.qadmin_history`).
 == CONNECTION OPTIONS ==
 
   -h host::
-    Sspecify host to connect to (default: localhost via unix socket).
+    Specify host to connect to (default: localhost via unix socket).
 
   -p port::
     Specify port.
@@ -79,13 +79,13 @@ Create the specified queue.
 
 === alter queue <qname | *> set param =<foo=1>,<bar=2>; ===
 
-Set one or more parameters on one or all queue at once.
+Set one or more parameters on one or all queues at once.
 
 === drop queue <qname>; ===
 
 Drop the named queue.
 
-=== register consumer <consumer> [on <qname> | at <tick_id> | copy <consumer> ]; ===
+=== register consumer <consumer> [on <qname> | at <tick_id> | copy <consumer>]; ===
 
 Register a consumer on a queue, or at a specified tick or based on
 another consumer.
@@ -129,6 +129,10 @@ Show DDL for the specified sequence.
 
 Show details of one or all consumers on one or all queues.
 
+=== show node [ <node | *> [on <qname>] ]; ===
+
+Show details of one or all nodes on one or all queues.
+
 === show batch <batch_id>; ===
 
 Show details of the batch, default queue must be set (see `connect queue`)
@@ -140,7 +144,7 @@ queue must be set (see `connect queue`)
 
 == LONDISTE COMMANDS ==
 
-All this commands are applyed on the node where the console is connected
+All these commands are applied on the node where the console is connected
 to.
 
 === londiste add table <tbl> [with ... ] ===
@@ -164,7 +168,7 @@ to.
     Create skip trigger. Same as S flag.
 
   with when='expr'::
-    If 'expr' returns false, don't insert event.
+    If 'expr' returns false, do not insert event.
 
   with ev_XX='EXPR'::
     Overwrite default ev_* columns (see below).
@@ -186,7 +190,6 @@ Queue event fields:
 - ev_data   - partial SQL statement
 - ev_extra1 - table name
 - ev_extra2 - optional urlencoded backup
-
 
 === londiste add sequence <seq>; ===
 
@@ -224,7 +227,7 @@ Catching-up: if dropped_ddl is not NULL, restore them.
 
 ==== copy_role = wait-copy ====
 
-On copy start wait, until role changes (to wait-replay).
+On copy start, wait until role changes (to wait-replay).
 
 ==== copy_role = wait-replay ====
 
@@ -279,7 +282,6 @@ TODO : is it up-to-date ?
 - drop node <name> [on <qname>];
 - takeover <oldnode>;
 
-- show node [ <node | *> [on <qname>] ];
 - show cascade;
 - show_queue_stats <q>;
 - status

@@ -188,3 +188,17 @@ run_sql full2 "select * from londiste.get_table_list('replika_part2')"
 
 ../zcheck.sh
 
+msg "Test EXECUTE through cascade"
+
+for db in part1 part2 part3 part4; do
+  run londiste3 $v conf/londiste_$db.ini execute addcol-data2.sql
+done
+msg "Sleep a bit"
+run sleep 10
+
+psql -d part1 -c '\d mydata'
+psql -d full1 -c '\d mydata'
+psql -d part1 -c '\d mydata'
+
+../zcheck.sh
+

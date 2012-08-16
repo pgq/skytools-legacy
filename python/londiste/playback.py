@@ -8,6 +8,7 @@ import skytools
 from pgq.cascade.worker import CascadedWorker
 
 from londiste.handler import *
+from londiste.exec_attrs import ExecAttrs
 
 __all__ = ['Replicator', 'TableState',
     'TABLE_MISSING', 'TABLE_IN_COPY', 'TABLE_CATCHING_UP',
@@ -472,13 +473,18 @@ class Replicator(CascadedWorker):
             pmap = self.get_state_map(src_db.cursor())
             src_db.commit()
             for t in self.get_tables_in_state(TABLE_MISSING):
-                if t.name not in pmap:
-                    self.log.warning("Table %s not available on provider" % t.name)
-                    continue
-                pt = pmap[t.name]
-                if pt.state != TABLE_OK: # or pt.custom_snapshot: # FIXME: does snapsnot matter?
-                    self.log.info("Table %s not OK on provider, waiting" % t.name)
-                    continue
+                if 'copy_node' in t.table_attrs:
+                    # should we go and check this node?
+                    pass
+                else:
+                    # regular provider is used
+                    if t.name not in pmap:
+                        self.log.warning("Table %s not available on provider" % t.name)
+                        continue
+                    pt = pmap[t.name]
+                    if pt.state != TABLE_OK: # or pt.custom_snapshot: # FIXME: does snapsnot matter?
+                        self.log.info("Table %s not OK on provider, waiting" % t.name)
+                        continue
 
                 # dont allow more copies than configured
                 if npossible == 0:
@@ -634,10 +640,13 @@ class Replicator(CascadedWorker):
             return
 
         fqname = skytools.quote_fqident(t.dest_table)
-        if dst_curs.connection.server_version >= 80400:
-            sql = "TRUNCATE ONLY %s;" % fqname
-        else:
-            sql = "TRUNCATE %s;" % fqname
+
+        #
+        # Always use CASCADE, because without it the
+        # operation cannot work with FKeys, on both
+        # slave and master.
+        #
+        sql = "TRUNCATE %s CASCADE;" % fqname
 
         self.flush_sql(dst_curs)
         dst_curs.execute(sql)
@@ -650,20 +659,40 @@ class Replicator(CascadedWorker):
 
         # parse event
         fname = ev.extra1
+        s_attrs = ev.extra2
+        exec_attrs = ExecAttrs(urlenc = s_attrs)
         sql = ev.data
 
         # fixme: curs?
         pgver = dst_curs.connection.server_version
         if pgver >= 80300:
             dst_curs.execute("set local session_replication_role = 'local'")
-        q = "select * from londiste.execute_start(%s, %s, %s, false)"
-        res = self.exec_cmd(dst_curs, q, [self.queue_name, fname, sql], commit = False)
+
+        seq_map = {}
+        q = "select seq_name, local from londiste.get_seq_list(%s) where local"
+        dst_curs.execute(q, [self.queue_name])
+        for row in dst_curs.fetchall():
+            seq_map[row['seq_name']] = row['seq_name']
+
+        tbl_map = {}
+        for tbl, t in self.table_map.items():
+            tbl_map[t.name] = t.dest_table
+
+        q = "select * from londiste.execute_start(%s, %s, %s, false, %s)"
+        res = self.exec_cmd(dst_curs, q, [self.queue_name, fname, sql, s_attrs], commit = False)
         ret = res[0]['ret_code']
-        if ret >= 300:
-            self.log.warning("Skipping execution of '%s'", fname)
+        if ret > 200:
+            self.log.info("Skipping execution of '%s'", fname)
             return
-        for stmt in skytools.parse_statements(sql):
-            dst_curs.execute(stmt)
+
+        if exec_attrs.need_execute(dst_curs, tbl_map, seq_map):
+            self.log.info("%s: executing sql")
+            xsql = exec_attrs.process_sql(sql, tbl_map, seq_map)
+            for stmt in skytools.parse_statements(xsql):
+                dst_curs.execute(stmt)
+        else:
+            self.log.info("%s: execution not needed on this node")
+
         q = "select * from londiste.execute_finish(%s, %s)"
         self.exec_cmd(dst_curs, q, [self.queue_name, fname], commit = False)
         if pgver >= 80300:

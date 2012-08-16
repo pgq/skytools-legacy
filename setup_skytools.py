@@ -37,6 +37,8 @@ sfx_scripts = [
     'scripts/scriptmgr.py',
     'scripts/queue_splitter.py',
     'scripts/queue_mover.py',
+    'scripts/simple_consumer.py',
+    'scripts/simple_local_consumer.py',
     'scripts/skytools_upgrade.py',
 ]
 # those do not need suffix (no conflict with 2.1)

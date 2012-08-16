@@ -37,7 +37,9 @@ declare
     pos             int4;
     fq_table        text;
     fq_part         text;
+    q_grantee       text;
     g               record;
+    r               record;
     sql             text;
     pgver           integer;
 begin
@@ -92,6 +94,7 @@ begin
     sql := sql || ') inherits (' || fq_table || ')';
     execute sql;
 
+    -- extra check constraint
     if i_part_field != '' then
         part_start := date_trunc(i_part_period, i_part_time);
         part_end := part_start + ('1 ' || i_part_period)::interval;
@@ -110,8 +113,12 @@ begin
             where table_schema = parent_schema
                 and table_name = parent_name
     loop
-        sql := 'grant ' || g.privilege_type || ' on ' || fq_part
-            || ' to ' || quote_ident(g.grantee);
+        if g.grantee = 'PUBLIC' then
+            q_grantee = 'public';
+        else
+            q_grantee := quote_ident(g.grantee);
+        end if;
+        sql := 'grant ' || g.privilege_type || ' on ' || fq_part || ' to ' || q_grantee;
         if g.is_grantable = 'YES' then
             sql := sql || ' with grant option';
         end if;

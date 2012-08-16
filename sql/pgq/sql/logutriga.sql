@@ -1,13 +1,13 @@
+\set VERBOSITY 'terse'
 
 select 1 from (select set_config(name, 'escape', false) as ignore
           from pg_settings where name = 'bytea_output') x
           where x.ignore = 'foo';
 
-drop function pgq.insert_event(text, text, text,  text, text, text, text);
-create or replace function pgq.insert_event(que text, ev_type text, ev_data text, x1 text, x2 text, x3 text, x4 text)
+create or replace function pgq.insert_event(queue_name text, ev_type text, ev_data text, ev_extra1 text, ev_extra2 text, ev_extra3 text, ev_extra4 text)
 returns bigint as $$
 begin
-    raise notice 'insert_event(%, %, %, %)', que, ev_type, ev_data, x1;
+    raise notice 'insert_event(%, %, %, %)', queue_name, ev_type, ev_data, ev_extra1;
     return 1;
 end;
 $$ language plpgsql;

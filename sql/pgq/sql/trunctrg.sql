@@ -1,3 +1,4 @@
+\set VERBOSITY 'terse'
 
 -- test sqltriga truncate
 create table trunctrg1 (

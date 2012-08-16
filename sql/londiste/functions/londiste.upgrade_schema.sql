@@ -28,6 +28,53 @@ begin
         alter table londiste.table_info add column dest_table text;
     end if;
 
+    -- applied_execute.dest_table
+    perform 1 from information_schema.columns
+      where table_schema = 'londiste'
+        and table_name = 'applied_execute'
+        and column_name = 'execute_attrs';
+    if not found then
+        alter table londiste.applied_execute add column execute_attrs text;
+    end if;
+
+    -- applied_execute: drop queue_name from primary key
+    perform 1 from pg_catalog.pg_indexes
+      where schemaname = 'londiste'
+        and tablename = 'applied_execute'
+        and indexname = 'applied_execute_pkey'
+        and indexdef like '%queue_name%';
+    if found then
+        alter table londiste.applied_execute
+            drop constraint applied_execute_pkey;
+        alter table londiste.applied_execute
+            add constraint applied_execute_pkey
+            primary key (execute_file);
+    end if;
+
+    -- applied_execute: drop fkey to pgq_node
+    perform 1 from information_schema.table_constraints
+      where constraint_schema = 'londiste'
+        and table_schema = 'londiste'
+        and table_name = 'applied_execute'
+        and constraint_type = 'FOREIGN KEY'
+        and constraint_name = 'applied_execute_queue_name_fkey';
+    if found then
+        alter table londiste.applied_execute
+            drop constraint applied_execute_queue_name_fkey;
+    end if;
+
+    -- create roles
+    perform 1 from pg_catalog.pg_roles where rolname = 'londiste_writer';
+    if not found then
+        create role londiste_writer in role pgq_admin;
+        cnt := cnt + 1;
+    end if;
+    perform 1 from pg_catalog.pg_roles where rolname = 'londiste_reader';
+    if not found then
+        create role londiste_reader in role pgq_reader;
+        cnt := cnt + 1;
+    end if;
+
     return cnt;
 end;
 $$ language plpgsql;

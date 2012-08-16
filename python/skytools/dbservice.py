@@ -92,7 +92,11 @@ def get_record_list(array):
     """
     if array is None:
         return []
-    return map(get_record, skytools.parse_pgarray(array))
+
+    if isinstance(array, list):
+        return map(get_record, array)
+    else:
+        return map(get_record, skytools.parse_pgarray(array))
 
 def get_record_lists(tbl, field):
     """ Create dictionary of lists from given list using field as grouping criteria

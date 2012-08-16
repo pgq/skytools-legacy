@@ -17,48 +17,10 @@ except ImportError:
 
 __pychecker__ = 'no-badexcept'
 
-__all__ = ['BaseScript', 'signal_pidfile', 'UsageError', 'daemonize',
-            'DBScript']
+__all__ = ['BaseScript', 'UsageError', 'daemonize', 'DBScript']
 
 class UsageError(Exception):
     """User induced error."""
-    pass
-
-#
-# utils
-#
-
-def signal_pidfile(pidfile, sig):
-    """Send a signal to process whose ID is located in pidfile.
-
-    Read only first line of pidfile to support multiline
-    pidfiles like postmaster.pid.
-
-    Returns True is successful, False if pidfile does not exist
-    or process itself is dead.  Any other errors will passed
-    as exceptions."""
-
-    ln = ''
-    try:
-        f = open(pidfile, 'r')
-        ln = f.readline().strip()
-        f.close()
-        pid = int(ln)
-        os.kill(pid, sig)
-        return True
-    except IOError, ex:
-        if ex.errno != errno.ENOENT:
-            raise
-    except OSError, ex:
-        if ex.errno != errno.ESRCH:
-            raise
-    except ValueError, ex:
-        # this leaves slight race when someone is just creating the file,
-        # but more common case is old empty file.
-        if not ln:
-            return False
-        raise ValueError('Corrupt pidfile: %s' % pidfile)
-    return False
 
 #
 # daemon mode
@@ -95,7 +57,7 @@ def run_single_process(runnable, daemon, pidfile):
 
     # check if another process is running
     if pidfile and os.path.isfile(pidfile):
-        if signal_pidfile(pidfile, 0):
+        if skytools.signal_pidfile(pidfile, 0):
             print("Pidfile exists, another process running?")
             sys.exit(1)
         else:
@@ -110,10 +72,9 @@ def run_single_process(runnable, daemon, pidfile):
 
     try:
         if pidfile:
-            f = open(pidfile, 'w')
+            data = str(os.getpid())
+            skytools.write_atomic(pidfile, data)
             own_pidfile = True
-            f.write(str(os.getpid()))
-            f.close()
 
         runnable.run()
     finally:
@@ -281,9 +242,9 @@ class BaseScript(object):
         """Script setup.
 
         User class should override work() and optionally __init__(), startup(),
-        reload(), reset() and init_optparse().
+        reload(), reset(), shutdown() and init_optparse().
 
-        NB: in case of daemon, the __init__() and startup()/work() will be
+        NB: In case of daemon, __init__() and startup()/work()/shutdown() will be
         run in different processes.  So nothing fancy should be done in __init__().
 
         @param service_name: unique name for script.
@@ -337,7 +298,10 @@ class BaseScript(object):
             self.send_signal(signal.SIGHUP)
 
     def print_version(self):
-        print '%s, Skytools version %s' % (self.service_name, skytools.__version__)
+        service = self.service_name
+        if getattr(self, '__version__', None):
+            service += ' version %s' % self.__version__
+        print '%s, Skytools version %s' % (service, skytools.__version__)
 
     def print_ini(self):
         """Prints out ini file from doc string of the script of default for dbscript
@@ -436,7 +400,7 @@ class BaseScript(object):
         if not self.pidfile:
             self.log.warning("No pidfile in config, nothing to do")
         elif os.path.isfile(self.pidfile):
-            alive = signal_pidfile(self.pidfile, sig)
+            alive = skytools.signal_pidfile(self.pidfile, sig)
             if not alive:
                 self.log.warning("pidfile exists, but process not running")
         else:
@@ -472,6 +436,7 @@ class BaseScript(object):
             self.cf = self.load_config()
         else:
             self.cf.reload()
+            self.log.info ("Config reloaded")
         self.job_name = self.cf.get("job_name")
         self.pidfile = self.cf.getfile("pidfile", '')
         self.loop_delay = self.cf.getfloat("loop_delay", 1.0)
@@ -549,6 +514,9 @@ class BaseScript(object):
                 else:
                     break
 
+        # run shutdown, safely?
+        self.shutdown()
+
     def run_once(self):
         state = self.run_func_safely(self.work, True)
 
@@ -598,7 +566,11 @@ class BaseScript(object):
 
     def sleep(self, secs):
         """Make script sleep for some amount of time."""
-        time.sleep(secs)
+        try:
+            time.sleep(secs)
+        except IOError, ex:
+            if ex.errno != errno.EINTR:
+                raise
 
     def exception_hook(self, det, emsg):
         """Called on after exception processing.
@@ -627,8 +599,18 @@ class BaseScript(object):
         """
 
         # set signals
-        signal.signal(signal.SIGHUP, self.hook_sighup)
-        signal.signal(signal.SIGINT, self.hook_sigint)
+        if hasattr(signal, 'SIGHUP'):
+            signal.signal(signal.SIGHUP, self.hook_sighup)
+        if hasattr(signal, 'SIGINT'):
+            signal.signal(signal.SIGINT, self.hook_sigint)
+
+    def shutdown(self):
+        """Will be called just after exiting main loop.
+
+        In case of daemon, if will be called in same process as work(),
+        unlike __init__().
+        """
+        pass
 
     # define some aliases (short-cuts / backward compatibility cruft)
     stat_add = stat_put                 # Old, deprecated function.
@@ -801,9 +783,14 @@ class DBScript(BaseScript):
         except select.error, d:
             self.log.info('wait canceled')
 
-    def _exec_cmd(self, curs, sql, args, quiet = False):
+    def _exec_cmd(self, curs, sql, args, quiet = False, prefix = None):
         """Internal tool: Run SQL on cursor."""
-        self.log.debug("exec_cmd: %s" % skytools.quote_statement(sql, args))
+        if self.options.verbose:
+            self.log.debug("exec_cmd: %s" % skytools.quote_statement(sql, args))
+
+        _pfx = ""
+        if prefix:
+            _pfx = "[%s] " % prefix
         curs.execute(sql, args)
         ok = True
         rows = curs.fetchall()
@@ -818,32 +805,32 @@ class DBScript(BaseScript):
                 sys.exit(1)
             level = code / 100
             if level == 1:
-                self.log.debug("%d %s" % (code, msg))
+                self.log.debug("%s%d %s" % (_pfx, code, msg))
             elif level == 2:
                 if quiet:
-                    self.log.debug("%d %s" % (code, msg))
+                    self.log.debug("%s%d %s" % (_pfx, code, msg))
                 else:
-                    self.log.info("%s" % (msg,))
+                    self.log.info("%s%s" % (_pfx, msg,))
             elif level == 3:
-                self.log.warning("%s" % (msg,))
+                self.log.warning("%s%s" % (_pfx, msg,))
             else:
-                self.log.error("%s" % (msg,))
+                self.log.error("%s%s" % (_pfx, msg,))
                 self.log.debug("Query was: %s" % skytools.quote_statement(sql, args))
                 ok = False
         return (ok, rows)
 
-    def _exec_cmd_many(self, curs, sql, baseargs, extra_list, quiet = False):
+    def _exec_cmd_many(self, curs, sql, baseargs, extra_list, quiet = False, prefix=None):
         """Internal tool: Run SQL on cursor multiple times."""
         ok = True
         rows = []
         for a in extra_list:
-            (tmp_ok, tmp_rows) = self._exec_cmd(curs, sql, baseargs + [a], quiet=quiet)
+            (tmp_ok, tmp_rows) = self._exec_cmd(curs, sql, baseargs + [a], quiet, prefix)
             if not tmp_ok:
                 ok = False
             rows += tmp_rows
         return (ok, rows)
 
-    def exec_cmd(self, db_or_curs, q, args, commit = True, quiet = False):
+    def exec_cmd(self, db_or_curs, q, args, commit = True, quiet = False, prefix = None):
         """Run SQL on db with code/value error handling."""
         if hasattr(db_or_curs, 'cursor'):
             db = db_or_curs
@@ -851,7 +838,7 @@ class DBScript(BaseScript):
         else:
             db = None
             curs = db_or_curs
-        (ok, rows) = self._exec_cmd(curs, q, args, quiet = quiet)
+        (ok, rows) = self._exec_cmd(curs, q, args, quiet, prefix)
         if ok:
             if commit and db:
                 db.commit()
@@ -864,7 +851,8 @@ class DBScript(BaseScript):
             # error is already logged
             sys.exit(1)
 
-    def exec_cmd_many(self, db_or_curs, sql, baseargs, extra_list, commit = True, quiet = False):
+    def exec_cmd_many(self, db_or_curs, sql, baseargs, extra_list,
+                      commit = True, quiet = False, prefix = None):
         """Run SQL on db multiple times."""
         if hasattr(db_or_curs, 'cursor'):
             db = db_or_curs
@@ -872,7 +860,7 @@ class DBScript(BaseScript):
         else:
             db = None
             curs = db_or_curs
-        (ok, rows) = self._exec_cmd_many(curs, sql, baseargs, extra_list, quiet=quiet)
+        (ok, rows) = self._exec_cmd_many(curs, sql, baseargs, extra_list, quiet, prefix)
         if ok:
             if commit and db:
                 db.commit()

@@ -103,7 +103,7 @@ run londiste3 $v conf/londiste_db1.ini add-seq mytable_id_seq
 msg "Register table on other node with creation"
 for db in db2 db3 db4 db5; do
   run psql -d $db -c "create sequence mytable_id_seq"
-  run londiste3 $v conf/londiste_db1.ini add-seq mytable_id_seq
+  run londiste3 $v conf/londiste_$db.ini add-seq mytable_id_seq
   run londiste3 $v conf/londiste_$db.ini add-table mytable --create-full
 done
 
@@ -115,21 +115,24 @@ for db in db2 db3 db4 db5; do
 done
 
 msg "Wait until tables are in sync on db5"
-cnt=0
-while test $cnt -ne 2; do
-  sleep 5
-  cnt=`psql -A -t -d db5 -c "select count(*) from londiste.table_info where merge_state = 'ok'"`
-  echo "  cnt=$cnt"
-done
+
+run londiste3 conf/londiste_db5.ini wait-sync
 
 msg "Unregister table2 from root"
 run londiste3 $v conf/londiste_db1.ini remove-table mytable2
+
 msg "Wait until unregister reaches db5"
-while test $cnt -ne 1; do
-  sleep 5
-  cnt=`psql -A -t -d db5 -c "select count(*) from londiste.table_info where merge_state = 'ok'"`
-  echo "  cnt=$cnt"
-done
+run londiste3 conf/londiste_db5.ini wait-root
+
+
+
+run londiste3 conf/londiste_db5.ini status
+
+msg "Test skipped copy"
+run londiste3 $v conf/londiste_db1.ini add-table mytable2
+run londiste3 $v conf/londiste_db5.ini wait-root
+run londiste3 $v conf/londiste_db5.ini add-table mytable2 --find-copy-node
+run londiste3 $v conf/londiste_db5.ini wait-sync
 
 ##
 ## basic setup done
@@ -156,16 +159,8 @@ run londiste3 $v conf/londiste_db2.ini worker -d
 run londiste3 $v conf/londiste_db2.ini change-provider --provider=node3 --dead=node1
 
 msg "Wait until catchup"
-top=$(psql -A -t -d db3 -c "select max(tick_id) from pgq.queue join pgq.tick on (tick_queue = queue_id) where queue_name = 'replika'")
-echo "  top=$top"
-while test $cnt -ne 2; do
-  cur=$(psql -A -t -d db2 -c "select max(tick_id) from pgq.queue join pgq.tick on (tick_queue = queue_id) where queue_name = 'replika'")
-  echo "  cur=$cur"
-  if test "$cur" = "$top"; then
-    break
-  fi
-  sleep 5
-done
+run londiste3 $v conf/londiste_db2.ini wait-provider
+
 msg "Promoting db2 to root"
 run londiste3 $v conf/londiste_db2.ini takeover node1 --dead-root
 run londiste3 $v conf/londiste_db2.ini tag-dead node1

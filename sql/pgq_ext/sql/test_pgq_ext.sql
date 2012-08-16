@@ -1,7 +1,3 @@
-\set ECHO off
-\i structure/install.sql
-\set ECHO all
-
 --
 -- test batch tracking
 --

@@ -1,0 +1,28 @@
+
+= simple_consumer3(1) =
+
+== NAME ==
+
+simple_consumer3 - PgQ consumer that executes query for each event
+
+== SYNOPSIS ==
+
+  simple_consumer3.py [switches] config.ini 
+
+== DESCRIPTION ==
+
+For each event in batch it will execute query, filling event
+values into it.
+
+Transactionality: query is executed in autocommit mode,
+no batch tracking is done.  That means on failure,
+whole batch is fetched and all events are processed again.
+
+== CONFIG ==
+
+Run `simple_consumer3 --ini` to see commented config template.
+
+== COMMAND LINE SWITCHES ==
+
+include::common.switches.txt[]
+

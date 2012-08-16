@@ -1,5 +1,7 @@
 
 \set ECHO none
+\set VERBOSITY 'terse'
+
 -- \i ../txid/txid.sql
 -- \i pgq.sql
 \i structure/install.sql

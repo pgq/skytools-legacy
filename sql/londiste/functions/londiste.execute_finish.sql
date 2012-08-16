@@ -20,13 +20,14 @@ as $$
 declare
     is_root boolean;
     sql text;
+    attrs text;
 begin
     is_root := pgq_node.is_root_node(i_queue_name);
 
-    select execute_sql into sql
+    select execute_sql, execute_attrs
+        into sql, attrs
         from londiste.applied_execute
-        where queue_name = i_queue_name
-            and execute_file = i_file_name;
+        where execute_file = i_file_name;
     if not found then
         select 404, 'execute_file called without execute_start'
             into ret_code, ret_note;
@@ -34,7 +35,7 @@ begin
     end if;
 
     if is_root then
-        perform pgq.insert_event(i_queue_name, 'EXECUTE', sql, i_file_name, null, null, null);
+        perform pgq.insert_event(i_queue_name, 'EXECUTE', sql, i_file_name, attrs, null, null);
     end if;
 
     select 200, 'Execute finished: ' || i_file_name into ret_code, ret_note;

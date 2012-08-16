@@ -18,9 +18,14 @@ as $$
 -- ----------------------------------------------------------------------
 declare
     fq_table_name   text;
+    qtbl            text;
+    seqname         text;
     tbl             record;
+    tbl_oid         oid;
 begin
     fq_table_name := londiste.make_fqname(i_table_name);
+    qtbl := londiste.quote_fqname(fq_table_name);
+    tbl_oid := londiste.find_table_oid(i_table_name);
 
     select local into tbl
         from londiste.table_info
@@ -44,6 +49,21 @@ begin
                 dest_table = null
             where queue_name = i_queue_name
                 and table_name = fq_table_name;
+
+        -- drop dependent sequence
+        for seqname in
+            select n.nspname || '.' || s.relname
+                from pg_catalog.pg_class s,
+                     pg_catalog.pg_namespace n,
+                     pg_catalog.pg_attribute a
+                where a.attrelid = tbl_oid
+                    and a.atthasdef
+                    and a.atttypid::regtype::text in ('integer', 'bigint')
+                    and s.oid = pg_get_serial_sequence(qtbl, a.attname)::regclass::oid
+                    and n.oid = s.relnamespace
+        loop
+            perform londiste.local_remove_seq(i_queue_name, seqname);
+        end loop;
     else
         if not pgq_node.is_root_node(i_queue_name) then
             select 400, 'Table not registered locally: ' || fq_table_name into ret_code, ret_note;

@@ -3,3 +3,5 @@ debian/tmp/usr/share/man/man1/qadmin.1
 debian/tmp/usr/share/man/man1/londiste3.1
 debian/tmp/usr/share/man/man1/queue_mover3.1
 debian/tmp/usr/share/man/man1/queue_splitter3.1
+debian/tmp/usr/share/man/man1/simple_consumer3.1
+debian/tmp/usr/share/man/man1/simple_local_consumer3.1

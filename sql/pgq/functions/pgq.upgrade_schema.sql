@@ -19,6 +19,23 @@ begin
         cnt := cnt + 1;
     end if;
 
+    -- create roles
+    perform 1 from pg_catalog.pg_roles where rolname = 'pgq_reader';
+    if not found then
+        create role pgq_reader;
+        cnt := cnt + 1;
+    end if;
+    perform 1 from pg_catalog.pg_roles where rolname = 'pgq_writer';
+    if not found then
+        create role pgq_writer;
+        cnt := cnt + 1;
+    end if;
+    perform 1 from pg_catalog.pg_roles where rolname = 'pgq_admin';
+    if not found then
+        create role pgq_admin in role pgq_reader, pgq_writer;
+        cnt := cnt + 1;
+    end if;
+
     return cnt;
 end;
 $$ language plpgsql;

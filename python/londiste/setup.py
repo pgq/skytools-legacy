@@ -6,6 +6,7 @@
 import sys, os, re, skytools
 
 from pgq.cascade.admin import CascadeAdmin
+from londiste.exec_attrs import ExecAttrs
 
 import londiste.handler
 
@@ -45,12 +46,18 @@ class LondisteSetup(CascadeAdmin):
                     help = "no copy needed", default=False)
         p.add_option("--skip-truncate", action="store_true", dest="skip_truncate",
                     help = "dont delete old data", default=False)
+        p.add_option("--find-copy-node", action="store_true", dest="find_copy_node",
+                help = "add: find table source for copy by walking upwards")
+        p.add_option("--copy-node", dest="copy_node",
+                help = "add: use NODE as source for initial copy")
         p.add_option("--copy-condition", dest="copy_condition",
                 help = "copy: where expression")
         p.add_option("--force", action="store_true",
                     help="force", default=False)
         p.add_option("--all", action="store_true",
                     help="include all tables", default=False)
+        p.add_option("--wait-sync", action="store_true",
+                help = "add: wait until all tables are in sync"),
         p.add_option("--create", action="store_true",
                     help="create, minimal", default=False)
         p.add_option("--create-full", action="store_true",
@@ -130,8 +137,17 @@ class LondisteSetup(CascadeAdmin):
         needs_tbl = self.handler_needs_table()
         args = self.expand_arg_list(dst_db, 'r', False, args, needs_tbl)
 
+        # search for usable copy node if requested
+        if (self.options.find_copy_node
+                and not self.is_root()
+                and needs_tbl):
+            src_db = self.find_copy_node(dst_db, args)
+            src_curs = src_db.cursor()
+            src_tbls = self.fetch_set_tables(src_curs)
+            src_db.commit()
+
         # dont check for exist/not here (root handling)
-        if not self.is_root():
+        if not self.is_root() and not self.options.expect_sync:
             problems = False
             for tbl in args:
                 tbl = skytools.fq_name(tbl)
@@ -159,6 +175,11 @@ class LondisteSetup(CascadeAdmin):
         for tbl in args:
             self.add_table(src_db, dst_db, tbl, create_flags, src_tbls)
 
+        # wait
+        if self.options.wait_sync:
+            self.wait_for_sync(dst_db)
+
+
     def add_table(self, src_db, dst_db, tbl, create_flags, src_tbls):
         # use full names
         tbl = skytools.fq_name(tbl)
@@ -181,7 +202,7 @@ class LondisteSetup(CascadeAdmin):
                 src_dest_table = src_tbls[tbl]['dest_table']
                 if not skytools.exists_table(src_curs, src_dest_table):
                     # table not present on provider - nowhere to get the DDL from
-                    self.log.warning('Table %s missing on provider, skipping' % desc)
+                    self.log.warning('Table %s missing on provider, cannot create, skipping' % desc)
                     return
                 schema = skytools.fq_name_parts(dest_table)[0]
                 if not skytools.exists_schema(dst_curs, schema):
@@ -217,6 +238,9 @@ class LondisteSetup(CascadeAdmin):
             attrs['handler'] = hstr
             p.add(tgargs)
 
+        if self.options.copy_node:
+            attrs['copy_node'] = self.options.copy_node
+
         if self.options.expect_sync:
             tgargs.append('expect_sync')
 
@@ -246,6 +270,15 @@ class LondisteSetup(CascadeAdmin):
             p = londiste.handler.build_handler('unused.string', hstr, None)
             return p.needs_table()
         return True
+
+    def handler_allows_copy(self, table_attrs):
+        """Decide if table is copyable based on attrs."""
+        if not table_attrs:
+            return True
+        attrs = skytools.db_urldecode(table_attrs)
+        hstr = attrs['handler']
+        p = londiste.handler.build_handler('unused.string', hstr, None)
+        return p.needs_table()
 
     def sync_table_list(self, dst_curs, src_tbls, dst_tbls):
         for tbl in src_tbls.keys():
@@ -410,6 +443,19 @@ class LondisteSetup(CascadeAdmin):
         db = self.get_database('db')
         curs = db.cursor()
 
+        tables = self.fetch_set_tables(curs)
+        seqs = self.fetch_seqs(curs)
+
+        # generate local maps
+        local_tables = {}
+        local_seqs = {}
+        for tbl in tables.values():
+            if tbl['local']:
+                local_tables[tbl['table_name']] = tbl['dest_table']
+        for seq in seqs.values():
+            if seq['local']:
+                local_seqs[seq['seq_name']] = seq['seq_name']
+
         # set replica role for EXECUTE transaction
         if db.server_version >= 80300:
             curs.execute("set local session_replication_role = 'local'")
@@ -417,19 +463,90 @@ class LondisteSetup(CascadeAdmin):
         for fn in files:
             fname = os.path.basename(fn)
             sql = open(fn, "r").read()
-            q = "select * from londiste.execute_start(%s, %s, %s, true)"
-            res = self.exec_cmd(db, q, [self.queue_name, fname, sql], commit = False)
+            attrs = ExecAttrs(sql = sql)
+            q = "select * from londiste.execute_start(%s, %s, %s, true, %s)"
+            res = self.exec_cmd(db, q, [self.queue_name, fname, sql, attrs.to_urlenc()], commit = False)
             ret = res[0]['ret_code']
             if ret >= 300:
                 self.log.warning("Skipping execution of '%s'" % fname)
                 continue
-            for stmt in skytools.parse_statements(sql):
-                curs.execute(stmt)
+            if attrs.need_execute(curs, local_tables, local_seqs):
+                self.log.info("%s: executing sql", fname)
+                xsql = attrs.process_sql(sql, local_tables, local_seqs)
+                for stmt in skytools.parse_statements(xsql):
+                    curs.execute(stmt)
+            else:
+                self.log.info("%s: This SQL does not need to run on this node.", fname)
             q = "select * from londiste.execute_finish(%s, %s)"
             self.exec_cmd(db, q, [self.queue_name, fname], commit = False)
         db.commit()
 
+    def find_copy_node(self, dst_db, args):
+        src_db = self.get_provider_db()
+
+        need = {}
+        for t in args:
+            need[t] = 1
+
+        while 1:
+            src_curs = src_db.cursor()
+
+            q = "select * from pgq_node.get_node_info(%s)"
+            src_curs.execute(q, [self.queue_name])
+            info = src_curs.fetchone()
+            if info['ret_code'] >= 400:
+                raise UsageError("Node does not exists")
+
+            self.log.info("Checking if %s can be used for copy", info['node_name'])
+
+            q = "select table_name, local, table_attrs from londiste.get_table_list(%s)"
+            src_curs.execute(q, [self.queue_name])
+            got = {}
+            for row in src_curs.fetchall():
+                tbl = row['table_name']
+                if tbl not in need:
+                    continue
+                if not row['local']:
+                    self.log.debug("Problem: %s is not local", tbl)
+                    continue
+                if not self.handler_allows_copy(row['table_attrs']):
+                    self.log.debug("Problem: %s handler does not store data [%s]", tbl, row['table_attrs'])
+                    continue
+                self.log.debug("Good: %s is usable", tbl)
+                got[row['table_name']] = 1
+
+            ok = 1
+            for t in args:
+                if t not in got:
+                    self.log.info("Node %s does not have all tables", info['node_name'])
+                    ok = 0
+                    break
+
+            if ok:
+                self.options.copy_node = info['node_name']
+                self.log.info("Node %s seems good source, using it", info['node_name'])
+                break
+
+            if info['node_type'] == 'root':
+                raise skytools.UsageError("Found root and no source found")
+
+            self.close_database('provider_db')
+            src_db = self.get_database('provider_db', connstr = info['provider_location'])
+
+        return src_db
+
     def get_provider_db(self):
+
+        # use custom node for copy
+        if self.options.copy_node:
+            source_node = self.options.copy_node
+            m = self.queue_info.get_member(source_node)
+            if not m:
+                raise skytools.UsageError("Cannot find node <%s>", source_node)
+            if source_node == self.local_node:
+                raise skytools.UsageError("Cannot use itself as provider")
+            self.provider_location = m.location
+
         if not self.provider_location:
             db = self.get_database('db')
             q = 'select * from pgq_node.get_node_info(%s)'
@@ -534,4 +651,53 @@ class LondisteSetup(CascadeAdmin):
             else:
                 n_half += 1
         node.add_info_line('Tables: %d/%d/%d' % (n_ok, n_half, n_ign))
+
+    def cmd_wait_sync(self):
+        self.load_local_info()
+
+        dst_db = self.get_database('db')
+        self.wait_for_sync(dst_db)
+
+    def wait_for_sync(self, dst_db):
+        self.log.info("Waiting until all tables are in sync")
+        q = "select table_name, merge_state, local"\
+            " from londiste.get_table_list(%s) where local"
+        dst_curs = dst_db.cursor()
+
+        partial = {}
+        done_pos = 1
+        startup_info = 0
+        while 1:
+            dst_curs.execute(q, [self.queue_name])
+            rows = dst_curs.fetchall()
+            dst_db.commit()
+
+            cur_count = 0
+            done_list = []
+            for row in rows:
+                if not row['local']:
+                    continue
+                tbl = row['table_name']
+                if row['merge_state'] != 'ok':
+                    partial[tbl] = 0
+                    cur_count += 1
+                elif tbl in partial:
+                    if partial[tbl] == 0:
+                        partial[tbl] = 1
+                        done_list.append(tbl)
+
+            if not startup_info:
+                self.log.info("%d table(s) to copy", len(partial))
+                startup_info = 1
+
+            for done in done_list:
+                self.log.info("%s: finished (%d/%d)", done, done_pos, len(partial))
+                done_pos += 1
+
+            if cur_count == 0:
+                break
+
+            self.sleep(2)
+
+        self.log.info("All done")
 

@@ -113,6 +113,16 @@ begin
         end loop;
     end if;
 
+    perform 1 from pg_proc p, pg_namespace n
+      where p.pronamespace = n.oid
+        and n.nspname = 'londiste'
+        and p.proname = 'periodic_maintenance';
+    if found then
+        func_name := 'londiste.periodic_maintenance';
+        func_arg := NULL;
+        return next;
+    end if;
+
     return;
 end;
 $$ language plpgsql;

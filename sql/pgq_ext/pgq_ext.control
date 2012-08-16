@@ -1,0 +1,7 @@
+# pgq_ext
+comment = 'Target-side batch tracking infrastructure'
+default_version = '3.1'
+relocatable = false
+superuser = true
+schema = 'pg_catalog'
+

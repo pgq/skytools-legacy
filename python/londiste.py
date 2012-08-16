@@ -30,6 +30,7 @@ Replication Administration:
   seqs                  show all sequences on provider
   missing               list tables subscriber has not yet attached to
   resync TBL ...        do full copy again
+  wait-sync             wait until all tables are in sync
 
 Replication Extra:
   check                 compare table structure on both sides
@@ -48,7 +49,8 @@ cmd_handlers = (
       'change-provider', 'rename-node', 'status', 'pause', 'resume', 'node-info',
       'drop-node', 'takeover'), londiste.LondisteSetup),
     (('add-table', 'remove-table', 'add-seq', 'remove-seq', 'tables', 'seqs',
-      'missing', 'resync', 'check', 'fkeys', 'execute'), londiste.LondisteSetup),
+      'missing', 'resync', 'wait-sync', 'wait-root', 'wait-provider',
+      'check', 'fkeys', 'execute'), londiste.LondisteSetup),
     (('show-handlers',), londiste.LondisteSetup),
     (('worker',), londiste.Replicator),
     (('compare',), londiste.Comparator),
@@ -110,6 +112,8 @@ class Londiste(skytools.DBScript):
         g = optparse.OptionGroup(p, "options for add")
         g.add_option("--all", action="store_true",
                 help = "add: include add possible tables")
+        g.add_option("--wait-sync", action="store_true",
+                help = "add: wait until all tables are in sync"),
         g.add_option("--dest-table",
                 help = "add: redirect changes to different table")
         g.add_option("--expect-sync", action="store_true", dest="expect_sync",
@@ -130,6 +134,10 @@ class Londiste(skytools.DBScript):
                 help="add: Custom handler for table")
         g.add_option("--handler-arg", action="append",
                 help="add: Argument to custom handler")
+        g.add_option("--find-copy-node", dest="find_copy_node", action="store_true",
+                help = "add: walk upstream to find node to copy from")
+        g.add_option("--copy-node", dest="copy_node",
+                help = "add: use NODE as source for initial COPY")
         g.add_option("--copy-condition", dest="copy_condition",
                 help = "add: set WHERE expression for copy")
         g.add_option("--merge-all", action="store_true",

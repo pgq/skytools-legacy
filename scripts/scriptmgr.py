@@ -53,12 +53,12 @@ import skytools
 command_usage = """
 %prog [options] INI CMD [subcmd args]
 
-commands:
-  start [-a | jobname ..]    start a job
-  stop [-a | jobname ..]     stop a job
-  restart [-a | jobname ..]  restart job(s)
-  reload [-a | jobname ..]   send reload signal
-  status
+Commands:
+  start -a | -t=service | jobname [...]    start job(s)
+  stop -a | -t=service | jobname [...]     stop job(s)
+  restart -a | -t=service | jobname [...]  restart job(s)
+  reload -a | -t=service | jobname [...]   send reload signal
+  status [-a | -t=service | jobname ...]
 """
 
 def job_sort_cmp(j1, j2):
@@ -78,6 +78,7 @@ class ScriptMgr(skytools.DBScript):
     def init_optparse(self, p = None):
         p = skytools.DBScript.init_optparse(self, p)
         p.add_option("-a", "--all", action="store_true", help="apply command to all jobs")
+        p.add_option("-t", "--type", action="store", metavar="SVC", help="apply command to all jobs of this service type")
         p.add_option("-w", "--wait", action="store_true", help="wait for job(s) after signaling")
         p.set_usage(command_usage.strip())
         return p
@@ -100,7 +101,7 @@ class ScriptMgr(skytools.DBScript):
                 'service': svc_name,
                 'script': cf.getfile('script', defscript),
                 'cwd': cf.getfile('cwd'),
-                'disabled': cf.getboolean('disabled', 0),
+                'disabled': disabled,
                 'args': cf.get('args', ''),
             }
             self.svc_list.append(svc)
@@ -149,11 +150,16 @@ class ScriptMgr(skytools.DBScript):
         self.job_list.append(job)
         self.job_map[job['job_name']] = job
 
-    def cmd_status(self):
-        for job in self.job_list:
+    def cmd_status (self, jobs):
+        for jn in jobs:
+            try:
+                job = self.job_map[jn]
+            except KeyError:
+                self.log.error ("Unknown job: %s", jn)
+                continue
             os.chdir(job['cwd'])
             cf = skytools.Config(job['service'], job['config'])
-            pidfile = cf.getfile('pidfile', '')
+            pidfile = job['pidfile']
             name = job['job_name']
             svc = job['service']
             if job['disabled']:
@@ -166,8 +172,13 @@ class ScriptMgr(skytools.DBScript):
             else:
                 print(" STOPPED  [%s] %s" % (svc, name))
 
-    def cmd_info(self):
-        for job in self.job_list:
+    def cmd_info (self, jobs):
+        for jn in jobs:
+            try:
+                job = self.job_map[jn]
+            except KeyError:
+                self.log.error ("Unknown job: %s", jn)
+                continue
             print(job)
 
     def cmd_start(self, job_name):
@@ -253,24 +264,31 @@ class ScriptMgr(skytools.DBScript):
         self.job_list = []
         self.job_map = {}
         self.load_jobs()
+        self.job_list.sort(job_sort_cmp)
 
         if len(self.args) < 2:
             print("need command")
             sys.exit(1)
 
+        cmd = self.args[1]
         jobs = self.args[2:]
+
+        if cmd in ["status", "info"] and len(jobs) == 0 and not self.options.type:
+            self.options.all = True
+
         if len(jobs) == 0 and self.options.all:
             for job in self.job_list:
                 jobs.append(job['job_name'])
+        if len(jobs) == 0 and self.options.type:
+            for job in self.job_list:
+                if job['service'] == self.options.type:
+                    jobs.append(job['job_name'])
 
-        self.job_list.sort(job_sort_cmp)
-
-        cmd = self.args[1]
         if cmd == "status":
-            self.cmd_status()
+            self.cmd_status(jobs)
             return
         elif cmd == "info":
-            self.cmd_info()
+            self.cmd_info(jobs)
             return
 
         if len(jobs) == 0:

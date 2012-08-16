@@ -1,20 +1,11 @@
 #!/usr/bin/make -f
 # -*- makefile -*-
-# Sample debian/rules that uses debhelper.
-#
-# This file was originally written by Joey Hess and Craig Small.
-# As a special exception, when this file is copied by dh-make into a
-# dh-make output file, you may use that output file without restriction.
-# This special exception was added by Craig Small in version 0.37 of dh-make.
-#
-# Modified to make a template file for a multi-binary package with separated
-# build-arch and build-indep targets  by Bill Allombert 2001
 
 # Uncomment this to turn on verbose mode.
 #export DH_VERBOSE=1
 
 # This has to be exported to make some magic below work.
-export DH_OPTIONS
+#export DH_OPTIONS
 
 # The build system is averse to VPATH building, so we can't properly use
 # postgresql-server-dev-all
@@ -22,30 +13,43 @@ SRCDIR      = $(CURDIR)
 PKGVERS     = $(shell dpkg-parsechangelog | awk -F '[:-]' '/^Version:/ { print substr($$2, 2) }')
 ORIG_EXCLUDE=--exclude-vcs --exclude=debian
 
-include /usr/share/postgresql-common/pgxs_debian_control.mk
+PG_BUILDEXT = ./debian/pg_buildext
 
-config.mak:
+## include /usr/share/postgresql-common/pgxs_debian_control.mk
+# produce a debian/control file from a debian/control.in
+debian/control-pgstamp: debian/control.in debian/pgversions
+	( set -e; \
+	  VERSIONS=`$(PG_BUILDEXT) supported-versions $(CURDIR)`; \
+	  grep-dctrl -vP PGVERSION debian/control.in > debian/control.tmp; \
+	  for v in $$VERSIONS; do                    \
+		grep -q "^$$v" debian/pgversions   \
+		&& grep-dctrl -P PGVERSION debian/control.in       \
+		| sed -e "s:PGVERSION:$$v:" >> debian/control.tmp; \
+	  done; \
+	  mv debian/control.tmp debian/control ) || (rm -f debian/control.tmp; exit 1)
+	touch $@
+
+config.mak: debian/control-pgstamp
 	#./autogen.sh
 	./configure --prefix=/usr --with-asciidoc --with-sk3-subdir
 
 override_dh_auto_configure: config.mak
 
-override_dh_auto_clean: config.mak debian/control
+override_dh_auto_clean: config.mak
 	$(MAKE) -C doc realclean
 	dh_auto_clean -- distclean
-	for version in $$(pg_buildext supported-versions .) ; do \
-		rm -rf debian/postgresql-$${version}-pgq3; \
+	for version in `cat $(CURDIR)/debian/pgversions`; do \
+		rm -rf "debian/postgresql-$${version}-pgq3"; \
 	done
+	rm -f debian/control-pgstamp
 
-# upstream build system will build fine for one given PostgreSQL version,
-# then we build the PostgreSQL module and files for yet another version of
-# it so that we have binary packages for postgresql-8.4-pgq3 and 9.0.
-override_dh_auto_install: 
+# build sql modules for several postgres versions
+override_dh_auto_install: config.mak
 	mkdir -p $(CURDIR)/debian/tmp
 	dh_auto_install
 	$(MAKE) -C doc htmlinstall DESTDIR=$(CURDIR)/debian/tmp
 	# now care about any previous supported versions
-	for version in $$(pg_buildext supported-versions .) ; do \
+	for version in $$($(PG_BUILDEXT) supported-versions $(CURDIR)); do \
 		echo "### Building for PostgreSQL $$version" && \
 		make -C sql clean install \
 			PG_CONFIG=/usr/lib/postgresql/$$version/bin/pg_config \

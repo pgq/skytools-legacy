@@ -1,9 +1,3 @@
-\set ECHO none
- upgrade_schema 
-----------------
-              0
-(1 row)
-
 select pgq.create_queue('testqueue');
  create_queue 
 --------------

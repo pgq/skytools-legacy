@@ -8,6 +8,7 @@ __all__ = ['VirtualTableHandler', 'FakeLocalHandler']
 class VirtualTableHandler(BaseHandler):
     """Virtual Table.
 
+    Hack to get local=t for a table, but without processing any events.
     """
     handler_name = 'vtable'
 

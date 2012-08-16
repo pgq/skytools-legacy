@@ -18,7 +18,7 @@ returns bigint as $$
 begin
     return pgq.insert_event(queue_name, ev_type, ev_data, null, null, null, null);
 end;
-$$ language plpgsql security definer;
+$$ language plpgsql;
 
 
 

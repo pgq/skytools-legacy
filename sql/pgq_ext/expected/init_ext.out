@@ -1,0 +1,21 @@
+\set ECHO off
+ upgrade_schema 
+----------------
+              4
+(1 row)
+
+create extension pgq_ext from 'unpackaged';
+select array_length(extconfig, 1) as dumpable from pg_catalog.pg_extension where extname = 'pgq_ext';
+ dumpable 
+----------
+        4
+(1 row)
+
+drop extension pgq_ext;
+create extension pgq_ext;
+select array_length(extconfig, 1) as dumpable from pg_catalog.pg_extension where extname = 'pgq_ext';
+ dumpable 
+----------
+        4
+(1 row)
+

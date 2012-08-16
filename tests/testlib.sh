@@ -13,7 +13,7 @@ v=-q
 #set -o pipefail
 
 cleardb() {
-  echo "Clearing database $1"
+  echo "// Clearing database $1"
   psql -q -d $1 -c "
       set client_min_messages=warning;
       drop schema if exists londiste cascade;
@@ -32,7 +32,7 @@ cleardb() {
 
 clearlogs() {
   code_off
-  echo "clean logs"
+  echo "// clean logs"
   rm -f log/*.log log/*.log.[0-9]
 }
 
@@ -55,6 +55,20 @@ title() {
   echo ""
 }
 
+title2() {
+  code_off
+  echo ""
+  echo "==" "$@" "=="
+  echo ""
+}
+
+title3() {
+  code_off
+  echo ""
+  echo "==" "$@" "=="
+  echo ""
+}
+
 run() {
   code_on
   echo "$ $*"
@@ -67,10 +81,34 @@ run_sql() {
   psql -d "$1" -c "$2" 2>&1
 }
 
+run_qadmin() {
+  code_on
+  echo "$ qadmin -d \"$1\" -c \"$2\""
+  qadmin -d "$1" -c "$2" 2>&1
+}
+
 msg() {
   code_off
   echo ""
   echo "$@"
   echo ""
+}
+
+cat_file() {
+  code_off
+  mkdir -p `dirname $1`
+  echo ".File: $1"
+  case "$1" in
+    *Makefile) echo "[source,makefile]" ;;
+    #*.[ch]) echo "[source,c]" ;;
+    #*.ac) echo "[source,autoconf]" ;;
+    #*.sh) echo "[source,shell]" ;;
+    #*.sql) echo "[source,sql]" ;;
+    *.*) printf "[source,%s]\n" `echo $1 | sed 's/.*\.//'` ;;
+  esac
+  echo "-----------------------------------"
+  sed 's/^      //' > $1
+  cat $1
+  echo "-----------------------------------"
 }
 

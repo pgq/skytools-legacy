@@ -70,7 +70,10 @@ begin
             return;
         end if;
         perform pgq.create_queue(i_queue_name);
-        update pgq.queue set queue_external_ticker = true where queue_name = i_queue_name;
+        update pgq.queue
+            set queue_external_ticker = true,
+                queue_disable_insert = true
+            where queue_name = i_queue_name;
         if i_global_watermark > 1 then
             perform pgq.ticker(i_queue_name, i_global_watermark, now(), 1);
         end if;
