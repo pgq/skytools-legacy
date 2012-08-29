@@ -31,10 +31,10 @@ New features in Skytools 3
     process, making it parallel was just a matter of tuning launching/syncing logic.
 
   - EXECUTE command, to run random SQL script on all nodes.  The script is executed
-    in single TX on root, and insterted as event into queue in the same TX.
+    in single a TX on root, and inserted as an event into the queue in the same TX.
     The goal is to emulate DDL AFTER TRIGGER that way.
     Londiste itself does no locking and no coordination between nodes.  The assumption
-    is that the DDL commands itself do enough locking.  If more locking is needed
+    is that the DDL commands themselves do enough locking.  If more locking is needed
     is can be added to script.
 
   - Automatic table or sequence creation by importing the structure

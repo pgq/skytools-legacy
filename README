@@ -1,42 +1,42 @@
 = SkyTools - tools for PostgreSQL =
 
 This is a package of tools in use in Skype for replication and failover.
-It also includes a generic queuing mechanism PgQ and utility library for
-Python scripts, as well as a script for setting up and managing WAL based
-standby servers.
+It also includes a generic queuing mechanism called PgQ and a utility
+library for Python scripts, as well as a script for setting up and
+managing WAL based standby servers.
 
 == Overview ==
 
-It contains following modules:
+It contains the following modules:
 
 === PgQ ===
 
 PgQ is a queuing system written in PL/pgsql, Python and C code. It is
-based on snapshot based event handling ideas from Slony-I, written for
-general usage.
+based on snapshot-based event handling ideas from Slony-I, and is
+written for general usage.
 
-PgQ provides an efficient, transactionnal, queueing system with
-multi-nodes support (including work sharing and splitting, failover and
+PgQ provides an efficient, transactional, queueing system with
+multi-node support (including work sharing and splitting, failover and
 switchover, for queues and for consumers).
 
 Rules:
 
-- There can be several queues in database.
+- There can be several queues in a database.
 - There can be several producers than can insert into any queue.
 - There can be several consumers on one queue.
 - There can be several subconsumers on a consumer.
 
-PgQ is splited into 3 layers: Producers, Ticker and Consumers.
+PgQ is split into 3 layers: Producers, Ticker and Consumers.
 
-*Producers*  and *Consumers* respectively push and read events into a
+*Producers* and *Consumers* respectively push and read events into a
 queue. Producers just need to call PostgreSQL stored procedures (like a
-trigger on a table or a PostgreSQL call from the application). And
-consumers are frequently written in Python, the prefered language as it
-has a powerful SKytools Framework but it is not limitative and any
+trigger on a table or a PostgreSQL call from the application).
+Consumers are frequently written in Python (the preferred language as it
+has a powerful Skytools Framework), but are not limited to Python; any
 language able to run PostgreSQL stored procedures can be used.
 
-*Ticker* is a daemon which splits the queues in batch of events and
-handle the maintenance of the system. The Ticker is provided with the
+*Ticker* is a daemon which splits the queues into batchs of events and
+handle the maintenance of the system. The Ticker is provided with
 Skytools.
 
 Documentation:
@@ -66,11 +66,12 @@ Documentation:
 
 === walmgr ===
 
-This script will setup WAL archiving, does initial backup and
+This script will setup WAL archiving, does the initial backup, and
 runtime WAL archive and restore.
 
 It can also be used for up-to-last-second partial file copying,
-so less than whole file is lost in case of loss of master database server.
+so that less than the whole file is lost in case of loss of the master
+database server.
 
 == Source tree contents ==
 
