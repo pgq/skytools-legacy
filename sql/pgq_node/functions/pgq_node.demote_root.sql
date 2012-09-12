@@ -32,6 +32,7 @@ declare
     w_name      text;
     sql         text;
     ev_id       int8;
+    ev_tbl      text;
 begin
     select node_type, worker_name into n_type, w_name
         from pgq_node.node_info
@@ -48,7 +49,9 @@ begin
         return;
     end if;
     if i_step > 1 then
-        perform 1 from pgq.queue
+        select queue_data_pfx
+            into ev_tbl
+            from pgq.queue
             where queue_name = i_queue_name
                 and queue_disable_insert
                 and queue_external_ticker;
@@ -71,7 +74,9 @@ begin
           into ret_code, ret_note;
     elsif i_step = 2 then
         set local session_replication_role = 'replica';
-        sql := 'lock table ' || pgq.current_event_table(i_queue_name);
+
+        -- lock parent table to stop updates, allow reading
+        sql := 'lock table ' || ev_tbl || ' in exclusive mode';
         execute sql;
         
 
