@@ -3,11 +3,11 @@
 
 == NAME ==
 
-queue_mover - PgQ consumer that copies data from one queue to another.
+queue_mover3 - PgQ consumer that copies data from one queue to another.
 
 == SYNOPSIS ==
 
-  queue_mover.py [switches] config.ini 
+  queue_mover3 [switches] config.ini 
 
 == DESCRIPTION ==
 
@@ -44,7 +44,7 @@ steps:
 
   5. launch queue mover in daemon mode
 
-     $ queue_mover.py -d qmover_sourceq_to_targetdb.ini
+     $ queue_mover3 -d qmover_sourceq_to_targetdb.ini
 
   6. start producing and consuming events 
 
@@ -66,7 +66,7 @@ dst_queue_name::
 
 === Example config file ===
 
-  [queue_mover]
+  [queue_mover3]
   job_name = eventlog_to_target_mover
   src_db = dbname=sourcedb
   dst_db = dbname=targetdb

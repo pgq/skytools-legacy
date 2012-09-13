@@ -6,7 +6,7 @@ queue_splitter - PgQ consumer that transports events from one queue into several
 
 == SYNOPSIS ==
 
-  queue_splitter.py [switches] config.ini 
+  queue_splitter3 [switches] config.ini 
 
 == DESCRIPTION ==
 
@@ -35,7 +35,7 @@ steps:
 
  4. launch queue splitter in daemon mode
 
-      $ queue_splitter.py queue_splitter_sourcedb_sourceq_targetdb.ini -d
+      $ queue_splitter3 queue_splitter_sourcedb_sourceq_targetdb.ini -d
 
  5. start producing and consuming events 
 
@@ -53,7 +53,7 @@ dst_db::
 
 === Example config file ===
 
-  [queue_splitter]
+  [queue_splitter3]
   job_name        = queue_spliter_sourcedb_sourceq_targetdb
 
   src_db          = dbname=sourcedb
