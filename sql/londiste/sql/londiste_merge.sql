@@ -141,5 +141,23 @@ $$ language plpgsql;
 select * from testmatrix();
 
 
+-- test dropped ddl restore
+create table ddlrestore (
+    id int4,
+    data1 text,
+    data2 text
+);
 
+select count(*) from pg_indexes where schemaname='public' and tablename='ddlrestore';
+
+insert into londiste.table_info (queue_name, table_name, local, merge_state, dropped_ddl)
+values ('part1_set', 'public.ddlrestore', true, 'in-copy', '
+ALTER TABLE ddlrestore ADD CONSTRAINT cli_pkey PRIMARY KEY (id);
+CREATE INDEX idx_data1 ON ddlrestore USING btree (data1);
+CREATE INDEX idx_data2 ON ddlrestore USING btree (data2);
+');
+
+select * from londiste.local_remove_table('part1_set', 'public.ddlrestore');
+
+select count(*) from pg_indexes where schemaname='public' and tablename='ddlrestore';
 
