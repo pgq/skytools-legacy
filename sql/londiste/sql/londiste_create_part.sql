@@ -44,7 +44,9 @@ select londiste.create_partition('events', 'events_2011_01', 'id', 'ctime', '201
 select count(*) from pg_indexes where schemaname='public' and tablename = 'events_2011_01';
 select count(*) from pg_constraint where conrelid = 'public.events_2011_01'::regclass;
 select count(*) from pg_rules where schemaname = 'public' and tablename = 'events_2011_01';
-select * from information_schema.triggers where event_object_schema = 'public' and event_object_table = 'events_2011_01';
+select trigger_name, event_manipulation, action_statement
+    from information_schema.triggers
+    where event_object_schema = 'public' and event_object_table = 'events_2011_01';
 select tgenabled, pg_get_triggerdef(oid) from pg_trigger where tgrelid = 'events_2011_01'::regclass::oid;
 
 -- test weird quoting
