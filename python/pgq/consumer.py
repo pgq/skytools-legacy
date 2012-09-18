@@ -157,6 +157,9 @@ class Consumer(skytools.DBScript):
 
     consumer_filter = None
 
+    # statistics: time spent waiting for events
+	idle_start = None
+
     def __init__(self, service_name, db_name, args):
         """Initialize new consumer.
         
@@ -190,6 +193,8 @@ class Consumer(skytools.DBScript):
         if self.pgq_autocommit and self.pgq_lazy_fetch:
             raise skytools.UsageError("pgq_autocommit is not compatible with pgq_lazy_fetch")
         self.set_database_defaults(self.db_name, autocommit = self.pgq_autocommit)
+
+        self.idle_start = time.time()
 
     def reload(self):
         skytools.DBScript.reload(self)
@@ -380,5 +385,6 @@ class Consumer(skytools.DBScript):
         t = time.time()
         self.stat_put('count', count)
         self.stat_put('duration', t - self.stat_batch_start)
-
-
+        if count > 0: # reset timer if we got some events
+            self.stat_put('idle', self.stat_batch_start - self.idle_start)
+            self.idle_start = t
