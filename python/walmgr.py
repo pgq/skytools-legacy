@@ -2366,7 +2366,12 @@ STOP TIME: %(stop_time)s
             if fname < last:
                 self.log.debug("deleting %s" % full)
                 if not self.not_really:
-                    os.remove(full)
+                    try:
+                        os.remove(full)
+                    except:
+                        # don't report the errors if the file has been already removed
+                        # happens due to conflicts with pg_archivecleanup for instance.
+                        pass
             cur_last = fname
         return cur_last
 

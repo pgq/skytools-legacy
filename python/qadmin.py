@@ -79,8 +79,6 @@ show cascade;
 
 """
 
-__version__ = '0.1'
-
 cmdline_usage = '''\
 Usage: qadmin [switches]
 
@@ -105,6 +103,8 @@ import sys, os, readline, getopt, re, psycopg2, traceback
 import pkgloader
 pkgloader.require('skytools', '3.0')
 import skytools
+
+__version__ = skytools.__version__
 
 script = None
 
@@ -636,8 +636,8 @@ class AdminConsole:
     cur_queue = None
     cur_database = None
 
-    #server_version = None
-    #pgq_version = None
+    server_version = None
+    pgq_version = None
 
     cmd_file = None
     cmd_str = None
@@ -865,19 +865,18 @@ class AdminConsole:
         curs = db.cursor()
         curs.execute(q)
         res = curs.fetchone()
-        print 'Server version', res[1]
         self.cur_database = res[0]
         self.server_version = res[1]
-        #q = "select pgq.version()"
-        #try:
-        #    curs.execute(q)
-        #    res = curs.fetchone()
-        #    self.pgq_version = res[0]
-        #except psycopg2.ProgrammingError:
-        #    self.pgq_version = "<none>"
-        #if not quiet:
-        #    print "qadmin (%s, server %s, pgq %s)" % (__version__, self.server_version, self.pgq_version)
-        #    #print "Connected to %r" % self.initial_connstr
+        q = "select pgq.version()"
+        try:
+            curs.execute(q)
+            res = curs.fetchone()
+            self.pgq_version = res[0]
+        except psycopg2.ProgrammingError:
+            self.pgq_version = "<none>"
+        if not quiet:
+            print "qadmin (%s, server %s, pgq %s)" % (__version__, self.server_version, self.pgq_version)
+            #print "Connected to %r" % connstr
         return db
 
     def run(self, argv):
@@ -919,7 +918,7 @@ class AdminConsole:
         except IOError:
             pass
 
-        #print "Welcome to qadmin %s (server %s), the PgQ interactive terminal." % (__version__, self.server_version)
+        print "Welcome to qadmin %s (server %s), the PgQ interactive terminal." % (__version__, self.server_version)
         print "Use 'show help;' to see available commands."
         while 1:
             try:
@@ -1121,7 +1120,7 @@ class AdminConsole:
     def cmd_show_version (self, params):
         print "qadmin version %s" % __version__
         print "server version %s" % self.server_version
-        #print "pgq version %s" % self.pgq_version
+        print "pgq version %s" % self.pgq_version
 
     def cmd_install(self, params):
         pgq_objs = [

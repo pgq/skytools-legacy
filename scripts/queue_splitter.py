@@ -25,7 +25,7 @@ class QueueSplitter(pgq.SerialConsumer):
     __doc__ = __doc__
 
     def __init__(self, args):
-        pgq.SerialConsumer.__init__(self, "queue_splitter", "src_db", "dst_db", args)
+        pgq.SerialConsumer.__init__(self, "queue_splitter3", "src_db", "dst_db", args)
 
     def process_remote_batch(self, db, batch_id, ev_list, dst_db):
         cache = {}
