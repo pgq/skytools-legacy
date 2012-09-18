@@ -289,6 +289,8 @@ class Replicator(CascadedWorker):
         #lock_timeout = 10
         # compare: sql to use
         #compare_sql = select count(1) as cnt, sum(hashtext(t.*::text)) as chksum from only _TABLE_ t
+        # workaround for hashtext change between 8.3 and 8.4
+        #compare_sql = select count(1) as cnt, sum(('x'||substr(md5(t.*::text),1,16))::bit(64)::bigint) as chksum from only _TABLE_ t     
         #compare_fmt = %(cnt)d rows, checksum=%(chksum)s
     """
 
