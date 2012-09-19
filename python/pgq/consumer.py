@@ -132,6 +132,10 @@ class Consumer(skytools.DBScript):
 
         # whether to stay behind queue top (postgres interval)
         #pgq_keep_lag = 
+
+        # in how many seconds to write keepalive stats for idle consumers
+        # this stats is used for detecting that consumer is still running
+        #keepalive_stats = 61
     """
 
     # by default, use cursor-based fetch
@@ -157,8 +161,9 @@ class Consumer(skytools.DBScript):
 
     consumer_filter = None
 
+    keepalive_stats = None
     # statistics: time spent waiting for events
-	idle_start = None
+    idle_start = None
 
     def __init__(self, service_name, db_name, args):
         """Initialize new consumer.
@@ -213,6 +218,8 @@ class Consumer(skytools.DBScript):
         if len(tfilt) > 0:
             expr = "ev_extra1 in (%s)" % ','.join(tfilt)
             self.consumer_filter = expr
+
+        self.keepalive_stats = self.cf.getint("keepalive_stats", 61)
 
     def startup(self):
         """Handle commands here.  __init__ does not have error logging."""
@@ -379,12 +386,16 @@ class Consumer(skytools.DBScript):
                     [batch_id, ev_id, retry_time])
 
     def stat_start(self):
-        self.stat_batch_start = time.time()
+        t = time.time()
+        self.stat_batch_start = t
+        if self.stat_batch_start - self.idle_start > self.keepalive_stats:
+            self.stat_put('idle', round(self.stat_batch_start - self.idle_start,4))
+            self.idle_start = t
 
     def stat_end(self, count):
         t = time.time()
         self.stat_put('count', count)
-        self.stat_put('duration', t - self.stat_batch_start)
+        self.stat_put('duration', round(t - self.stat_batch_start,4))
         if count > 0: # reset timer if we got some events
-            self.stat_put('idle', self.stat_batch_start - self.idle_start)
+            self.stat_put('idle', round(self.stat_batch_start - self.idle_start,4))
             self.idle_start = t
