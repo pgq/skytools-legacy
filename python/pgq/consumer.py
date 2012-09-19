@@ -135,7 +135,7 @@ class Consumer(skytools.DBScript):
 
         # in how many seconds to write keepalive stats for idle consumers
         # this stats is used for detecting that consumer is still running
-        #keepalive_stats = 61
+        #keepalive_stats = 300
     """
 
     # by default, use cursor-based fetch
@@ -219,7 +219,7 @@ class Consumer(skytools.DBScript):
             expr = "ev_extra1 in (%s)" % ','.join(tfilt)
             self.consumer_filter = expr
 
-        self.keepalive_stats = self.cf.getint("keepalive_stats", 61)
+        self.keepalive_stats = self.cf.getint("keepalive_stats", 300)
 
     def startup(self):
         """Handle commands here.  __init__ does not have error logging."""
