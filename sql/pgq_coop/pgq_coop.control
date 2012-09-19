@@ -1,6 +1,6 @@
 # pgq_coop
 comment = 'Cooperative queue consuming for PgQ'
-default_version = '3.1'
+default_version = '3.1.1'
 relocatable = false
 superuser = true
 schema = 'pg_catalog'

@@ -143,7 +143,15 @@ begin
           and s.sub_consumer = c.co_id
         for update of s;
     if not found then
-        raise exception 'main consumer not found';
+        perform pgq_coop.register_subconsumer(i_queue_name, i_consumer_name, i_subconsumer_name);
+        -- fetch the data again
+        select q.queue_id, c.co_id, s.sub_next_tick
+            into _queue_id, _consumer_id, _cur_tick
+            from pgq.queue q, pgq.consumer c, pgq.subscription s
+            where q.queue_name = i_queue_name
+              and c.co_name = i_consumer_name
+              and s.sub_queue = q.queue_id
+              and s.sub_consumer = c.co_id;
     end if;
     if _cur_tick is not null then
         raise exception 'main consumer has batch open?';
