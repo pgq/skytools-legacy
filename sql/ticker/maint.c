@@ -253,6 +253,10 @@ static void maint_handler(struct PgSocket *s, void *arg, enum PgEvent ev, PGresu
 			run_test_version(db);
 		break;
 	case PGS_RESULT_OK:
+		if (PQresultStatus(res) != PGRES_TUPLES_OK) {
+			close_maint(db, 20);
+			return;
+		}
 		switch (db->maint_state) {
 		case DB_MAINT_TEST_VERSION:
 			if (has_ops(res)) {

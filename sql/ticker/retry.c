@@ -38,7 +38,10 @@ static void retry_handler(struct PgSocket *s, void *arg, enum PgEvent ev, PGresu
 		run_retry(db);
 		break;
 	case PGS_RESULT_OK:
-		parse_retry(db, res);
+		if (PQresultStatus(res) != PGRES_TUPLES_OK)
+			close_retry(db, 20);
+		else
+			parse_retry(db, res);
 		break;
 	case PGS_TIMEOUT:
 		log_debug("%s: retry timeout", db->name);

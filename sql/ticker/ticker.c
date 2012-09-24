@@ -84,12 +84,17 @@ static void parse_ticker_result(struct PgDatabase *db, PGresult *res)
 static void tick_handler(struct PgSocket *s, void *arg, enum PgEvent ev, PGresult *res)
 {
 	struct PgDatabase *db = arg;
+	ExecStatusType st;
 
 	switch (ev) {
 	case PGS_CONNECT_OK:
 		run_pgq_check(db);
 		break;
 	case PGS_RESULT_OK:
+		if (PQresultStatus(res) != PGRES_TUPLES_OK) {
+			close_ticker(db, 10);
+			break;
+		}
 		switch (db->state) {
 		case DB_TICKER_CHECK_PGQ:
 			parse_pgq_check(db, res);
@@ -100,8 +105,15 @@ static void tick_handler(struct PgSocket *s, void *arg, enum PgEvent ev, PGresul
 		case DB_TICKER_RUN:
 			parse_ticker_result(db, res);
 			break;
+		case DB_CLOSED:
+			st = PQresultStatus(res);
+			log_warning("%s: Weird state: RESULT_OK + DB_CLOSED (%s)",
+				    db->name, PQresStatus(st));
+			close_ticker(db, 10);
+			break;
 		default:
-			fatal("bad state");
+			log_warning("%s: bad state: %d", db->name, db->state);
+			close_ticker(db, 10);
 		}
 		break;
 	case PGS_TIMEOUT:
