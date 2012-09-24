@@ -23,8 +23,9 @@ DOCHTML = \
 
 
 MAN5 =
-MAN1_SFX = scriptmgr.1 skytools_upgrade.1 queue_mover.1 queue_splitter.1
-MAN1 = qadmin.1 pgqd.1 walmgr3.1 londiste3.1 simple_consumer3.1 simple_local_consumer3.1
+MAN1_SFX = scriptmgr.1 skytools_upgrade.1
+MAN1 = qadmin.1 pgqd.1 walmgr3.1 londiste3.1 simple_consumer3.1 simple_local_consumer3.1 \
+       queue_mover3.1 queue_splitter3.1
 
 FQHTML = $(addprefix html/doc/, $(DOCHTML)) $(addprefix html/, $(TOPHTML))
 FQMAN1 = $(addprefix man/, $(MAN1))
