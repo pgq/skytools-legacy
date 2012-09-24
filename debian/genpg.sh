@@ -43,7 +43,7 @@ if test "$v" = "9.1" -o "$v" = "9.2"; then
   pgq_coop_version="3.1.1"; pgq_coop_old_versions="3.1"
   pgq_node_version="3.1"; pgq_node_old_versions=""
   pgq_ext_version="3.1"; pgq_ext_old_versions=""
-  londiste_version="3.1"; londiste_old_versions=""
+  londiste_version="3.1.1"; londiste_old_versions="3.1"
   for mod in pgq pgq_node pgq_coop pgq_ext londiste; do
     (
       modver=`eval echo \\${${mod}_version}`
