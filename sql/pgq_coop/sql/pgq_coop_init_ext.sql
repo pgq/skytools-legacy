@@ -8,8 +8,5 @@ create extension pgq;
 create extension pgq_coop from 'unpackaged';
 drop extension pgq_coop;
 
--- workaround for postgres bug
-drop schema if exists pgq_coop;
-
 create extension pgq_coop;
 
