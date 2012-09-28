@@ -11,8 +11,6 @@ base_regress = londiste_provider londiste_subscriber \
 Contrib_regress = init_noext $(base_regress)
 Extension_regress = init_ext $(base_regress)
 
-Contrib_install_always = yes
-
 include ../common-pgxs.mk
 
 dox: cleandox

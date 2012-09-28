@@ -24,7 +24,7 @@ Extension_data_built += $(Extension_upgrade_files)
 
 # Should the Contrib* files installed (under ../contrib/)
 # even when extensions are available?
-Contrib_install_always ?= no
+Contrib_install_always ?= yes
 
 #
 # switch variables
