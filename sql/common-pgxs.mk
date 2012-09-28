@@ -46,8 +46,8 @@ REGRESS_OPTS = --load-language=plpgsql --dbname=$(CONTRIB_TESTDB)
 # Calculate actual sql files
 #
 
-SQLS  = $(shell sed -e 's/^[^\\].*//' -e 's/\\i //' structure/install.sql)
-FUNCS = $(shell sed -e 's/^[^\\].*//' -e 's/\\i //' $(SQLS))
+SQLS  = $(shell $(AWK) '/^\\i / { print $$2; }' structure/install.sql)
+FUNCS = $(shell $(AWK) '/^\\i / { print $$2; }' $(SQLS))
 SRCS = $(SQLS) $(FUNCS)
 
 #
