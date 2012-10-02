@@ -9,6 +9,7 @@ all install clean distclean installcheck test:
 		DESTDIR="$(DESTDIR)" \
 		PG_CONFIG="$(PG_CONFIG)" \
 		PG_CPPFLAGS="$(PG_CPPFLAGS)" \
+		PYTHON="$(PYTHON)" \
 	  || exit $?; \
 	done
 
