@@ -35,8 +35,8 @@ FQMAN = $(FQMAN1) $(FQMAN1_SFX) $(FQMAN5)
 
 COMMON = common.switches.txt common.config.txt
 
-GETATTRS = python ../misc/getattrs.py
-FIXMAN = python ../misc/fixman.py
+GETATTRS = $(PYTHON) ../misc/getattrs.py
+FIXMAN = $(PYTHON) ../misc/fixman.py
 
 #AFLAGS = -a linkcss
 #AFLAGS = -a stylesheet=extra.css

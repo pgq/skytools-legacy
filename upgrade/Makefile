@@ -6,7 +6,7 @@ SQLS = v3.0_pgq_core.sql
 SRCS = $(addprefix src/, $(SQLS))
 DSTS = $(addprefix final/, $(SQLS))
 
-CATSQL = python ../scripts/catsql.py
+CATSQL = $(PYTHON) ../scripts/catsql.py
 
 all: $(DSTS)
 

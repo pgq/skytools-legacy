@@ -64,8 +64,8 @@ include $(PGXS)
 
 NDOC = NaturalDocs
 NDOCARGS = -r -o html docs/html -p docs -i docs/sql
-CATSQL = ../../scripts/catsql.py
-GRANTFU = ../../scripts/grantfu.py
+CATSQL = $(PYTHON) ../../scripts/catsql.py
+GRANTFU = $(PYTHON) ../../scripts/grantfu.py
 
 #
 # build rules, in case Contrib data must be always installed
