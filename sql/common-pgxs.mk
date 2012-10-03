@@ -58,6 +58,10 @@ PG_CONFIG ?= pg_config
 PGXS = $(shell $(PG_CONFIG) --pgxs)
 include $(PGXS)
 
+# when compiling locally and with postgres without python,
+# the variable may be empty
+PYTHON := $(if $(PYTHON),$(PYTHON),python)
+
 #
 # common tools
 #
