@@ -23,7 +23,7 @@ class QueueMover(pgq.SerialConsumer):
     __doc__ = __doc__
     
     def __init__(self, args):
-        pgq.SerialConsumer.__init__(self, "queue_mover", "src_db", "dst_db", args)
+        pgq.SerialConsumer.__init__(self, "queue_mover3", "src_db", "dst_db", args)
         self.dst_queue_name = self.cf.get("dst_queue_name")
 
     def process_remote_batch(self, db, batch_id, ev_list, dst_db):
