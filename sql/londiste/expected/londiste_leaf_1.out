@@ -1,0 +1,117 @@
+set client_min_messages = 'warning';
+\set VERBOSITY 'terse'
+select 1
+from (select set_config(name, 'escape', false) as ignore
+                 from pg_settings where name = 'bytea_output') x
+where x.ignore = 'foo';
+ ?column? 
+----------
+(0 rows)
+
+--
+-- tables
+--
+create table leafdata (
+    id serial primary key,
+    data text
+);
+select current_database();
+ current_database 
+------------------
+ regression
+(1 row)
+
+select * from pgq_node.register_location('leafq', 'lq_node1', 'dbname=db', false);
+ ret_code |      ret_note       
+----------+---------------------
+      200 | Location registered
+(1 row)
+
+select * from pgq_node.register_location('leafq', 'lq_node2', 'dbname=db2', false);
+ ret_code |      ret_note       
+----------+---------------------
+      200 | Location registered
+(1 row)
+
+select * from pgq_node.create_node('leafq', 'leaf', 'lq_node2', 'londiste_leaf', 'lq_node1', 100, null::text);
+ ret_code |                            ret_note                            
+----------+----------------------------------------------------------------
+      200 | Node "lq_node2" initialized for queue "leafq" with type "leaf"
+(1 row)
+
+select * from londiste.local_show_missing('leafq');
+ obj_kind | obj_name 
+----------+----------
+(0 rows)
+
+select * from londiste.local_add_table('leafq', 'public.leafdata');
+ ret_code |                   ret_note                    
+----------+-----------------------------------------------
+      404 | Table not available on queue: public.leafdata
+(1 row)
+
+select * from londiste.global_add_table('leafq', 'public.leafdata');
+ ret_code |           ret_note           
+----------+------------------------------
+      200 | Table added: public.leafdata
+(1 row)
+
+select * from londiste.local_add_table('leafq', 'public.leafdata');
+ ret_code |           ret_note           
+----------+------------------------------
+      200 | Table added: public.leafdata
+(1 row)
+
+select * from londiste.global_add_table('leafq', 'public.tmp');
+ ret_code |        ret_note         
+----------+-------------------------
+      200 | Table added: public.tmp
+(1 row)
+
+select * from londiste.get_table_list('leafq');
+   table_name    | local | merge_state | custom_snapshot | table_attrs | dropped_ddl | copy_role | copy_pos | dest_table 
+-----------------+-------+-------------+-----------------+-------------+-------------+-----------+----------+------------
+ public.leafdata | t     |             |                 |             |             |           |        0 | 
+ public.tmp      | f     |             |                 |             |             |           |        0 | 
+(2 rows)
+
+select tgname, tgargs from pg_trigger
+where tgrelid = 'public.leafdata'::regclass
+order by 1;
+     tgname      |      tgargs       
+-----------------+-------------------
+ _londiste_leafq | leafq\000deny\000
+(1 row)
+
+insert into leafdata values (1, 'asd');
+ERROR:  Table 'public.leafdata' to queue 'leafq': change not allowed (I)
+select * from londiste.global_remove_table('leafq', 'public.tmp');
+ ret_code |         ret_note          
+----------+---------------------------
+      200 | Table removed: public.tmp
+(1 row)
+
+select * from londiste.local_remove_table('leafq', 'public.leafdata');
+ ret_code |            ret_note            
+----------+--------------------------------
+      200 | Table removed: public.leafdata
+(1 row)
+
+select * from londiste.local_remove_table('leafq', 'public.leafdata');
+ ret_code |                   ret_note                    
+----------+-----------------------------------------------
+      400 | Table not registered locally: public.leafdata
+(1 row)
+
+select * from londiste.get_table_list('leafq');
+   table_name    | local | merge_state | custom_snapshot | table_attrs | dropped_ddl | copy_role | copy_pos | dest_table 
+-----------------+-------+-------------+-----------------+-------------+-------------+-----------+----------+------------
+ public.leafdata | f     |             |                 |             |             |           |        0 | 
+(1 row)
+
+select * from londiste.local_show_missing('leafq');
+ obj_kind |    obj_name     
+----------+-----------------
+ r        | public.leafdata
+(1 row)
+

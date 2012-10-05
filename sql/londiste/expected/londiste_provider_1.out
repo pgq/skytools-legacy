@@ -1,0 +1,135 @@
+set client_min_messages = 'warning';
+\set VERBOSITY 'terse'
+--
+-- tables
+--
+create table testdata (
+    id serial primary key,
+    txt text
+);
+create table testdata_nopk (
+    id serial,
+    txt text
+);
+select current_database();
+ current_database 
+------------------
+ regression
+(1 row)
+
+select * from pgq_node.register_location('aset', 'rnode', 'dbname=db', false);
+ ret_code |      ret_note       
+----------+---------------------
+      200 | Location registered
+(1 row)
+
+select * from pgq_node.create_node('aset', 'root', 'rnode', 'londiste_root', null::text, null::int8, null::text);
+ ret_code |                          ret_note                          
+----------+------------------------------------------------------------
+      200 | Node "rnode" initialized for queue "aset" with type "root"
+(1 row)
+
+select * from londiste.local_add_table('aset', 'public.testdata_nopk');
+ ret_code |                      ret_note                      
+----------+----------------------------------------------------
+      400 | Primary key missing on table: public.testdata_nopk
+(1 row)
+
+select * from londiste.local_add_table('aset', 'public.testdata');
+ ret_code |           ret_note           
+----------+------------------------------
+      200 | Table added: public.testdata
+(1 row)
+
+select tgname from pg_trigger where tgrelid = 'public.testdata'::regclass order by 1;
+     tgname     
+----------------
+ _londiste_aset
+(1 row)
+
+insert into testdata (txt) values ('test-data');
+select * from londiste.get_table_list('aset');
+   table_name    | local | merge_state | custom_snapshot | table_attrs | dropped_ddl | copy_role | copy_pos | dest_table 
+-----------------+-------+-------------+-----------------+-------------+-------------+-----------+----------+------------
+ public.testdata | t     | ok          |                 |             |             |           |        0 | 
+(1 row)
+
+select * from londiste.local_show_missing('aset');
+ obj_kind |          obj_name           
+----------+-----------------------------
+ S        | public.testdata_id_seq
+ S        | public.testdata_nopk_id_seq
+ r        | public.testdata_nopk
+(3 rows)
+
+select * from londiste.local_remove_table('aset', 'public.testdata');
+ ret_code |            ret_note            
+----------+--------------------------------
+      200 | Table removed: public.testdata
+(1 row)
+
+select * from londiste.local_remove_table('aset', 'public.testdata');
+ ret_code |             ret_note             
+----------+----------------------------------
+      400 | Table not found: public.testdata
+(1 row)
+
+select tgname from pg_trigger where tgrelid = 'public.testdata'::regclass;
+ tgname 
+--------
+(0 rows)
+
+select * from londiste.get_table_list('aset');
+ table_name | local | merge_state | custom_snapshot | table_attrs | dropped_ddl | copy_role | copy_pos | dest_table 
+------------+-------+-------------+-----------------+-------------+-------------+-----------+----------+------------
+(0 rows)
+
+select ev_id, ev_type, ev_data, ev_extra1 from pgq.event_template;
+ ev_id |        ev_type        |       ev_data        |    ev_extra1    
+-------+-----------------------+----------------------+-----------------
+     1 | londiste.add-table    | public.testdata      | 
+     2 | I:id                  | id=1&txt=test%2ddata | public.testdata
+     3 | londiste.remove-table | public.testdata      | 
+(3 rows)
+
+select * from londiste.local_show_missing('aset');
+ obj_kind |          obj_name           
+----------+-----------------------------
+ S        | public.testdata_id_seq
+ S        | public.testdata_nopk_id_seq
+ r        | public.testdata
+ r        | public.testdata_nopk
+(4 rows)
+
+-- trigtest
+create table trg_test (
+    id int4 primary key,
+    txt text
+);
+select * from londiste.local_add_table('aset', 'public.trg_test', array['ev_extra4=''test='' || txt']);
+ ret_code |           ret_note           
+----------+------------------------------
+      200 | Table added: public.trg_test
+(1 row)
+
+insert into trg_test values (1, 'data');
+truncate trg_test;
+select ev_id, ev_type, ev_data, ev_extra1, ev_extra4 from pgq.event_template where ev_extra1 = 'public.trg_test';
+ ev_id | ev_type |    ev_data    |    ev_extra1    | ev_extra4 
+-------+---------+---------------+-----------------+-----------
+     5 | I:id    | id=1&txt=data | public.trg_test | test=data
+(1 row)
+
+select tgname from pg_trigger where tgrelid = 'public.trg_test'::regclass order by 1;
+     tgname     
+----------------
+ _londiste_aset
+(1 row)
+
+delete from londiste.table_info where table_name = 'public.trg_test';
+select tgname from pg_trigger where tgrelid = 'public.trg_test'::regclass order by 1;
+     tgname     
+----------------
+ _londiste_aset
+(1 row)
+
