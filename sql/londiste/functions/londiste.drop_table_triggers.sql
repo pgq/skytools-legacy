@@ -36,7 +36,7 @@ begin
     end if;
 
     -- cast to bytea
-    b_queue_name := replace(i_queue_name, E'\\', E'\\\\')::bytea;
+    b_queue_name := decode(replace(i_queue_name, E'\\', E'\\\\'), 'escape');
 
     -- drop all replication triggers that target our queue.
     -- by checking trigger func and queue name there is not
