@@ -20,6 +20,8 @@ class Syncer(skytools.DBScript):
 
     bad_tables = 0
 
+    provider_node = None
+
     def __init__(self, args):
         """Syncer init."""
         skytools.DBScript.__init__(self, 'londiste3', args)
@@ -55,25 +57,37 @@ class Syncer(skytools.DBScript):
         p.add_option("--force", action="store_true", help="ignore lag")
         return p
 
-    def check_consumer(self, setup_curs):
+    def get_provider_info(self, setup_curs):
+        q = "select ret_code, ret_note, node_name, node_type, worker_name"\
+            " from pgq_node.get_node_info(%s)"
+        res = self.exec_cmd(setup_curs, q, [self.queue_name])
+        pnode = res[0]
+        self.log.info('Provider: %s (%s)', pnode['node_name'], pnode['node_type'])
+        return pnode
+
+    def check_consumer(self, setup_db):
         """Before locking anything check if consumer is working ok."""
 
-        q = "select extract(epoch from ticker_lag) from pgq.get_queue_info(%s)"
-        setup_curs.execute(q, [self.queue_name])
-        ticker_lag = setup_curs.fetchone()[0]
-        q = "select extract(epoch from lag)"\
-            " from pgq.get_consumer_info(%s, %s)"
-        setup_curs.execute(q, [self.queue_name, self.consumer_name])
-        res = setup_curs.fetchall()
+        setup_curs = setup_db.cursor()
+        while 1:
+            q = "select extract(epoch from ticker_lag) from pgq.get_queue_info(%s)"
+            setup_curs.execute(q, [self.queue_name])
+            ticker_lag = setup_curs.fetchone()[0]
+            q = "select extract(epoch from lag)"\
+                " from pgq.get_consumer_info(%s, %s)"
+            setup_curs.execute(q, [self.queue_name, self.consumer_name])
+            res = setup_curs.fetchall()
 
-        if len(res) == 0:
-            self.log.error('No such consumer')
-            sys.exit(1)
-        consumer_lag = res[0][0]
+            if len(res) == 0:
+                self.log.error('No such consumer')
+                sys.exit(1)
+            consumer_lag = res[0][0]
 
-        if consumer_lag > ticker_lag + 10 and not self.options.force:
-            self.log.error('Consumer lagging too much, cannot proceed')
-            sys.exit(1)
+            if consumer_lag < ticker_lag + 5:
+                break
+
+            self.log.warning('Consumer lag: %s, ticker_lag %s, too big difference, waiting',
+                             consumer_lag, ticker_lag)
 
     def get_tables(self, db):
         """Load table info.
@@ -110,7 +124,8 @@ class Syncer(skytools.DBScript):
 
         setup_curs = setup_db.cursor()
 
-        self.check_consumer(setup_curs)
+        # provider node info
+        self.provider_node = self.get_provider_info(setup_curs)
 
         src_tables, ignore = self.get_tables(src_db)
         dst_tables, names = self.get_tables(dst_db)
@@ -137,7 +152,10 @@ class Syncer(skytools.DBScript):
             if t2.merge_state != 'ok':
                 self.log.warning('Table %s not synced yet, no point' % tbl)
                 continue
-            self.check_table(t1.dest_table, t2.dest_table, lock_db, src_db, dst_db, setup_curs)
+
+            self.check_consumer(setup_db)
+
+            self.check_table(t1.dest_table, t2.dest_table, lock_db, src_db, dst_db, setup_db)
             lock_db.commit()
             src_db.commit()
             dst_db.commit()
@@ -145,11 +163,13 @@ class Syncer(skytools.DBScript):
         # signal caller about bad tables
         sys.exit(self.bad_tables)
 
-    def force_tick(self, setup_curs):
+    def force_tick(self, setup_curs, wait=True):
         q = "select pgq.force_tick(%s)"
         setup_curs.execute(q, [self.queue_name])
         res = setup_curs.fetchone()
         cur_pos = res[0]
+        if not wait:
+            return cur_pos
 
         start = time.time()
         while 1:
@@ -165,9 +185,8 @@ class Syncer(skytools.DBScript):
             if dur > 10 and not self.options.force:
                 raise Exception("Ticker seems dead")
 
-    def check_table(self, src_tbl, dst_tbl, lock_db, src_db, dst_db, setup_curs):
+    def check_table(self, src_tbl, dst_tbl, lock_db, src_db, dst_db, setup_db):
         """Get transaction to same state, then process."""
-
 
         lock_curs = lock_db.cursor()
         src_curs = src_db.cursor()
@@ -179,6 +198,41 @@ class Syncer(skytools.DBScript):
         if not skytools.exists_table(dst_curs, dst_tbl):
             self.log.warning("Table %s does not exist on subscriber side" % dst_tbl)
             return
+
+        # lock table against changes
+        try:
+            if self.provider_node['node_type'] == 'root':
+                self.lock_table_root(lock_db, setup_db, src_tbl, dst_tbl)
+            else:
+                self.lock_table_branch(lock_db, setup_db, src_tbl, dst_tbl)
+
+            # take snapshot on provider side
+            src_db.commit()
+            src_curs.execute("SELECT 1")
+
+            # take snapshot on subscriber side
+            dst_db.commit()
+            dst_curs.execute("SELECT 1")
+        finally:
+            # release lock
+            if self.provider_node['node_type'] == 'root':
+                self.unlock_table_root(lock_db, setup_db)
+            else:
+                self.unlock_table_branch(lock_db, setup_db)
+
+        # do work
+        bad = self.process_sync(src_tbl, dst_tbl, src_db, dst_db)
+        if bad:
+            self.bad_tables += 1
+
+        # done
+        src_db.commit()
+        dst_db.commit()
+
+    def lock_table_root(self, lock_db, setup_db, src_tbl, dst_tbl):
+
+        setup_curs = setup_db.cursor()
+        lock_curs = lock_db.cursor()
 
         # lock table in separate connection
         self.log.info('Locking %s' % src_tbl)
@@ -220,26 +274,51 @@ class Syncer(skytools.DBScript):
                 self.log.error('Consumer lagging too much, exiting')
                 lock_db.rollback()
                 sys.exit(1)
-        
-        # take snapshot on provider side
-        src_db.commit()
-        src_curs.execute("SELECT 1")
 
-        # take snapshot on subscriber side
-        dst_db.commit()
-        dst_curs.execute("SELECT 1")
-
-        # release lock
+    def unlock_table_root(self, lock_db, setup_db):
         lock_db.commit()
 
-        # do work
-        bad = self.process_sync(src_tbl, dst_tbl, src_db, dst_db)
-        if bad:
-            self.bad_tables += 1
+    def lock_table_branch(self, lock_db, setup_db, src_tbl, dst_tbl):
+        setup_curs = setup_db.cursor()
 
-        # done
-        src_db.commit()
-        dst_db.commit()
+        lock_time = time.time()
+        self.pause_consumer(setup_curs, self.provider_node['worker_name'])
+
+        setup_curs = setup_db.cursor()
+        lock_curs = lock_db.cursor()
+
+        # consumer must get futher than this tick
+        tick_id = self.force_tick(setup_curs, False)
+
+        # take server time
+        setup_curs.execute("select to_char(now(), 'YYYY-MM-DD HH24:MI:SS.MS')")
+        tpos = setup_curs.fetchone()[0]
+        # now wait
+        while 1:
+            time.sleep(0.5)
+
+            q = "select last_tick >= %s, now(), lag"\
+                " from pgq.get_consumer_info(%s, %s)"
+            setup_curs.execute(q, [tick_id, self.queue_name, self.consumer_name])
+            res = setup_curs.fetchall()
+
+            if len(res) == 0:
+                raise Exception('No such consumer')
+
+            row = res[0]
+            self.log.debug("tpos=%s now=%s lag=%s ok=%s" % (tpos, row[1], row[2], row[0]))
+            if row[0]:
+                break
+
+            # limit lock time
+            if time.time() > lock_time + self.lock_timeout and not self.options.force:
+                self.log.error('Consumer lagging too much, exiting')
+                lock_db.rollback()
+                sys.exit(1)
+
+    def unlock_table_branch(self, lock_db, setup_db):
+        setup_curs = setup_db.cursor()
+        self.resume_consumer(setup_curs, self.provider_node['worker_name'])
 
     def process_sync(self, src_tbl, dst_tbl, src_db, dst_db):
         """It gets 2 connections in state where tbl should be in same state.
@@ -251,4 +330,22 @@ class Syncer(skytools.DBScript):
         q = "select * from pgq_node.get_node_info(%s)"
         rows = self.exec_cmd(dst_db, q, [self.queue_name])
         return rows[0]['provider_location']
+
+    def pause_consumer(self, curs, cons_name):
+        self.log.info("Pausing upstream worker: %s", cons_name)
+        self.set_pause_flag(curs, cons_name, True)
+
+    def resume_consumer(self, curs, cons_name):
+        self.log.info("Resuming upstream worker: %s", cons_name)
+        self.set_pause_flag(curs, cons_name, False)
+
+    def set_pause_flag(self, curs, cons_name, flag):
+        q = "select * from pgq_node.set_consumer_paused(%s, %s, %s)"
+        self.exec_cmd(curs, q, [self.queue_name, cons_name, flag])
+
+        while 1:
+            q = "select * from pgq_node.get_consumer_state(%s, %s)"
+            res = self.exec_cmd(curs, q, [self.queue_name, cons_name])
+            if res[0]['uptodate']:
+                break
 
