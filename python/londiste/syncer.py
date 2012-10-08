@@ -155,7 +155,7 @@ class Syncer(skytools.DBScript):
 
             self.check_consumer(setup_db)
 
-            self.check_table(t1.dest_table, t2.dest_table, lock_db, src_db, dst_db, setup_db)
+            self.check_table(t1, t2, lock_db, src_db, dst_db, setup_db)
             lock_db.commit()
             src_db.commit()
             dst_db.commit()
@@ -185,8 +185,11 @@ class Syncer(skytools.DBScript):
             if dur > 10 and not self.options.force:
                 raise Exception("Ticker seems dead")
 
-    def check_table(self, src_tbl, dst_tbl, lock_db, src_db, dst_db, setup_db):
+    def check_table(self, t1, t2, lock_db, src_db, dst_db, setup_db):
         """Get transaction to same state, then process."""
+
+        src_tbl = t1.dest_table
+        dst_tbl = t2.dest_table
 
         lock_curs = lock_db.cursor()
         src_curs = src_db.cursor()
@@ -221,7 +224,7 @@ class Syncer(skytools.DBScript):
                 self.unlock_table_branch(lock_db, setup_db)
 
         # do work
-        bad = self.process_sync(src_tbl, dst_tbl, src_db, dst_db)
+        bad = self.process_sync(t1, t2, src_db, dst_db)
         if bad:
             self.bad_tables += 1
 
@@ -320,7 +323,7 @@ class Syncer(skytools.DBScript):
         setup_curs = setup_db.cursor()
         self.resume_consumer(setup_curs, self.provider_node['worker_name'])
 
-    def process_sync(self, src_tbl, dst_tbl, src_db, dst_db):
+    def process_sync(self, t1, t2, src_db, dst_db):
         """It gets 2 connections in state where tbl should be in same state.
         """
         raise Exception('process_sync not implemented')

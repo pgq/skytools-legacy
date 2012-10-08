@@ -81,15 +81,12 @@ class PartHandler(TableHandler):
         self.log.debug('part.process_event: my event, processing')
         TableHandler.process_event(self, ev, sql_queue_func, arg)
 
-    def real_copy(self, tablename, src_curs, dst_curs, column_list, cond_list):
-        """Copy only slots needed locally."""
+    def get_copy_condition(self, src_curs, dst_curs):
+	"""Prepare the where condition for copy and replay filtering"""
         self.load_part_info(dst_curs)
         w = "(%s & %d) = %d" % (self.hashexpr, self.max_part, self.local_part)
         self.log.debug('part: copy_condition=%s' % w)
-        cond_list.append(w)
-
-        return TableHandler.real_copy(self, tablename, src_curs, dst_curs,
-                                     column_list, cond_list)
+        return w
 
     def load_part_info(self, curs):
         """Load slot info from database."""
