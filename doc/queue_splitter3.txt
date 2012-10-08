@@ -2,7 +2,7 @@
 
 == NAME ==
 
-queue_splitter - PgQ consumer that transports events from one queue into several target queues
+queue_splitter3 - PgQ consumer that transports events from one queue into several target queues
 
 == SYNOPSIS ==
 
