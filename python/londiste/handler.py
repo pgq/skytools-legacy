@@ -106,11 +106,15 @@ class BaseHandler:
         """Called when batch finishes."""
         pass
 
-    def real_copy(self, src_tablename, src_curs, dst_curs, column_list, cond_list):
+    def get_copy_condition(self, src_curs, dst_curs):        
+        """ Use if you want to filter data """
+        return ''
+
+    def real_copy(self, src_tablename, src_curs, dst_curs, column_list):
         """do actual table copy and return tuple with number of bytes and rows
         copyed
         """
-        condition = ' and '.join(cond_list)
+        condition = self.get_copy_condition(src_curs, dst_curs)
         return skytools.full_copy(src_tablename, src_curs, dst_curs,
                                   column_list, condition,
                                   dst_tablename = self.dest_table)
@@ -184,19 +188,17 @@ class TableHandler(BaseHandler):
                 return self.enc.validate_dict(row, self.table_name)
             return row
 
-    def real_copy(self, src_tablename, src_curs, dst_curs, column_list, cond_list):
+    def real_copy(self, src_tablename, src_curs, dst_curs, column_list):
         """do actual table copy and return tuple with number of bytes and rows
         copyed
         """
-
-        condition = ' and '.join(cond_list)
-
+	
         if self.enc:
             def _write_hook(obj, data):
                 return self.enc.validate_copy(data, column_list, src_tablename)
         else:
             _write_hook = None
-
+        condition = self.get_copy_condition(src_curs, dst_curs)
         return skytools.full_copy(src_tablename, src_curs, dst_curs,
                                   column_list, condition,
                                   dst_tablename = self.dest_table,

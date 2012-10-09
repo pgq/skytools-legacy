@@ -15,11 +15,17 @@ class Comparator(Syncer):
     """Simple checker based in Syncer.
     When tables are in sync runs simple SQL query on them.
     """
-    def process_sync(self, src_tbl, dst_tbl, src_db, dst_db):
+    def process_sync(self, t1, t2, src_db, dst_db):
         """Actual comparision."""
+
+        src_tbl = t1.dest_table
+        dst_tbl = t2.dest_table
 
         src_curs = src_db.cursor()
         dst_curs = dst_db.cursor()
+
+        src_where = t1.plugin.get_copy_condition(src_curs, dst_curs)
+        dst_where = t2.plugin.get_copy_condition(src_curs, dst_curs)
 
         self.log.info('Counting %s' % dst_tbl)
 
@@ -37,7 +43,11 @@ class Comparator(Syncer):
         q = self.cf.get('compare_sql', q)
         q = q.replace("_COLS_", cols)
         src_q = q.replace('_TABLE_', skytools.quote_fqident(src_tbl))
+        if src_where: 
+            src_q = src_q + " WHERE " + src_where
         dst_q = q.replace('_TABLE_', skytools.quote_fqident(dst_tbl))
+        if dst_where:
+            dst_q = dst_q + " WHERE " + dst_where
 
         f = "%(cnt)d rows, checksum=%(chksum)s"
         f = self.cf.get('compare_fmt', f)

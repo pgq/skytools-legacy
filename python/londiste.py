@@ -138,8 +138,6 @@ class Londiste(skytools.DBScript):
                 help = "add: walk upstream to find node to copy from")
         g.add_option("--copy-node", dest="copy_node",
                 help = "add: use NODE as source for initial COPY")
-        g.add_option("--copy-condition", dest="copy_condition",
-                help = "add: set WHERE expression for copy")
         g.add_option("--merge-all", action="store_true",
                 help="merge tables from all source queues", default=False)
         g.add_option("--no-merge", action="store_true",

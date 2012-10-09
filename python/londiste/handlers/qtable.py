@@ -33,7 +33,7 @@ class QueueTableHandler(BaseHandler):
         trigger_arg_list.append('SKIP')
         trigger_arg_list.append('expect_sync')
 
-    def real_copy(self, tablename, src_curs, dst_curs, column_list, cond_list):
+    def real_copy(self, tablename, src_curs, dst_curs, column_list):
         """Force copy not to start"""
         return (0,0)
 

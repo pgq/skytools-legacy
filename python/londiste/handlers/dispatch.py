@@ -866,12 +866,12 @@ class Dispatcher(BaseHandler):
         exec_with_vals(self.conf.post_part)
         self.log.info("Created table: %s" % dst)
 
-    def real_copy(self, tablename, src_curs, dst_curs, column_list, cond_list):
+    def real_copy(self, tablename, src_curs, dst_curs, column_list):
         """do actual table copy and return tuple with number of bytes and rows
         copyed
         """
         _src_cols = _dst_cols = column_list
-        condition = ' and '.join(cond_list)
+        condition = ''
 
         if self.conf.skip_fields:
             _src_cols = [col for col in column_list

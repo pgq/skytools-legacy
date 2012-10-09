@@ -159,7 +159,12 @@ class CopyTable(Replicator):
                 tbl_stat.dropped_ddl = ddl
 
         # do truncate & copy
-        self.real_copy(src_curs, dst_curs, tbl_stat, common_cols, src_real_table)
+        self.log.info("%s: start copy" % tbl_stat.name)
+        p = tbl_stat.get_plugin()
+        stats = p.real_copy(src_real_table, src_curs, dst_curs, common_cols)
+        if stats:
+            self.log.info("%s: copy finished: %d bytes, %d rows" % (
+                          tbl_stat.name, stats[0], stats[1]))
 
         # get snapshot
         src_curs.execute("select txid_current_snapshot()")
@@ -214,22 +219,6 @@ class CopyTable(Replicator):
         q = "select pgq.force_tick(%s)"
         src_curs.execute(q, [self.queue_name])
         src_db.commit()
-
-    def real_copy(self, srccurs, dstcurs, tbl_stat, col_list, src_real_table):
-        "Actual copy."
-
-        tablename = tbl_stat.name
-        # do copy
-        self.log.info("%s: start copy" % tablename)
-        p = tbl_stat.get_plugin()
-        cond_list = []
-        cond = tbl_stat.table_attrs.get('copy_condition')
-        if cond:
-            cond_list.append(cond)
-        stats = p.real_copy(src_real_table, srccurs, dstcurs, col_list, cond_list)
-        if stats:
-            self.log.info("%s: copy finished: %d bytes, %d rows" % (
-                          tablename, stats[0], stats[1]))
 
     def work(self):
         if not self.reg_ok:

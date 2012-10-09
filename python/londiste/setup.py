@@ -50,8 +50,6 @@ class LondisteSetup(CascadeAdmin):
                 help = "add: find table source for copy by walking upwards")
         p.add_option("--copy-node", dest="copy_node",
                 help = "add: use NODE as source for initial copy")
-        p.add_option("--copy-condition", dest="copy_condition",
-                help = "copy: where expression")
         p.add_option("--force", action="store_true",
                     help="force", default=False)
         p.add_option("--all", action="store_true",
@@ -247,8 +245,6 @@ class LondisteSetup(CascadeAdmin):
         if not self.options.expect_sync:
             if self.options.skip_truncate:
                 attrs['skip_truncate'] = 1
-            if self.options.copy_condition:
-                attrs['copy_condition'] = self.options.copy_condition
 
         if self.options.max_parallel_copy:
             attrs['max_parallel_copy'] = self.options.max_parallel_copy
