@@ -117,6 +117,8 @@ class CascadedWorker(CascadedConsumer):
     _worker_state = None
     ev_buf = []
 
+    real_global_wm = None
+
     def __init__(self, service_name, db_name, args):
         """Initialize new consumer.
         
@@ -236,13 +238,20 @@ class CascadedWorker(CascadedConsumer):
         # if next part fails, dont repeat it immediately
         self.local_wm_publish_time = t
 
-        if st.sync_watermark:
+        if st.sync_watermark and self.real_global_wm is not None:
             # instead sync 'global-watermark' with specific nodes
             dst_curs = dst_db.cursor()
             nmap = self._get_node_map(dst_curs)
             dst_db.commit()
 
+            # local lowest
             wm = st.local_watermark
+
+            # the global-watermark in subtree can stay behind
+            # upstream global-watermark, but must not go ahead
+            if self.real_global_wm < wm:
+                wm = self.real_global_wm
+
             for node in st.wm_sync_nodes:
                 if node == st.node_name:
                     continue
@@ -316,7 +325,8 @@ class CascadedWorker(CascadedConsumer):
         elif t == "pgq.global-watermark":
             if st.sync_watermark:
                 tick_id = int(ev.ev_data)
-                self.log.info('Ignoring global watermark %s' % tick_id)
+                self.log.debug('Half-ignoring global watermark %d', tick_id)
+                self.real_global_wm = tick_id
             elif st.process_global_wm:
                 tick_id = int(ev.ev_data)
                 q = "select * from pgq_node.set_global_watermark(%s, %s)"
