@@ -59,12 +59,13 @@ class Repairer(Syncer):
         dump_src = dst_tbl + ".src"
         dump_dst = dst_tbl + ".dst"
 
+        dst_where = t2.plugin.get_copy_condition(src_curs, dst_curs)
+        src_where = dst_where
+
         self.log.info("Dumping src table: %s" % src_tbl)
-        src_where = t1.plugin.get_copy_condition(src_curs, dst_curs)
         self.dump_table(src_tbl, src_curs, dump_src, src_where)
         src_db.commit()
         self.log.info("Dumping dst table: %s" % dst_tbl)
-        dst_where = t2.plugin.get_copy_condition(src_curs, dst_curs)
         self.dump_table(dst_tbl, dst_curs, dump_dst, dst_where)
         dst_db.commit()
         

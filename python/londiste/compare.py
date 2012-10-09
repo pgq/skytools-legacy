@@ -24,8 +24,8 @@ class Comparator(Syncer):
         src_curs = src_db.cursor()
         dst_curs = dst_db.cursor()
 
-        src_where = t1.plugin.get_copy_condition(src_curs, dst_curs)
         dst_where = t2.plugin.get_copy_condition(src_curs, dst_curs)
+        src_where = dst_where
 
         self.log.info('Counting %s' % dst_tbl)
 
