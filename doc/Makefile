@@ -13,7 +13,7 @@ DOCHTML = \
 	faq.html set.notes.html skytools3.html devnotes.html pgqd.html \
 	londiste3.html walmgr3.html qadmin.html scriptmgr.html \
 	sql-grants.html \
-	skytools_upgrade.html queue_mover.html queue_splitter.html \
+	skytools_upgrade.html queue_mover3.html queue_splitter3.html \
 	simple_consumer3.html simple_local_consumer3.html \
 	howto/londiste3_cascaded_rep_howto.html \
 	howto/londiste3_merge_howto.html \

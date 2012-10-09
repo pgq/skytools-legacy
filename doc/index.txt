@@ -19,8 +19,8 @@
 
 * link:doc/londiste3.html[londiste3] - Londiste command line interface.
 * link:doc/qadmin.html[qadmin] - psql-like console for managing queues
-* link:doc/queue_mover.html[queue_mover] - copy queue to another database
-* link:doc/queue_splitter.html[queue_splitter] - split queue into different queues
+* link:doc/queue_mover3.html[queue_mover3] - copy queue to another database
+* link:doc/queue_splitter3.html[queue_splitter3] - split queue into different queues
 * link:doc/scriptmgr.html[scriptmgr] - bulk start/stopping of skytools scripts
 * link:doc/skytools_upgrade.html[skytools_upgrade] - Update database modules
 * link:doc/walmgr3.html[walmgr3] - tool for managing WAL-base replication

@@ -2,8 +2,8 @@ debian/tmp/usr/share/doc/skytools3/scriptmgr.html
 debian/tmp/usr/share/doc/skytools3/skytools_upgrade.html
 debian/tmp/usr/share/doc/skytools3/qadmin.html
 debian/tmp/usr/share/doc/skytools3/skytools3.html
-debian/tmp/usr/share/doc/skytools3/queue_splitter.html
-debian/tmp/usr/share/doc/skytools3/queue_mover.html
+debian/tmp/usr/share/doc/skytools3/queue_splitter3.html
+debian/tmp/usr/share/doc/skytools3/queue_mover3.html
 debian/tmp/usr/share/doc/skytools3/londiste3.html
 debian/tmp/usr/share/doc/skytools3/simple_consumer3.html
 debian/tmp/usr/share/doc/skytools3/simple_local_consumer3.html

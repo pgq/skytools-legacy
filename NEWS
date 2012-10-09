@@ -1,30 +1,39 @@
 
-2012-09-xx  -  SkyTools 3.1.1  -  ""
+2012-10-09  -  SkyTools 3.1.1  -  "Service Oriented Diapers"
 
-  = Features =
+  Queue_mover and queue_splitter now have service names ending with 3.
+  Config files need to change: [queue_mover3], [queue_splitter3].
+
+  = Minor Features =
 
     * scriptmgr: option for specifying service type (-t / --type)
     * scriptmgr: status command can optionally be more selective
-    * skytools_upgrade: "dry run" option
-    * qadmin.py: "show version" command
+    * skytools_upgrade: "dry run" option (--not-really)
+    * pgq.Consumer: log idle time, keepalive_stats tper
+    * pgq.Consumer: keepalive_stats to force logging even when idle
 
   = Cleanups =
 
+    * qadmin.py: "show version" command
     * qadmin.py: unified results displaying
     * skytools.scripting: added shutdown() to BaseScript
     * skytools.scripting: log config reload, updated comment.
     * skytools.__init__: added symbols for natsort module
     * qadmin.py: updated script version, added pgq version, amended messages
-    * scripts: changed queue_mover and queue_splitter service_name
+    * scripts: changed queue_mover and queue_splitter service_name to end with '3'
 
   = Fixes =
 
+    * pgqd: make connections handling more robust
+    * londiste compare/repair: when provider is branch, stop it's worker to get sync
     * walmgr: Don't complain if a nonexistent WAL file is encountered during cleanup.
     * pgq_node.demote_root: decrease lock level
     * londiste.local_remove_table: resture DDL if still attached to table
     * pgq_coop.next_batch: check and create subconsumers after locking main consumer
+    * --sync-watermark: don't allow subtree wm get above upstream wm
     * londiste compare: calculate common column names
     * londiste compare: use md5() if comparing 8.3 with 8.4+
+    * Use python interpreter given by '--with-python=PYTHON' everywhere
 
 2012-07-19  -  SkyTools 3.1  -  "Carnival-on-a-Stick"
 
