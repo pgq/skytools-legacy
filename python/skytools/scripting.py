@@ -462,9 +462,9 @@ class BaseScript(object):
 
     def stat_increase(self, key, increase = 1):
         """Increases a stat value."""
-        if key in self.stat_dict:
+        try:
             self.stat_dict[key] += increase
-        else:
+        except KeyError:
             self.stat_dict[key] = increase
 
     def send_stats(self):
@@ -472,7 +472,7 @@ class BaseScript(object):
 
         res = []
         for k, v in self.stat_dict.items():
-            res.append("%s: %s" % (k, str(v)))
+            res.append("%s: %s" % (k, v))
 
         if len(res) == 0:
             return
