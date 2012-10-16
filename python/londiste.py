@@ -60,6 +60,8 @@ cmd_handlers = (
 
 class Londiste(skytools.DBScript):
     def __init__(self, args):
+        self.full_args = args
+
         skytools.DBScript.__init__(self, 'londiste3', args)
 
         if len(self.args) < 2:
@@ -80,7 +82,7 @@ class Londiste(skytools.DBScript):
 
     def print_ini(self):
         """Let the Replicator print the default config."""
-        londiste.Replicator(['--ini'])
+        londiste.Replicator(self.full_args)
 
     def init_optparse(self, parser=None):
         p = skytools.DBScript.init_optparse(self, parser)

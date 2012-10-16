@@ -273,15 +273,16 @@ class BaseScript(object):
             self.log_level = skytools.skylog.TRACE
         elif self.options.verbose:
             self.log_level = logging.DEBUG
-        if self.options.ini:
-            self.print_ini()
-            sys.exit(0)
 
         self.cf_override = {}
         if self.options.set:
             for a in self.options.set:
                 k, v = a.split('=', 1)
                 self.cf_override[k.strip()] = v.strip()
+
+        if self.options.ini:
+            self.print_ini()
+            sys.exit(0)
 
         # read config file
         self.reload()
@@ -331,8 +332,29 @@ class BaseScript(object):
         if pos < 0:
             return
         doc = doc[pos+2 : ].rstrip()
+        doc = skytools.dedent(doc)
 
-        print(skytools.dedent(doc))
+        # merge overrided options into output
+        for ln in doc.splitlines():
+            vals = ln.split('=', 1)
+            if len(vals) != 2:
+                print(ln)
+                continue
+
+            k = vals[0].strip()
+            v = vals[1].strip()
+            if k and k[0] == '#':
+                print(ln)
+                k = k[1:]
+                if k in self.cf_override:
+                    print('%s = %s' % (k, self.cf_override[k]))
+            elif k in self.cf_override:
+                if v:
+                    print('#' + ln)
+                print('%s = %s' % (k, self.cf_override[k]))
+            else:
+                print(ln)
+
         print('')
 
     def load_config(self):
