@@ -949,7 +949,7 @@ class Replicator(CascadedWorker):
     def copy_event(self, dst_curs, ev, filtered_copy):
         # send only data events down (skipping seqs also)
         if filtered_copy:
-            if ev.type[:9] in ('londiste.', 'EXECUTE', 'TRUNCATE'):
+            if ev.type[:9] in ('londiste.',):
                 return
         CascadedWorker.copy_event(self, dst_curs, ev, filtered_copy)
 
