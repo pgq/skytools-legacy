@@ -82,7 +82,7 @@ class PartHandler(TableHandler):
         TableHandler.process_event(self, ev, sql_queue_func, arg)
 
     def get_copy_condition(self, src_curs, dst_curs):
-	"""Prepare the where condition for copy and replay filtering"""
+        """Prepare the where condition for copy and replay filtering"""
         self.load_part_info(dst_curs)
         w = "(%s & %d) = %d" % (self.hashexpr, self.max_part, self.local_part)
         self.log.debug('part: copy_condition=%s' % w)
