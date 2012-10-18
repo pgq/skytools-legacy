@@ -36,7 +36,7 @@ class Comparator(Syncer):
         v1 = src_db.server_version
         v2 = dst_db.server_version
         if (v1 < 80400 or v2 < 80400) and v1 != v2:
-            q = "select count(1) as cnt, sum(md5('x'||substr(md5(_COLS_::text),1,16))::bit(64)::bigint) as chksum from only _TABLE_"
+            q = "select count(1) as cnt, sum(('x'||substr(md5(_COLS_::text),1,16))::bit(64)::bigint) as chksum from only _TABLE_"
         else:
             q = "select count(1) as cnt, sum(hashtext(_COLS_::text)::bigint) as chksum from only _TABLE_"
 
