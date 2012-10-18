@@ -32,6 +32,8 @@ Node Initialization:
 Node Administration:
   pause                             Pause a consumer.
   resume                            Resume a consumer.
+  wait-root                         Wait until node has catched up to root
+  wait-provider                     Wait until node has catched up to provider
   change-provider --provider NEW    Change where consumer reads from
 
      setadm: --node and/or --consumer switches to specify
