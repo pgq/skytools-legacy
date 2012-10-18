@@ -5,6 +5,8 @@ AC_CONFIG_SRCDIR(python/londiste.py)
 AC_CONFIG_HEADER(lib/usual/config.h)
 AC_PREREQ([2.59])
 
+AC_SEARCH_LIBS([send,recv],[socket],[],[],[])
+
 dnl Find Python interpreter
 AC_ARG_WITH(python, [  --with-python=PYTHON    name of the Python executable (default: python)],
 [ AC_MSG_CHECKING(for python)
