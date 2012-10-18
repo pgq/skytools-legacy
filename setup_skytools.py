@@ -122,7 +122,8 @@ def fixscript(fn, dstdir, sfx):
         return
     dfn = os.path.join(dstdir, fn)
     dfn2 = os.path.join(dstdir, fn2)
-    print("Renaming %s -> %s" % (dfn, fn2))
+    if '-q' not in sys.argv:
+        print("Renaming %s -> %s" % (dfn, fn2))
     if sys.platform == 'win32' and os.path.isfile(dfn2):
         os.remove(dfn2)
     os.rename(dfn, dfn2)
