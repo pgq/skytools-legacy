@@ -1751,6 +1751,7 @@ STOP TIME: %(stop_time)s
                 self.log.fatal("xrestore %s crashed: %s: '%s' (%s: %s)" % (
                            srcname, str(exc), str(msg).rstrip(),
                            str(tb), repr(traceback.format_tb(tb))))
+                del tb
                 time.sleep(10)
                 self.log.info("Re-exec: %s", repr(sys.argv))
                 os.execv(sys.argv[0], sys.argv)
