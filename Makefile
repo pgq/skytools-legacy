@@ -10,7 +10,8 @@ SUBDIRS = sql doc
 # modules that use doctest for regtests
 DOCTESTMODS = skytools.quoting skytools.parsing skytools.timeutil \
 	   skytools.sqltools skytools.querybuilder skytools.natsort \
-	   skytools.utf8 skytools.sockutil skytools.fileutil
+	   skytools.utf8 skytools.sockutil skytools.fileutil \
+	   londiste.exec_attrs
 
 
 all: python-all sub-all config.mak
