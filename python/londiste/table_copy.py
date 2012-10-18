@@ -7,8 +7,7 @@ For internal usage.
 
 import sys, time, skytools
 
-import londiste
-
+from londiste.util import find_copy_source
 from skytools.dbstruct import *
 from londiste.playback import *
 
@@ -253,7 +252,8 @@ class CopyTable(Replicator):
         # do we have node here?
         if 'copy_node' in attrs:
             if attrs['copy_node'] == '?':
-                source_node, source_location = self.find_copy_source(source_node, source_location)
+                source_node, source_location = find_copy_source(self,
+                        self.queue_name, self.copy_table_name, source_node, source_location)
             else:
                 # take node from attrs
                 source_node = attrs['copy_node']
@@ -265,58 +265,6 @@ class CopyTable(Replicator):
 
         self.log.info("Using '%s' as source node", source_node)
         self.register_consumer(source_location)
-
-    def handler_allows_copy(self, table_attrs):
-        """Decide if table is copyable based on attrs."""
-        if not table_attrs:
-            return True
-        attrs = skytools.db_urldecode(table_attrs)
-        hstr = attrs['handler']
-        p = londiste.handler.build_handler('unused.string', hstr, None)
-        return p.needs_table()
-
-    def find_copy_source(self, node_name, node_location):
-        while 1:
-            src_db = self.get_database('_source_db', connstr = node_location, autocommit = 1)
-            src_curs = src_db.cursor()
-
-            q = "select * from pgq_node.get_node_info(%s)"
-            src_curs.execute(q, [self.queue_name])
-            info = src_curs.fetchone()
-            if info['ret_code'] >= 400:
-                raise skytools.UsageError("Node does not exists")
-
-            self.log.info("Checking if %s can be used for copy", info['node_name'])
-
-            q = "select table_name, local, table_attrs from londiste.get_table_list(%s) where table_name = %s"
-            src_curs.execute(q, [self.queue_name, self.copy_table_name])
-            got = False
-            for row in src_curs.fetchall():
-                tbl = row['table_name']
-                if tbl != self.copy_table_name:
-                    continue
-                if not row['local']:
-                    self.log.debug("Problem: %s is not local", tbl)
-                    continue
-                if not self.handler_allows_copy(row['table_attrs']):
-                    self.log.debug("Problem: %s handler does not store data [%s]", tbl, row['table_attrs'])
-                    continue
-                self.log.debug("Good: %s is usable", tbl)
-                got = True
-                break
-
-            self.close_database('_source_db')
-
-            if got:
-                self.log.info("Node %s seems good source, using it", info['node_name'])
-                return node_name, node_location
-
-            if info['node_type'] == 'root':
-                raise skytools.UsageError("Found root and no source found")
-
-            # walk upwards
-            node_name = info['provider_node']
-            node_location = info['provider_location']
 
 if __name__ == '__main__':
     script = CopyTable(sys.argv[1:])
