@@ -456,6 +456,14 @@ class BaseScript(object):
             sys.exit(1)
         self.last_sigint = t
 
+    def stat_get(self, key):
+        """Reads a stat value."""
+        try:
+            value = self.stat_dict[key]
+        except KeyError:
+            value = None
+        return value
+
     def stat_put(self, key, value):
         """Sets a stat value."""
         self.stat_dict[key] = value
@@ -597,6 +605,7 @@ class BaseScript(object):
         In case of daemon, if will be called in same process as work(),
         unlike __init__().
         """
+        self.started = time.time()
 
         # set signals
         if hasattr(signal, 'SIGHUP'):
