@@ -23,7 +23,7 @@ class LocalConsumer(pgq.Consumer):
 
     Features:
      - Can detect if several batches are already applied to dest db.
-     - If some ticks are lost. allows to seek back on queue.
+     - If some ticks are lost, allows to seek back on queue.
        Whether it succeeds, depends on pgq configuration.
 
     Config options::
@@ -81,7 +81,7 @@ class LocalConsumer(pgq.Consumer):
                 q = "select * from pgq.register_consumer(%s, %s)"
                 curs.execute(q, [self.queue_name, self.consumer_name])
         elif local_tick < 0:
-            self.log.info("Local tick missing, storing queueu tick %d", queue_tick)
+            self.log.info("Local tick missing, storing queue tick %d", queue_tick)
             self.save_local_tick(queue_tick)
         elif local_tick > queue_tick:
             self.log.warning("Tracking out of sync: queue=%d local=%d.  Repositioning on queue.  [Database failure?]",
@@ -172,14 +172,14 @@ class LocalConsumer(pgq.Consumer):
             src_db = self.get_database(self.db_name)
             src_curs = src_db.cursor()
 
-            self.log.info("Rewinding queue to tick local tick %d", dst_tick)
+            self.log.info("Rewinding queue to local tick %d", dst_tick)
             q = "select pgq.register_consumer_at(%s, %s, %s)"
             src_curs.execute(q, [self.queue_name, self.consumer_name, dst_tick])
 
             src_db.commit()
         else:
             self.log.error('Cannot rewind, no tick found in local file')
-        
+
     def dst_reset(self):
         self.log.info("Removing local tracking file")
         try:
@@ -208,4 +208,3 @@ class LocalConsumer(pgq.Consumer):
         """Store tick in local file."""
         data = str(tick_id)
         skytools.write_atomic(self.local_tracking_file, data)
-

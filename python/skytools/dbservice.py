@@ -22,7 +22,7 @@ def transform_fields(rows, key_fields, name_field, data_field):
     """Convert multiple-rows per key input array
     to one-row, multiple-column output array.  The input arrays
     must be sorted by the key fields.
-    
+
     >>> rows = []
     >>> rows.append({'time': '22:00', 'metric': 'count', 'value': 100})
     >>> rows.append({'time': '22:00', 'metric': 'dur', 'value': 7})
@@ -152,21 +152,21 @@ def log_result(log, list):
 
 
 class DBService:
-    """  Wrap parametrisized query handling and multiset stored procedure writing
+    """  Wrap parameterized query handling and multiset stored procedure writing
     """
     ROW = "_row"            # name of the fake field where internal record id is stored
     FIELD = "_field"        # parameter name for the field in record that is related to current message
     PARAM = "_param"        # name of the parameter to which message relates
     SKIP = "skip"           # used when record is needed for it's data but is not been updated
-    INSERT = "insert" 
+    INSERT = "insert"
     UPDATE = "update"
     DELETE = "delete"
-    INFO = "info"           # just informative message for the user             
+    INFO = "info"           # just informative message for the user
     NOTICE = "notice"       # more than info less than warning
     WARNING = "warning"     # warning message, something is out of ordinary
     ERROR = "error"         # error found but execution continues until check then error is raised
     FATAL = "fatal"         # execution is terminated at once and all found errors returned
-    
+
     def __init__(self, context, global_dict = None):
         """ This object must be initiated in the beginning of each db service
         """
@@ -175,19 +175,19 @@ class DBService:
         self.global_dict = global_dict      # used for cacheing query plans
         self._retval = []                   # used to collect return resultsets
         self._is_test = 'is_test' in rec    # used to convert output into human readable form
-        
-        self.sqls = None                    # if sqls stays None then no recording of sqls is done 
+
+        self.sqls = None                    # if sqls stays None then no recording of sqls is done
         if "show_sql" in rec:               # api must add exected sql to resultset
             self.sqls = []                  # sql's executed by dbservice, used for dubugging
-        
+
         self.can_save = True                # used to keep value most severe error found so far
         self.messages = []                  # used to hold list of messages to be returned to the user
- 
+
     # error and message handling
-    
+
     def tell_user(self, severity, code, message, params = None, **kvargs):
         """ Adds another message to the set of messages to be sent back to user
-            If error message then can_save is set false 
+            If error message then can_save is set false
             If fatal message then error or found errors are raised at once
         """
         params = params or kvargs
@@ -210,14 +210,14 @@ class DBService:
             msgs = "Dbservice error(s): " + make_record_array( self.messages )
             plpy.error( msgs )
 
-    # run sql meant mostly for select but not limited to 
+    # run sql meant mostly for select but not limited to
 
     def create_query(self, sql, params = None, **kvargs):
         """ Returns initialized querybuilder object for building complex dynamic queries
         """
         params = params or kvargs
         return skytools.PLPyQueryBuilder(sql, params, self.global_dict, self.sqls )
-                            
+
     def run_query(self, sql, params = None, **kvargs):
         """ Helper function if everything you need is just paramertisized execute
             Sets rows_found that is coneninet to use when you don't need result just
@@ -265,7 +265,7 @@ class DBService:
         return row.values()[0]
 
      # resultset handling
-     
+
     def return_next(self, rows, res_name, severity = None):
         """ Adds given set of rows to resultset
         """
@@ -273,7 +273,7 @@ class DBService:
         if severity is not None and len(rows) == 0:
             self.tell_user(severity, "dbsXXXX", "No matching records found")
         return rows
-        
+
     def return_next_sql(self, sql, params, res_name, severity = None):
         """ Exectes query and adds recors resultset
         """
@@ -587,4 +587,3 @@ class ServiceContext(DBService):
             If dict was not provied with call it is created
         """
         return fields
-
