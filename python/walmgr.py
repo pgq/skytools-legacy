@@ -1516,7 +1516,7 @@ STOP TIME: %(stop_time)s
         cmdline = ["ssh", "-nT", slave, "sync" ]
         self.exec_cmd(cmdline)
 
-	# slave has the file now, set markers
+        # slave has the file now, set markers
         self.set_last_complete(srcname)
 
         self.log.debug("%s: done", srcname)
