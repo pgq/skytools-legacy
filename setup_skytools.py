@@ -63,11 +63,12 @@ sql_files = [
    'sql/londiste/londiste.upgrade.sql',
    'sql/pgq_coop/pgq_coop.upgrade.sql',
    'sql/pgq_ext/pgq_ext.upgrade.sql',
+   'upgrade/final/pgq.upgrade_2.1_to_3.0.sql',
 ]
 
 # sql files for special occasions
 extra_sql_files = [
-   'upgrade/final/v3.0_pgq_core.sql',
+    #'upgrade/final/v3.0_pgq_core.sql',
 ]
 
 if not INSTALL_SQL:
@@ -203,7 +204,8 @@ setup(
         'python/conf/wal-slave.ini',
         ]),
       ('share/skytools3', sql_files),
-      ('share/skytools3/extra', extra_sql_files)],
+      #('share/skytools3/extra', extra_sql_files),
+    ],
     ext_modules = c_modules,
     scripts = sfx_scripts + nosfx_scripts,
     cmdclass = {

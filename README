@@ -129,8 +129,10 @@ Londiste 3 in parallel with Londiste 2.
 
 1. Install Postgres modules.  They are backwards compatible with 2.1.
 2. Stop `pgqadm.py ticker` processes.
-3. Apply ./upgrade/final/v3.0_pgq_core.sql
-4. Apply installed pgq_node.sql
-5. Apply installed londiste.sql - this will throw error on CREATE SCHEMA, but should otherwise apply fine.
+3. Apply pgq.upgrade_2.1_to_3.0.sql
+3. Apply pgq.upgrade.sql
+4. Apply pgq_node.sql
+5. Apply londiste.sql - this will throw error on CREATE SCHEMA, but should otherwise apply fine.
 6. Start pgqd.
 
+The files mentined above are installed under $PREFIX/share/skytools3/ directory.
