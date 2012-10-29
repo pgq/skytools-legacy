@@ -5,8 +5,6 @@ AC_CONFIG_SRCDIR(python/londiste.py)
 AC_CONFIG_HEADER(lib/usual/config.h)
 AC_PREREQ([2.59])
 
-AC_SEARCH_LIBS([send,recv],[socket],[],[],[])
-
 dnl Find Python interpreter
 AC_ARG_WITH(python, [  --with-python=PYTHON    name of the Python executable (default: python)],
 [ AC_MSG_CHECKING(for python)
@@ -148,6 +146,9 @@ AC_CHECK_FUNCS(unsetenv)
 
 dnl Optional use of libevent
 AC_USUAL_LIBEVENT_OPT
+
+dnl Needed on SmartOS (Solaris)
+AC_SEARCH_LIBS([socket],[socket])
 
 AC_USUAL_DEBUG
 AC_USUAL_CASSERT
