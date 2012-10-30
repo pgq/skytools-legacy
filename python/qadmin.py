@@ -1129,6 +1129,7 @@ class AdminConsole:
             skytools.DBSchema("pgq", sql_file="pgq.sql"),
             skytools.DBSchema("pgq_ext", sql_file="pgq_ext.sql"),
             skytools.DBSchema("pgq_node", sql_file="pgq_node.sql"),
+            skytools.DBSchema("pgq_coop", sql_file="pgq_coop.sql"),
         ]
         londiste_objs = pgq_objs + [
             skytools.DBSchema("londiste", sql_file="londiste.sql"),
