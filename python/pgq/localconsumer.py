@@ -4,6 +4,9 @@ Consumer that stores last applied position in local file.
 
 For cases where the consumer cannot use single database for remote tracking.
 
+To be subclassed, then override .process_local_batch() or .process_local_event()
+methods.
+
 """
 
 import sys
@@ -116,10 +119,12 @@ class LocalConsumer(pgq.Consumer):
         self.set_batch_done()
 
     def process_local_batch(self, db, batch_id, event_list):
+        """Overridable method to process whole batch."""
         for ev in event_list:
             self.process_local_event(db, batch_id, ev)
 
     def process_local_event(self, db, batch_id, ev):
+        """Overridable method to process one event at a time."""
         raise Exception('process_local_event not implemented')
 
     def is_batch_done(self):
