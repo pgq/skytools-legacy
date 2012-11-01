@@ -32,7 +32,7 @@ begin
     execute 'select last_value from ' || fqname into res;
     return res;
 end;
-$$ language plpgsql;
+$$ language plpgsql strict;
 
 create or replace function pgq.seq_setval(i_seq_name text, i_new_value int8)
 returns bigint as $$
@@ -51,19 +51,8 @@ returns bigint as $$
 declare
     res     int8;
     fqname  text;
-    pos     integer;
-    s       text;
-    n       text;
 begin
-    pos := position('.' in i_seq_name);
-    if pos > 0 then
-        s := substring(i_seq_name for pos - 1);
-        n := substring(i_seq_name from pos + 1);
-    else
-        s := 'public';
-        n := i_seq_name;
-    end if;
-    fqname := quote_ident(s) || '.' || quote_ident(n);
+    fqname := pgq.quote_fqname(i_seq_name);
 
     res := pgq.seq_getval(i_seq_name);
     if res < i_new_value then
@@ -72,5 +61,5 @@ begin
     end if;
     return res;
 end;
-$$ language plpgsql;
+$$ language plpgsql strict;
 

@@ -97,7 +97,7 @@ begin
     for rec in
         select xtbl from pgq.batch_event_tables(x_batch_id) xtbl
     loop
-        tbl := rec.xtbl;
+        tbl := pgq.quote_fqname(rec.xtbl);
         -- this gets newer queries that definitely are not in prev_snapshot
         part := select_fields
             || ' from pgq.tick cur, pgq.tick last, ' || tbl || ' ev '

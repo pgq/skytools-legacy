@@ -31,4 +31,5 @@ select pgq.upgrade_schema();
 \i functions/pgq.tune_storage.sql
 \i functions/pgq.force_tick.sql
 \i functions/pgq.seq_funcs.sql
+\i functions/pgq.quote_fqname.sql
 

@@ -68,8 +68,8 @@ begin
     -- there may be long lock on the table from pg_dump,
     -- detect it and skip rotate then
     begin
-        execute 'lock table ' || tbl || ' nowait';
-        execute 'truncate ' || tbl;
+        execute 'lock table ' || pgq.quote_fqname(tbl) || ' nowait';
+        execute 'truncate ' || pgq.quote_fqname(tbl);
     exception
         when lock_not_available then
             -- cannot truncate, skipping rotate

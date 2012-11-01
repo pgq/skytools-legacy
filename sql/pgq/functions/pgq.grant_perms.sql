@@ -38,10 +38,10 @@ begin
     end if;
 
     -- tick seq, normal users don't need to modify it
-    execute 'grant select on ' || q.queue_tick_seq || ' to public';
+    execute 'grant select on ' || pgq.quote_fqname(q.queue_tick_seq) || ' to public';
 
     -- event seq
-    execute 'grant select on ' || q.queue_event_seq || ' to public';
+    execute 'grant select on ' || pgq.quote_fqname(q.queue_event_seq) || ' to public';
     
     -- set grants on parent table
     perform pgq._grant_perms_from('pgq', 'event_template', dst_schema, dst_table);
@@ -94,5 +94,5 @@ begin
 
     return 1;
 end;
-$$ language plpgsql;
+$$ language plpgsql strict;
 

@@ -52,21 +52,21 @@ begin
         where queue_id = id;
 
     -- create seqs
-    execute 'CREATE SEQUENCE ' || tick_seq;
-    execute 'CREATE SEQUENCE ' || ev_seq;
+    execute 'CREATE SEQUENCE ' || pgq.quote_fqname(tick_seq);
+    execute 'CREATE SEQUENCE ' || pgq.quote_fqname(ev_seq);
 
     -- create data tables
-    execute 'CREATE TABLE ' || tblpfx || ' () '
+    execute 'CREATE TABLE ' || pgq.quote_fqname(tblpfx) || ' () '
             || ' INHERITS (pgq.event_template)';
     for i in 0 .. (n_tables - 1) loop
         tblname := tblpfx || '_' || i::text;
-        idxname := idxpfx || '_' || i::text;
-        execute 'CREATE TABLE ' || tblname || ' () '
-                || ' INHERITS (' || tblpfx || ')';
-        execute 'ALTER TABLE ' || tblname || ' ALTER COLUMN ev_id '
+        idxname := idxpfx || '_' || i::text || '_txid_idx';
+        execute 'CREATE TABLE ' || pgq.quote_fqname(tblname) || ' () '
+                || ' INHERITS (' || pgq.quote_fqname(tblpfx) || ')';
+        execute 'ALTER TABLE ' || pgq.quote_fqname(tblname) || ' ALTER COLUMN ev_id '
                 || ' SET DEFAULT nextval(' || quote_literal(ev_seq) || ')';
-        execute 'create index ' || idxname || '_txid_idx on '
-                || tblname || ' (ev_txid)';
+        execute 'create index ' || quote_ident(idxname) || ' on '
+                || pgq.quote_fqname(tblname) || ' (ev_txid)';
     end loop;
 
     perform pgq.grant_perms(i_queue_name);

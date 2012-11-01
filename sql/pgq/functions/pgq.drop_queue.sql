@@ -46,17 +46,17 @@ begin
     -- drop data tables
     for i in 0 .. (q.queue_ntables - 1) loop
         tblname := q.queue_data_pfx || '_' || i::text;
-        execute 'DROP TABLE ' || tblname;
+        execute 'DROP TABLE ' || pgq.quote_fqname(tblname);
     end loop;
-    execute 'DROP TABLE ' || q.queue_data_pfx;
+    execute 'DROP TABLE ' || pgq.quote_fqname(q.queue_data_pfx);
 
     -- delete ticks
     delete from pgq.tick where tick_queue = q.queue_id;
 
     -- drop seqs
     -- FIXME: any checks needed here?
-    execute 'DROP SEQUENCE ' || q.queue_tick_seq;
-    execute 'DROP SEQUENCE ' || q.queue_event_seq;
+    execute 'DROP SEQUENCE ' || pgq.quote_fqname(q.queue_tick_seq);
+    execute 'DROP SEQUENCE ' || pgq.quote_fqname(q.queue_event_seq);
 
     -- delete event
     delete from pgq.queue
