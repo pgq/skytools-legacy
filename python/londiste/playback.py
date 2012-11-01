@@ -300,6 +300,8 @@ class Replicator(CascadedWorker):
     copy_table_name = None # filled by Copytable()
     sql_list = []
 
+    current_event = None
+
     def __init__(self, args):
         """Replication init."""
         CascadedWorker.__init__(self, 'londiste3', 'db', args)
@@ -336,6 +338,8 @@ class Replicator(CascadedWorker):
 
     def process_remote_batch(self, src_db, tick_id, ev_list, dst_db):
         "All work for a batch.  Entry point from SetConsumer."
+
+        self.current_event = None
 
         # this part can play freely with transactions
 
@@ -592,7 +596,13 @@ class Replicator(CascadedWorker):
 
     def process_remote_event(self, src_curs, dst_curs, ev):
         """handle one event"""
+
         self.log.debug("New event: id=%s / type=%s / data=%s / extra1=%s" % (ev.id, ev.type, ev.data, ev.extra1))
+
+        # set current_event only if processing them one-by-one
+        if self.work_state < 0:
+            self.current_event = ev
+
         if ev.type in ('I', 'U', 'D'):
             self.handle_data_event(ev, dst_curs)
         elif ev.type[:2] in ('I:', 'U:', 'D:'):
@@ -617,6 +627,9 @@ class Replicator(CascadedWorker):
             self.update_seq(dst_curs, ev)
         else:
             CascadedWorker.process_remote_event(self, src_curs, dst_curs, ev)
+
+        # no point keeping it around longer
+        self.current_event = None
 
     def handle_data_event(self, ev, dst_curs):
         """handle one truncate event"""
@@ -954,6 +967,14 @@ class Replicator(CascadedWorker):
             if ev.type[:9] in ('londiste.',):
                 return
         CascadedWorker.copy_event(self, dst_curs, ev, filtered_copy)
+
+    def exception_hook(self, det, emsg):
+        # add event info to error message
+        if self.current_event:
+            ev = self.current_event
+            info = "[ev_id=%d,ev_txid=%d] " % (ev.ev_id,ev.ev_txid)
+            emsg = info + emsg
+        super(Replicator, self).exception_hook(det, emsg)
 
 if __name__ == '__main__':
     script = Replicator(sys.argv[1:])

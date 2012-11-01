@@ -774,7 +774,6 @@ class DBScript(BaseScript):
             sql = getattr(curs, 'query', '?')
             if len(sql) > 200: # avoid logging londiste huge batched queries
                 sql = sql[:60] + " ..."
-            emsg = str(d).strip()
             self.log.exception("Job %s got error on connection '%s': %s.   Query: %s" % (
                 self.job_name, cname, emsg, sql))
         else:
