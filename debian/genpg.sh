@@ -39,7 +39,7 @@ usr/share/postgresql/$v/contrib/oldgrants_pgq.sql
 EOF
 
 if test "$v" = "9.1" -o "$v" = "9.2"; then
-  pgq_version="3.1.1"; pgq_old_versions="3.1"
+  pgq_version="3.1.2"; pgq_old_versions="3.1 3.1.1"
   pgq_coop_version="3.1.1"; pgq_coop_old_versions="3.1"
   pgq_node_version="3.1"; pgq_node_old_versions=""
   pgq_ext_version="3.1"; pgq_ext_old_versions=""
