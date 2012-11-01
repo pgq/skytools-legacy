@@ -21,8 +21,12 @@ def find_copy_source(script, queue_name, copy_table_name, node_name, node_locati
     @param copy_table_name: name of the table
     @param node_name: target node name
     @param node_location: target node location
-    @returns (node_name, node_location) of source node
+    @returns (node_name, node_location, downstream_worker_name) of source node
     """
+
+    # None means no steps upwards were taken, so local consumer is worker
+    worker_name = None
+
     while 1:
         src_db = script.get_database('_source_db', connstr = node_location, autocommit = 1)
         src_curs = src_db.cursor()
@@ -56,7 +60,7 @@ def find_copy_source(script, queue_name, copy_table_name, node_name, node_locati
 
         if got:
             script.log.info("Node %s seems good source, using it", info['node_name'])
-            return node_name, node_location
+            return node_name, node_location, worker_name
 
         if info['node_type'] == 'root':
             raise skytools.UsageError("Found root and no source found")
@@ -64,4 +68,5 @@ def find_copy_source(script, queue_name, copy_table_name, node_name, node_locati
         # walk upwards
         node_name = info['provider_node']
         node_location = info['provider_location']
+        worker_name = info['worker_name']
 
