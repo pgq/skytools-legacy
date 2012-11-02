@@ -249,7 +249,7 @@ class BaseScript(object):
 
         @param service_name: unique name for script.
             It will be also default job_name, if not specified in config.
-        @param args: cmdline args (sys.argv[1:]), but can be overrided
+        @param args: cmdline args (sys.argv[1:]), but can be overridden
         """
         self.service_name = service_name
         self.go_daemon = 0
@@ -361,7 +361,7 @@ class BaseScript(object):
         """Loads and returns skytools.Config instance.
 
         By default it uses first command-line argument as config
-        file name.  Can be overrided.
+        file name.  Can be overridden.
         """
 
         if len(self.args) < 1:
@@ -376,7 +376,7 @@ class BaseScript(object):
         """Initialize a OptionParser() instance that will be used to
         parse command line arguments.
 
-        Note that it can be overrided both directions - either DBScript
+        Note that it can be overridden both directions - either DBScript
         will initialize a instance and passes to user code or user can
         initialize and then pass to DBScript.init_optparse().
 
@@ -477,6 +477,14 @@ class BaseScript(object):
             self.log.warning("Double ^C, fast exit")
             sys.exit(1)
         self.last_sigint = t
+
+    def stat_get(self, key):
+        """Reads a stat value."""
+        try:
+            value = self.stat_dict[key]
+        except KeyError:
+            value = None
+        return value
 
     def stat_put(self, key, value):
         """Sets a stat value."""
@@ -619,6 +627,7 @@ class BaseScript(object):
         In case of daemon, if will be called in same process as work(),
         unlike __init__().
         """
+        self.started = time.time()
 
         # set signals
         if hasattr(signal, 'SIGHUP'):
@@ -669,7 +678,7 @@ class DBScript(BaseScript):
 
         @param service_name: unique name for script.
             It will be also default job_name, if not specified in config.
-        @param args: cmdline args (sys.argv[1:]), but can be overrided
+        @param args: cmdline args (sys.argv[1:]), but can be overridden
         """
         self.db_cache = {}
         self._db_defaults = {}
@@ -893,7 +902,6 @@ class DBScript(BaseScript):
                 raise Exception("db error")
             # error is already logged
             sys.exit(1)
-
 
     def listen(self, dbname, channel):
         """Make connection listen for specific event channel.

@@ -15,9 +15,9 @@ __all__ = ['Consumer']
 
 class _WalkerEvent(Event):
     """Redirects status flags to BatchWalker.
-    
-    That way event data can gc-d immidiately and
-    tag_done() events dont need to be remembered.
+
+    That way event data can be gc'd immediately and
+    tag_done() events don't need to be remembered.
     """
     def __init__(self, walker, queue, row):
         Event.__init__(self, queue, row)
@@ -122,8 +122,8 @@ class Consumer(skytools.DBScript):
         # the actual user script on top of pgq.Consumer must also support it
         #pgq_autocommit = 0
 
-        # whether to wait for specified number of events, before
-        # assigning a batch (0 disables)
+        # whether to wait for specified number of events,
+        # before assigning a batch (0 disables)
         #pgq_batch_collect_events = 0
 
         # whether to wait specified amount of time,
@@ -131,7 +131,7 @@ class Consumer(skytools.DBScript):
         #pgq_batch_collect_interval =
 
         # whether to stay behind queue top (postgres interval)
-        #pgq_keep_lag = 
+        #pgq_keep_lag =
 
         # in how many seconds to write keepalive stats for idle consumers
         # this stats is used for detecting that consumer is still running
@@ -167,7 +167,7 @@ class Consumer(skytools.DBScript):
 
     def __init__(self, service_name, db_name, args):
         """Initialize new consumer.
-        
+
         @param service_name: service_name for DBScript
         @param db_name: name of database for get_database()
         @param args: cmdline args for DBScript
@@ -242,15 +242,15 @@ class Consumer(skytools.DBScript):
     def process_event(self, db, event):
         """Process one event.
 
-        Should be overrided by user code.
+        Should be overridden by user code.
         """
         raise Exception("needs to be implemented")
 
     def process_batch(self, db, batch_id, event_list):
         """Process all events in batch.
-        
+
         By default calls process_event for each.
-        Can be overrided by user code.
+        Can be overridden by user code.
         """
         for ev in event_list:
             self.process_event(db, ev)
@@ -275,7 +275,7 @@ class Consumer(skytools.DBScript):
         # load events
         ev_list = self._load_batch_events(curs, batch_id)
         db.commit()
-        
+
         # process events
         self._launch_process_batch(db, batch_id, ev_list)
 
@@ -302,7 +302,7 @@ class Consumer(skytools.DBScript):
         db = self.get_database(self.db_name)
         cx = db.cursor()
         cx.execute("select pgq.unregister_consumer(%s, %s)",
-                    [self.queue_name, self.consumer_name])
+                [self.queue_name, self.consumer_name])
         db.commit()
 
     def _launch_process_batch(self, db, batch_id, list):

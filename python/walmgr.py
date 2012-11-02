@@ -1502,7 +1502,6 @@ STOP TIME: %(stop_time)s
         self.log.debug("%s: start copy", srcname)
         
         self.master_periodic()
-        self.set_last_complete(srcname)
         
         dst_loc = self.cf.getfile("completed_wals")
         if dst_loc[-1] != "/":
@@ -1516,6 +1515,9 @@ STOP TIME: %(stop_time)s
         slave = self.cf.get("slave")
         cmdline = ["ssh", "-nT", slave, "sync" ]
         self.exec_cmd(cmdline)
+
+        # slave has the file now, set markers
+        self.set_last_complete(srcname)
 
         self.log.debug("%s: done", srcname)
         end_time = time.time()
