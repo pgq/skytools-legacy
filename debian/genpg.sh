@@ -38,19 +38,18 @@ usr/share/postgresql/$v/contrib/oldgrants_pgq_node.sql
 usr/share/postgresql/$v/contrib/oldgrants_pgq.sql
 EOF
 
+getmkvar() {
+  grep "^$1 =" ../sql/$2/Makefile | sed 's/.*= *//'
+}
+
 if test "$v" = "9.1" -o "$v" = "9.2"; then
-  pgq_version="3.1.2"; pgq_old_versions="3.1 3.1.1"
-  pgq_coop_version="3.1.1"; pgq_coop_old_versions="3.1"
-  pgq_node_version="3.1"; pgq_node_old_versions=""
-  pgq_ext_version="3.1"; pgq_ext_old_versions=""
-  londiste_version="3.1.1"; londiste_old_versions="3.1"
   for mod in pgq pgq_node pgq_coop pgq_ext londiste; do
     (
-      modver=`eval echo \\${${mod}_version}`
+      modver=`getmkvar EXT_VERSION $mod`
+      oldvers=`getmkvar EXT_OLD_VERSIONS $mod`
       echo "usr/share/postgresql/$v/extension/${mod}.control"
       echo "usr/share/postgresql/$v/extension/${mod}--${modver}.sql"
       echo "usr/share/postgresql/$v/extension/${mod}--unpackaged--${modver}.sql"
-      oldvers=`eval echo \\${${mod}_old_versions}`
       for old in ${oldvers}; do
         echo "usr/share/postgresql/$v/extension/${mod}--${old}--${modver}.sql"
       done
