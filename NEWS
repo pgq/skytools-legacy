@@ -18,15 +18,17 @@
 
   = Fixes =
 
-    * Fix 2.1 to 3.0 upgade script, rename to pgq.upgrade_2.1_to_3.0.sql
-    * Fix Londiste compare and repair to accept copy-condition from handler (Asko Oja)
-    * Reorg of Londiste tests (Asko Oja)
-    * Socket library autoconf (Tony Arkles)
-    * londiste: don't filter EXECUTE or TRUNCATE events on merge node
+    * walmgr: Move .walshipping.last update AFTER rsync.  Otherwise
+      rsync failure will not be noticed during "master sync".
     * londiste execute: when ddl was already applied, connection was
       left in wrong mode.  Fix.
     * Fix compare expression - md5() was in wrong place.
+    * Fix Londiste compare and repair to accept copy-condition from handler (Asko Oja)
+    * londiste: don't filter EXECUTE or TRUNCATE events on merge node
     * qadmin: make "install pgq" also install pgq_coop
+    * Fix 2.1 to 3.0 upgade script, rename to pgq.upgrade_2.1_to_3.0.sql
+    * Reorg of Londiste tests (Asko Oja)
+    * Socket library autoconf (Tony Arkles)
     * pgq: quote internal table names
     * Bump pgq schema version to 3.1.2
 
