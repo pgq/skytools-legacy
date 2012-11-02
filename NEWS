@@ -1,4 +1,35 @@
 
+2012-11-02  -  SkyTools 3.1.2  -  "Tank in a Tarball"
+
+  = Features =
+
+    * --find-copy-node switch to 'add-table' that instructs 'copy'
+      to walk upwards until it finds node that has full table.
+      Parts of the patch were in earlier, but they did not work
+      on merge node properly.  Now the walk code was moved to copy,
+      instead being done during add-table to fix that.
+
+      Compare and repair does not support (yet) such walking.
+
+  = Minor Features =
+
+    * Allow overrided options with --set to show up in --ini output
+    * Londiste: try to show exact event info on failure.
+
+  = Fixes =
+
+    * Fix 2.1 to 3.0 upgade script, rename to pgq.upgrade_2.1_to_3.0.sql
+    * Fix Londiste compare and repair to accept copy-condition from handler (Asko Oja)
+    * Reorg of Londiste tests (Asko Oja)
+    * Socket library autoconf (Tony Arkles)
+    * londiste: don't filter EXECUTE or TRUNCATE events on merge node
+    * londiste execute: when ddl was already applied, connection was
+      left in wrong mode.  Fix.
+    * Fix compare expression - md5() was in wrong place.
+    * qadmin: make "install pgq" also install pgq_coop
+    * pgq: quote internal table names
+    * Bump pgq schema version to 3.1.2
+
 2012-10-09  -  SkyTools 3.1.1  -  "Service Oriented Diapers"
 
   Queue_mover and queue_splitter now have service names ending with 3.
