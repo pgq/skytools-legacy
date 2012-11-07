@@ -64,6 +64,7 @@ sql_files = [
    'sql/pgq_coop/pgq_coop.upgrade.sql',
    'sql/pgq_ext/pgq_ext.upgrade.sql',
    'upgrade/final/pgq.upgrade_2.1_to_3.0.sql',
+   'upgrade/final/londiste.upgrade_2.1_to_3.1.sql',
 ]
 
 # sql files for special occasions
