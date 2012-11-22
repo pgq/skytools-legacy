@@ -632,3 +632,37 @@ class LondisteSetup(CascadeAdmin):
 
         self.log.info("All done")
 
+    def resurrect_dump_event(self, ev, stats, batch_info):
+        """Collect per-table stats."""
+
+        super(LondisteSetup, self).resurrect_dump_event(ev, stats, batch_info)
+
+        ROLLBACK = 'can rollback'
+        NO_ROLLBACK = 'cannot rollback'
+
+        if ev.ev_type == 'TRUNCATE':
+            if 'truncated_tables' not in stats:
+                stats['truncated_tables'] = []
+            tlist = stats['truncated_tables']
+            tbl = ev.ev_extra1
+            if tbl not in tlist:
+                tlist.append(tbl)
+        elif ev.ev_type[:2] in ('I:', 'U:', 'D:', 'I', 'U', 'D'):
+            op = ev.ev_type[0]
+            tbl = ev.ev_extra1
+            bak = ev.ev_extra3
+            tblkey = 'table: %s' % tbl
+            if tblkey not in stats:
+                stats[tblkey] = [0,0,0,ROLLBACK]
+            tinfo = stats[tblkey]
+            if op == 'I':
+                tinfo[0] += 1
+            elif op == 'U':
+                tinfo[1] += 1
+                if not bak:
+                    tinfo[3] = NO_ROLLBACK
+            elif op == 'D':
+                tinfo[2] += 1
+                if not bak and ev.ev_type == 'D':
+                    tinfo[3] = NO_ROLLBACK
+

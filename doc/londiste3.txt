@@ -152,6 +152,30 @@ providers (root or branch nodes).
   --dead-branch::
     Old node was branch
 
+=== resurrect ===
+
+In case root was down and taken over with `--dead-root`, this command
+fixes queue contents on that old root to match the rest of cascade.
+Events that did not propagate to rest of the cascade before failure
+(lost events) are dumped into file in JSON format and deleted from queue.
+Then the node is registered into cascade and it's worker will
+be paused.
+
+It requires that there is another active root in cascade and
+there is consumer named `NODENAME.gravestone` registered
+on same node, it uses that to get position where rest of the
+cascade moved on.
+
+It does not touch actual tables, which means there must
+be external mechanism to survive unsynced tables.  Options:
+
+* Ignore lost events.  May need trigger/rule on tables to handle conflicts.
+* Replay the lost events on new root.
+  May need trigger/rule on tables to handle conflicts.
+* Roll back table changes.
+  May need old version of row stored in events.
+  (Achieved with `backup` parameter to `pgq.logutriga`)
+
 === drop-node <node> ===
 
 Remove the node from the Londiste replication.
