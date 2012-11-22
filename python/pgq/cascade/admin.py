@@ -22,36 +22,49 @@ command_usage = """\
 %prog [options] INI CMD [subcmd args]
 
 Node Initialization:
-  create-root   NAME CONNSTR
-  create-branch NAME CONNSTR --provider=<public_connstr>
-  create-leaf   NAME CONNSTR --provider=<public_connstr>
+  create-root   NAME PUBLIC_CONNSTR
+  create-branch NAME PUBLIC_CONNSTR --provider=<public_connstr>
+  create-leaf   NAME PUBLIC_CONNSTR --provider=<public_connstr>
     Initializes node.
 
-    setadm: give worker name with switch --worker.
 
 Node Administration:
-  pause                             Pause a consumer.
-  resume                            Resume a consumer.
-  wait-root                         Wait until node has catched up to root
-  wait-provider                     Wait until node has catched up to provider
-  change-provider --provider NEW    Change where consumer reads from
+  pause                 Pause node worker.
+  resume                Resume node worker.
+  wait-root             Wait until node has catched up to root
+  wait-provider         Wait until node has catched up to provider
+  status                Show cascade state
+  members               Show members in set
 
-     setadm: --node and/or --consumer switches to specify
-     either node or consumer.
+Cascade layout change:
+  change-provider --provider NEW_NODE
+    Change where worker reads from
 
-Works, naming problems:
-
-  status                Show set state      [set-status]
-  members               Show members in set [nodes]
   takeover FROMNODE [--all] [--dead]
-
-Broken:
+    Take other node position.
 
   drop-node NAME
-  show-consumers [--node]
-  tag-dead NODE ..      Tag node as dead
-  tag-alive NODE ..     Tag node as alive
+    Remove node from cascade.
+
+  tag-dead NODE ..
+    Tag node as dead
+
+  tag-alive NODE ..
+    Tag node as alive
+
 """
+
+standalone_usage = """
+
+setadm extra switches:
+
+  pause/resume/change-provider:
+    --node=NODENAME | --consumer=CONSUMER_NAME
+
+  create-root/create-branch/create-leaf:
+    --worker=WORKER_NAME
+"""
+
 
 class CascadeAdmin(skytools.AdminScript):
     """Cascaded pgq administration."""
@@ -71,7 +84,9 @@ class CascadeAdmin(skytools.AdminScript):
     def init_optparse(self, parser = None):
         """Add SetAdmin switches to parser."""
         p = skytools.AdminScript.init_optparse(self, parser)
-        p.set_usage(command_usage.strip())
+
+        usage = command_usage.strip() + standalone_usage
+        p.set_usage(usage)
 
         g = optparse.OptionGroup(p, "actual queue admin options")
         g.add_option("--connstr", action="store_true",
