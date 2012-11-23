@@ -593,12 +593,14 @@ class CascadeAdmin(skytools.AdminScript):
         old_info = None
 
         if self.node_alive(old_node_name):
+            # old root works, switch properly
             old_info = self.get_node_info(old_node_name)
             self.pause_node(old_node_name)
             self.demote_node(old_node_name, 1, new_node_name)
             last_tick = self.demote_node(old_node_name, 2, new_node_name)
             self.wait_for_catchup(new_node_name, last_tick)
         else:
+            # find latest tick on local node
             q = "select * from pgq.get_queue_info(%s)"
             db = self.get_node_database(new_node_name)
             curs = db.cursor()
@@ -607,9 +609,28 @@ class CascadeAdmin(skytools.AdminScript):
             last_tick = row['last_tick_id']
             db.commit()
 
+            # find if any other node has more ticks
+            other_node = None
+            other_tick = last_tick
+            sublist = self.find_subscribers_for(old_node_name)
+            for n in sublist:
+                q = "select * from pgq_node.get_node_info(%s)"
+                rows = self.node_cmd(n, q, [self.queue_name])
+                info = rows[0]
+                if info['worker_last_tick'] > other_tick:
+                    other_tick = info['worker_last_tick']
+                    other_node = n
+
+            # if yes, load batches from there
+            if other_node:
+                self.change_provider(new_node_name, new_provider = other_node)
+                self.wait_for_catchup(new_node_name, other_tick)
+
+        # promote new root
         self.pause_node(new_node_name)
         self.promote_branch(new_node_name)
 
+        # register old root on new root as subscriber
         if self.node_alive(old_node_name):
             old_worker_name = old_info.worker_name
         else:
@@ -617,11 +638,14 @@ class CascadeAdmin(skytools.AdminScript):
         q = 'select * from pgq_node.register_subscriber(%s, %s, %s, %s)'
         self.node_cmd(new_node_name, q, [self.queue_name, old_node_name, old_worker_name, last_tick])
 
+        # unregister new root from old root
         q = "select * from pgq_node.unregister_subscriber(%s, %s)"
         self.node_cmd(new_info.provider_node, q, [self.queue_name, new_node_name])
 
+        # launch new node
         self.resume_node(new_node_name)
 
+        # demote & launch old node
         if self.node_alive(old_node_name):
             self.demote_node(old_node_name, 3, new_node_name)
             self.resume_node(old_node_name)
@@ -698,7 +722,7 @@ class CascadeAdmin(skytools.AdminScript):
         return self.find_root_node()
 
     def find_subscribers_for(self, parent_node_name):
-        """Find root node, having start point."""
+        """Find subscribers for particular node node."""
 
         # use dict to eliminate duplicates
         res = {}
