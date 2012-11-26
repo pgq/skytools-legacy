@@ -381,6 +381,31 @@ class CascadeAdmin(skytools.AdminScript):
 
         self.queue_info.print_tree()
 
+    def cmd_node_status(self):
+        """
+        Show status of a local node.
+        """
+        try:
+            self.load_local_info()
+            db = self.get_node_database(self.local_node)
+            curs = db.cursor()
+            node = self.queue_info.local_node
+            node.load_status(curs)
+            self.load_extra_status(curs, node)
+
+            subscriber_nodes = self.get_node_subscriber_list(self.local_node)
+
+            offset=4*' '
+            print node.get_title()
+            print offset+'Provider: %s' % node.provider_node
+            print offset+'Subscribers: %s' % ', '.join(subscriber_nodes)
+            for l in node.get_infolines():
+                print offset+l
+
+        except DBError, d:
+            msg = str(d).strip().split('\n', 1)[0]
+            print('Node %s failure: %s' % (self.local_node, msg))
+
     def load_extra_status(self, curs, node):
         """Fetch extra info."""
         pass
