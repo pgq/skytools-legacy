@@ -171,3 +171,22 @@ select consumer_name, last_tick from pgq.get_consumer_info();
  maincons      |         3
 (4 rows)
 
+-- test unregistering with pure pgq api
+select pgq.unregister_consumer('testqueue', 'cmain.sc2');
+ unregister_consumer 
+---------------------
+                   1
+(1 row)
+
+select pgq.unregister_consumer('testqueue', 'cmain');
+ unregister_consumer 
+---------------------
+                   2
+(1 row)
+
+select consumer_name, last_tick from pgq.get_consumer_info();
+ consumer_name | last_tick 
+---------------+-----------
+ maincons      |         3
+(1 row)
+

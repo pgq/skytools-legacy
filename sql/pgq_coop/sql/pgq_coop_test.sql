@@ -42,3 +42,9 @@ select pgq_coop.unregister_subconsumer('testqueue', 'maincons', 'subcons2', 0);
 select pgq_coop.next_batch('testqueue', 'cmain', 'sc1');
 select pgq_coop.next_batch('testqueue', 'cmain', 'sc2');
 select consumer_name, last_tick from pgq.get_consumer_info();
+
+-- test unregistering with pure pgq api
+select pgq.unregister_consumer('testqueue', 'cmain.sc2');
+select pgq.unregister_consumer('testqueue', 'cmain');
+select consumer_name, last_tick from pgq.get_consumer_info();
+
