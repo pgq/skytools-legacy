@@ -625,6 +625,7 @@ class CascadeAdmin(skytools.AdminScript):
             if other_node:
                 self.change_provider(new_node_name, new_provider = other_node)
                 self.wait_for_catchup(new_node_name, other_tick)
+                last_tick = other_tick
 
         # promote new root
         self.pause_node(new_node_name)
