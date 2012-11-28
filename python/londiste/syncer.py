@@ -72,6 +72,7 @@ class Syncer(skytools.DBScript):
 
         setup_curs = setup_db.cursor()
         dst_curs = dst_db.cursor()
+        c = 0
         while 1:
             q = "select * from pgq_node.get_consumer_state(%s, %s)"
             res = self.exec_cmd(dst_db, q, [self.queue_name, self.consumer_name])
@@ -99,9 +100,13 @@ class Syncer(skytools.DBScript):
             if consumer_lag < ticker_lag + 5:
                 break
 
-            self.log.warning('Consumer lag: %s, ticker_lag %s, too big difference, waiting',
-                             consumer_lag, ticker_lag)
-            self.sleep(10)
+            lag_msg = 'Consumer lag: %s, ticker_lag %s, too big difference, waiting'
+            if c % 30 == 0:
+                self.log.warning(lag_msg, consumer_lag, ticker_lag)
+            else:
+                self.log.debug(lag_msg, consumer_lag, ticker_lag)
+            c += 1
+            time.sleep(1)
 
     def get_tables(self, db):
         """Load table info.
@@ -361,5 +366,5 @@ class Syncer(skytools.DBScript):
             res = self.exec_cmd(curs, q, [self.queue_name, cons_name])
             if res[0]['uptodate']:
                 break
-            self.sleep(0.5)
+            time.sleep(0.5)
 

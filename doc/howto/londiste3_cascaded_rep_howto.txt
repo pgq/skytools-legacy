@@ -86,11 +86,11 @@ Now let's play with data.
 Create table on root node and fill couple of rows
 
 ----
-$ psql -d db1 -c create table mytable (id serial primary key, data text)
-$ psql -d db1 -c insert into mytable (data) values ('row1')
-$ psql -d db1 -c insert into mytable (data) values ('row2')
-$ psql -d db1 -c insert into mytable (data) values ('row3')
-$ psql -d db1 -c insert into mytable (data) values ('row4')
+$ psql -d db1 -c "create table mytable (id serial primary key, data text)"
+$ psql -d db1 -c "insert into mytable (data) values ('row1')"
+$ psql -d db1 -c "insert into mytable (data) values ('row2')"
+$ psql -d db1 -c "insert into mytable (data) values ('row3')"
+$ psql -d db1 -c "insert into mytable (data) values ('row4')"
 ----
 
 Creat some load on table
@@ -111,19 +111,19 @@ Register table on other node with creation
 ----
 $ psql -d db2 -c create sequence mytable_id_seq
 CREATE SEQUENCE
-$ londiste3 -q conf/londiste_db1.ini add-seq mytable_id_seq
+$ londiste3 -q conf/londiste_db2.ini add-seq mytable_id_seq
 $ londiste3 -q conf/londiste_db2.ini add-table mytable --create-full
 $ psql -d db3 -c create sequence mytable_id_seq
 CREATE SEQUENCE
-$ londiste3 -q conf/londiste_db1.ini add-seq mytable_id_seq
+$ londiste3 -q conf/londiste_db3.ini add-seq mytable_id_seq
 $ londiste3 -q conf/londiste_db3.ini add-table mytable --create-full
 $ psql -d db4 -c create sequence mytable_id_seq
 CREATE SEQUENCE
-$ londiste3 -q conf/londiste_db1.ini add-seq mytable_id_seq
+$ londiste3 -q conf/londiste_db4.ini add-seq mytable_id_seq
 $ londiste3 -q conf/londiste_db4.ini add-table mytable --create-full
 $ psql -d db5 -c create sequence mytable_id_seq
 CREATE SEQUENCE
-$ londiste3 -q conf/londiste_db1.ini add-seq mytable_id_seq
+$ londiste3 -q conf/londiste_db5.ini add-seq mytable_id_seq
 $ londiste3 -q conf/londiste_db5.ini add-table mytable --create-full
 ----
 
