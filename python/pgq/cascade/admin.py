@@ -36,6 +36,7 @@ Node Administration:
   wait-root             Wait until node has catched up to root
   wait-provider         Wait until node has catched up to provider
   status                Show cascade state
+  node-status           Show status of a local node
   members               Show members in set
 
 Cascade layout change:
@@ -385,26 +386,22 @@ class CascadeAdmin(skytools.AdminScript):
         """
         Show status of a local node.
         """
-        try:
-            self.load_local_info()
-            db = self.get_node_database(self.local_node)
-            curs = db.cursor()
-            node = self.queue_info.local_node
-            node.load_status(curs)
-            self.load_extra_status(curs, node)
 
-            subscriber_nodes = self.get_node_subscriber_list(self.local_node)
+        self.load_local_info()
+        db = self.get_node_database(self.local_node)
+        curs = db.cursor()
+        node = self.queue_info.local_node
+        node.load_status(curs)
+        self.load_extra_status(curs, node)
 
-            offset=4*' '
-            print node.get_title()
-            print offset+'Provider: %s' % node.provider_node
-            print offset+'Subscribers: %s' % ', '.join(subscriber_nodes)
-            for l in node.get_infolines():
-                print offset+l
+        subscriber_nodes = self.get_node_subscriber_list(self.local_node)
 
-        except DBError, d:
-            msg = str(d).strip().split('\n', 1)[0]
-            print('Node %s failure: %s' % (self.local_node, msg))
+        offset=4*' '
+        print node.get_title()
+        print offset+'Provider: %s' % node.provider_node
+        print offset+'Subscribers: %s' % ', '.join(subscriber_nodes)
+        for l in node.get_infolines():
+            print offset+l
 
     def load_extra_status(self, curs, node):
         """Fetch extra info."""
