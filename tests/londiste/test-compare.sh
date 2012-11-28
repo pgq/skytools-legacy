@@ -108,7 +108,7 @@ for db in db5 db2 db4 db3; do
   run londiste3 conf/londiste_$db.ini wait-sync
 
   msg "Run compare and repair"
-  run londiste3 conf/londiste_$db.ini compare
-  run londiste3 conf/londiste_$db.ini repair
+  run londiste3 conf/londiste_$db.ini compare --force
+  run londiste3 conf/londiste_$db.ini repair --force
 done
 

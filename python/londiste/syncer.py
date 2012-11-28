@@ -310,7 +310,7 @@ class Syncer(skytools.DBScript):
         setup_curs = setup_db.cursor()
 
         lock_time = time.time()
-        self.pause_consumer(setup_curs, self.provider_info['worker_name'])
+        self.old_worker_paused = self.pause_consumer(setup_curs, self.provider_info['worker_name'])
 
         lock_curs = lock_db.cursor()
         self.log.info('Syncing %s' % dst_tbl)
@@ -335,6 +335,9 @@ class Syncer(skytools.DBScript):
                 sys.exit(1)
 
     def unlock_table_branch(self, lock_db, setup_db):
+        # keep worker paused if it was so before
+        if self.old_worker_paused:
+            return
         setup_curs = setup_db.cursor()
         self.resume_consumer(setup_curs, self.provider_info['worker_name'])
 
@@ -351,13 +354,17 @@ class Syncer(skytools.DBScript):
 
     def pause_consumer(self, curs, cons_name):
         self.log.info("Pausing upstream worker: %s", cons_name)
-        self.set_pause_flag(curs, cons_name, True)
+        return self.set_pause_flag(curs, cons_name, True)
 
     def resume_consumer(self, curs, cons_name):
         self.log.info("Resuming upstream worker: %s", cons_name)
-        self.set_pause_flag(curs, cons_name, False)
+        return self.set_pause_flag(curs, cons_name, False)
 
     def set_pause_flag(self, curs, cons_name, flag):
+        q = "select * from pgq_node.get_consumer_state(%s, %s)"
+        res = self.exec_cmd(curs, q, [self.queue_name, cons_name])
+        oldflag = res[0]['paused']
+
         q = "select * from pgq_node.set_consumer_paused(%s, %s, %s)"
         self.exec_cmd(curs, q, [self.queue_name, cons_name, flag])
 
@@ -367,4 +374,5 @@ class Syncer(skytools.DBScript):
             if res[0]['uptodate']:
                 break
             time.sleep(0.5)
+        return oldflag
 
