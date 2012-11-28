@@ -69,6 +69,7 @@ class Syncer(skytools.DBScript):
         """Before locking anything check if consumer is working ok."""
 
         setup_curs = setup_db.cursor()
+        c = 0
         while 1:
             q = "select extract(epoch from ticker_lag) from pgq.get_queue_info(%s)"
             setup_curs.execute(q, [self.queue_name])
@@ -86,8 +87,12 @@ class Syncer(skytools.DBScript):
             if consumer_lag < ticker_lag + 5:
                 break
 
-            self.log.warning('Consumer lag: %s, ticker_lag %s, too big difference, waiting',
-                             consumer_lag, ticker_lag)
+            if c % 30 == 0:
+                self.log.warning('Consumer lag: %s, ticker_lag %s, too big difference, waiting',
+                                 consumer_lag, ticker_lag)
+            c += 1
+
+            time.sleep(1)
 
     def get_tables(self, db):
         """Load table info.
