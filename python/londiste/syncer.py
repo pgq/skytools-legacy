@@ -87,11 +87,12 @@ class Syncer(skytools.DBScript):
             if consumer_lag < ticker_lag + 5:
                 break
 
+            lag_msg = 'Consumer lag: %s, ticker_lag %s, too big difference, waiting'
             if c % 30 == 0:
-                self.log.warning('Consumer lag: %s, ticker_lag %s, too big difference, waiting',
-                                 consumer_lag, ticker_lag)
+                self.log.warning(lag_msg, consumer_lag, ticker_lag)
+            else:
+                self.log.debug(lag_msg, consumer_lag, ticker_lag)
             c += 1
-
             time.sleep(1)
 
     def get_tables(self, db):
