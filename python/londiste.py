@@ -46,7 +46,7 @@ Internal Commands:
 
 cmd_handlers = (
     (('create-root', 'create-branch', 'create-leaf', 'members', 'tag-dead', 'tag-alive',
-      'change-provider', 'rename-node', 'status', 'pause', 'resume', 'node-info',
+      'change-provider', 'rename-node', 'status', 'node-status', 'pause', 'resume', 'node-info',
       'drop-node', 'takeover', 'resurrect'), londiste.LondisteSetup),
     (('add-table', 'remove-table', 'add-seq', 'remove-seq', 'tables', 'seqs',
       'missing', 'resync', 'wait-sync', 'wait-root', 'wait-provider',
