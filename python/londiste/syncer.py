@@ -356,4 +356,4 @@ class Syncer(skytools.DBScript):
             res = self.exec_cmd(curs, q, [self.queue_name, cons_name])
             if res[0]['uptodate']:
                 break
-
+            time.sleep(0.5)
