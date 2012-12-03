@@ -50,6 +50,7 @@ as $$
 --      200 - Ok
 --      301 - Warning, trigger exists that will fire before londiste one
 --      400 - No such set
+--      410 - Table already exists but with different table_attrs
 ------------------------------------------------------------------------
 declare
     col_types text;
@@ -73,6 +74,7 @@ declare
     _tbloid oid;
     _combined_queue text;
     _combined_table text;
+    _table_attrs text := i_table_attrs;
     -- skip trigger
     _skip_prefix text := 'zzz_';
     _skip_trg_count integer;
@@ -90,7 +92,6 @@ declare
     _expect_sync boolean := false;
     _merge_all boolean := false;
     _no_merge boolean := false;
-    _skip_truncate boolean := false;
     _no_triggers boolean := false;
     _skip boolean := false;
     _virtual_table boolean := false;
@@ -116,7 +117,7 @@ begin
             elsif arg = 'expect_sync' then
                 _expect_sync := true;
             elsif arg = 'skip_truncate' then
-                _skip_truncate := true;
+                _table_attrs := coalesce(_table_attrs || '&skip_truncate=1', 'skip_truncate=1');
             elsif arg = 'no_triggers' then
                 _no_triggers := true;
             elsif arg = 'merge_all' then
@@ -197,7 +198,7 @@ begin
         return;
     end if;
 
-    select merge_state, local into tbl
+    select merge_state, local, table_attrs into tbl
         from londiste.table_info
         where queue_name = i_queue_name and table_name = fq_table_name;
     if not found then
@@ -215,13 +216,17 @@ begin
         end if;
 
         -- reload info
-        select merge_state, local into tbl
+        select merge_state, local, table_attrs into tbl
             from londiste.table_info
             where queue_name = i_queue_name and table_name = fq_table_name;
     end if;
 
     if tbl.local then
-        select 200, 'Table already added: ' || _desc into ret_code, ret_note;
+        if tbl.table_attrs IS DISTINCT FROM _table_attrs then
+            select 410, 'Table ' || _desc || ' already added, but with different args: ' || coalesce(tbl.table_attrs, '') into ret_code, ret_note;
+        else
+            select 200, 'Table already added: ' || _desc into ret_code, ret_note;
+        end if;
         return;
     end if;
 
@@ -239,7 +244,7 @@ begin
     update londiste.table_info
         set local = true,
             merge_state = new_state,
-            table_attrs = coalesce(i_table_attrs, table_attrs),
+            table_attrs = coalesce(_table_attrs, table_attrs),
             dest_table = nullif(_dest_table, fq_table_name)
         where queue_name = i_queue_name and table_name = fq_table_name;
     if not found then
@@ -284,7 +289,7 @@ begin
             update londiste.table_info
                set local = true,
                    merge_state = new_state,
-                   table_attrs = coalesce(i_table_attrs, table_attrs)
+                   table_attrs = coalesce(_table_attrs, table_attrs)
                where queue_name = _queue_name and table_name = _table_name2;
             if not found then
                 raise exception 'lost table: % on queue %', _table_name2, _queue_name;
@@ -303,18 +308,12 @@ begin
             into _combined_queue, _combined_table;
         if found and _combined_table is null then
             select f.ret_code, f.ret_note
-                from londiste.local_add_table(_combined_queue, fq_table_name, i_trg_args, i_table_attrs, _dest_table) f
+                from londiste.local_add_table(_combined_queue, fq_table_name, i_trg_args, _table_attrs, _dest_table) f
                 into ret_code, ret_note;
             if ret_code >= 300 then
                 return;
             end if;
         end if;
-    end if;
-
-    if _skip_truncate then
-        perform 1
-        from londiste.local_set_table_attrs(i_queue_name, fq_table_name,
-            coalesce(i_table_attrs || '&skip_truncate=1', 'skip_truncate=1'));
     end if;
 
     -------- TRIGGER LOGIC
