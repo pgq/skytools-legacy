@@ -77,6 +77,36 @@ class BaseHandler:
         self.fq_table_name = skytools.quote_fqident(self.table_name)
         self.fq_dest_table = skytools.quote_fqident(self.dest_table)
         self.args = args
+        self._check_args (args)
+
+    def _parse_args_from_doc (self):
+        doc = self.__doc__ or ""
+        params_descr = []
+        params_found = False
+        for line in doc.splitlines():
+            ln = line.strip()
+            if params_found:
+                if ln == "":
+                    break
+                descr = ln.split (None, 1)
+                name, sep, rest = descr[0].partition('=')
+                if sep:
+                    expr = descr[0].rstrip(":")
+                    text = descr[1].lstrip(":- \t")
+                else:
+                    name, expr, text = params_descr.pop()
+                    text += "\n" + ln
+                params_descr.append ((name, expr, text))
+            elif ln == "Parameters:":
+                params_found = True
+        return params_descr
+
+    def _check_args (self, args):
+        passed_arg_names = args.keys() if args else []
+        self.valid_arg_names = list(zip(*self._parse_args_from_doc())[0])
+        invalid = set(passed_arg_names) - set(self.valid_arg_names)
+        if invalid:
+            raise ValueError ("Invalid handler argument: %s" % list(invalid))
 
     def add(self, trigger_arg_list):
         """Called when table is added.
