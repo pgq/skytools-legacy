@@ -102,8 +102,11 @@ class BaseHandler:
         return params_descr
 
     def _check_args (self, args):
+        self.valid_arg_names = []
         passed_arg_names = args.keys() if args else []
-        self.valid_arg_names = list(zip(*self._parse_args_from_doc())[0])
+        args_from_doc = self._parse_args_from_doc()
+        if args_from_doc:
+            self.valid_arg_names = list(zip(*args_from_doc)[0])
         invalid = set(passed_arg_names) - set(self.valid_arg_names)
         if invalid:
             raise ValueError ("Invalid handler argument: %s" % list(invalid))
