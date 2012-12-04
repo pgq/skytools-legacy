@@ -8,8 +8,7 @@ To use set in londiste.ini:
 then add table with:
   londiste3 add-table xx --handler="bulk"
 
-or
-
+or:
   londiste3 add-table xx --handler="bulk(method=X)"
 
 Methods:
@@ -52,11 +51,23 @@ class BulkEvent(object):
         self.pk_data = pk_data
 
 class BulkLoader(BaseHandler):
-    """Instead of statement-per-event, load all data with one
-    big COPY, UPDATE or DELETE statement.
+    """Bulk loading into OLAP database.
+    Instead of statement-per-event, load all data with one big COPY, UPDATE
+    or DELETE statement.
+
+    Parameters:
+      method=TYPE - method to use for copying [0..2] (default: 0)
+
+    Methods:
+      0 (correct) - inserts as COPY into table,
+                    update as COPY into temp table and single UPDATE from there
+                    delete as COPY into temp table and single DELETE from there
+      1 (delete)  - as 'correct', but do update as DELETE + COPY
+      2 (merged)  - as 'delete', but merge insert rows with update rows
     """
     handler_name = 'bulk'
     fake_seq = 0
+
     def __init__(self, table_name, args, dest_table):
         """Init per-batch table data cache."""
 
@@ -361,4 +372,3 @@ class BulkLoader(BaseHandler):
 
 # register handler class
 __londiste_handlers__ = [BulkLoader]
-

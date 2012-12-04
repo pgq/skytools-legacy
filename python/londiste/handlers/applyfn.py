@@ -1,5 +1,5 @@
 """
-Send all events to a db function.
+Send all events to a DB function.
 """
 
 import skytools
@@ -8,7 +8,12 @@ from londiste.handler import BaseHandler
 __all__ = ['ApplyFuncHandler']
 
 class ApplyFuncHandler(BaseHandler):
-    """Call db function to apply event"""
+    """Call DB function to apply event.
+
+    Parameters:
+      func_name=NAME - database function name
+      func_conf=CONF - database function conf
+    """
     handler_name = 'applyfn'
 
     def prepare_batch(self, batch_info, dst_curs):
@@ -37,5 +42,3 @@ class ApplyFuncHandler(BaseHandler):
 #------------------------------------------------------------------------------
 
 __londiste_handlers__ = [ApplyFuncHandler]
-
-

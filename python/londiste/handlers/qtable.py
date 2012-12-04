@@ -2,13 +2,13 @@
 
 Handlers:
 
-qtable      - dummy handler to setup queue tables. All events are ignored. use in 
-              root node
-fake_local  - dummy handler to setup queue tables. All events are ignored. Table
-              structure is not required. Use in branch/leaf
-qsplitter  -  dummy handler to setup queue tables. All events are ignored. Table
-              structure is not required. All table events are inserted to
-              destination queue, specified with handler arg 'queue'.
+qtable     - dummy handler to setup queue tables. All events are ignored. Use in
+             root node.
+fake_local - dummy handler to setup queue tables. All events are ignored. Table
+             structure is not required. Use in branch/leaf.
+qsplitter  - dummy handler to setup queue tables. All events are ignored. Table
+             structure is not required. All table events are inserted to
+             destination queue, specified with handler arg 'queue'.
 
 """
 
@@ -21,7 +21,7 @@ __all__ = ['QueueTableHandler', 'QueueSplitterHandler']
 
 class QueueTableHandler(BaseHandler):
     """Queue table handler. Do nothing.
-    
+
     Trigger: before-insert, skip trigger.
     Event-processing: do nothing.
     """
@@ -44,7 +44,7 @@ class QueueSplitterHandler(BaseHandler):
     """Send events for one table to another queue.
 
     Parameters:
-      queue=QUEUE   Queue name.
+      queue=QUEUE - Queue name.
     """
     handler_name = 'qsplitter'
 

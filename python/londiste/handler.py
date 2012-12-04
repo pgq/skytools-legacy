@@ -106,7 +106,7 @@ class BaseHandler:
         """Called when batch finishes."""
         pass
 
-    def get_copy_condition(self, src_curs, dst_curs):        
+    def get_copy_condition(self, src_curs, dst_curs):
         """ Use if you want to filter data """
         return ''
 
@@ -125,7 +125,7 @@ class BaseHandler:
 
 class TableHandler(BaseHandler):
     """Default Londiste handler, inserts events into tables with plain SQL.
-    
+
     Parameters:
       encoding=ENC - Validate and fix incoming data from encoding.
                      Only 'utf8' is supported at the moment.
@@ -172,13 +172,13 @@ class TableHandler(BaseHandler):
 
     def parse_row_data(self, ev):
         """Extract row data from event, with optional encoding fixes.
-        
+
         Returns either string (sql event) or dict (urlenc event).
         """
 
         if len(ev.type) == 1:
             if not self.allow_sql_event:
-                raise Exception('SQL events not suppoted by this handler')
+                raise Exception('SQL events not supported by this handler')
             if self.enc:
                 return self.enc.validate_string(ev.data, self.table_name)
             return ev.data
@@ -190,9 +190,9 @@ class TableHandler(BaseHandler):
 
     def real_copy(self, src_tablename, src_curs, dst_curs, column_list):
         """do actual table copy and return tuple with number of bytes and rows
-        copyed
+        copied
         """
-	
+
         if self.enc:
             def _write_hook(obj, data):
                 return self.enc.validate_copy(data, column_list, src_tablename)
@@ -211,7 +211,7 @@ class TableHandler(BaseHandler):
 
 class EncodingValidator:
     def __init__(self, log, encoding = 'utf-8', replacement = u'\ufffd'):
-        """validates the correctness of given encoding. when data contains 
+        """validates the correctness of given encoding. when data contains
         illegal symbols, replaces them with <replacement> and logs the
         incident
         """
@@ -352,13 +352,12 @@ def show(mods):
             kls = _handler_map[n]
             desc = kls.__doc__ or ''
             if desc:
-                desc = desc.split('\n', 1)[0]
+                desc = desc.strip().split('\n', 1)[0]
             print("%s - %s" % (n, desc))
     else:
         for n in mods:
             kls = _handler_map[n]
             desc = kls.__doc__ or ''
             if desc:
-                desc = desc.rstrip()
+                desc = desc.strip()
             print("%s - %s" % (n, desc))
-
