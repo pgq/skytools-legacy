@@ -56,7 +56,7 @@ class AdminScript(skytools.DBScript):
         fn(*cmdargs)
 
     def fetch_list(self, db, sql, args, keycol = None):
-        """Fetch a resultset from db, optionally turnin it info value list."""
+        """Fetch a resultset from db, optionally turning it into value list."""
         curs = db.cursor()
         curs.execute(sql, args)
         rows = curs.fetchall()
@@ -107,7 +107,6 @@ class AdminScript(skytools.DBScript):
         print('\n')
         return 1
 
-
     def exec_stmt(self, db, sql, args):
         """Run regular non-query SQL on db."""
         self.log.debug("exec_stmt: %s" % skytools.quote_statement(sql, args))
@@ -123,5 +122,3 @@ class AdminScript(skytools.DBScript):
         res = curs.fetchall()
         db.commit()
         return res
-
-

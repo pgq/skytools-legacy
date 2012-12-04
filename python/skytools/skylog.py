@@ -211,7 +211,7 @@ class LogDBHandler(logging.handlers.SocketHandler):
             self.stat_cache[k] = agg
 
     def flush_stats(self, service):
-        """Send awuired stats to logdb."""
+        """Send acquired stats to logdb."""
         res = []
         for k, v in self.stat_cache.items():
             res.append("%s: %s" % (k, str(v)))

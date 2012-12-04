@@ -1310,7 +1310,6 @@ class CascadeAdmin(skytools.AdminScript):
             time.sleep(1)
         raise Exception('process canceled')
 
-
     def pause_consumer(self, node, consumer):
         """Shortcut for pausing by name."""
         self.set_paused(node, consumer, True)
@@ -1394,4 +1393,3 @@ class CascadeAdmin(skytools.AdminScript):
 if __name__ == '__main__':
     script = CascadeAdmin('setadm', 'node_db', sys.argv[1:], worker_setup = False)
     script.start()
-
