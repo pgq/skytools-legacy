@@ -32,8 +32,7 @@ def handler_args(name, cls):
     return wrapper
 
 def update(*p):
-    """ Update dicts given in params with its precessor param dict
+    """ Update dicts given in params with its predecessor param dict
     in reverse order """
     return reduce(lambda x, y: x.update(y) or x,
             (p[i] for i in range(len(p)-1,-1,-1)), {})
-
