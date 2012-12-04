@@ -5,6 +5,8 @@
 import sys, time, skytools
 from londiste.handler import build_handler, load_handler_modules
 
+from londiste.util import find_copy_source
+
 class ATable:
     def __init__(self, row):
         self.table_name = row['table_name']
@@ -20,7 +22,7 @@ class Syncer(skytools.DBScript):
 
     bad_tables = 0
 
-    provider_node = None
+    provider_info = None
 
     def __init__(self, args):
         """Syncer init."""
@@ -65,25 +67,36 @@ class Syncer(skytools.DBScript):
         self.log.info('Provider: %s (%s)', pnode['node_name'], pnode['node_type'])
         return pnode
 
-    def check_consumer(self, setup_db):
+    def check_consumer(self, setup_db, dst_db):
         """Before locking anything check if consumer is working ok."""
 
         setup_curs = setup_db.cursor()
+        dst_curs = dst_db.cursor()
         c = 0
         while 1:
+            q = "select * from pgq_node.get_consumer_state(%s, %s)"
+            res = self.exec_cmd(dst_db, q, [self.queue_name, self.consumer_name])
+            completed_tick = res[0]['completed_tick']
+
             q = "select extract(epoch from ticker_lag) from pgq.get_queue_info(%s)"
             setup_curs.execute(q, [self.queue_name])
             ticker_lag = setup_curs.fetchone()[0]
-            q = "select extract(epoch from lag)"\
-                " from pgq.get_consumer_info(%s, %s)"
-            setup_curs.execute(q, [self.queue_name, self.consumer_name])
+
+            q = "select extract(epoch from (now() - t.tick_time)) as lag"\
+                " from pgq.tick t, pgq.queue q"\
+                " where q.queue_name = %s"\
+                "   and t.tick_queue = q.queue_id"\
+                "   and t.tick_id = %s"
+            setup_curs.execute(q, [self.queue_name, completed_tick])
             res = setup_curs.fetchall()
 
             if len(res) == 0:
-                self.log.error('No such consumer')
-                sys.exit(1)
-            consumer_lag = res[0][0]
+                self.log.warning('Consumer completed_tick (%d) to not exists on provider (%s), too big lag?',
+                                 completed_tick, self.provider_info['node_name'])
+                self.sleep(10)
+                continue
 
+            consumer_lag = res[0][0]
             if consumer_lag < ticker_lag + 5:
                 break
 
@@ -120,20 +133,8 @@ class Syncer(skytools.DBScript):
 
         # 'SELECT 1' and COPY must use same snapshot, so change isolation level.
         dst_db = self.get_database('db', isolation_level = skytools.I_REPEATABLE_READ)
-        provider_loc = self.get_provider_location(dst_db)
+        pnode, ploc = self.get_provider_location(dst_db)
 
-        lock_db = self.get_database('lock_db', connstr = provider_loc)
-        setup_db = self.get_database('setup_db', autocommit = 1, connstr = provider_loc)
-
-        src_db = self.get_database('provider_db', connstr = provider_loc,
-                                   isolation_level = skytools.I_REPEATABLE_READ)
-
-        setup_curs = setup_db.cursor()
-
-        # provider node info
-        self.provider_node = self.get_provider_info(setup_curs)
-
-        src_tables, ignore = self.get_tables(src_db)
         dst_tables, names = self.get_tables(dst_db)
 
         if len(self.args) > 2:
@@ -146,28 +147,56 @@ class Syncer(skytools.DBScript):
             if not tbl in dst_tables:
                 self.log.warning('Table not subscribed: %s' % tbl)
                 continue
-            if not tbl in src_tables:
-                self.log.warning('Table not available on provider: %s' % tbl)
-                continue
-            t1 = src_tables[tbl]
             t2 = dst_tables[tbl]
-
-            if t1.merge_state != 'ok':
-                self.log.warning('Table %s not ready yet on provider' % tbl)
-                continue
             if t2.merge_state != 'ok':
                 self.log.warning('Table %s not synced yet, no point' % tbl)
                 continue
 
-            self.check_consumer(setup_db)
+            pnode, ploc, wname = find_copy_source(self, self.queue_name, tbl, pnode, ploc)
+            self.log.info('%s: Using node %s as provider', tbl, pnode)
 
-            self.check_table(t1, t2, lock_db, src_db, dst_db, setup_db)
-            lock_db.commit()
-            src_db.commit()
-            dst_db.commit()
+            if wname is None:
+                wname = self.consumer_name
+            self.downstream_worker_name = wname
+
+            self.process_one_table(tbl, t2, dst_db, pnode, ploc)
 
         # signal caller about bad tables
         sys.exit(self.bad_tables)
+
+    def process_one_table(self, tbl, t2, dst_db, provider_node, provider_loc):
+
+        lock_db = self.get_database('lock_db', connstr = provider_loc)
+        setup_db = self.get_database('setup_db', autocommit = 1, connstr = provider_loc)
+
+        src_db = self.get_database('provider_db', connstr = provider_loc,
+                                   isolation_level = skytools.I_REPEATABLE_READ)
+
+        setup_curs = setup_db.cursor()
+
+        # provider node info
+        self.provider_info = self.get_provider_info(setup_curs)
+
+        src_tables, ignore = self.get_tables(src_db)
+        if not tbl in src_tables:
+            self.log.warning('Table not available on provider: %s' % tbl)
+            return
+        t1 = src_tables[tbl]
+
+        if t1.merge_state != 'ok':
+            self.log.warning('Table %s not ready yet on provider' % tbl)
+            return
+
+        #self.check_consumer(setup_db, dst_db)
+
+        self.check_table(t1, t2, lock_db, src_db, dst_db, setup_db)
+        lock_db.commit()
+        src_db.commit()
+        dst_db.commit()
+
+        self.close_database('setup_db')
+        self.close_database('lock_db')
+        self.close_database('provider_db')
 
     def force_tick(self, setup_curs, wait=True):
         q = "select pgq.force_tick(%s)"
@@ -188,8 +217,8 @@ class Syncer(skytools.DBScript):
 
             # dont loop more than 10 secs
             dur = time.time() - start
-            if dur > 10 and not self.options.force:
-                raise Exception("Ticker seems dead")
+            #if dur > 10 and not self.options.force:
+            #    raise Exception("Ticker seems dead")
 
     def check_table(self, t1, t2, lock_db, src_db, dst_db, setup_db):
         """Get transaction to same state, then process."""
@@ -210,10 +239,10 @@ class Syncer(skytools.DBScript):
 
         # lock table against changes
         try:
-            if self.provider_node['node_type'] == 'root':
-                self.lock_table_root(lock_db, setup_db, src_tbl, dst_tbl)
+            if self.provider_info['node_type'] == 'root':
+                self.lock_table_root(lock_db, setup_db, dst_db, src_tbl, dst_tbl)
             else:
-                self.lock_table_branch(lock_db, setup_db, src_tbl, dst_tbl)
+                self.lock_table_branch(lock_db, setup_db, dst_db, src_tbl, dst_tbl)
 
             # take snapshot on provider side
             src_db.commit()
@@ -224,7 +253,7 @@ class Syncer(skytools.DBScript):
             dst_curs.execute("SELECT 1")
         finally:
             # release lock
-            if self.provider_node['node_type'] == 'root':
+            if self.provider_info['node_type'] == 'root':
                 self.unlock_table_root(lock_db, setup_db)
             else:
                 self.unlock_table_branch(lock_db, setup_db)
@@ -238,7 +267,7 @@ class Syncer(skytools.DBScript):
         src_db.commit()
         dst_db.commit()
 
-    def lock_table_root(self, lock_db, setup_db, src_tbl, dst_tbl):
+    def lock_table_root(self, lock_db, setup_db, dst_db, src_tbl, dst_tbl):
 
         setup_curs = setup_db.cursor()
         lock_curs = lock_db.cursor()
@@ -258,24 +287,14 @@ class Syncer(skytools.DBScript):
         # try to force second tick also
         self.force_tick(setup_curs)
 
-        # take server time
-        setup_curs.execute("select to_char(now(), 'YYYY-MM-DD HH24:MI:SS.MS')")
-        tpos = setup_curs.fetchone()[0]
         # now wait
         while 1:
             time.sleep(0.5)
 
-            q = "select now() - lag > timestamp %s, now(), lag"\
-                " from pgq.get_consumer_info(%s, %s)"
-            setup_curs.execute(q, [tpos, self.queue_name, self.consumer_name])
-            res = setup_curs.fetchall()
-
-            if len(res) == 0:
-                raise Exception('No such consumer')
-
-            row = res[0]
-            self.log.debug("tpos=%s now=%s lag=%s ok=%s" % (tpos, row[1], row[2], row[0]))
-            if row[0]:
+            q = "select * from pgq_node.get_node_info(%s)"
+            res = self.exec_cmd(dst_db, q, [self.queue_name])
+            last_tick = res[0]['worker_last_tick']
+            if last_tick > tick_id:
                 break
 
             # limit lock time
@@ -287,36 +306,26 @@ class Syncer(skytools.DBScript):
     def unlock_table_root(self, lock_db, setup_db):
         lock_db.commit()
 
-    def lock_table_branch(self, lock_db, setup_db, src_tbl, dst_tbl):
+    def lock_table_branch(self, lock_db, setup_db, dst_db, src_tbl, dst_tbl):
         setup_curs = setup_db.cursor()
 
         lock_time = time.time()
-        self.pause_consumer(setup_curs, self.provider_node['worker_name'])
+        self.old_worker_paused = self.pause_consumer(setup_curs, self.provider_info['worker_name'])
 
-        setup_curs = setup_db.cursor()
         lock_curs = lock_db.cursor()
+        self.log.info('Syncing %s' % dst_tbl)
 
         # consumer must get futher than this tick
         tick_id = self.force_tick(setup_curs, False)
 
-        # take server time
-        setup_curs.execute("select to_char(now(), 'YYYY-MM-DD HH24:MI:SS.MS')")
-        tpos = setup_curs.fetchone()[0]
         # now wait
         while 1:
             time.sleep(0.5)
 
-            q = "select last_tick >= %s, now(), lag"\
-                " from pgq.get_consumer_info(%s, %s)"
-            setup_curs.execute(q, [tick_id, self.queue_name, self.consumer_name])
-            res = setup_curs.fetchall()
-
-            if len(res) == 0:
-                raise Exception('No such consumer')
-
-            row = res[0]
-            self.log.debug("tpos=%s now=%s lag=%s ok=%s" % (tpos, row[1], row[2], row[0]))
-            if row[0]:
+            q = "select * from pgq_node.get_node_info(%s)"
+            res = self.exec_cmd(dst_db, q, [self.queue_name])
+            last_tick = res[0]['worker_last_tick']
+            if last_tick > tick_id:
                 break
 
             # limit lock time
@@ -326,8 +335,11 @@ class Syncer(skytools.DBScript):
                 sys.exit(1)
 
     def unlock_table_branch(self, lock_db, setup_db):
+        # keep worker paused if it was so before
+        if self.old_worker_paused:
+            return
         setup_curs = setup_db.cursor()
-        self.resume_consumer(setup_curs, self.provider_node['worker_name'])
+        self.resume_consumer(setup_curs, self.provider_info['worker_name'])
 
     def process_sync(self, t1, t2, src_db, dst_db):
         """It gets 2 connections in state where tbl should be in same state.
@@ -338,17 +350,21 @@ class Syncer(skytools.DBScript):
         curs = dst_db.cursor()
         q = "select * from pgq_node.get_node_info(%s)"
         rows = self.exec_cmd(dst_db, q, [self.queue_name])
-        return rows[0]['provider_location']
+        return (rows[0]['provider_node'], rows[0]['provider_location'])
 
     def pause_consumer(self, curs, cons_name):
         self.log.info("Pausing upstream worker: %s", cons_name)
-        self.set_pause_flag(curs, cons_name, True)
+        return self.set_pause_flag(curs, cons_name, True)
 
     def resume_consumer(self, curs, cons_name):
         self.log.info("Resuming upstream worker: %s", cons_name)
-        self.set_pause_flag(curs, cons_name, False)
+        return self.set_pause_flag(curs, cons_name, False)
 
     def set_pause_flag(self, curs, cons_name, flag):
+        q = "select * from pgq_node.get_consumer_state(%s, %s)"
+        res = self.exec_cmd(curs, q, [self.queue_name, cons_name])
+        oldflag = res[0]['paused']
+
         q = "select * from pgq_node.set_consumer_paused(%s, %s, %s)"
         self.exec_cmd(curs, q, [self.queue_name, cons_name, flag])
 
@@ -358,3 +374,5 @@ class Syncer(skytools.DBScript):
             if res[0]['uptodate']:
                 break
             time.sleep(0.5)
+        return oldflag
+

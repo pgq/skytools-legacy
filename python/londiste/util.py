@@ -9,7 +9,7 @@ def handler_allows_copy(table_attrs):
     if not table_attrs:
         return True
     attrs = skytools.db_urldecode(table_attrs)
-    hstr = attrs['handler']
+    hstr = attrs.get('handler', '')
     p = londiste.handler.build_handler('unused.string', hstr, None)
     return p.needs_table()
 

@@ -198,12 +198,12 @@ msg "Test repair"
 run psql -d db3 -c "set session_replication_role='replica'; delete from mytable where data='row5'"
 run londiste3 $v conf/londiste_db3.ini repair --apply mytable
 msg "Test compare"
-run londiste3 $v conf/londiste_db3.ini compare mytable
+run londiste3 conf/londiste_db3.ini compare mytable
 
 msg "Test branch compare"
-run londiste3 $v conf/londiste_db5.ini compare
+run londiste3 conf/londiste_db5.ini compare
 msg "Test branch repair"
-run londiste3 $v conf/londiste_db5.ini repair
+run londiste3 conf/londiste_db5.ini repair
 
 do_check
 fi

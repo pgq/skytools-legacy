@@ -21,7 +21,7 @@ cleardb() {
       drop schema if exists pgq cascade;
   "
   psql -q -t -d $1 -c "
-    select 'drop table ' || relname || ';' from pg_class c, pg_namespace n
+    select 'drop table ' || relname || ' cascade;' from pg_class c, pg_namespace n
     where relnamespace = n.oid and n.nspname = 'public' and c.relkind='r';
   " | psql -q -d $1
   psql -q -t -d $1 -c "
