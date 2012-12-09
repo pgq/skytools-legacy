@@ -211,34 +211,17 @@ class LondisteSetup(CascadeAdmin):
                     newname = dest_table
                 s.create(dst_curs, create_flags, log = self.log, new_table_name = newname)
 
-        tgargs = []
-        if self.options.trigger_arg:
-            tgargs = self.options.trigger_arg
-        tgflags = self.options.trigger_flags
-        if tgflags:
-            tgargs.append('tgflags='+tgflags)
-        if self.options.no_triggers:
-            tgargs.append('no_triggers')
-        if self.options.merge_all:
-            tgargs.append('merge_all')
-        if self.options.no_merge:
-            tgargs.append('no_merge')
+        tgargs = self.build_tgargs()
 
         attrs = {}
+
         if self.options.handler:
-            hstr = londiste.handler.create_handler_string(
-                            self.options.handler, self.options.handler_arg)
-            p = londiste.handler.build_handler(tbl, hstr, self.options.dest_table)
-            attrs['handler'] = hstr
-            p.add(tgargs)
+            attrs['handler'] = self.build_handler(tbl, tgargs, self.options.dest_table)
 
         if self.options.find_copy_node:
             attrs['copy_node'] = '?'
         elif self.options.copy_node:
             attrs['copy_node'] = self.options.copy_node
-
-        if self.options.expect_sync:
-            tgargs.append('expect_sync')
 
         if not self.options.expect_sync:
             if self.options.skip_truncate:
@@ -256,6 +239,33 @@ class LondisteSetup(CascadeAdmin):
         q = "select * from londiste.local_add_table(%s, %s, %s, %s, %s)"
         self.exec_cmd(dst_curs, q, args)
         dst_db.commit()
+
+    def build_tgargs(self):
+        """Build trigger args"""
+        tgargs = []
+        if self.options.trigger_arg:
+            tgargs = self.options.trigger_arg
+        tgflags = self.options.trigger_flags
+        if tgflags:
+            tgargs.append('tgflags='+tgflags)
+        if self.options.no_triggers:
+            tgargs.append('no_triggers')
+        if self.options.merge_all:
+            tgargs.append('merge_all')
+        if self.options.no_merge:
+            tgargs.append('no_merge')
+        if self.options.expect_sync:
+            tgargs.append('expect_sync')
+
+        return tgargs
+
+    def build_handler(self, tbl, tgargs, dest_table=None):
+        """Build handler and push int into tgargs"""
+        hstr = londiste.handler.create_handler_string(
+                        self.options.handler, self.options.handler_arg)
+        p = londiste.handler.build_handler(tbl, hstr, dest_table)
+        p.add(tgargs)
+        return hstr
 
     def handler_needs_table(self):
         if self.options.handler:
@@ -295,6 +305,51 @@ class LondisteSetup(CascadeAdmin):
         args = self.expand_arg_list(db, 'r', True, args)
         q = "select * from londiste.local_remove_table(%s, %s)"
         self.exec_cmd_many(db, q, [self.set_name], args)
+
+    def cmd_change_handler(self, tbl):
+        """Change handler (table_attrs) of the replicated table"""
+
+        self.load_local_info()
+
+        tbl = skytools.fq_name(tbl)
+
+        db = self.get_database('db')
+        curs = db.cursor()
+        q = "select table_attrs, dest_table "\
+            " from londiste.get_table_list(%s) "\
+            " where table_name = %s and local"
+        curs.execute(q, [self.set_name, tbl])
+        if curs.rowcount == 0:
+            self.log.error("Table %s not found on this node" % tbl)
+            sys.exit(1)
+
+        attrs, dest_table = curs.fetchone()
+        attrs = skytools.db_urldecode(attrs or '')
+        old_handler = attrs.get('handler')
+
+        tgargs = self.build_tgargs()
+        if self.options.handler:
+            new_handler = self.build_handler(tbl, tgargs, dest_table)
+        else:
+            new_handler = None
+
+        if old_handler == new_handler:
+            self.log.info("Handler is already set to desired value, nothing done")
+            sys.exit(0)
+
+        if new_handler:
+            attrs['handler'] = new_handler
+        elif 'handler' in attrs:
+            del attrs['handler']
+
+        args = [self.set_name, tbl, tgargs, None]
+        if attrs:
+            args[3] = skytools.db_urlencode(attrs)
+
+        q = "select * from londiste.local_change_handler(%s, %s, %s, %s)"
+        self.exec_cmd(curs, q, args)
+        db.commit()
+
 
     def cmd_add_seq(self, *args):
         """Attach seqs(s) to local node."""

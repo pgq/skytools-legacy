@@ -51,3 +51,21 @@ select tgname from pg_trigger where tgrelid = 'public.trg_test'::regclass order 
 delete from londiste.table_info where table_name = 'public.trg_test';
 select tgname from pg_trigger where tgrelid = 'public.trg_test'::regclass order by 1;
 
+-- handler test
+create table hdlr_test (
+    id int4 primary key,
+    txt text
+);
+
+select * from londiste.local_add_table('aset', 'public.hdlr_test');
+insert into hdlr_test values (1, 'data');
+
+select * from londiste.local_change_handler('aset', 'public.hdlr_test', array['ev_extra4=''test='' || txt'], 'handler=foobar');
+insert into hdlr_test values (2, 'data2');
+
+select * from londiste.local_change_handler('aset', 'public.hdlr_test', array[]::text[], '');
+insert into hdlr_test values (3, 'data3');
+truncate hdlr_test;
+
+select ev_id, ev_type, ev_data, ev_extra1, ev_extra4 from pgq.event_template where ev_extra1 = 'public.hdlr_test';
+

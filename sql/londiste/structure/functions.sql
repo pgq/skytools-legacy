@@ -11,7 +11,9 @@ select londiste.upgrade_schema();
 
 -- Group: Local object registration (setup tool)
 \i functions/londiste.local_add_seq.sql
+\i functions/londiste.create_trigger.sql
 \i functions/londiste.local_add_table.sql
+\i functions/londiste.local_change_handler.sql
 \i functions/londiste.local_remove_seq.sql
 \i functions/londiste.local_remove_table.sql
 

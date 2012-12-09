@@ -24,6 +24,7 @@ Replication Daemon:
 Replication Administration:
   add-table TBL ...     add table to queue
   remove-table TBL ...  remove table from queue
+  change-handler TBL    change handler for the table
   add-seq SEQ ...       add sequence to provider
   remove-seq SEQ ...    remove sequence from provider
   tables                show all tables on provider
@@ -48,7 +49,7 @@ cmd_handlers = (
     (('create-root', 'create-branch', 'create-leaf', 'members', 'tag-dead', 'tag-alive',
       'change-provider', 'rename-node', 'status', 'node-status', 'pause', 'resume', 'node-info',
       'drop-node', 'takeover', 'resurrect'), londiste.LondisteSetup),
-    (('add-table', 'remove-table', 'add-seq', 'remove-seq', 'tables', 'seqs',
+    (('add-table', 'remove-table', 'change-handler', 'add-seq', 'remove-seq', 'tables', 'seqs',
       'missing', 'resync', 'wait-sync', 'wait-root', 'wait-provider',
       'check', 'fkeys', 'execute'), londiste.LondisteSetup),
     (('show-handlers',), londiste.LondisteSetup),
