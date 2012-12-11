@@ -239,6 +239,8 @@ class SysLogHandler(logging.handlers.SysLogHandler):
     # be compatible with both 2.6 and 2.7
     socktype = socket.SOCK_DGRAM
 
+    _udp_reset = 0
+
     def emit(self, record):
         """
         Emit a record.
@@ -268,6 +270,11 @@ class SysLogHandler(logging.handlers.SysLogHandler):
                     self._connect_unixsocket(self.address)
                     self.socket.send(msg)
             elif self.socktype == socket.SOCK_DGRAM:
+                now = time.time()
+                if now - 1 > self._udp_reset:
+                    self.socket.close()
+                    self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                    self._udp_reset = now
                 self.socket.sendto(msg, self.address)
             else:
                 self.socket.sendall(msg)
