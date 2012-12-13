@@ -241,13 +241,7 @@ class SysLogHandler(logging.handlers.SysLogHandler):
 
     _udp_reset = 0
 
-    def emit(self, record):
-        """
-        Emit a record.
-
-        The record is formatted, and then sent to the syslog server. If
-        exception information is present, it is NOT sent to the server.
-        """
+    def _custom_format(self, record):
         msg = self.format(record) + '\000'
         """
         We need to convert record level to lowercase, maybe this will
@@ -255,13 +249,23 @@ class SysLogHandler(logging.handlers.SysLogHandler):
         """
         prio = '<%d>' % self.encodePriority(self.facility,
                                             self.mapPriority(record.levelname))
+        msg = prio + msg
+        return msg
+
+    def emit(self, record):
+        """
+        Emit a record.
+
+        The record is formatted, and then sent to the syslog server. If
+        exception information is present, it is NOT sent to the server.
+        """
+        msg = self._custom_format(record)
         # Message is a string. Convert to bytes as required by RFC 5424
         if type(msg) is unicode:
             msg = msg.encode('utf-8')
             ## this puts BOM in wrong place
             #if codecs:
             #    msg = codecs.BOM_UTF8 + msg
-        msg = prio + msg
         try:
             if self.unixsocket:
                 try:
@@ -283,32 +287,17 @@ class SysLogHandler(logging.handlers.SysLogHandler):
         except:
             self.handleError(record)
 
-
-class SysLogHostnameHandler(logging.handlers.SysLogHandler):
+class SysLogHostnameHandler(SysLogHandler):
     """Slightly modified standard SysLogHandler - sends also hostname and service type"""
 
-    def emit(self, record):
+    def _custom_format(self, record):
         msg = self.format(record)
         format_string = '<%d> %s %s %s\000'
         msg = format_string % (self.encodePriority(self.facility,self.mapPriority(record.levelname)),
                                _hostname,
                                _service_name,
                                msg)
-        if type(msg) is unicode:
-            msg = msg.encode('utf-8')
-        try:
-            if self.unixsocket:
-                try:
-                    self.socket.send(msg)
-                except socket.error:
-                    self._connect_unixsocket(self.address)
-                    self.socket.send(msg)
-            else:
-                self.socket.sendto(msg, self.address)
-        except (KeyboardInterrupt, SystemExit):
-            raise
-        except:
-            self.handleError(record)
+        return msg
 
 try:
     from logging import LoggerAdapter
