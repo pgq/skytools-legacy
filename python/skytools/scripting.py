@@ -779,8 +779,7 @@ class DBScript(BaseScript):
         if cname:
             # Properly named connection
             cname = d.cursor.connection.my_name
-            dsn = getattr(conn, 'dsn', '?')
-            sql = getattr(curs, 'query', '?')
+            sql = getattr(curs, 'query', None) or '?'
             if len(sql) > 200: # avoid logging londiste huge batched queries
                 sql = sql[:60] + " ..."
             self.log.exception("Job %s got error on connection '%s': %s.   Query: %s" % (
