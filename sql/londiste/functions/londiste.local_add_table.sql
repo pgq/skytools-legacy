@@ -68,7 +68,6 @@ declare
     _combined_queue text;
     _combined_table text;
     _table_attrs text := i_table_attrs;
-    -- skip trigger
     -- check local tables from all sources
     _queue_name text;
     _local boolean;
@@ -177,7 +176,7 @@ begin
     end if;
 
     if tbl.local then
-        if tbl.table_attrs IS DISTINCT FROM _table_attrs then
+        if tbl.table_attrs is distinct from _table_attrs then
             select 410, 'Table ' || _desc || ' already added, but with different args: ' || coalesce(tbl.table_attrs, '') into ret_code, ret_note;
         else
             select 200, 'Table already added: ' || _desc into ret_code, ret_note;
@@ -285,13 +284,10 @@ begin
         return;
     end if;
 
-
     -- Check that no trigger exists on the target table that will get fired
-    -- before londiste one (this could have londiste replicate data
-    -- out-of-order
+    -- before londiste one (this could have londiste replicate data out-of-order)
     --
-    -- Don't report all the trigger names, 8.3 does not have array_accum
-    -- available
+    -- Don't report all the trigger names, 8.3 does not have array_accum available.
 
     show server_version_num into pgversion;
     if pgversion >= 90000 then
@@ -394,5 +390,3 @@ begin
     return;
 end;
 $$ language plpgsql strict;
-
-

@@ -78,7 +78,6 @@ class LondisteSetup(CascadeAdmin):
                     help="max number of parallel copy processes")
         p.add_option("--dest-table",
                     help="add: name for actual table")
-
         return p
 
     def extra_init(self, node_type, node_db, provider_db):
@@ -173,7 +172,6 @@ class LondisteSetup(CascadeAdmin):
         if self.options.wait_sync:
             self.wait_for_sync(dst_db)
 
-
     def add_table(self, src_db, dst_db, tbl, create_flags, src_tbls):
         # use full names
         tbl = skytools.fq_name(tbl)
@@ -256,13 +254,12 @@ class LondisteSetup(CascadeAdmin):
             tgargs.append('no_merge')
         if self.options.expect_sync:
             tgargs.append('expect_sync')
-
         return tgargs
 
     def build_handler(self, tbl, tgargs, dest_table=None):
-        """Build handler and push int into tgargs"""
+        """Build handler and return handler string"""
         hstr = londiste.handler.create_handler_string(
-                        self.options.handler, self.options.handler_arg)
+                self.options.handler, self.options.handler_arg)
         p = londiste.handler.build_handler(tbl, hstr, dest_table)
         p.add(tgargs)
         return hstr
@@ -307,7 +304,7 @@ class LondisteSetup(CascadeAdmin):
         self.exec_cmd_many(db, q, [self.set_name], args)
 
     def cmd_change_handler(self, tbl):
-        """Change handler (table_attrs) of the replicated table"""
+        """Change handler (table_attrs) of the replicated table."""
 
         self.load_local_info()
 
@@ -349,7 +346,6 @@ class LondisteSetup(CascadeAdmin):
         q = "select * from londiste.local_change_handler(%s, %s, %s, %s)"
         self.exec_cmd(curs, q, args)
         db.commit()
-
 
     def cmd_add_seq(self, *args):
         """Attach seqs(s) to local node."""
@@ -434,7 +430,7 @@ class LondisteSetup(CascadeAdmin):
         self.exec_cmd_many(db, q, [self.set_name], args)
 
     def cmd_resync(self, *args):
-        """Reload data from provider node.."""
+        """Reload data from provider node."""
         db = self.get_database('db')
         args = self.expand_arg_list(db, 'r', True, args)
         q = "select * from londiste.local_set_table_state(%s, %s, null, null)"
@@ -720,4 +716,3 @@ class LondisteSetup(CascadeAdmin):
                 tinfo[2] += 1
                 if not bak and ev.ev_type == 'D':
                     tinfo[3] = NO_ROLLBACK
-

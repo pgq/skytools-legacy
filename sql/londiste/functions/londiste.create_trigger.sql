@@ -10,19 +10,19 @@ create or replace function londiste.create_trigger(
 as $$
 ------------------------------------------------------------------------
 -- Function: londiste.create_trigger(5)
--- 
+--
 --     Create or replace londiste trigger(s)
--- 
+--
 -- Parameters:
 --      i_queue_name - queue name
 --      i_table_name - table name
 --      i_trg_args   - args to trigger
 --      i_dest_table - actual name of destination table (NULL if same as src)
 --      i_node_type  - l3 node type
--- 
+--
 -- Trigger args:
 --      See documentation for pgq triggers.
--- 
+--
 -- Trigger creation flags (default: AIUDL):
 --      I - ON INSERT
 --      U - ON UPDATE
@@ -32,12 +32,12 @@ as $$
 --      B - BEFORE
 --      A - AFTER
 --      S - SKIP
--- 
+--
 -- Returns:
 --      200 - Ok
 --      201 - Trigger not created
 --      405 - Multiple SKIP triggers
--- 
+--
 ------------------------------------------------------------------------
 declare
     trigger_name text;
@@ -53,6 +53,7 @@ declare
     arg text;
     i integer;
     _extra_args text[] := '{}';
+    -- skip trigger
     _skip_prefix text := 'zzz_';
     _skip_trg_count integer;
     _skip_trg_name text;
@@ -67,6 +68,7 @@ declare
     _no_triggers boolean := false;
     _got_extra1 boolean := false;
 begin
+    -- parse trigger args
     if array_lower(i_trg_args, 1) is not null then
         for i in array_lower(i_trg_args, 1) .. array_upper(i_trg_args, 1) loop
             arg := i_trg_args[i];
@@ -100,7 +102,7 @@ begin
         arg := 'ev_extra1=' || quote_literal(i_table_name);
         _args := array_append(_args, quote_literal(arg));
     end if;
-    
+
     trigger_name := '_londiste_' || i_queue_name;
     lg_func := 'pgq.logutriga';
     lg_event := '';
@@ -178,7 +180,7 @@ begin
     end if;
 
     -- create Ins/Upd/Del trigger if it does not exists already
-    select t.tgargs 
+    select t.tgargs
         from pg_catalog.pg_trigger t
         where t.tgrelid = londiste.find_table_oid(i_dest_table)
             and t.tgname = trigger_name
@@ -190,14 +192,14 @@ begin
             _new_tgargs := _new_tgargs || E'\\000'::bytea || decode(lg_args[i], 'escape');
         end loop;
 
-        if _old_tgargs IS DISTINCT FROM _new_tgargs then
+        if _old_tgargs is distinct from _new_tgargs then
             sql := 'drop trigger if exists ' || quote_ident(trigger_name)
                 || ' on ' || londiste.quote_fqname(i_dest_table);
             execute sql;
         end if;
     end if;
 
-    if not found or _old_tgargs IS DISTINCT FROM _new_tgargs then
+    if not found or _old_tgargs is distinct from _new_tgargs then
         if _no_triggers then
             select 201, 'Trigger not created'
             into ret_code, ret_note;
@@ -205,7 +207,7 @@ begin
         end if;
 
         -- finalize event
-        lg_event := substr(lg_event, 4);
+        lg_event := substr(lg_event, 4); -- remove ' or '
         if lg_event = '' then
             lg_event := 'insert or update or delete';
         end if;
@@ -242,4 +244,3 @@ begin
     return;
 end;
 $$ language plpgsql;
-
