@@ -8,7 +8,7 @@ returns text as $$
 --      and only bumped when database code changes.
 -- ----------------------------------------------------------------------
 begin
-    return '3.1.1';
+    return '3.1.2';
 end;
 $$ language plpgsql;
 
