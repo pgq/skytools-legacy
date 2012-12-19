@@ -7,15 +7,23 @@
     * londiste node-status: Show info about local node.
     * londiste takeover --dead-root: search for node with latest batches.
     * londiste compare/repair: work with tables not available on immediate provider
+    * londiste change-handler: change python handler and trigger on table
+
+  = Minor features and cleanups =
+
     * Auto-upgrade Londiste 2 schema.
     * debian: /etc/skytools.ini is preconfigured for pgqd and londiste3 scripts.
+    * Clean londiste/cascadeadmin --help text.
+    * syncer: Clean up error messages.
+    * syncer: Add missing throttling.
+    * londiste handlers parameter validation.
 
   = Fixes =
 
-    * Clean londiste/cascadeadmin --help text.
     * If pgq.unregister_consumer() is used on subconsumer, don't drop main consumer.
-    * syncer: Clean up error messages.
-    * syncer: Add missing throttling.
+    * londiste add-table throws error if table already exists but with different handler.
+    * syncer: throttle queries when waiting
+    * Fix exception_hook crash if curs.query is None
 
 2012-11-02  -  SkyTools 3.1.2  -  "Tank in a Tarball"
 
