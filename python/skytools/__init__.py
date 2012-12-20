@@ -34,6 +34,9 @@ _symbols = {
     'write_atomic': 'skytools.fileutil:write_atomic',
     # skytools.gzlog
     'gzip_append': 'skytools.gzlog:gzip_append',
+    # skytools.hashtext
+    'hashtext_old': 'skytools.hashtext:hashtext_old',
+    'hashtext_new': 'skytools.hashtext:hashtext_new',
     # skytools.natsort
     'natsort': 'skytools.natsort:natsort',
     'natsort_icase': 'skytools.natsort:natsort_icase',
@@ -133,9 +136,6 @@ _symbols = {
     'parse_iso_timestamp': 'skytools.timeutil:parse_iso_timestamp',
     # skytools.utf8
     'safe_utf8_decode': 'skytools.utf8:safe_utf8_decode',
-    # hashing
-    'hashtext_old': 'skytools.hashtext:hashtext_old',
-    'hashtext_new': 'skytools.hashtext:hashtext_new',
 }
 
 __all__ = _symbols.keys()
@@ -212,4 +212,3 @@ else:
     for k in xall:
         if k not in __all__:
             print '%s missing from top-level?' % k
-

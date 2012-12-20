@@ -89,7 +89,6 @@ def hashtext_old_py(k):
 
     return int(c)
 
-
 #
 # New Postgres hashtext() - hacked lookup3:
 # - custom initval
@@ -160,4 +159,3 @@ except ImportError:
 if __name__ == '__main__':
     import doctest
     doctest.testmod()
-
