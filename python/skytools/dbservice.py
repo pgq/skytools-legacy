@@ -10,7 +10,8 @@ from skytools import dbdict
 __all__ = ['DBService', 'ServiceContext',
     'get_record', 'get_record_list',
     'make_record', 'make_record_array',
-    #'log_result', 'transform_fields', 'TableAPI',
+    'TableAPI',
+    #'log_result', 'transform_fields'
 ]
 
 try:

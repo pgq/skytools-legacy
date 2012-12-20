@@ -10,6 +10,9 @@ Compares numeric parts numerically.
 import re as _re
 _rc = _re.compile(r'\d+|\D+')
 
+__all__ = ['natsort_key', 'natsort', 'natsorted',
+        'natsort_key_icase', 'natsort_icase', 'natsorted_icase']
+
 def natsort_key(s):
     """Split string to numeric and non-numeric fragments."""
     return [ not f[0].isdigit() and f or int(f, 10) for f in _rc.findall(s) ]

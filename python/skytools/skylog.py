@@ -6,6 +6,8 @@ import logging, logging.handlers
 
 import skytools
 
+__all__ = ['getLogger']
+
 # add TRACE level
 TRACE = 5
 logging.TRACE = TRACE
