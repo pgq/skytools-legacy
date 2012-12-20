@@ -1,7 +1,7 @@
 """
 Pure python implementation of Postgres hashes
 
->>> import skytools.hashtext
+>>> import skytools._chashtext
 >>> for i in range(3):
 ...     print [hashtext_new_py('x' * (i*5 + j)) for j in range(5)]
 [-1477818771, 1074944137, -1086392228, -1992236649, -1379736791]
@@ -150,7 +150,7 @@ def hashtext_new_py(k):
 
 
 try:
-    from skytools.hashtext import hashtext_old, hashtext_new
+    from skytools._chashtext import hashtext_old, hashtext_new
 except ImportError:
     hashtext_old = hashtext_old_py
     hashtext_new = hashtext_new_py

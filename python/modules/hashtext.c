@@ -419,10 +419,10 @@ static PyMethodDef methods[] = {
 };
 
 PyMODINIT_FUNC
-inithashtext(void)
+init_chashtext(void)
 {
 	PyObject *module;
-	module = Py_InitModule("hashtext", methods);
+	module = Py_InitModule("_chashtext", methods);
 	PyModule_AddStringConstant(module, "__doc__", "String hash functions");
 }
 
