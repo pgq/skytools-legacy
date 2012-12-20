@@ -2,6 +2,8 @@
 
 # generate per-version files
 
+test -f debian/genpg.sh && cd debian
+
 for v in 8.3 8.4 9.0 9.1 9.2; do
 
 echo "usr/share/doc/postgresql-$v" > "postgresql-$v-pgq3.dirs"
