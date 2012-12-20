@@ -1,8 +1,8 @@
 
 EXTENSION = pgq_node
 
-EXT_VERSION = 3.1
-EXT_OLD_VERSIONS =
+EXT_VERSION = 3.1.3
+EXT_OLD_VERSIONS = 3.1
 
 Extension_regress = pgq_node_init_ext   pgq_node_test
 Contrib_regress   = pgq_node_init_noext pgq_node_test
