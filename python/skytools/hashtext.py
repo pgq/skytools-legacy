@@ -1,5 +1,8 @@
 """
-Pure python implementation of Postgres hashes
+Implementation of Postgres hashing function.
+
+hashtext_old() - used up to PostgreSQL 8.3
+hashtext_new() - used since PostgreSQL 8.4
 
 >>> import skytools._chashtext
 >>> for i in range(3):
@@ -27,10 +30,7 @@ True
 
 import sys, struct
 
-__all__ = [
-    "hashtext_old_py", "hashtext_new_py",
-    "hashtext_old", "hashtext_new"
-]
+__all__ = ["hashtext_old", "hashtext_new"]
 
 # pad for last partial block
 PADDING = '\0' * 12
