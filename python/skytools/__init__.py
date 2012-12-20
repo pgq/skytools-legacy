@@ -134,8 +134,8 @@ _symbols = {
     # skytools.utf8
     'safe_utf8_decode': 'skytools.utf8:safe_utf8_decode',
     # hashing
-    'hashtext_old': 'skytools.pyhashtext:hashtext_old',
-    'hashtext_new': 'skytools.pyhashtext:hashtext_new',
+    'hashtext_old': 'skytools.hashtext:hashtext_old',
+    'hashtext_new': 'skytools.hashtext:hashtext_new',
 }
 
 __all__ = _symbols.keys()

@@ -185,7 +185,7 @@ c_modules = []
 if BUILD_C_MOD:
     ext = [
         Extension("skytools._cquoting", ['python/modules/cquoting.c']),
-        Extension("skytools.hashtext", ['python/modules/hashtext.c']),
+        Extension("skytools._chashtext", ['python/modules/hashtext.c']),
         ]
     c_modules.extend(ext)
 
