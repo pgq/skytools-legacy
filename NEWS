@@ -1,9 +1,9 @@
 
-2012-11-xx  -  SkyTools 3.1.3  -  ""
+2012-12-21  -  SkyTools 3.1.3  -  "Chainsaw-wielding Toothfairy"
 
   = Features =
 
-    * londiste resurrect
+    * londiste resurrect: Sync queue contents on old dead root.
     * londiste node-status: Show info about local node.
     * londiste takeover --dead-root: search for node with latest batches.
     * londiste compare/repair: work with tables not available on immediate provider
@@ -17,6 +17,7 @@
     * syncer: Clean up error messages.
     * syncer: Add missing throttling.
     * londiste handlers parameter validation.
+    * Pure-Python fallback for hashtext module.
 
   = Fixes =
 
@@ -24,6 +25,7 @@
     * londiste add-table throws error if table already exists but with different handler.
     * syncer: throttle queries when waiting
     * Fix exception_hook crash if curs.query is None
+    * Fix extension version mismatches which made them uninstallable.
 
 2012-11-02  -  SkyTools 3.1.2  -  "Tank in a Tarball"
 
