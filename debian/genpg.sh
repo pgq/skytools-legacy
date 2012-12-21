@@ -2,7 +2,17 @@
 
 # generate per-version files
 
-test -f debian/genpg.sh && cd debian
+test -f debian/genpg.sh || {
+  echo "$0: Run it from top-level directory"
+  exit 1
+}
+
+./misc/checkver.sh || {
+  echo "$0: versions out of sync, stop"
+  exit 1
+}
+
+cd debian
 
 for v in 8.3 8.4 9.0 9.1 9.2; do
 
@@ -60,3 +70,5 @@ if test "$v" = "9.1" -o "$v" = "9.2"; then
 fi
 
 done
+
+exit 0
