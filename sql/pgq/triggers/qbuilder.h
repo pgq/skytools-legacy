@@ -1,4 +1,6 @@
 
+#include <lib/stringinfo.h>
+
 /*
  * Callbacks that to argument name/type/value lookups.
  */
