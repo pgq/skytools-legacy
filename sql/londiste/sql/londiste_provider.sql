@@ -63,7 +63,7 @@ insert into hdlr_test values (1, 'data');
 select * from londiste.local_change_handler('aset', 'public.hdlr_test', array['ev_extra4=''test='' || txt'], 'handler=foobar');
 insert into hdlr_test values (2, 'data2');
 
-select * from londiste.local_change_handler('aset', 'public.hdlr_test', array[]::text[], '');
+select * from londiste.local_change_handler('aset', 'public.hdlr_test', '{}'::text[], '');
 insert into hdlr_test values (3, 'data3');
 truncate hdlr_test;
 

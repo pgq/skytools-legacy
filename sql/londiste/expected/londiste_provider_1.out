@@ -112,6 +112,18 @@ select * from londiste.local_add_table('aset', 'public.trg_test', array['ev_extr
       200 | Table added: public.trg_test
 (1 row)
 
+select * from londiste.local_add_table('aset', 'public.trg_test');
+ ret_code |               ret_note               
+----------+--------------------------------------
+      200 | Table already added: public.trg_test
+(1 row)
+
+select * from londiste.local_add_table('aset', 'public.trg_test', array['ev_extra4=''test='' || txt'], 'handler=foobar');
+ ret_code |                            ret_note                            
+----------+----------------------------------------------------------------
+      410 | Table public.trg_test already added, but with different args: 
+(1 row)
+
 insert into trg_test values (1, 'data');
 truncate trg_test;
 select ev_id, ev_type, ev_data, ev_extra1, ev_extra4 from pgq.event_template where ev_extra1 = 'public.trg_test';
@@ -132,4 +144,39 @@ select tgname from pg_trigger where tgrelid = 'public.trg_test'::regclass order 
 ----------------
  _londiste_aset
 (1 row)
+
+-- handler test
+create table hdlr_test (
+    id int4 primary key,
+    txt text
+);
+select * from londiste.local_add_table('aset', 'public.hdlr_test');
+ ret_code |           ret_note            
+----------+-------------------------------
+      200 | Table added: public.hdlr_test
+(1 row)
+
+insert into hdlr_test values (1, 'data');
+select * from londiste.local_change_handler('aset', 'public.hdlr_test', array['ev_extra4=''test='' || txt'], 'handler=foobar');
+ ret_code |                  ret_note                   
+----------+---------------------------------------------
+      200 | Handler changed for table: public.hdlr_test
+(1 row)
+
+insert into hdlr_test values (2, 'data2');
+select * from londiste.local_change_handler('aset', 'public.hdlr_test', '{}'::text[], '');
+ ret_code |                  ret_note                   
+----------+---------------------------------------------
+      200 | Handler changed for table: public.hdlr_test
+(1 row)
+
+insert into hdlr_test values (3, 'data3');
+truncate hdlr_test;
+select ev_id, ev_type, ev_data, ev_extra1, ev_extra4 from pgq.event_template where ev_extra1 = 'public.hdlr_test';
+ ev_id | ev_type |    ev_data     |    ev_extra1     | ev_extra4  
+-------+---------+----------------+------------------+------------
+     7 | I:id    | id=1&txt=data  | public.hdlr_test | 
+     8 | I:id    | id=2&txt=data2 | public.hdlr_test | test=data2
+     9 | I:id    | id=3&txt=data3 | public.hdlr_test | 
+(3 rows)
 
