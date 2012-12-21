@@ -2,6 +2,7 @@
 -- create noext schema
 \set ECHO none
 \set VERBOSITY 'terse'
+set client_min_messages = 'warning';
 \i structure/install.sql
 select pgq.create_queue('testqueue1');
 \set ECHO all
