@@ -1,21 +1,19 @@
 set log_error_verbosity = 'terse';
+set client_min_messages = 'warning';
 create table ref_1 (
     id int4 primary key,
     val text
 );
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "ref_1_pkey" for table "ref_1"
 create table ref_2 (
     id int4 primary key,
     ref int4 not null references ref_1,
     val text
 );
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "ref_2_pkey" for table "ref_2"
 create table ref_3 (
     id int4 primary key,
     ref2 int4 not null references ref_2,
     val text
 );
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "ref_3_pkey" for table "ref_3"
 select * from londiste.global_add_table('branch_set', 'public.ref_1');
  ret_code |         ret_note          
 ----------+---------------------------

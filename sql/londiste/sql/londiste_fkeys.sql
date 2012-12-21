@@ -1,5 +1,6 @@
 
 set log_error_verbosity = 'terse';
+set client_min_messages = 'warning';
 
 create table ref_1 (
     id int4 primary key,
