@@ -10,7 +10,7 @@ pgqd - PGQ ticker daemon
 
 == DESCRIPTION ==
 
-The goal is to be psql-like console for queue administration.
+PgQ ticker and maintenance daemon.  Works with several databases in parallel.
 
 == GENERAL OPTIONS ==
 

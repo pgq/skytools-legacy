@@ -1,4 +1,5 @@
 \set VERBOSITY 'terse'
+set client_min_messages = 'warning';
 
 -- start testing
 create table rtest (

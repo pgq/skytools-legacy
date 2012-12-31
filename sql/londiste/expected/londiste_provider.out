@@ -168,7 +168,7 @@ select * from londiste.local_change_handler('aset', 'public.hdlr_test', array['e
 (1 row)
 
 insert into hdlr_test values (2, 'data2');
-select * from londiste.local_change_handler('aset', 'public.hdlr_test', array[]::text[], '');
+select * from londiste.local_change_handler('aset', 'public.hdlr_test', '{}'::text[], '');
  ret_code |                  ret_note                   
 ----------+---------------------------------------------
       200 | Handler changed for table: public.hdlr_test

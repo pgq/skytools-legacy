@@ -30,6 +30,10 @@
 #include <utils/builtins.h>
 #include <utils/rel.h>
 
+#if PG_VERSION_NUM >= 90300
+#include <access/htup_details.h>
+#endif
+
 #include "common.h"
 #include "stringutil.h"
 #include "qbuilder.h"

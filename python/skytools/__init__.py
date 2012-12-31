@@ -157,6 +157,7 @@ elif 1:
     from skytools.dbstruct import *
     from skytools.fileutil import *
     from skytools.gzlog import *
+    from skytools.hashtext import *
     from skytools.natsort import *
     from skytools.parsing import *
     from skytools.psycopgwrapper import *
@@ -178,6 +179,7 @@ else:
     import skytools.dbstruct
     import skytools.fileutil
     import skytools.gzlog
+    import skytools.hashtext
     import skytools.natsort
     import skytools.parsing
     import skytools.psycopgwrapper
@@ -195,6 +197,7 @@ else:
             + skytools.dbstruct.__all__
             + skytools.fileutil.__all__
             + skytools.gzlog.__all__
+            + skytools.hashtext.__all__
             + skytools.natsort.__all__
             + skytools.parsing.__all__
             + skytools.psycopgwrapper.__all__

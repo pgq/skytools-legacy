@@ -1,4 +1,5 @@
 \set VERBOSITY 'terse'
+set client_min_messages = 'warning';
 
 select * from pgq.maint_tables_to_vacuum();
 select * from pgq.maint_retry_events();

@@ -1,4 +1,5 @@
 \set VERBOSITY 'terse'
+set client_min_messages = 'warning';
 
 -- test sqltriga truncate
 create table trunctrg1 (
