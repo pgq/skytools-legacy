@@ -43,11 +43,15 @@ table_mode:
     * direct - non-partitioned table
     * ignore - all events are ignored
 
+part_func:
+    database function to use for creating partition table.  if not found then
+    parent table is cloned.  default is {londiste|public}.create_partition
+
 part_mode:
-    * batch_time - paritioned by batch creation time (default)
+    * batch_time - partitioned by batch creation time (default)
     * event_time - partitioned by event creation time
-    * date_field - paritioned by date_field value. part_field required
-    * current_time - paritioned by current time
+    * date_field - partitioned by date_field value. part_field required
+    * current_time - partitioned by current time
 
 part_field:
     date_field to use for partition. Required when part_mode=date_field
@@ -878,7 +882,7 @@ class Dispatcher(BaseHandler):
                 curs.execute(pfcall, vals)
             else:
                 #
-                # Otherwise crete simple clone.
+                # Otherwise create simple clone.
                 #
                 # FixMe: differences from create_partitions():
                 # - check constraints
@@ -893,7 +897,7 @@ class Dispatcher(BaseHandler):
 
     def real_copy(self, tablename, src_curs, dst_curs, column_list):
         """do actual table copy and return tuple with number of bytes and rows
-        copyed
+        copied
         """
         _src_cols = _dst_cols = column_list
         condition = ''
