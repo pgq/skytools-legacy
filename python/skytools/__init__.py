@@ -215,4 +215,3 @@ else:
     for k in xall:
         if k not in __all__:
             print '%s missing from top-level?' % k
-

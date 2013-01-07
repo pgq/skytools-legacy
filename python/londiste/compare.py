@@ -12,11 +12,11 @@ __all__ = ['Comparator']
 from londiste.syncer import Syncer
 
 class Comparator(Syncer):
-    """Simple checker based in Syncer.
+    """Simple checker based on Syncer.
     When tables are in sync runs simple SQL query on them.
     """
     def process_sync(self, t1, t2, src_db, dst_db):
-        """Actual comparision."""
+        """Actual comparison."""
 
         src_tbl = t1.dest_table
         dst_tbl = t2.dest_table
@@ -43,7 +43,7 @@ class Comparator(Syncer):
         q = self.cf.get('compare_sql', q)
         q = q.replace("_COLS_", cols)
         src_q = q.replace('_TABLE_', skytools.quote_fqident(src_tbl))
-        if src_where: 
+        if src_where:
             src_q = src_q + " WHERE " + src_where
         dst_q = q.replace('_TABLE_', skytools.quote_fqident(dst_tbl))
         if dst_where:
@@ -109,4 +109,3 @@ class Comparator(Syncer):
 if __name__ == '__main__':
     script = Comparator(sys.argv[1:])
     script.start()
-
