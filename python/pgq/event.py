@@ -2,7 +2,7 @@
 """PgQ event container.
 """
 
-__all__ = ['EV_UNTAGGED', 'EV_RETRY', 'EV_DONE', 'Event']
+__all__ = ['EV_UNTAGGED', 'EV_RETRY', 'EV_DONE', 'Event', 'RetriableEvent']
 
 # Event status codes
 EV_UNTAGGED = -1
@@ -35,9 +35,8 @@ _fldmap = {
 
 class Event(object):
     """Event data for consumers.
-    
-    Consumer is supposed to tag them after processing.
-    If not, events will stay in retry queue.
+
+    Will be removed from the queue by default.
     """
     __slots__ = ('_event_row', '_status', 'retry_time',
                  'queue_name')
@@ -53,10 +52,6 @@ class Event(object):
 
     def tag_done(self):
         self._status = EV_DONE
-
-    def tag_retry(self, retry_time = 60):
-        self._status = EV_RETRY
-        self.retry_time = retry_time
 
     def get_status(self):
         return self._status
@@ -74,3 +69,13 @@ class Event(object):
     def __str__(self):
         return "<id=%d type=%s data=%s e1=%s e2=%s e3=%s e4=%s>" % (
                 self.id, self.type, self.data, self.extra1, self.extra2, self.extra3, self.extra4)
+
+class RetriableEvent(Event):
+    """Event which can be retryed
+
+    Consumer is supposed to tag them after processing.
+    """
+
+    def tag_retry(self, retry_time = 60):
+        self._status = EV_RETRY
+        self.retry_time = retry_time

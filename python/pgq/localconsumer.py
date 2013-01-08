@@ -13,11 +13,11 @@ import sys
 import os
 import errno
 import skytools
-import pgq
+from pgq.baseconsumer import BaseConsumer
 
 __all__ = ['LocalConsumer']
 
-class LocalConsumer(pgq.Consumer):
+class LocalConsumer(BaseConsumer):
     """Consumer that applies batches sequentially in second database.
 
     Requirements:
