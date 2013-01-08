@@ -64,6 +64,8 @@ distclean: sub-distclean
 	rm -rf autom4te.cache config.log config.status config.mak
 
 deb:
+	rm -f debian/control
+	make -f debian/rules debian/control
 	debuild -uc -us -b
 
 tgz: config.mak clean

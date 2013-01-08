@@ -4,32 +4,15 @@
 # Uncomment this to turn on verbose mode.
 #export DH_VERBOSE=1
 
-# This has to be exported to make some magic below work.
-#export DH_OPTIONS
-
-# The build system is averse to VPATH building, so we can't properly use
-# postgresql-server-dev-all
 SRCDIR      = $(CURDIR)
 PKGVERS     = $(shell dpkg-parsechangelog | awk -F '[:-]' '/^Version:/ { print substr($$2, 2) }')
 ORIG_EXCLUDE=--exclude-vcs --exclude=debian
 
-PG_BUILDEXT = ./debian/pg_buildext
+PG_BUILDEXT = pg_buildext
 
-## include /usr/share/postgresql-common/pgxs_debian_control.mk
-# produce a debian/control file from a debian/control.in
-debian/control-pgstamp: debian/control.in debian/pgversions
-	( set -e; \
-	  VERSIONS=`$(PG_BUILDEXT) supported-versions $(CURDIR)`; \
-	  grep-dctrl -vP PGVERSION debian/control.in > debian/control.tmp; \
-	  for v in $$VERSIONS; do                    \
-		grep -q "^$$v" debian/pgversions   \
-		&& grep-dctrl -P PGVERSION debian/control.in       \
-		| sed -e "s:PGVERSION:$$v:" >> debian/control.tmp; \
-	  done; \
-	  mv debian/control.tmp debian/control ) || (rm -f debian/control.tmp; exit 1)
-	touch $@
+include /usr/share/postgresql-common/pgxs_debian_control.mk
 
-config.mak: debian/control-pgstamp
+config.mak:
 	#./autogen.sh
 	./configure --prefix=/usr --with-asciidoc --with-sk3-subdir
 
@@ -41,7 +24,6 @@ override_dh_auto_clean: config.mak
 	for version in `cat $(CURDIR)/debian/pgversions`; do \
 		rm -rf "debian/postgresql-$${version}-pgq3"; \
 	done
-	rm -f debian/control-pgstamp
 
 # build sql modules for several postgres versions
 override_dh_auto_install: config.mak
