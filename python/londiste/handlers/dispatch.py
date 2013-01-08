@@ -44,8 +44,8 @@ table_mode:
     * ignore - all events are ignored
 
 part_func:
-    database function to use for creating partition table.  if not found then
-    parent table is cloned.  default is {londiste|public}.create_partition
+    database function to use for creating partition table.
+    default is {londiste|public}.create_partition
 
 part_mode:
     * batch_time - partitioned by batch creation time (default)
@@ -76,7 +76,7 @@ part_name:
 
 part_template:
     custom sql template for creating partition table. if omitted then partition
-    function is used. when function is missing then parent table is cloned.
+    function is used.
     template variables:
     * dest - destination table name. result on part_name evaluation
     * part - same as dest
