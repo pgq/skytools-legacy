@@ -189,7 +189,7 @@ class BaseScript(object):
 
     Config template::
 
-        ## Parameters for skytools.DBScript ##
+        ## Parameters for skytools.BaseScript ##
 
         # how many seconds to sleep between work loops
         # if missing or 0, then instead sleeping, the script will exit
