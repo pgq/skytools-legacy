@@ -333,6 +333,8 @@ def _parse_arglist(arglist):
 
 def create_handler_string(name, arglist):
     handler = name
+    if name.find('(') >= 0:
+        raise Exception('invalid handler name: %s' % name)
     if arglist:
         args = _parse_arglist(arglist)
         astr = skytools.db_urlencode(args)
