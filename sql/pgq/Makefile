@@ -51,3 +51,8 @@ dox: cleandox $(SRCS)
 	$(CATSQL) --ndoc structure/triggers.sql > docs/sql/triggers.sql
 	$(NDOC) $(NDOCARGS)
 
+doxsync:
+	for m in pgq_coop pgq_node pgq_ext londiste; do \
+		cp docs/Topics.txt docs/Languages.txt ../$$m/docs; \
+	done
+

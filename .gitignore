@@ -54,7 +54,6 @@ sql/londiste/londiste.sql
 sql/londiste/londiste.upgrade.sql
 sql/pgq/pgq.sql
 sql/pgq/pgq.upgrade.sql
-sql/pgq/docs
 sql/pgq_coop/pgq_coop.sql
 sql/pgq_coop/pgq_coop.upgrade.sql
 sql/pgq_ext/pgq_ext.sql

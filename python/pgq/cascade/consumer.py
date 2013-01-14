@@ -6,13 +6,13 @@ Does not maintain node, but is able to pause, resume and switch provider.
 
 import sys, time
 
-from pgq.consumer import Consumer
+from pgq.baseconsumer import BaseConsumer
 
 PDB = '_provider_db'
 
 __all__ = ['CascadedConsumer']
 
-class CascadedConsumer(Consumer):
+class CascadedConsumer(BaseConsumer):
     """CascadedConsumer base class.
 
     Loads provider from target node, accepts pause/resume commands.
@@ -22,13 +22,13 @@ class CascadedConsumer(Consumer):
 
     def __init__(self, service_name, db_name, args):
         """Initialize new consumer.
-        
+
         @param service_name: service_name for DBScript
         @param db_name: target database name for get_database()
         @param args: cmdline args for DBScript
         """
 
-        Consumer.__init__(self, service_name, PDB, args)
+        BaseConsumer.__init__(self, service_name, PDB, args)
 
         self.log.debug("__init__")
 
@@ -36,7 +36,7 @@ class CascadedConsumer(Consumer):
         self.provider_connstr = None
 
     def init_optparse(self, parser = None):
-        p = Consumer.init_optparse(self, parser)
+        p = BaseConsumer.init_optparse(self, parser)
         p.add_option("--provider", help = "provider location for --register")
         p.add_option("--rewind", action = "store_true",
                 help = "change queue position according to destination")
@@ -51,7 +51,7 @@ class CascadedConsumer(Consumer):
         if self.options.reset:
             self.dst_reset()
             sys.exit(0)
-        return Consumer.startup(self)
+        return BaseConsumer.startup(self)
 
     def register_consumer(self, provider_loc = None):
         """Register consumer on source node first, then target node."""
@@ -75,7 +75,7 @@ class CascadedConsumer(Consumer):
             raise Exception('parent node not initialized?')
 
         # source queue
-        Consumer.register_consumer(self)
+        BaseConsumer.register_consumer(self)
 
         # fetch pos
         q = "select last_tick from pgq.get_consumer_info(%s, %s)"
@@ -107,7 +107,7 @@ class CascadedConsumer(Consumer):
         src_db = self.get_provider_db(state)
 
         # unregister on provider
-        Consumer.unregister_consumer(self)
+        BaseConsumer.unregister_consumer(self)
 
         # unregister on subscriber
         q = "select * from pgq_node.unregister_consumer(%s, %s)"
@@ -196,7 +196,7 @@ class CascadedConsumer(Consumer):
             raise Exception('provider_connstr not set')
         src_db = self.get_provider_db(self._consumer_state)
 
-        return Consumer.work(self)
+        return BaseConsumer.work(self)
 
     def refresh_state(self, dst_db, full_logic = True):
         """Fetch consumer state from target node.
@@ -255,7 +255,7 @@ class CascadedConsumer(Consumer):
 
     def process_remote_batch(self, src_db, tick_id, event_list, dst_db):
         """Per-batch callback.
-        
+
         By default just calls process_remote_event() in loop."""
         src_curs = src_db.cursor()
         dst_curs = dst_db.cursor()
@@ -264,7 +264,7 @@ class CascadedConsumer(Consumer):
 
     def process_remote_event(self, src_curs, dst_curs, ev):
         """Per-event callback.
-        
+
         By default ignores cascading events and gives error on others.
         Can be called from user handler to finish unprocessed events.
         """
@@ -290,5 +290,5 @@ class CascadedConsumer(Consumer):
         except:
             self.log.warning("Failure to call pgq_node.set_consumer_error()")
         self.reset()
-        Consumer.exception_hook(self, det, emsg)
+        BaseConsumer.exception_hook(self, det, emsg)
 
