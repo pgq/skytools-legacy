@@ -35,9 +35,14 @@ class Comparator(Syncer):
         # get sane query
         v1 = src_db.server_version
         v2 = dst_db.server_version
-        if (v1 < 80400 or v2 < 80400) and v1 != v2:
+        if v1 < 80300 or v2 < 80300:
+            # 8.2- does not have record to text and text to bit casts, so we need to use a bit of evil hackery
+            q = "select count(1) as cnt, sum(bit_in(textout('x'||substr(md5(textin(record_out(_COLS_))),1,16)), 0, 64)::bigint) as chksum from only _TABLE_"
+        elif (v1 < 80400 or v2 < 80400) and v1 != v2:
+            # hashtext changed in 8.4 so we need to use md5 in case there is 8.3 vs 8.4+ comparison
             q = "select count(1) as cnt, sum(('x'||substr(md5(_COLS_::text),1,16))::bit(64)::bigint) as chksum from only _TABLE_"
         else:
+            # this way is much faster than the above
             q = "select count(1) as cnt, sum(hashtext(_COLS_::text)::bigint) as chksum from only _TABLE_"
 
         q = self.cf.get('compare_sql', q)
