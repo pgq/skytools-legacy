@@ -305,9 +305,6 @@ Do full copy of the table, again.
     Useful if provider does not contain table data locally
     or is simply under load.
 
-  --copy-condition='copy_condition'::
-    Set WHERE expression for copy.
-
   --merge-all::
     Merge tables from all source queues.
 
