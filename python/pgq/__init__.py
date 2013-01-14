@@ -7,8 +7,6 @@ import pgq.consumer
 import pgq.remoteconsumer
 import pgq.producer
 
-import pgq.ticker
-import pgq.maint
 import pgq.status
 
 import pgq.cascade
@@ -24,8 +22,6 @@ from pgq.remoteconsumer import *
 from pgq.localconsumer import *
 from pgq.producer import *
 
-from pgq.ticker import *
-from pgq.maint import *
 from pgq.status import *
 
 from pgq.cascade.nodeinfo import *
@@ -44,8 +40,6 @@ __all__ = (
     pgq.cascade.consumer.__all__ +
     pgq.cascade.worker.__all__ +
     pgq.producer.__all__ +
-    pgq.ticker.__all__ +
-    pgq.maint.__all__ +
     pgq.status.__all__ )
 
 
