@@ -38,8 +38,7 @@ class Event(object):
 
     Will be removed from the queue by default.
     """
-    __slots__ = ('_event_row', 'retry_time',
-                 'queue_name')
+    __slots__ = ('_event_row', 'retry_time', 'queue_name')
 
     def __init__(self, queue_name, row):
         self._event_row = row
@@ -75,7 +74,7 @@ class RetriableEvent(Event):
     Consumer is supposed to tag them after processing.
     """
 
-    __slots__ = Event.__slots__ + ('_status', )
+    __slots__ = ('_status', )
 
     def __init__(self, queue_name, row):
         super(RetriableEvent, self).__init__(self, queue_name, row)
