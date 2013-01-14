@@ -126,7 +126,8 @@ def _init_log(job_name, service_name, cf, log_level, is_daemon):
         skytools.skylog.set_service_name(service_name, job_name)
 
         # load general config
-        flist = ['skylog.ini', '~/.skylog.ini', '/etc/skylog.ini']
+        flist = cf.getlist('skylog_locations',
+                           ['skylog.ini', '~/.skylog.ini', '/etc/skylog.ini'])
         for fn in flist:
             fn = os.path.expanduser(fn)
             if os.path.isfile(fn):
@@ -210,6 +211,9 @@ class BaseScript(object):
         #   1 - enabled, unless non-daemon on console (os.isatty())
         #   2 - always enabled
         #use_skylog = 0
+
+        # where to find skylog.ini
+        #skylog_locations = skylog.ini, ~/.skylog.ini, /etc/skylog.ini
 
         # how many seconds to sleep after catching a exception
         #exception_sleep = 20
