@@ -81,6 +81,11 @@ script::
 disabled::
   If this service should be ignored.
 
+user::
+  Launch service as different unix user.  Scriptmgr uses `sudo`
+  to switch users.  So it either needs to be run as root,
+  or sudo config must allow it to launch daemons.
+
 === Example config file ===
 
   [scriptmgr]
