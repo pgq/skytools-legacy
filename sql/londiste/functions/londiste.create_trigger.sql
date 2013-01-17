@@ -86,7 +86,7 @@ begin
                 _skip := true;
             elsif arg = 'virtual_table' then
                 _no_triggers := true;   -- do not create triggers
-            else
+            elsif arg not in ('expect_sync', 'skip_truncate', 'merge_all', 'no_merge') then -- ignore add-table args
                 if arg like 'ev_extra1=%' then
                     _got_extra1 := true;
                 end if;
