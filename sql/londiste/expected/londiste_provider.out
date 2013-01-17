@@ -185,3 +185,12 @@ select ev_id, ev_type, ev_data, ev_extra1, ev_extra4 from pgq.event_template whe
     11 | R       |                | public.hdlr_test | 
 (4 rows)
 
+-- test proper trigger creation with add-table specific args
+select * from londiste.local_add_table('aset', 'public.trg_test', array['ev_extra4=''test='' || txt', 'expect_sync', 'skip']);
+ ret_code |           ret_note           
+----------+------------------------------
+      200 | Table added: public.trg_test
+(1 row)
+
+insert into trg_test values (2, 'data2');
+ERROR:  SKIP does not work in AFTER trigger.
