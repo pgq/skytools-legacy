@@ -69,3 +69,6 @@ truncate hdlr_test;
 
 select ev_id, ev_type, ev_data, ev_extra1, ev_extra4 from pgq.event_template where ev_extra1 = 'public.hdlr_test';
 
+-- test proper trigger creation with add-table specific args
+select * from londiste.local_add_table('aset', 'public.trg_test', array['ev_extra4=''test='' || txt', 'expect_sync', 'skip']);
+insert into trg_test values (2, 'data2');
