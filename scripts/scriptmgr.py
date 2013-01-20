@@ -83,7 +83,12 @@ def full_path(job, fn):
     if not fn:
         return fn
     if fn[0] == '~':
-        user, rest = fn.split('/',1)[0]
+        if fn.find('/') > 0:
+            user, rest = fn.split('/',1)
+        else:
+            user = fn
+            rest = ''
+
         user = user[1:]
         if not user:
             user = job['user']
