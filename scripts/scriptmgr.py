@@ -74,7 +74,7 @@ def job_sort_cmp(j1, j2):
 
 def launch_cmd(job, cmd):
     if job['user']:
-        cmd = 'sudo -u "%s" %s' % (job['user'], cmd)
+        cmd = 'sudo -nH -u "%s" %s' % (job['user'], cmd)
     return os.system(cmd)
 
 def full_path(job, fn):
