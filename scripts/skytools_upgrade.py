@@ -71,7 +71,7 @@ class DbUpgrade(skytools.DBScript):
 
             # new enough?
             ok, oldver = check_version(curs, schema, ver, recheck_func)
-            if ok:
+            if ok and not self.options.force:
                 continue
 
             # too old schema, no way to upgrade
@@ -166,6 +166,8 @@ class DbUpgrade(skytools.DBScript):
         g.add_option("--user", help = 'username to use')
         g.add_option("--host", help = 'hostname to use')
         g.add_option("--port", help = 'port to use')
+        g.add_option("--force", action = "store_true",
+                     help = 'upgrade even if schema versions are new enough')
         p.add_option_group(g)
         return p
 
