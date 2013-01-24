@@ -24,8 +24,6 @@ class BaseBatchWalker(object):
      - len() after that
     """
 
-    _event_class = Event
-
     def __init__(self, curs, batch_id, queue_name, fetch_size = 300, consumer_filter = None):
         self.queue_name = queue_name
         self.fetch_size = fetch_size
@@ -35,6 +33,9 @@ class BaseBatchWalker(object):
         self.batch_id = batch_id
         self.fetch_status = 0 # 0-not started, 1-in-progress, 2-done
         self.consumer_filter = consumer_filter
+
+    def _make_event(self, queue_name, row):
+        return Event(queue_name, row)
 
     def __iter__(self):
         if self.fetch_status:
@@ -53,7 +54,7 @@ class BaseBatchWalker(object):
 
             self.length += len(rows)
             for row in rows:
-                ev = self._event_class(self, self.queue_name, row)
+                ev = self._make_event(self.queue_name, row)
                 yield ev
 
             # if less rows than requested, it was final block

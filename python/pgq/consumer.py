@@ -31,11 +31,12 @@ class RetriableBatchWalker(BaseBatchWalker):
     """BatchWalker that returns RetriableEvents
     """
 
-    _event_class = RetriableWalkerEvent
-
     def __init__(self, curs, batch_id, queue_name, fetch_size = 300, consumer_filter = None):
         super(RetriableBatchWalker, self).__init__(self, curs, batch_id, queue_name, fetch_size, consumer_filter)
         self.status_map = {}
+
+    def _make_event(self, queue_name, row):
+        return RetriableWalkerEvent(self, queue_name, row)
 
     def tag_event_done(self, event):
         if event.id in self.status_map:
