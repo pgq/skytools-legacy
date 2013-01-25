@@ -38,8 +38,14 @@ def is_version_ge(a, b):
     vb = natsort_key(b)
     return va >= vb
 
+def is_version_gt(a, b):
+    """Return True if a is greater than b."""
+    va = natsort_key(a)
+    vb = natsort_key(b)
+    return va > vb
 
-def check_version(curs, schema, new_ver_str, recheck_func=None):
+
+def check_version(curs, schema, new_ver_str, recheck_func=None, force_gt=False):
     funcname = "%s.version" % schema
     if not skytools.exists_function(curs, funcname, 0):
         if recheck_func is not None:
@@ -49,7 +55,10 @@ def check_version(curs, schema, new_ver_str, recheck_func=None):
     q = "select %s()" % funcname
     curs.execute(q)
     old_ver_str = curs.fetchone()[0]
-    ok = is_version_ge(old_ver_str, new_ver_str)
+    if force_gt:
+        ok = is_version_gt(old_ver_str, new_ver_str)
+    else:
+        ok = is_version_ge(old_ver_str, new_ver_str)
     return ok, old_ver_str
 
 
@@ -70,8 +79,8 @@ class DbUpgrade(skytools.DBScript):
                 continue
 
             # new enough?
-            ok, oldver = check_version(curs, schema, ver, recheck_func)
-            if ok and not self.options.force:
+            ok, oldver = check_version(curs, schema, ver, recheck_func, self.options.force)
+            if ok:
                 continue
 
             # too old schema, no way to upgrade
