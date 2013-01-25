@@ -34,9 +34,10 @@ class Config(object):
                 'job_name': job_name,
                 'service_name': main_section,
                 'host_name': socket.gethostname(),
-                'config_dir': os.path.dirname(filename),
-                'config_file': filename,
             }
+            if filename:
+                self.defs['config_dir'] = os.path.dirname(filename)
+                self.defs['config_file'] = filename
             self.defs.update(user_defs)
 
         self.main_section = main_section
