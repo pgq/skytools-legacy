@@ -52,7 +52,6 @@ class Event(object):
     # unfortunatelly it needs to be defined here due to compatibility concerns
     def tag_done(self):
         pass
-        self._status = EV_DONE
 
     # be also dict-like
     def __getitem__(self, k): return self._event_row.__getitem__(k)
