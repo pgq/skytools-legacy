@@ -32,7 +32,7 @@ class RetriableBatchWalker(BaseBatchWalker):
     """
 
     def __init__(self, curs, batch_id, queue_name, fetch_size = 300, consumer_filter = None):
-        super(RetriableBatchWalker, self).__init__(self, curs, batch_id, queue_name, fetch_size, consumer_filter)
+        super(RetriableBatchWalker, self).__init__(curs, batch_id, queue_name, fetch_size, consumer_filter)
         self.status_map = {}
 
     def _make_event(self, queue_name, row):
