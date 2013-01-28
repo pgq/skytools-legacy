@@ -89,7 +89,7 @@ class Consumer(BaseConsumer):
 
         self._flush_retry(curs, batch_id, list)
 
-        super(Consumer, self)._finish_batch(self, curs, batch_id, list)
+        super(Consumer, self)._finish_batch(curs, batch_id, list)
 
     def _tag_retry(self, cx, batch_id, ev_id, retry_time):
         """Tag event for retry. (internal)"""
