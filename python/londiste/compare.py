@@ -35,7 +35,9 @@ class Comparator(Syncer):
         # get sane query
         v1 = src_db.server_version
         v2 = dst_db.server_version
-        if v1 < 80300 or v2 < 80300:
+        if self.options.count_only:
+            q = "select count(1) as cnt from only _TABLE_"
+        elif v1 < 80300 or v2 < 80300:
             # 8.2- does not have record to text and text to bit casts, so we need to use a bit of evil hackery
             q = "select count(1) as cnt, sum(bit_in(textout('x'||substr(md5(textin(record_out(_COLS_))),1,16)), 0, 64)::bigint) as chksum from only _TABLE_"
         elif (v1 < 80400 or v2 < 80400) and v1 != v2:
@@ -54,7 +56,9 @@ class Comparator(Syncer):
         if dst_where:
             dst_q = dst_q + " WHERE " + dst_where
 
-        f = "%(cnt)d rows, checksum=%(chksum)s"
+        f = "%(cnt)d rows"
+        if not self.options.count_only:
+            f += ", checksum=%(chksum)s"
         f = self.cf.get('compare_fmt', f)
 
         self.log.debug("srcdb: " + src_q)
@@ -110,6 +114,12 @@ class Comparator(Syncer):
             self.log.warning("Ignoring some columns")
 
         return common
+
+    def init_optparse(self, p=None):
+        """Initialize cmdline switches."""
+        p = super(Comparator, self).init_optparse(p)
+        p.add_option("--count-only", action="store_true", help="just count rows, do not compare data")
+        return p
 
 if __name__ == '__main__':
     script = Comparator(sys.argv[1:])

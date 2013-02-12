@@ -154,6 +154,8 @@ class Londiste(skytools.DBScript):
                 help = "add: ignore table differences, repair: ignore lag")
         g.add_option("--apply", action = "store_true",
                 help="repair: apply fixes automatically")
+        p.add_option("--count-only", action="store_true",
+                help="compare: just count rows, do not compare data")
         p.add_option_group(g)
 
         return p
@@ -161,4 +163,3 @@ class Londiste(skytools.DBScript):
 if __name__ == '__main__':
     script = Londiste(sys.argv[1:])
     script.start()
-
