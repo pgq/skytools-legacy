@@ -381,11 +381,11 @@ class BaseScript(object):
         parse command line arguments.
 
         Note that it can be overridden both directions - either DBScript
-        will initialize a instance and passes to user code or user can
+        will initialize an instance and pass it to user code or user can
         initialize and then pass to DBScript.init_optparse().
 
         @param parser: optional OptionParser() instance,
-               where DBScript should attachs its own arguments.
+               where DBScript should attach its own arguments.
         @return: initialized OptionParser() instance.
         """
         if parser:
@@ -393,6 +393,7 @@ class BaseScript(object):
         else:
             p = optparse.OptionParser()
             p.set_usage("%prog [options] INI")
+
         # generic options
         p.add_option("-q", "--quiet", action="store_true",
                      help = "log only errors and warnings")

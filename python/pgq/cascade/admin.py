@@ -29,7 +29,6 @@ Node Initialization:
   create-leaf   NAME PUBLIC_CONNSTR --provider=<public_connstr>
     Initializes node.
 
-
 Node Administration:
   pause                 Pause node worker.
   resume                Resume node worker.
@@ -54,11 +53,9 @@ Cascade layout change:
 
   tag-alive NODE ..
     Tag node as alive
-
 """
 
 standalone_usage = """
-
 setadm extra switches:
 
   pause/resume/change-provider:
@@ -88,8 +85,8 @@ class CascadeAdmin(skytools.AdminScript):
         """Add SetAdmin switches to parser."""
         p = skytools.AdminScript.init_optparse(self, parser)
 
-        usage = command_usage.strip() + standalone_usage
-        p.set_usage(usage)
+        usage = command_usage + standalone_usage
+        p.set_usage(usage.strip())
 
         g = optparse.OptionGroup(p, "actual queue admin options")
         g.add_option("--connstr", action="store_true",
