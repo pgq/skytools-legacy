@@ -86,7 +86,7 @@ class Londiste(skytools.DBScript):
         londiste.Replicator(self.full_args)
 
     def init_optparse(self, parser=None):
-        p = skytools.DBScript.init_optparse(self, parser)
+        p = super(Londiste, self).init_optparse(parser)
         p.set_usage(command_usage.strip())
 
         g = optparse.OptionGroup(p, "options for cascading")
@@ -105,6 +105,7 @@ class Londiste(skytools.DBScript):
         g.add_option("--sync-watermark",
                 help = "create-branch: list of node names to sync wm with")
         p.add_option_group(g)
+
         g = optparse.OptionGroup(p, "repair queue position")
         g.add_option("--rewind", action = "store_true",
                 help = "change queue position according to destination")
@@ -149,11 +150,13 @@ class Londiste(skytools.DBScript):
                 help="max number of parallel copy processes")
         p.add_option_group(g)
 
-        g = optparse.OptionGroup(p, "other options options")
+        g = optparse.OptionGroup(p, "other options")
         g.add_option("--force", action="store_true",
                 help = "add: ignore table differences, repair: ignore lag")
         g.add_option("--apply", action = "store_true",
                 help="repair: apply fixes automatically")
+        p.add_option("--count-only", action="store_true",
+                help="compare: just count rows, do not compare data")
         p.add_option_group(g)
 
         return p
@@ -161,4 +164,3 @@ class Londiste(skytools.DBScript):
 if __name__ == '__main__':
     script = Londiste(sys.argv[1:])
     script.start()
-

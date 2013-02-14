@@ -90,7 +90,7 @@ part_template:
 row_mode:
     how rows are applied to target table
     * plain - each event creates SQL statement to run (default)
-    * keep_latest - change updates to DELETE + INSERT, ignore deletes
+    * keep_latest - change updates to DELETE + INSERT
     * keep_all - change updates to inserts, ignore deletes
 
 event_types:
@@ -592,7 +592,7 @@ class KeepLatestRowHandler(RowHandler):
     def process(self, table, op, row):
         """Keep latest row version.
 
-        Updates are changed to delete + insert, deletes are ignored.
+        Updates are changed to delete + insert
         Makes sense only for partitioned tables.
         """
         if op == 'U':
@@ -600,6 +600,8 @@ class KeepLatestRowHandler(RowHandler):
             RowHandler.process(self, table, 'I', row)
         elif op == 'I':
             RowHandler.process(self, table, 'I', row)
+        elif op == 'D':
+            RowHandler.process(self, table, 'D', row)
 
 
 ROW_HANDLERS = {'plain': RowHandler,
