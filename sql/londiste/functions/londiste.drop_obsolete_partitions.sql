@@ -1,11 +1,11 @@
 
-CREATE OR REPLACE FUNCTION londiste.drop_obsolete_partitions
+create or replace function londiste.drop_obsolete_partitions
 (
-  IN i_parent_table text,
-  IN i_retention_period interval
+  in i_parent_table text,
+  in i_retention_period interval
 )
-  RETURNS SETOF text
-AS $$
+  returns setof text
+as $$
 -------------------------------------------------------------------------------
 --  Function: londiste.drop_obsolete_partitions(2)
 --
@@ -18,22 +18,22 @@ AS $$
 --  Returns:
 --    Names of partitions dropped
 -------------------------------------------------------------------------------
-DECLARE
-  _schema text NOT NULL := lower( split_part( i_parent_table, '.', 1));
-  _table  text NOT NULL := lower( split_part( i_parent_table, '.', 2));
+declare
+  _schema text not null := lower (split_part (i_parent_table, '.', 1));
+  _table  text not null := lower (split_part (i_parent_table, '.', 2));
   _part   text;
-BEGIN
-  FOR _part IN
-    SELECT quote_ident( t.schemaname) ||'.'|| quote_ident( t.tablename)
-      FROM pg_catalog.pg_tables t
-     WHERE t.schemaname = _schema
-       AND t.tablename ~ ('^'|| _table ||'_[0-9]{4}_[0-9]{2}_[0-9]{2}$')
-       AND t.tablename < _table || to_char( now() - i_retention_period, '_YYYY_MM_DD')
-  LOOP
-    EXECUTE 'DROP TABLE '|| _part;
-    RETURN NEXT _part;
-  END LOOP;
-END;
-$$ LANGUAGE plpgsql;
+begin
+  for _part in
+    select quote_ident (t.schemaname) ||'.'|| quote_ident (t.tablename)
+      from pg_catalog.pg_tables t
+     where t.schemaname = _schema
+       and t.tablename ~ ('^'|| _table ||'_[0-9]{4}_[0-9]{2}_[0-9]{2}$')
+       and t.tablename < _table || to_char (now() - i_retention_period, '_YYYY_MM_DD')
+  loop
+    execute 'drop table '|| _part;
+    return next _part;
+  end loop;
+end;
+$$ language plpgsql;
 
 -- vim:et:sw=2:ts=2:nowrap:
