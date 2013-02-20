@@ -187,7 +187,7 @@ begin
         into _old_tgargs;
 
     if found then
-        _new_tgargs := lg_args[1];
+        _new_tgargs := decode(lg_args[1], 'escape');
         for i in 2 .. array_upper(lg_args, 1) loop
             _new_tgargs := _new_tgargs || E'\\000'::bytea || decode(lg_args[i], 'escape');
         end loop;
