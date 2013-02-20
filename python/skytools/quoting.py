@@ -53,7 +53,7 @@ def quote_statement(sql, dict_or_list):
 # reserved keywords
 _ident_kwmap = {
 "all":1, "analyse":1, "analyze":1, "and":1, "any":1, "array":1, "as":1,
-"asc":1, "asymmetric":1, "both":1, "case":1, "cast":1, "check":1, "collate":1,
+"asc":1, "asymmetric":1, "authorization":1, "both":1, "case":1, "cast":1, "check":1, "collate":1,
 "column":1, "constraint":1, "create":1, "current_date":1, "current_role":1,
 "current_time":1, "current_timestamp":1, "current_user":1, "default":1,
 "deferrable":1, "desc":1, "distinct":1, "do":1, "else":1, "end":1, "except":1,
