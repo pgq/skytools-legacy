@@ -109,19 +109,19 @@ $ londiste3 -q conf/londiste_db1.ini add-seq mytable_id_seq
 Register table on other node with creation
 
 ----
-$ psql -d db2 -c create sequence mytable_id_seq
+$ psql -d db2 -c "create sequence mytable_id_seq"
 CREATE SEQUENCE
 $ londiste3 -q conf/londiste_db2.ini add-seq mytable_id_seq
 $ londiste3 -q conf/londiste_db2.ini add-table mytable --create-full
-$ psql -d db3 -c create sequence mytable_id_seq
+$ psql -d db3 -c "create sequence mytable_id_seq"
 CREATE SEQUENCE
 $ londiste3 -q conf/londiste_db3.ini add-seq mytable_id_seq
 $ londiste3 -q conf/londiste_db3.ini add-table mytable --create-full
-$ psql -d db4 -c create sequence mytable_id_seq
+$ psql -d db4 -c "create sequence mytable_id_seq"
 CREATE SEQUENCE
 $ londiste3 -q conf/londiste_db4.ini add-seq mytable_id_seq
 $ londiste3 -q conf/londiste_db4.ini add-table mytable --create-full
-$ psql -d db5 -c create sequence mytable_id_seq
+$ psql -d db5 -c "create sequence mytable_id_seq"
 CREATE SEQUENCE
 $ londiste3 -q conf/londiste_db5.ini add-seq mytable_id_seq
 $ londiste3 -q conf/londiste_db5.ini add-table mytable --create-full
@@ -255,5 +255,3 @@ node2 (root)
 ----
 
 That's it!
-
-
