@@ -106,7 +106,7 @@ begin
     trigger_name := '_londiste_' || i_queue_name;
     lg_func := 'pgq.logutriga';
     lg_event := '';
-    lg_args := array[i_queue_name];
+    lg_args := array[quote_literal(i_queue_name)];
     lg_pos := 'after';
 
     if array_lower(_args, 1) is not null then
@@ -230,7 +230,7 @@ begin
           where tgrelid = londiste.find_table_oid(i_dest_table)
             and tgname = trunctrg_name;
         if not found then
-            _extra_args := i_queue_name || _extra_args;
+            _extra_args := quote_literal(i_queue_name) || _extra_args;
             sql := 'create trigger ' || quote_ident(trunctrg_name)
                 || ' after truncate on ' || londiste.quote_fqname(i_dest_table)
                 || ' for each statement execute procedure pgq.sqltriga('
