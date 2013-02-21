@@ -793,8 +793,6 @@ class Dispatcher(BaseHandler):
         if self.conf.table_mode == 'part':
             dst, part_time = self.split_format(ev, data)
             if dst not in self.row_handler.table_map:
-                if self.conf.retention_period:
-                    self.drop_obsolete_partitions (self.dest_table, self.conf.retention_period, self.conf.period)
                 self.check_part(dst, part_time)
         else:
             dst = self.dest_table
@@ -905,8 +903,12 @@ class Dispatcher(BaseHandler):
         exec_with_vals(self.conf.post_part)
         self.log.info("Created table: %s" % dst)
 
+        if self.conf.retention_period:
+            self.drop_obsolete_partitions (self.dest_table, self.conf.retention_period, self.conf.period)
+
     def drop_obsolete_partitions (self, parent_table, retention_period, partition_period):
-        """ Drop obsolete partitions of partition-by-date parent table. """
+        """ Drop obsolete partitions of partition-by-date parent table.
+        """
         curs = self.dst_curs
         func = RETENTION_FUNC
         args = [parent_table, retention_period, partition_period]
