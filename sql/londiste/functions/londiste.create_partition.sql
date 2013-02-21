@@ -123,7 +123,7 @@ begin
 
     -- set proper part table ownership
     if owner != user then
-        sql = 'alter table ' || fq_part || ' owner to ' || owner;
+        sql = 'alter table ' || fq_part || ' owner to ' || quote_ident(owner);
         execute sql;
     end if;
 
