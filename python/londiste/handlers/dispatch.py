@@ -193,6 +193,8 @@ PART_FUNC_OLD = 'public.create_partition'
 PART_FUNC_NEW = 'londiste.create_partition'
 PART_FUNC_ARGS = ['parent', 'part', 'pkeys', 'part_field', 'part_time', 'period']
 
+RETENTION_FUNC = "londiste.drop_obsolete_partitions"
+
 
 
 #------------------------------------------------------------------------------
@@ -906,10 +908,16 @@ class Dispatcher(BaseHandler):
     def drop_obsolete_partitions (self, parent_table, retention_period, partition_period):
         """ Drop obsolete partitions of partition-by-date parent table. """
         curs = self.dst_curs
-        func = "londiste.drop_obsolete_partitions"
+        func = RETENTION_FUNC
         args = [parent_table, retention_period, partition_period]
+        sql = "select " + func + " (%s, %s, %s)"
         self.log.debug("func: %s, args: %s" % (func, args))
-        curs.callproc (func, args)
+        curs.execute (sql, args)
+        res = []
+        for row in curs.fetchall():
+            res.append(row[0])
+        if res:
+            self.log.info("Dropped tables: %s", ", ".join(res))
 
     def real_copy(self, tablename, src_curs, dst_curs, column_list):
         """do actual table copy and return tuple with number of bytes and rows

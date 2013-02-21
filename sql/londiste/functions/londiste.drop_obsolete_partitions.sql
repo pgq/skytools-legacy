@@ -5,7 +5,7 @@ create or replace function londiste.drop_obsolete_partitions
     in i_retention_period interval,
     in i_partition_period text
 )
-    returns void
+    returns setof text
 as $$
 -------------------------------------------------------------------------------
 --  Function: londiste.drop_obsolete_partitions(3)
@@ -16,6 +16,9 @@ as $$
 --    i_parent_table        Master table from which partitions are inherited
 --    i_retention_period    How long to keep partitions around
 --    i_partition_period    One of: year, month, day, hour
+--
+--  Returns:
+--    Names of partitions dropped
 -------------------------------------------------------------------------------
 declare
     _schema text not null := lower (split_part (i_parent_table, '.', 1));
@@ -52,8 +55,8 @@ begin
            and t.tablename ~ ('^'|| _table || _expr ||'$')
            and t.tablename < _table || to_char (now() - i_retention_period, _dfmt)
     loop
-        raise notice 'DROP TABLE %', _part;
         execute 'drop table '|| _part;
+        return next _part;
     end loop;
 end;
 $$ language plpgsql;
