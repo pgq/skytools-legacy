@@ -64,7 +64,7 @@ class CopyTable(Replicator):
             if tbl_stat.copy_role == 'wait-copy':
                 self.log.info('waiting for first partition to initialize copy')
             elif tbl_stat.max_parallel_copies_reached():
-                self.log.info('number of max parallel copies (%s) reached' %\
+                self.log.info('number of max parallel copies (%s) reached',
                                 tbl_stat.max_parallel_copy)
             else:
                 break
@@ -81,7 +81,7 @@ class CopyTable(Replicator):
             if pt.state == TABLE_OK:
                 break
 
-            self.log.warning("table %s not in sync yet on provider, waiting" % tbl_stat.name)
+            self.log.warning("table %s not in sync yet on provider, waiting", tbl_stat.name)
             time.sleep(10)
 
         src_real_table = pt.dest_table
@@ -102,7 +102,7 @@ class CopyTable(Replicator):
 
         self.sync_database_encodings(src_db, dst_db)
 
-        self.log.info("Starting full copy of %s" % tbl_stat.name)
+        self.log.info("Starting full copy of %s", tbl_stat.name)
 
         # just in case, drop all fkeys (in case "replay" was skipped)
         # !! this may commit, so must be done before anything else !!
@@ -124,14 +124,14 @@ class CopyTable(Replicator):
         common_cols = []
         for c in slist:
             if c not in dlist:
-                self.log.warning("Table %s column %s does not exist on subscriber"
-                                 % (tbl_stat.name, c))
+                self.log.warning("Table %s column %s does not exist on subscriber",
+                                 tbl_stat.name, c)
             else:
                 common_cols.append(c)
         for c in dlist:
             if c not in slist:
-                self.log.warning("Table %s column %s does not exist on provider"
-                                 % (tbl_stat.name, c))
+                self.log.warning("Table %s column %s does not exist on provider",
+                                 tbl_stat.name, c)
 
         # drop unnecessary stuff
         if cmode > 0:
@@ -140,9 +140,9 @@ class CopyTable(Replicator):
 
             # drop data
             if tbl_stat.table_attrs.get('skip_truncate'):
-                self.log.info("%s: skipping truncate" % tbl_stat.name)
+                self.log.info("%s: skipping truncate", tbl_stat.name)
             else:
-                self.log.info("%s: truncating" % tbl_stat.name)
+                self.log.info("%s: truncating", tbl_stat.name)
                 q = "truncate "
                 if dst_db.server_version >= 80400:
                     q += "only "
@@ -160,12 +160,12 @@ class CopyTable(Replicator):
                 tbl_stat.dropped_ddl = ddl
 
         # do truncate & copy
-        self.log.info("%s: start copy" % tbl_stat.name)
+        self.log.info("%s: start copy", tbl_stat.name)
         p = tbl_stat.get_plugin()
         stats = p.real_copy(src_real_table, src_curs, dst_curs, common_cols)
         if stats:
-            self.log.info("%s: copy finished: %d bytes, %d rows" % (
-                          tbl_stat.name, stats[0], stats[1]))
+            self.log.info("%s: copy finished: %d bytes, %d rows",
+                          tbl_stat.name, stats[0], stats[1])
 
         # get snapshot
         src_curs.execute("select txid_current_snapshot()")
@@ -269,4 +269,3 @@ class CopyTable(Replicator):
 if __name__ == '__main__':
     script = CopyTable(sys.argv[1:])
     script.start()
-

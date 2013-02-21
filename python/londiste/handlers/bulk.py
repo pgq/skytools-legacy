@@ -82,7 +82,7 @@ class BulkLoader(BaseHandler):
         if not self.method in (0,1,2):
             raise Exception('unknown method: %s' % self.method)
 
-        self.log.debug('bulk_init(%s), method=%d' % (repr(args), self.method))
+        self.log.debug('bulk_init(%r), method=%d', args, self.method)
 
     def reset(self):
         self.pkey_ev_map = {}
@@ -98,7 +98,7 @@ class BulkLoader(BaseHandler):
         op = ev.ev_type[0]
         if op not in 'IUD':
             raise Exception('Unknown event type: '+ev.ev_type)
-        self.log.debug('bulk.process_event: %s/%s' % (ev.ev_type, ev.ev_data))
+        self.log.debug('bulk.process_event: %s/%s', ev.ev_type, ev.ev_data)
         # pkey_list = ev.ev_type[2:].split(',')
         data = skytools.db_urldecode(ev.ev_data)
 
@@ -184,8 +184,8 @@ class BulkLoader(BaseHandler):
 
         real_update_count = len(upd_list)
 
-        self.log.debug("bulk_flush: %s  (I/U/D = %d/%d/%d)" % (
-                       self.table_name, len(ins_list), len(upd_list), len(del_list)))
+        self.log.debug("bulk_flush: %s  (I/U/D = %d/%d/%d)",
+                self.table_name, len(ins_list), len(upd_list), len(del_list))
 
         # hack to unbroke stuff
         if self.method == METH_MERGED:
@@ -200,8 +200,8 @@ class BulkLoader(BaseHandler):
         for fld in self.dist_fields:
             if fld not in key_fields:
                 key_fields.append(fld)
-        self.log.debug("PKey fields: %s  Dist fields: %s" % (
-                       ",".join(self.pkey_list), ",".join(self.dist_fields)))
+        self.log.debug("PKey fields: %s  Dist fields: %s",
+                       ",".join(self.pkey_list), ",".join(self.dist_fields))
 
         # create temp table
         temp, qtemp = self.create_temp_table(curs)
@@ -241,67 +241,67 @@ class BulkLoader(BaseHandler):
 
         # process deleted rows
         if len(del_list) > 0:
-            self.log.debug("bulk: Deleting %d rows from %s" % (len(del_list), tbl))
+            self.log.debug("bulk: Deleting %d rows from %s", len(del_list), tbl)
             # delete old rows
             q = "truncate %s" % qtemp
-            self.log.debug('bulk: %s' % q)
+            self.log.debug('bulk: %s', q)
             curs.execute(q)
             # copy rows
-            self.log.debug("bulk: COPY %d rows into %s" % (len(del_list), temp))
+            self.log.debug("bulk: COPY %d rows into %s", len(del_list), temp)
             skytools.magic_insert(curs, qtemp, del_list, col_list, quoted_table=1)
             # delete rows
-            self.log.debug('bulk: ' + del_sql)
+            self.log.debug('bulk: %s', del_sql)
             curs.execute(del_sql)
-            self.log.debug("bulk: %s - %d" % (curs.statusmessage, curs.rowcount))
+            self.log.debug("bulk: %s - %d", curs.statusmessage, curs.rowcount)
             if len(del_list) != curs.rowcount:
-                self.log.warning("Delete mismatch: expected=%s deleted=%d"
-                        % (len(del_list), curs.rowcount))
+                self.log.warning("Delete mismatch: expected=%s deleted=%d",
+                        len(del_list), curs.rowcount)
             temp_used = True
 
         # process updated rows
         if len(upd_list) > 0:
-            self.log.debug("bulk: Updating %d rows in %s" % (len(upd_list), tbl))
+            self.log.debug("bulk: Updating %d rows in %s", len(upd_list), tbl)
             # delete old rows
             q = "truncate %s" % qtemp
-            self.log.debug('bulk: ' + q)
+            self.log.debug('bulk: %s', q)
             curs.execute(q)
             # copy rows
-            self.log.debug("bulk: COPY %d rows into %s" % (len(upd_list), temp))
+            self.log.debug("bulk: COPY %d rows into %s", len(upd_list), temp)
             skytools.magic_insert(curs, qtemp, upd_list, col_list, quoted_table=1)
             temp_used = True
             if self.method == METH_CORRECT:
                 # update main table
-                self.log.debug('bulk: ' + upd_sql)
+                self.log.debug('bulk: %s', upd_sql)
                 curs.execute(upd_sql)
-                self.log.debug("bulk: %s - %d" % (curs.statusmessage, curs.rowcount))
+                self.log.debug("bulk: %s - %d", curs.statusmessage, curs.rowcount)
                 # check count
                 if len(upd_list) != curs.rowcount:
-                    self.log.warning("Update mismatch: expected=%s updated=%d"
-                            % (len(upd_list), curs.rowcount))
+                    self.log.warning("Update mismatch: expected=%s updated=%d",
+                            len(upd_list), curs.rowcount)
             else:
                 # delete from main table
-                self.log.debug('bulk: ' + del_sql)
+                self.log.debug('bulk: %s', del_sql)
                 curs.execute(del_sql)
-                self.log.debug('bulk: ' + curs.statusmessage)
+                self.log.debug('bulk: %s', curs.statusmessage)
                 # check count
                 if real_update_count != curs.rowcount:
-                    self.log.warning("bulk: Update mismatch: expected=%s deleted=%d"
-                            % (real_update_count, curs.rowcount))
+                    self.log.warning("bulk: Update mismatch: expected=%s deleted=%d",
+                            real_update_count, curs.rowcount)
                 # insert into main table
                 if AVOID_BIZGRES_BUG:
                     # copy again, into main table
-                    self.log.debug("bulk: COPY %d rows into %s" % (len(upd_list), tbl))
+                    self.log.debug("bulk: COPY %d rows into %s", len(upd_list), tbl)
                     skytools.magic_insert(curs, qtbl, upd_list, col_list, quoted_table=1)
                 else:
                     # better way, but does not work due bizgres bug
-                    self.log.debug('bulk: ' + ins_sql)
+                    self.log.debug('bulk: %s', ins_sql)
                     curs.execute(ins_sql)
-                    self.log.debug('bulk: ' + curs.statusmessage)
+                    self.log.debug('bulk: %s', curs.statusmessage)
 
         # process new rows
         if len(ins_list) > 0:
-            self.log.debug("bulk: Inserting %d rows into %s" % (len(ins_list), tbl))
-            self.log.debug("bulk: COPY %d rows into %s" % (len(ins_list), tbl))
+            self.log.debug("bulk: Inserting %d rows into %s", len(ins_list), tbl)
+            self.log.debug("bulk: COPY %d rows into %s", len(ins_list), tbl)
             skytools.magic_insert(curs, qtbl, ins_list, col_list, quoted_table=1)
 
         # delete remaining rows
@@ -311,7 +311,7 @@ class BulkLoader(BaseHandler):
             else:
                 # fscking problems with long-lived temp tables
                 q = "drop table %s" % qtemp
-            self.log.debug('bulk: ' + q)
+            self.log.debug('bulk: %s', q)
             curs.execute(q)
 
         self.reset()
@@ -326,19 +326,19 @@ class BulkLoader(BaseHandler):
         # check if exists
         if USE_REAL_TABLE:
             if skytools.exists_table(curs, tempname):
-                self.log.debug("bulk: Using existing real table %s" % tempname)
+                self.log.debug("bulk: Using existing real table %s", tempname)
                 return tempname, quote_fqident(tempname)
 
             # create non-temp table
             q = "create table %s (like %s)" % (
                         quote_fqident(tempname),
                         quote_fqident(self.dest_table))
-            self.log.debug("bulk: Creating real table: %s" % q)
+            self.log.debug("bulk: Creating real table: %s", q)
             curs.execute(q)
             return tempname, quote_fqident(tempname)
         elif USE_LONGLIVED_TEMP_TABLES:
             if skytools.exists_temp_table(curs, tempname):
-                self.log.debug("bulk: Using existing temp table %s" % tempname)
+                self.log.debug("bulk: Using existing temp table %s", tempname)
                 return tempname, quote_ident(tempname)
 
         # bizgres crashes on delete rows
@@ -347,7 +347,7 @@ class BulkLoader(BaseHandler):
         # create temp table for loading
         q = "create temp table %s (like %s) %s" % (
                 quote_ident(tempname), quote_fqident(self.dest_table), arg)
-        self.log.debug("bulk: Creating temp table: %s" % q)
+        self.log.debug("bulk: Creating temp table: %s", q)
         curs.execute(q)
         return tempname, quote_ident(tempname)
 
