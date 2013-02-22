@@ -2,12 +2,11 @@
 
 ## NB: not all commands work ##
 
-"""cascaded queue administration.
+"""Cascaded queue administration.
 
 londiste.py INI pause [NODE [CONS]]
 
 setadm.py INI pause NODE [CONS]
-
 
 """
 
@@ -67,7 +66,7 @@ setadm extra switches:
 
 
 class CascadeAdmin(skytools.AdminScript):
-    """Cascaded pgq administration."""
+    """Cascaded PgQ administration."""
     queue_name = None
     queue_info = None
     extra_objs = []
@@ -243,7 +242,6 @@ class CascadeAdmin(skytools.AdminScript):
                           [ self.queue_name, node_type, node_name, worker_name,
                             provider_name, global_watermark, combined_queue ])
 
-
         self.extra_init(node_type, db, provider_db)
 
         if node_attrs:
@@ -266,7 +264,6 @@ class CascadeAdmin(skytools.AdminScript):
 
         while 1:
             db = self.get_database('root_db', connstr = loc)
-
 
             # query current status
             res = self.exec_query(db, "select * from pgq_node.get_node_info(%s)", [self.queue_name])
@@ -558,9 +555,6 @@ class CascadeAdmin(skytools.AdminScript):
             except skytools.DBError, d:
                 self.log.warning("Failed to remove from '%s': %s", n.name, str(d))
 
-
-
-
     def node_depends(self, sub_node, top_node):
         cur_node = sub_node
         # walk upstream
@@ -603,7 +597,6 @@ class CascadeAdmin(skytools.AdminScript):
             info = self.load_node_info(new)
             if info.completed_tick >= last_tick:
                 return info
-
 
     def takeover_root(self, old_node_name, new_node_name, failover = False):
         """Root switchover."""
@@ -955,7 +948,7 @@ class CascadeAdmin(skytools.AdminScript):
                 node_db.commit()
                 if len(cons_rows) == 1:
                     if prov_node:
-                        raise Exception('Unexcpeted situation: there are two gravestones - on nodes %s and %s' % (prov_node, node_name))
+                        raise Exception('Unexpected situation: there are two gravestones - on nodes %s and %s' % (prov_node, node_name))
                     prov_node = node_name
                     failover_tick = cons_rows[0]['last_tick']
                     self.log.info("Found gravestone on node: %s", node_name)

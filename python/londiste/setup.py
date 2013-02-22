@@ -536,7 +536,6 @@ class LondisteSetup(CascadeAdmin):
             self.provider_location = res[0]['provider_location']
         return self.get_database('provider_db', connstr = self.provider_location)
 
-
     def expand_arg_list(self, db, kind, existing, args, needs_tbl=True):
         curs = db.cursor()
 
@@ -570,14 +569,12 @@ class LondisteSetup(CascadeAdmin):
             else:
                 return lst_missing
 
-
         allow_nonexist = not needs_tbl
         if existing:
             res = self.solve_globbing(args, lst_exists, map_exists, map_missing, allow_nonexist)
         else:
             res = self.solve_globbing(args, lst_missing, map_missing, map_exists, allow_nonexist)
         return res
-
 
     def solve_globbing(self, args, full_list, full_map, reverse_map, allow_nonexist):
         def glob2regex(s):

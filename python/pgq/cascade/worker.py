@@ -121,7 +121,7 @@ class CascadedWorker(CascadedConsumer):
 
     def __init__(self, service_name, db_name, args):
         """Initialize new consumer.
-        
+
         @param service_name: service_name for DBScript
         @param db_name: target database name for get_database()
         @param args: cmdline args for DBScript
@@ -444,4 +444,3 @@ class CascadedWorker(CascadedConsumer):
         dst_curs.execute(q, [self.pgq_queue_name])
         dst_db.commit()
         self.global_wm_publish_time = t
-
