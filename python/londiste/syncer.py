@@ -145,11 +145,11 @@ class Syncer(skytools.DBScript):
         for tbl in tlist:
             tbl = skytools.fq_name(tbl)
             if not tbl in dst_tables:
-                self.log.warning('Table not subscribed: %s' % tbl)
+                self.log.warning('Table not subscribed: %s', tbl)
                 continue
             t2 = dst_tables[tbl]
             if t2.merge_state != 'ok':
-                self.log.warning('Table %s not synced yet, no point' % tbl)
+                self.log.warning('Table %s not synced yet, no point', tbl)
                 continue
 
             pnode, ploc, wname = find_copy_source(self, self.queue_name, tbl, pnode, ploc)
@@ -179,12 +179,12 @@ class Syncer(skytools.DBScript):
 
         src_tables, ignore = self.get_tables(src_db)
         if not tbl in src_tables:
-            self.log.warning('Table not available on provider: %s' % tbl)
+            self.log.warning('Table not available on provider: %s', tbl)
             return
         t1 = src_tables[tbl]
 
         if t1.merge_state != 'ok':
-            self.log.warning('Table %s not ready yet on provider' % tbl)
+            self.log.warning('Table %s not ready yet on provider', tbl)
             return
 
         #self.check_consumer(setup_db, dst_db)
@@ -231,10 +231,10 @@ class Syncer(skytools.DBScript):
         dst_curs = dst_db.cursor()
 
         if not skytools.exists_table(src_curs, src_tbl):
-            self.log.warning("Table %s does not exist on provider side" % src_tbl)
+            self.log.warning("Table %s does not exist on provider side", src_tbl)
             return
         if not skytools.exists_table(dst_curs, dst_tbl):
-            self.log.warning("Table %s does not exist on subscriber side" % dst_tbl)
+            self.log.warning("Table %s does not exist on subscriber side", dst_tbl)
             return
 
         # lock table against changes
@@ -273,14 +273,14 @@ class Syncer(skytools.DBScript):
         lock_curs = lock_db.cursor()
 
         # lock table in separate connection
-        self.log.info('Locking %s' % src_tbl)
+        self.log.info('Locking %s', src_tbl)
         lock_db.commit()
         self.set_lock_timeout(lock_curs)
         lock_time = time.time()
         lock_curs.execute("LOCK TABLE %s IN SHARE MODE" % skytools.quote_fqident(src_tbl))
 
         # now wait until consumer has updated target table until locking
-        self.log.info('Syncing %s' % dst_tbl)
+        self.log.info('Syncing %s', dst_tbl)
 
         # consumer must get futher than this tick
         tick_id = self.force_tick(setup_curs)
@@ -313,7 +313,7 @@ class Syncer(skytools.DBScript):
         self.old_worker_paused = self.pause_consumer(setup_curs, self.provider_info['worker_name'])
 
         lock_curs = lock_db.cursor()
-        self.log.info('Syncing %s' % dst_tbl)
+        self.log.info('Syncing %s', dst_tbl)
 
         # consumer must get futher than this tick
         tick_id = self.force_tick(setup_curs, False)
@@ -375,4 +375,3 @@ class Syncer(skytools.DBScript):
                 break
             time.sleep(0.5)
         return oldflag
-

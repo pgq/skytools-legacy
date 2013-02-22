@@ -135,6 +135,9 @@ post_part:
     sql statement(s) to execute after creating partition table. Usable
     variables are the same as in part_template
 
+retention_period:
+    how long to keep partitions around. examples: '3 months', '1 year'
+
 encoding:
     name of destination encoding. handler replaces all invalid encoding symbols
     and logs them as warnings
@@ -189,6 +192,8 @@ EVENT_TYPES = ['I', 'U', 'D']
 PART_FUNC_OLD = 'public.create_partition'
 PART_FUNC_NEW = 'londiste.create_partition'
 PART_FUNC_ARGS = ['parent', 'part', 'pkeys', 'part_field', 'part_time', 'period']
+
+RETENTION_FUNC = "londiste.drop_obsolete_partitions"
 
 
 
@@ -311,10 +316,9 @@ class BaseBulkTempLoader(BaseBulkCollectingLoader):
 
     def logexec(self, curs, sql):
         """Logs and executes sql statement"""
-        self.log.debug('exec: %s' % sql)
+        self.log.debug('exec: %s', sql)
         curs.execute(sql)
-        self.log.debug('msg: %s, rows: %s' % (
-            curs.statusmessage, curs.rowcount))
+        self.log.debug('msg: %s, rows: %s', curs.statusmessage, curs.rowcount)
 
     # create sql parts
 
@@ -398,15 +402,15 @@ class BulkLoader(BaseBulkTempLoader):
         cnt = len(data)
         if (cnt == 0):
             return
-        self.log.debug("bulk: Deleting %d rows from %s" % (cnt, self.table))
+        self.log.debug("bulk: Deleting %d rows from %s", cnt, self.table)
         # copy rows to temp
         self.bulk_insert(curs, data)
         # delete rows using temp
         self.delete(curs)
         # check if right amount of rows deleted (only in direct mode)
         if self.conf.table_mode == 'direct' and cnt != curs.rowcount:
-            self.log.warning("%s: Delete mismatch: expected=%s deleted=%d"
-                    % (self.table, cnt, curs.rowcount))
+            self.log.warning("%s: Delete mismatch: expected=%s deleted=%d",
+                    self.table, cnt, curs.rowcount)
 
     def process_update(self, curs, op_map):
         """Process update list"""
@@ -419,7 +423,7 @@ class BulkLoader(BaseBulkTempLoader):
         cnt = len(data)
         if (cnt == 0):
             return
-        self.log.debug("bulk: Updating %d rows in %s" % (cnt, self.table))
+        self.log.debug("bulk: Updating %d rows in %s", cnt, self.table)
         # copy rows to temp
         self.bulk_insert(curs, data)
         if self.method == METH_CORRECT:
@@ -427,15 +431,15 @@ class BulkLoader(BaseBulkTempLoader):
             self.update(curs)
             # check count (only in direct mode)
             if self.conf.table_mode == 'direct' and cnt != curs.rowcount:
-                self.log.warning("%s: Update mismatch: expected=%s updated=%d"
-                        % (self.table, cnt, curs.rowcount))
+                self.log.warning("%s: Update mismatch: expected=%s updated=%d",
+                        self.table, cnt, curs.rowcount)
         else:
             # delete from main table using temp
             self.delete(curs)
             # check count (only in direct mode)
             if self.conf.table_mode == 'direct' and real_cnt != curs.rowcount:
-                self.log.warning("%s: Update mismatch: expected=%s deleted=%d"
-                        % (self.table, real_cnt, curs.rowcount))
+                self.log.warning("%s: Update mismatch: expected=%s deleted=%d",
+                        self.table, real_cnt, curs.rowcount)
             # insert into main table
             if AVOID_BIZGRES_BUG:
                 # copy again, into main table
@@ -452,19 +456,19 @@ class BulkLoader(BaseBulkTempLoader):
         # merged method loads inserts together with updates
         if (cnt == 0) or (self.method == METH_MERGED):
             return
-        self.log.debug("bulk: Inserting %d rows into %s" % (cnt, self.table))
+        self.log.debug("bulk: Inserting %d rows into %s", cnt, self.table)
         # copy into target table (no temp used)
         self.bulk_insert(curs, data, table = self.qtable)
 
     def bulk_flush(self, curs, op_map):
-        self.log.debug("bulk_flush: %s  (I/U/D = %d/%d/%d)" % (
-            self.table, len(op_map['I']), len(op_map['U']), len(op_map['D'])))
+        self.log.debug("bulk_flush: %s  (I/U/D = %d/%d/%d)", self.table,
+                len(op_map['I']), len(op_map['U']), len(op_map['D']))
 
         # fetch distribution fields
         if self.dist_fields is None:
             self.dist_fields = self.find_dist_fields(curs)
-            self.log.debug("Key fields: %s  Dist fields: %s" % (
-                           ",".join(self.pkeys), ",".join(self.dist_fields)))
+            self.log.debug("Key fields: %s  Dist fields: %s",
+                           ",".join(self.pkeys), ",".join(self.dist_fields))
             # add them to key
             for key in self.dist_fields:
                 if key not in self.keys:
@@ -500,7 +504,7 @@ class BulkLoader(BaseBulkTempLoader):
         """
         if USE_LONGLIVED_TEMP_TABLES or USE_REAL_TABLE:
             if self.temp_present:
-                self.log.debug("bulk: Using existing temp table %s" % self.temp)
+                self.log.debug("bulk: Using existing temp table %s", self.temp)
                 return False
         self.create(curs)
         self.temp_present = True
@@ -520,7 +524,7 @@ class BulkLoader(BaseBulkTempLoader):
             # truncate when re-using existing table
             if not self.create_temp(curs):
                 self.truncate(curs)
-        self.log.debug("bulk: COPY %d rows into %s" % (len(data), table))
+        self.log.debug("bulk: COPY %d rows into %s", len(data), table)
         skytools.magic_insert(curs, table, data, self.fields,
                               quoted_table = True)
         if _use_temp and self.run_analyze:
@@ -629,8 +633,7 @@ class Dispatcher(BaseHandler):
         BaseHandler.__init__(self, table_name, args, dest_table)
 
         # show args
-        self.log.debug("dispatch.init: table_name=%r, args=%r" % \
-                       (table_name, args))
+        self.log.debug("dispatch.init: table_name=%r, args=%r", table_name, args)
         self.batch_info = None
         self.dst_curs = None
         self.pkeys = None
@@ -684,6 +687,7 @@ class Dispatcher(BaseHandler):
             conf.pre_part = self.args.get('pre_part')
             conf.post_part = self.args.get('post_part')
             conf.part_func = self.args.get('part_func', PART_FUNC_NEW)
+            conf.retention_period = self.args.get('retention_period')
         # set row mode and event types to process
         conf.row_mode = self.get_arg('row_mode', ROW_MODES)
         event_types = self.args.get('event_types', '*')
@@ -778,8 +782,7 @@ class Dispatcher(BaseHandler):
         # process only operations specified
         if not op in self.conf.event_types:
             return
-        self.log.debug('dispatch.process_event: %s/%s' % (
-            ev.ev_type, ev.ev_data))
+        self.log.debug('dispatch.process_event: %s/%s', ev.ev_type, ev.ev_data)
         if self.pkeys is None:
             self.pkeys = self.filter_pkeys(pkeys.split(','))
         data = self.filter_data(data)
@@ -880,7 +883,7 @@ class Dispatcher(BaseHandler):
                 have_func = skytools.exists_function(curs, PART_FUNC_OLD, len(PART_FUNC_ARGS))
 
             if have_func:
-                self.log.debug('check_part.exec: func:%s, args: %s' % (pfcall, vals))
+                self.log.debug('check_part.exec: func: %s, args: %s', pfcall, vals)
                 curs.execute(pfcall, vals)
             else:
                 #
@@ -890,12 +893,30 @@ class Dispatcher(BaseHandler):
                 # - check constraints
                 # - inheritance
                 #
-                self.log.debug('part func %s not found, cloning table' % self.conf.part_func)
+                self.log.debug('part func %s not found, cloning table', self.conf.part_func)
                 struct = TableStruct(curs, self.dest_table)
                 struct.create(curs, T_ALL, dst)
 
         exec_with_vals(self.conf.post_part)
-        self.log.info("Created table: %s" % dst)
+        self.log.info("Created table: %s", dst)
+
+        if self.conf.retention_period:
+            self.drop_obsolete_partitions (self.dest_table, self.conf.retention_period, self.conf.period)
+
+    def drop_obsolete_partitions (self, parent_table, retention_period, partition_period):
+        """ Drop obsolete partitions of partition-by-date parent table.
+        """
+        curs = self.dst_curs
+        func = RETENTION_FUNC
+        args = [parent_table, retention_period, partition_period]
+        sql = "select " + func + " (%s, %s, %s)"
+        self.log.debug("func: %s, args: %s", func, args)
+        curs.execute(sql, args)
+        res = []
+        for row in curs.fetchall():
+            res.append(row[0])
+        if res:
+            self.log.info("Dropped tables: %s", ", ".join(res))
 
     def real_copy(self, tablename, src_curs, dst_curs, column_list):
         """do actual table copy and return tuple with number of bytes and rows

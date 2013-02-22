@@ -47,6 +47,7 @@ declare
     parent_oid      oid;
     part_schema     text;
     part_name       text;
+    owner           name;
     pos             int4;
     fq_table        text;
     fq_part         text;
@@ -111,6 +112,20 @@ begin
     end if;
     sql := sql || ') inherits (' || fq_table || ')';
     execute sql;
+
+    -- find out parent table owner
+    select o.rolname into owner
+      from pg_class t, pg_namespace s, pg_roles o
+     where t.relnamespace = s.oid
+       and s.nspname = parent_schema
+       and t.relname = parent_name
+       and t.relowner = o.oid;
+
+    -- set proper part table ownership
+    if owner != user then
+        sql = 'alter table ' || fq_part || ' owner to ' || quote_ident(owner);
+        execute sql;
+    end if;
 
     -- extra check constraint
     if i_part_field != '' then
@@ -183,7 +198,7 @@ begin
 
     -- copy rules
     for r in
-        select rw.rulename, rw.ev_enabled, pg_get_ruledef(rw.oid) as definition
+        select rw.rulename, rw.ev_enabled, pg_catalog.pg_get_ruledef(rw.oid) as definition
           from pg_catalog.pg_rewrite rw
          where rw.ev_class = parent_oid
            and rw.rulename <> '_RETURN'::name
@@ -226,4 +241,3 @@ begin
     return 1;
 end;
 $$ language plpgsql;
-

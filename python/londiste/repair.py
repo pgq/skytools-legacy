@@ -49,7 +49,7 @@ class Repairer(Syncer):
         src_curs = src_db.cursor()
         dst_curs = dst_db.cursor()
 
-        self.log.info('Checking %s' % dst_tbl)
+        self.log.info('Checking %s', dst_tbl)
 
         self.common_fields = []
         self.fq_common_fields = []
@@ -62,16 +62,16 @@ class Repairer(Syncer):
         dst_where = t2.plugin.get_copy_condition(src_curs, dst_curs)
         src_where = dst_where
 
-        self.log.info("Dumping src table: %s" % src_tbl)
+        self.log.info("Dumping src table: %s", src_tbl)
         self.dump_table(src_tbl, src_curs, dump_src, src_where)
         src_db.commit()
-        self.log.info("Dumping dst table: %s" % dst_tbl)
+        self.log.info("Dumping dst table: %s", dst_tbl)
         self.dump_table(dst_tbl, dst_curs, dump_dst, dst_where)
         dst_db.commit()
-        
-        self.log.info("Sorting src table: %s" % dump_src)
+
+        self.log.info("Sorting src table: %s", dump_src)
         self.do_sort(dump_src, dump_src + '.sorted')
-        self.log.info("Sorting dst table: %s" % dump_dst)
+        self.log.info("Sorting dst table: %s", dump_dst)
         self.do_sort(dump_dst, dump_dst + '.sorted')
 
         self.dump_compare(dst_tbl, dump_src + ".sorted", dump_dst + ".sorted")
@@ -127,7 +127,7 @@ class Repairer(Syncer):
         self.fq_common_fields = fqlist
 
         cols = ",".join(fqlist)
-        self.log.debug("using columns: %s" % cols)
+        self.log.debug("using columns: %s", cols)
 
     def dump_table(self, tbl, curs, fn, whr):
         """Dump table to disk."""
@@ -135,12 +135,12 @@ class Repairer(Syncer):
         if len(whr) == 0:
             whr = 'true'
         q = "copy (SELECT %s FROM %s WHERE %s) to stdout" % (cols, skytools.quote_fqident(tbl), whr)
-        self.log.debug("Query: %s" % q)
+        self.log.debug("Query: %s", q)
         f = open(fn, "w", 64*1024)
         curs.copy_expert(q, f)
         size = f.tell()
         f.close()
-        self.log.info('%s: Got %d bytes' % (tbl, size))
+        self.log.info('%s: Got %d bytes', tbl, size)
 
     def get_row(self, ln):
         """Parse a row into dict."""
@@ -154,7 +154,7 @@ class Repairer(Syncer):
 
     def dump_compare(self, tbl, src_fn, dst_fn):
         """Dump + compare single table."""
-        self.log.info("Comparing dumps: %s" % tbl)
+        self.log.info("Comparing dumps: %s", tbl)
         self.cnt_insert = 0
         self.cnt_update = 0
         self.cnt_delete = 0
@@ -197,10 +197,10 @@ class Repairer(Syncer):
                 dst_ln = f2.readline()
                 if dst_ln: self.total_dst += 1
 
-        self.log.info("finished %s: src: %d rows, dst: %d rows,"\
-                    " missed: %d inserts, %d updates, %d deletes" % (
+        self.log.info("finished %s: src: %d rows, dst: %d rows,"
+                " missed: %d inserts, %d updates, %d deletes",
                 tbl, self.total_src, self.total_dst,
-                self.cnt_insert, self.cnt_update, self.cnt_delete))
+                self.cnt_insert, self.cnt_update, self.cnt_delete)
 
     def got_missed_insert(self, tbl, src_row):
         """Create sql for missed insert."""
@@ -248,7 +248,7 @@ class Repairer(Syncer):
 
     def show_fix(self, tbl, q, desc):
         """Print/write/apply repair sql."""
-        self.log.info("missed %s: %s" % (desc, q))
+        self.log.info("missed %s: %s", desc, q)
         if self.apply_curs:
             self.apply_curs.execute(q)
         else:
@@ -300,7 +300,7 @@ class Repairer(Syncer):
 
     def cmp_keys(self, src_row, dst_row):
         """Compare primary keys of the rows.
-        
+
         Returns 1 if src > dst, -1 if src < dst and 0 if src == dst"""
 
         # None means table is done.  tag it larger than any existing row.
@@ -319,4 +319,3 @@ class Repairer(Syncer):
             elif v1 > v2:
                 return 1
         return 0
-

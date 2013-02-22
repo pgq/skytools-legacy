@@ -339,6 +339,9 @@ Print out fkey drop/create commands.
 
 Compare table contents on both sides.
 
+  --count-only::
+    Just count rows, do not compare data.
+
 === repair [<table>] [--force] ===
 
 Repair data on subscriber.
@@ -450,11 +453,3 @@ Londiste is provided with HowTos to help you make your fisrt steps:
 - How to set up simple replication.
 - How to set up cascaded replication.
 - How to set up table partitioning (handlers).
-
-
-
-
-
-
-
-
