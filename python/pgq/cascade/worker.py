@@ -121,7 +121,7 @@ class CascadedWorker(CascadedConsumer):
 
     def __init__(self, service_name, db_name, args):
         """Initialize new consumer.
-        
+
         @param service_name: service_name for DBScript
         @param db_name: target database name for get_database()
         @param args: cmdline args for DBScript
@@ -229,7 +229,7 @@ class CascadedWorker(CascadedConsumer):
             # ahead from source queue, use current batch then
             wm = self.batch_info['cur_tick_id']
 
-        self.log.debug("Publishing local watermark: %d" % wm)
+        self.log.debug("Publishing local watermark: %d", wm)
         src_curs = src_db.cursor()
         q = "select * from pgq_node.set_subscriber_watermark(%s, %s, %s)"
         src_curs.execute(q, [self.pgq_queue_name, st.node_name, wm])
@@ -257,7 +257,7 @@ class CascadedWorker(CascadedConsumer):
                     continue
                 if node not in nmap:
                     # dont ignore missing nodes - cluster may be partially set up
-                    self.log.warning('Unknown node in sync_watermark list: %s' % node)
+                    self.log.warning('Unknown node in sync_watermark list: %s', node)
                     return
                 n = nmap[node]
                 if n['dead']:
@@ -270,7 +270,7 @@ class CascadedWorker(CascadedConsumer):
                 row = wmcurs.fetchone()
                 if not row:
                     # partially set up node?
-                    self.log.warning('Node not working: %s' % node)
+                    self.log.warning('Node not working: %s', node)
                 elif row['local_watermark'] < wm:
                     # keep lowest wm
                     wm = row['local_watermark']
@@ -310,7 +310,7 @@ class CascadedWorker(CascadedConsumer):
         if ev.ev_extra1 != self.pgq_queue_name and t != "pgq.tick-id":
             raise Exception("bad event in queue: "+str(ev))
 
-        self.log.debug("got cascade event: %s(%s)" % (t, ev.ev_data))
+        self.log.debug("got cascade event: %s(%s)", t, ev.ev_data)
         st = self._worker_state
         if t == "pgq.location-info":
             node = ev.ev_data
@@ -444,4 +444,3 @@ class CascadedWorker(CascadedConsumer):
         dst_curs.execute(q, [self.pgq_queue_name])
         dst_db.commit()
         self.global_wm_publish_time = t
-
