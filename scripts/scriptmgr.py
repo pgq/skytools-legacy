@@ -95,7 +95,7 @@ def full_path(job, fn):
 
         # find home
         if user:
-            home = pwd.getpwuid(os.getuid()).pw_dir
+            home = pwd.getpwnam(user).pw_dir
         elif 'HOME' in os.environ:
             home = os.environ['HOME']
         else:
