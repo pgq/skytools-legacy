@@ -391,12 +391,14 @@ class CascadeAdmin(skytools.AdminScript):
 
     def load_node_status (self, name, location):
         """ Load node info & status """
+        # must be thread-safe (!)
         if not self.node_alive(name):
             node = NodeInfo(self.queue_name, None, node_name = name)
             return node
         try:
-            conn = 'look_db.%s' % name
-            db = self.get_database(conn, connstr = location, autocommit = 1)
+            db = None
+            db = skytools.connect_database (location)
+            db.set_isolation_level (skytools.I_AUTOCOMMIT)
             curs = db.cursor()
             curs.execute("select * from pgq_node.get_node_info(%s)", [self.queue_name])
             node = NodeInfo(self.queue_name, curs.fetchone())
@@ -406,7 +408,8 @@ class CascadeAdmin(skytools.AdminScript):
             msg = str(d).strip().split('\n', 1)[0].strip()
             print('Node %r failure: %s' % (name, msg))
             node = NodeInfo(self.queue_name, None, node_name = name)
-        self.close_database(conn)
+        finally:
+            if db: db.close()
         return node
 
     def cmd_node_status(self):
@@ -432,6 +435,7 @@ class CascadeAdmin(skytools.AdminScript):
 
     def load_extra_status(self, curs, node):
         """Fetch extra info."""
+        # must be thread-safe (!)
         pass
 
     #
