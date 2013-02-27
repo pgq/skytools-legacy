@@ -10,8 +10,14 @@ setadm.py INI pause NODE [CONS]
 
 """
 
-import sys, time, optparse, skytools, os.path
+import optparse
+import os.path
+import Queue
+import sys
+import threading
+import time
 
+import skytools
 from skytools import UsageError, DBError
 from pgq.cascade.nodeinfo import *
 
@@ -350,31 +356,62 @@ class CascadeAdmin(skytools.AdminScript):
         """Show set status."""
         self.load_local_info()
 
-        for mname, minf in self.queue_info.member_map.iteritems():
-            #inf = self.get_node_info(mname)
-            #self.queue_info.add_node(inf)
-            #continue
+        # prepare structs for workers
+        members = Queue.Queue()
+        for m in self.queue_info.member_map.itervalues():
+            members.put(m)
+        nodes = Queue.Queue()
 
-            if not self.node_alive(mname):
-                node = NodeInfo(self.queue_name, None, node_name = mname)
-                self.queue_info.add_node(node)
-                continue
+        # launch workers and wait
+        n = max (min (members.qsize() >> 2, 100), 1)
+        for i in range(n):
+            t = threading.Thread (target = self._cmd_status_worker, args = (members, nodes))
+            t.daemon = True
+            t.start()
+        members.join()
+
+        while True:
             try:
-                db = self.get_database('look_db', connstr = minf.location, autocommit = 1)
-                curs = db.cursor()
-                curs.execute("select * from pgq_node.get_node_info(%s)", [self.queue_name])
-                node = NodeInfo(self.queue_name, curs.fetchone())
-                node.load_status(curs)
-                self.load_extra_status(curs, node)
-                self.queue_info.add_node(node)
-            except DBError, d:
-                msg = str(d).strip().split('\n', 1)[0]
-                print('Node %s failure: %s' % (mname, msg))
-                node = NodeInfo(self.queue_name, None, node_name = mname)
-                self.queue_info.add_node(node)
-            self.close_database('look_db')
+                node = nodes.get_nowait()
+            except Queue.Empty:
+                break
+            self.queue_info.add_node(node)
 
         self.queue_info.print_tree()
+
+    def _cmd_status_worker (self, members, nodes):
+        # members in, nodes out, both thread-safe
+        while True:
+            try:
+                m = members.get_nowait()
+            except Queue.Empty:
+                break
+            node = self.load_node_status (m.name, m.location)
+            nodes.put(node)
+            members.task_done()
+
+    def load_node_status (self, name, location):
+        """ Load node info & status """
+        # must be thread-safe (!)
+        if not self.node_alive(name):
+            node = NodeInfo(self.queue_name, None, node_name = name)
+            return node
+        try:
+            db = None
+            db = skytools.connect_database (location)
+            db.set_isolation_level (skytools.I_AUTOCOMMIT)
+            curs = db.cursor()
+            curs.execute("select * from pgq_node.get_node_info(%s)", [self.queue_name])
+            node = NodeInfo(self.queue_name, curs.fetchone())
+            node.load_status(curs)
+            self.load_extra_status(curs, node)
+        except DBError, d:
+            msg = str(d).strip().split('\n', 1)[0].strip()
+            print('Node %r failure: %s' % (name, msg))
+            node = NodeInfo(self.queue_name, None, node_name = name)
+        finally:
+            if db: db.close()
+        return node
 
     def cmd_node_status(self):
         """
@@ -399,6 +436,7 @@ class CascadeAdmin(skytools.AdminScript):
 
     def load_extra_status(self, curs, node):
         """Fetch extra info."""
+        # must be thread-safe (!)
         pass
 
     #

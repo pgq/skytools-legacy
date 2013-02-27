@@ -619,6 +619,7 @@ class LondisteSetup(CascadeAdmin):
 
     def load_extra_status(self, curs, node):
         """Fetch extra info."""
+        # must be thread-safe (!)
         CascadeAdmin.load_extra_status(self, curs, node)
         curs.execute("select * from londiste.get_table_list(%s)", [self.queue_name])
         n_ok = n_half = n_ign = 0
