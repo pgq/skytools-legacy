@@ -29,9 +29,9 @@ command_usage = """\
 %prog [options] INI CMD [subcmd args]
 
 Node Initialization:
-  create-root   NAME PUBLIC_CONNSTR
-  create-branch NAME PUBLIC_CONNSTR --provider=<public_connstr>
-  create-leaf   NAME PUBLIC_CONNSTR --provider=<public_connstr>
+  create-root   NAME [PUBLIC_CONNSTR]
+  create-branch NAME [PUBLIC_CONNSTR] --provider=<public_connstr>
+  create-leaf   NAME [PUBLIC_CONNSTR] --provider=<public_connstr>
     Initializes node.
 
 Node Administration:
@@ -141,24 +141,43 @@ class CascadeAdmin(skytools.AdminScript):
         db = self.get_database("db")
         self.install_code(db)
 
-    def cmd_create_root(self, node_name, node_location):
-        return self.create_node('root', node_name, node_location)
+    def cmd_create_root(self, node_name, *args):
+        return self.create_node('root', node_name, args)
 
-    def cmd_create_branch(self, node_name, node_location):
-        return self.create_node('branch', node_name, node_location)
+    def cmd_create_branch(self, node_name, *args):
+        return self.create_node('branch', node_name, args)
 
-    def cmd_create_leaf(self, node_name, node_location):
-        return self.create_node('leaf', node_name, node_location)
+    def cmd_create_leaf(self, node_name, *args):
+        return self.create_node('leaf', node_name, args)
 
-    def create_node(self, node_type, node_name, node_location):
+    def create_node(self, node_type, node_name, args):
         """Generic node init."""
         provider_loc = self.options.provider
 
         if node_type not in ('root', 'branch', 'leaf'):
             raise Exception('unknown node type')
 
+        # load public location
+        if len(args) > 1:
+            raise UsageError('Too many args, only public connect string allowed')
+        elif len(args) == 1:
+            node_location = args[0]
+        else:
+            node_location = self.cf.get('public_node_location', '')
+        if not node_location:
+            raise UsageError('Node public location must be given either in command line or config')
+
+        # check if sane
+        ok = 0
+        for k, v in skytools.parse_connect_string(node_location):
+            if k in ('host', 'service'):
+                ok = 1
+                break
+        if not ok:
+            raise UsageError('No host= in public connect string, bad idea')
+
         # connect to database
-        db = self.get_database("new_node", connstr = node_location)
+        db = self.get_database("db")
 
         # check if code is installed
         self.install_code(db)
@@ -169,6 +188,9 @@ class CascadeAdmin(skytools.AdminScript):
         if info['node_type'] is not None:
             self.log.info("Node is already initialized as %s", info['node_type'])
             return
+
+        # check if public connstr is sane
+        self.check_public_connstr(db, node_location)
 
         self.log.info("Initializing node")
         node_attrs = {}
@@ -256,6 +278,43 @@ class CascadeAdmin(skytools.AdminScript):
                           [self.queue_name, s_attrs])
 
         self.log.info("Done")
+
+    def check_public_connstr(self, db, pub_connstr):
+        """Look if public and local connect strings point to same db's.
+        """
+        pub_db = self.get_database("pub_db", connstr = pub_connstr)
+        curs1 = db.cursor()
+        curs2 = pub_db.cursor()
+        q = "select oid, datname, txid_current() as txid, txid_current_snapshot() as snap"\
+            " from pg_catalog.pg_database where datname = current_database()"
+        curs1.execute(q)
+        res1 = curs1.fetchone()
+        db.commit()
+
+        curs2.execute(q)
+        res2 = curs2.fetchone()
+        pub_db.commit()
+
+        curs1.execute(q)
+        res3 = curs1.fetchone()
+        db.commit()
+
+        self.close_database("pub_db")
+
+        failure = 0
+        if (res1['oid'], res1['datname']) != (res2['oid'], res2['datname']):
+            failure += 1
+
+        sn1 = skytools.Snapshot(res1['snap'])
+        tx = res2['txid']
+        sn2 = skytools.Snapshot(res3['snap'])
+        if sn1.contains(tx):
+            failure += 2
+        elif not sn2.contains(tx):
+            failure += 4
+
+        if failure:
+            raise UsageError("Public connect string points to different database than local connect string (fail=%d)" % failure)
 
     def extra_init(self, node_type, node_db, provider_db):
         """Callback to do specific init."""

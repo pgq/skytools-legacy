@@ -277,6 +277,10 @@ class Replicator(CascadedWorker):
         # target database
         db = dbname=somedb host=127.0.0.1
 
+        # public connect string for target node, which other nodes use
+        # to access this one.
+        #public_node_location =
+
         # how many tables can be copied in parallel
         #parallel_copies = 1
 
