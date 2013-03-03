@@ -65,6 +65,17 @@ sql_files = [
    'sql/pgq_ext/pgq_ext.upgrade.sql',
    'upgrade/final/pgq.upgrade_2.1_to_3.0.sql',
    'upgrade/final/londiste.upgrade_2.1_to_3.1.sql',
+
+   'sql/pgq/structure/newgrants_pgq.sql',
+   'sql/pgq_ext/structure/newgrants_pgq_ext.sql',
+   'sql/pgq_node/structure/newgrants_pgq_node.sql',
+   'sql/pgq_coop/structure/newgrants_pgq_coop.sql',
+   'sql/londiste/structure/newgrants_londiste.sql',
+   'sql/pgq/structure/oldgrants_pgq.sql',
+   'sql/pgq_ext/structure/oldgrants_pgq_ext.sql',
+   'sql/pgq_node/structure/oldgrants_pgq_node.sql',
+   'sql/pgq_coop/structure/oldgrants_pgq_coop.sql',
+   'sql/londiste/structure/oldgrants_londiste.sql',
 ]
 
 # sql files for special occasions
