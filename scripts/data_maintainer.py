@@ -78,6 +78,7 @@ import skytools
 
 class DataMaintainer (skytools.DBScript):
     __doc__ = __doc__
+    loop_delay = -1
 
     def __init__(self, args):
         super(DataMaintainer, self).__init__("data_maintainer", args)
@@ -113,10 +114,6 @@ class DataMaintainer (skytools.DBScript):
 
         # delay in seconds after each commit
         self.commit_delay =  self.cf.getfloat("commit_delay", 0.0)
-
-        # if loop delay given then we are in looping mode otherwise single loop
-        if self.cf.get('loop_delay', -1) == -1:
-            self.set_single_loop(1)
 
     def work(self):
         self.log.info('Starting..')
@@ -165,7 +162,7 @@ class DataMaintainer (skytools.DBScript):
             self.send_stats()
             if len(res) < self.fetchcnt:
                 break
-            if self.last_sigint:
+            if not self.looping:
                 self.log.info("Exiting on user request")
                 break
             if self.commit_delay > 0.0:
@@ -220,7 +217,7 @@ class DataMaintainer (skytools.DBScript):
                 else:
                     count += 1
                     self.stat_increase("count")
-                if self.last_sigint:
+                if not self.looping:
                     break
             return count, item
         except: # process has crashed, run sql_crash and re-raise the exception
