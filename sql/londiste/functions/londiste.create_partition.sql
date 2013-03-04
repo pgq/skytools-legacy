@@ -235,6 +235,7 @@ begin
         if r_extra is not null then
             sql := 'ALTER TABLE ' || fq_part || r_extra
                 || quote_ident(r.rulename);
+            execute sql;
         end if;
     end loop;
 
