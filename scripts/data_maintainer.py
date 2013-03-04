@@ -165,9 +165,11 @@ class DataMaintainer (skytools.DBScript):
             self.send_stats()
             if len(res) < self.fetchcnt:
                 break
-            if self.looping == 0:
+            if self.last_sigint:
                 self.log.info("Exiting on user request")
                 break
+            if self.commit_delay > 0.0:
+                time.sleep(self.commit_delay)
             if time.time() - lap_time > 60.0: # if one minute has passed print running totals
                 self.log.info("--- Running count: %s duration: %s ---",
                         total_count,  datetime.timedelta(0, round(time.time() - started)))
@@ -218,10 +220,8 @@ class DataMaintainer (skytools.DBScript):
                 else:
                     count += 1
                     self.stat_increase("count")
-                if self.looping == 0:
+                if self.last_sigint:
                     break
-            if self.commit_delay > 0.0:
-                time.sleep(self.commit_delay)
             return count, item
         except: # process has crashed, run sql_crash and re-raise the exception
             if self.sql_crash:
