@@ -7,7 +7,8 @@ import skytools
 __all__ = [
     "parse_pgarray", "parse_logtriga_sql", "parse_tabbed_table",
     "parse_statements", 'sql_tokenizer', 'parse_sqltriga_sql',
-    "parse_acl", "dedent", "hsize_to_bytes"]
+    "parse_acl", "dedent", "hsize_to_bytes",
+    "parse_connect_string", "merge_connect_string"]
 
 _rc_listelem = re.compile(r'( [^,"}]+ | ["] ( [^"\\]+ | [\\]. )* ["] )', re.X)
 
@@ -445,6 +446,61 @@ def hsize_to_bytes (input):
     bytes = int(m.group(1)) * 1024 ** units.index(m.group(2).upper())
     return bytes
 
+#
+# Connect string parsing
+#
+
+_cstr_rx = r""" \s* (\w+) \s* = \s* ( ' ( \\.| [^'\\] )* ' | \S+ ) \s* """
+_cstr_unesc_rx = r"\\(.)"
+_cstr_badval_rx = r"[\s'\\]"
+_cstr_rc = None
+_cstr_unesc_rc = None
+_cstr_badval_rc = None
+
+def parse_connect_string(cstr):
+    r"""Parse Postgres connect string.
+
+    >>> parse_connect_string("host=foo")
+    [('host', 'foo')]
+    >>> parse_connect_string(r" host = foo password = ' f\\\o\'o ' ")
+    [('host', 'foo'), ('password', "' f\\o'o '")]
+    """
+    global _cstr_rc, _cstr_unesc_rc
+    if not _cstr_rc:
+        _cstr_rc = re.compile(_cstr_rx, re.X)
+        _cstr_unesc_rc = re.compile(_cstr_unesc_rx)
+    pos = 0
+    res = []
+    while pos < len(cstr):
+        m = _cstr_rc.match(cstr, pos)
+        if not m:
+            raise ValueError('Invalid connect string')
+        pos = m.end()
+        k = m.group(1)
+        v = m.group(2)
+        if v[0] == "'":
+            v = _cstr_unesc_rc.sub(r"\1", v)
+        res.append( (k,v) )
+    return res
+
+def merge_connect_string(cstr_arg_list):
+    """Put fragments back together.
+
+    >>> merge_connect_string([('host', 'ip'), ('pass', ''), ('x', ' ')])
+    "host=ip pass='' x=' '"
+    """
+    global _cstr_badval_rc
+    if not _cstr_badval_rc:
+        _cstr_badval_rc = re.compile(_cstr_badval_rx)
+
+    buf = []
+    for k, v in cstr_arg_list:
+        if not v or _cstr_badval_rc.search(v):
+            v = v.replace('\\', r'\\')
+            v = v.replace("'", r"\'")
+            v = "'" + v + "'"
+        buf.append("%s=%s" % (k, v))
+    return ' '.join(buf)
 
 if __name__ == '__main__':
     import doctest
