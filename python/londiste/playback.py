@@ -103,7 +103,7 @@ class TableState(object):
         """Set snapshot."""
         if self.str_snapshot == str_snapshot:
             return
-        self.log.debug("%s: change_snapshot to %s" % (self.name, str_snapshot))
+        self.log.debug("%s: change_snapshot to %s", self.name, str_snapshot)
         self.str_snapshot = str_snapshot
         if str_snapshot:
             self.from_snapshot = skytools.Snapshot(str_snapshot)
@@ -122,8 +122,7 @@ class TableState(object):
         self.state = state
         self.sync_tick_id = tick_id
         self.changed = 1
-        self.log.debug("%s: change_state to %s" % (self.name,
-                                    self.render_state()))
+        self.log.debug("%s: change_state to %s", self.name, self.render_state())
 
     def render_state(self):
         """Make a string to be stored in db."""
@@ -172,8 +171,8 @@ class TableState(object):
     def loaded_state(self, row):
         """Update object with info from db."""
 
-        self.log.debug("loaded_state: %s: %s / %s" % (
-                       self.name, row['merge_state'], row['custom_snapshot']))
+        self.log.debug("loaded_state: %s: %s / %s",
+                       self.name, row['merge_state'], row['custom_snapshot'])
         self.change_snapshot(row['custom_snapshot'], 0)
         self.state = self.parse_state(row['merge_state'])
         self.changed = 0
@@ -278,6 +277,10 @@ class Replicator(CascadedWorker):
         # target database
         db = dbname=somedb host=127.0.0.1
 
+        # public connect string for target node, which other nodes use
+        # to access this one.
+        #public_node_location =
+
         # how many tables can be copied in parallel
         #parallel_copies = 1
 
@@ -290,7 +293,7 @@ class Replicator(CascadedWorker):
         # compare: sql to use
         #compare_sql = select count(1) as cnt, sum(hashtext(t.*::text)) as chksum from only _TABLE_ t
         # workaround for hashtext change between 8.3 and 8.4
-        #compare_sql = select count(1) as cnt, sum(('x'||substr(md5(t.*::text),1,16))::bit(64)::bigint) as chksum from only _TABLE_ t     
+        #compare_sql = select count(1) as cnt, sum(('x'||substr(md5(t.*::text),1,16))::bit(64)::bigint) as chksum from only _TABLE_ t
         #compare_fmt = %(cnt)d rows, checksum=%(chksum)s
     """
 
@@ -485,11 +488,11 @@ class Replicator(CascadedWorker):
                 else:
                     # regular provider is used
                     if t.name not in pmap:
-                        self.log.warning("Table %s not available on provider" % t.name)
+                        self.log.warning("Table %s not available on provider", t.name)
                         continue
                     pt = pmap[t.name]
                     if pt.state != TABLE_OK: # or pt.custom_snapshot: # FIXME: does snapsnot matter?
-                        self.log.info("Table %s not OK on provider, waiting" % t.name)
+                        self.log.info("Table %s not OK on provider, waiting", t.name)
                         continue
 
                 # dont allow more copies than configured
@@ -519,7 +522,7 @@ class Replicator(CascadedWorker):
 
         # somebody may have done remove-table in the meantime
         if self.copy_table_name not in self.table_map:
-            self.log.error("copy_sync: lost table: %s" % self.copy_table_name)
+            self.log.error("copy_sync: lost table: %s", self.copy_table_name)
             return SYNC_EXIT
 
         # This operates on single table
@@ -537,8 +540,8 @@ class Replicator(CascadedWorker):
             elif self.cur_tick < t.sync_tick_id:
                 return SYNC_OK
             else:
-                self.log.error("copy_sync: cur_tick=%d sync_tick=%d" % (
-                                self.cur_tick, t.sync_tick_id))
+                self.log.error("copy_sync: cur_tick=%d sync_tick=%d",
+                                self.cur_tick, t.sync_tick_id)
                 raise Exception('Invalid table state')
         elif t.state == TABLE_WANNA_SYNC:
             # wait for main thread to react
@@ -597,7 +600,7 @@ class Replicator(CascadedWorker):
     def process_remote_event(self, src_curs, dst_curs, ev):
         """handle one event"""
 
-        self.log.debug("New event: id=%s / type=%s / data=%s / extra1=%s" % (ev.id, ev.type, ev.data, ev.extra1))
+        self.log.debug("New event: id=%s / type=%s / data=%s / extra1=%s", ev.id, ev.type, ev.data, ev.extra1)
 
         # set current_event only if processing them one-by-one
         if self.work_state < 0:
@@ -824,8 +827,8 @@ class Replicator(CascadedWorker):
             if not t.changed:
                 continue
             merge_state = t.render_state()
-            self.log.info("storing state of %s: copy:%d new_state:%s" % (
-                            t.name, self.copy_thread, merge_state))
+            self.log.info("storing state of %s: copy:%d new_state:%s",
+                            t.name, self.copy_thread, merge_state)
             q = "select londiste.local_set_table_state(%s, %s, %s, %s)"
             curs.execute(q, [self.set_name,
                              t.name, t.str_snapshot, merge_state])
@@ -838,8 +841,8 @@ class Replicator(CascadedWorker):
         self.save_table_state(dst_db.cursor())
         dst_db.commit()
 
-        self.log.info("Table %s status changed to '%s'" % (
-                      tbl.name, tbl.render_state()))
+        self.log.info("Table %s status changed to '%s'",
+                      tbl.name, tbl.render_state())
 
     def get_tables_in_state(self, state):
         "get all tables with specific state"
@@ -878,11 +881,11 @@ class Replicator(CascadedWorker):
             time.sleep(2)
 
         # launch and wait for daemonization result
-        self.log.debug("Launch args: "+repr(cmd))
+        self.log.debug("Launch args: %r", cmd)
         res = os.spawnvp(os.P_WAIT, script, cmd)
-        self.log.debug("Launch result: "+repr(res))
+        self.log.debug("Launch result: %r", res)
         if res != 0:
-            self.log.error("Failed to launch copy process, result=%d" % res)
+            self.log.error("Failed to launch copy process, result=%d", res)
 
     def sync_database_encodings(self, src_db, dst_db):
         """Make sure client_encoding is same on both side."""
@@ -979,4 +982,3 @@ class Replicator(CascadedWorker):
 if __name__ == '__main__':
     script = Replicator(sys.argv[1:])
     script.start()
-

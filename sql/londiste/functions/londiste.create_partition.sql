@@ -123,7 +123,7 @@ begin
 
     -- set proper part table ownership
     if owner != user then
-        sql = 'alter table ' || fq_part || ' owner to ' || owner;
+        sql = 'alter table ' || fq_part || ' owner to ' || quote_ident(owner);
         execute sql;
     end if;
 
@@ -235,6 +235,7 @@ begin
         if r_extra is not null then
             sql := 'ALTER TABLE ' || fq_part || r_extra
                 || quote_ident(r.rulename);
+            execute sql;
         end if;
     end loop;
 

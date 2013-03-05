@@ -150,7 +150,7 @@ class NodeInfo:
                     err = err[:pos]
                 lst.append("ERR: %s: %s" % (cname, err))
         return lst
-    
+
     def add_info_line(self, ln):
         self._info_lines.append(ln)
 
@@ -166,6 +166,7 @@ class NodeInfo:
             for row in curs.fetchall():
                 cname = row['consumer_name']
                 self.consumer_map[cname] = row
+
             q = "select current_timestamp - ticker_lag as tick_time,"\
                 "  ticker_lag, current_timestamp as now "\
                 "from pgq.get_queue_info(%s)"
@@ -180,7 +181,7 @@ class NodeInfo:
 
 class QueueInfo:
     """Info about cascaded queue.
-    
+
     Slightly broken, as all info is per-node.
     """
 
@@ -192,8 +193,11 @@ class QueueInfo:
         self.add_node(self.local_node)
 
         for r in member_rows:
-            n = MemberInfo(r)
-            self.member_map[n.name] = n
+            m = MemberInfo(r)
+            self._add_member(m)
+
+    def _add_member(self, member):
+        self.member_map[member.name] = member
 
     def get_member(self, name):
         return self.member_map.get(name)
@@ -288,4 +292,3 @@ def _setpfx(pfx, sfx):
 
 def _node_key(n):
     return (n.levels, n.total_childs, n.name)
-

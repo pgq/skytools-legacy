@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 """Consumer that simply calls SQL query for each event.
 
@@ -63,4 +63,3 @@ class SimpleLocalConsumer(pgq.LocalConsumer):
 if __name__ == '__main__':
     script = SimpleLocalConsumer("simple_local_consumer3", "src_db", sys.argv[1:])
     script.start()
-

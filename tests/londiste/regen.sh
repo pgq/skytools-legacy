@@ -33,6 +33,7 @@ cat > conf/londiste_$db.ini <<EOF
 [londiste3]
 job_name = londiste_$db
 db = dbname=$db
+public_node_location = dbname=$db host=/tmp
 queue_name = replika
 logfile = log/%(job_name)s.log
 pidfile = pid/%(job_name)s.pid
@@ -68,11 +69,11 @@ run cat conf/pgqd.ini
 run cat conf/londiste_db1.ini
 
 msg "Install londiste3 and initialize nodes"
-run londiste3 $v conf/londiste_db1.ini create-root node1 'dbname=db1'
-run londiste3 $v conf/londiste_db2.ini create-branch node2 'dbname=db2' --provider='dbname=db1'
-run londiste3 $v conf/londiste_db3.ini create-branch node3 'dbname=db3' --provider='dbname=db1'
-run londiste3 $v conf/londiste_db4.ini create-branch node4 'dbname=db4' --provider='dbname=db2' --sync-watermark=node4,node5
-run londiste3 $v conf/londiste_db5.ini create-branch node5 'dbname=db5' --provider='dbname=db3' --sync-watermark=node4,node5
+run londiste3 $v conf/londiste_db1.ini create-root node1
+run londiste3 $v conf/londiste_db2.ini create-branch node2 --provider='dbname=db1'
+run londiste3 $v conf/londiste_db3.ini create-branch node3 --provider='dbname=db1'
+run londiste3 $v conf/londiste_db4.ini create-branch node4 --provider='dbname=db2' --sync-watermark=node4,node5
+run londiste3 $v conf/londiste_db5.ini create-branch node5 --provider='dbname=db3' --sync-watermark=node4,node5
 
 msg "Run ticker"
 run pgqd $v -d conf/pgqd.ini

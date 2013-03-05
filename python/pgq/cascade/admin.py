@@ -2,17 +2,22 @@
 
 ## NB: not all commands work ##
 
-"""cascaded queue administration.
+"""Cascaded queue administration.
 
 londiste.py INI pause [NODE [CONS]]
 
 setadm.py INI pause NODE [CONS]
 
-
 """
 
-import sys, time, optparse, skytools, os.path
+import optparse
+import os.path
+import Queue
+import sys
+import threading
+import time
 
+import skytools
 from skytools import UsageError, DBError
 from pgq.cascade.nodeinfo import *
 
@@ -24,9 +29,9 @@ command_usage = """\
 %prog [options] INI CMD [subcmd args]
 
 Node Initialization:
-  create-root   NAME PUBLIC_CONNSTR
-  create-branch NAME PUBLIC_CONNSTR --provider=<public_connstr>
-  create-leaf   NAME PUBLIC_CONNSTR --provider=<public_connstr>
+  create-root   NAME [PUBLIC_CONNSTR]
+  create-branch NAME [PUBLIC_CONNSTR] --provider=<public_connstr>
+  create-leaf   NAME [PUBLIC_CONNSTR] --provider=<public_connstr>
     Initializes node.
 
 Node Administration:
@@ -67,7 +72,7 @@ setadm extra switches:
 
 
 class CascadeAdmin(skytools.AdminScript):
-    """Cascaded pgq administration."""
+    """Cascaded PgQ administration."""
     queue_name = None
     queue_info = None
     extra_objs = []
@@ -136,24 +141,43 @@ class CascadeAdmin(skytools.AdminScript):
         db = self.get_database("db")
         self.install_code(db)
 
-    def cmd_create_root(self, node_name, node_location):
-        return self.create_node('root', node_name, node_location)
+    def cmd_create_root(self, node_name, *args):
+        return self.create_node('root', node_name, args)
 
-    def cmd_create_branch(self, node_name, node_location):
-        return self.create_node('branch', node_name, node_location)
+    def cmd_create_branch(self, node_name, *args):
+        return self.create_node('branch', node_name, args)
 
-    def cmd_create_leaf(self, node_name, node_location):
-        return self.create_node('leaf', node_name, node_location)
+    def cmd_create_leaf(self, node_name, *args):
+        return self.create_node('leaf', node_name, args)
 
-    def create_node(self, node_type, node_name, node_location):
+    def create_node(self, node_type, node_name, args):
         """Generic node init."""
         provider_loc = self.options.provider
 
         if node_type not in ('root', 'branch', 'leaf'):
             raise Exception('unknown node type')
 
+        # load public location
+        if len(args) > 1:
+            raise UsageError('Too many args, only public connect string allowed')
+        elif len(args) == 1:
+            node_location = args[0]
+        else:
+            node_location = self.cf.get('public_node_location', '')
+        if not node_location:
+            raise UsageError('Node public location must be given either in command line or config')
+
+        # check if sane
+        ok = 0
+        for k, v in skytools.parse_connect_string(node_location):
+            if k in ('host', 'service'):
+                ok = 1
+                break
+        if not ok:
+            raise UsageError('No host= in public connect string, bad idea')
+
         # connect to database
-        db = self.get_database("new_node", connstr = node_location)
+        db = self.get_database("db")
 
         # check if code is installed
         self.install_code(db)
@@ -162,8 +186,11 @@ class CascadeAdmin(skytools.AdminScript):
         res = self.exec_query(db, "select * from pgq_node.get_node_info(%s)", [self.queue_name])
         info = res[0]
         if info['node_type'] is not None:
-            self.log.info("Node is already initialized as %s" % info['node_type'])
+            self.log.info("Node is already initialized as %s", info['node_type'])
             return
+
+        # check if public connstr is sane
+        self.check_public_connstr(db, node_location)
 
         self.log.info("Initializing node")
         node_attrs = {}
@@ -199,7 +226,7 @@ class CascadeAdmin(skytools.AdminScript):
 
             # check if member already exists
             if queue_info.get_member(node_name) is not None:
-                self.log.error("Node '%s' already exists" % node_name)
+                self.log.error("Node '%s' already exists", node_name)
                 sys.exit(1)
 
             combined_set = None
@@ -219,7 +246,7 @@ class CascadeAdmin(skytools.AdminScript):
             # lookup provider
             provider = queue_info.get_member(provider_name)
             if not provider:
-                self.log.error("Node %s does not exist" % provider_name)
+                self.log.error("Node %s does not exist", provider_name)
                 sys.exit(1)
 
             # register on provider
@@ -243,7 +270,6 @@ class CascadeAdmin(skytools.AdminScript):
                           [ self.queue_name, node_type, node_name, worker_name,
                             provider_name, global_watermark, combined_queue ])
 
-
         self.extra_init(node_type, db, provider_db)
 
         if node_attrs:
@@ -252,6 +278,43 @@ class CascadeAdmin(skytools.AdminScript):
                           [self.queue_name, s_attrs])
 
         self.log.info("Done")
+
+    def check_public_connstr(self, db, pub_connstr):
+        """Look if public and local connect strings point to same db's.
+        """
+        pub_db = self.get_database("pub_db", connstr = pub_connstr)
+        curs1 = db.cursor()
+        curs2 = pub_db.cursor()
+        q = "select oid, datname, txid_current() as txid, txid_current_snapshot() as snap"\
+            " from pg_catalog.pg_database where datname = current_database()"
+        curs1.execute(q)
+        res1 = curs1.fetchone()
+        db.commit()
+
+        curs2.execute(q)
+        res2 = curs2.fetchone()
+        pub_db.commit()
+
+        curs1.execute(q)
+        res3 = curs1.fetchone()
+        db.commit()
+
+        self.close_database("pub_db")
+
+        failure = 0
+        if (res1['oid'], res1['datname']) != (res2['oid'], res2['datname']):
+            failure += 1
+
+        sn1 = skytools.Snapshot(res1['snap'])
+        tx = res2['txid']
+        sn2 = skytools.Snapshot(res3['snap'])
+        if sn1.contains(tx):
+            failure += 2
+        elif not sn2.contains(tx):
+            failure += 4
+
+        if failure:
+            raise UsageError("Public connect string points to different database than local connect string (fail=%d)" % failure)
 
     def extra_init(self, node_type, node_db, provider_db):
         """Callback to do specific init."""
@@ -267,7 +330,6 @@ class CascadeAdmin(skytools.AdminScript):
         while 1:
             db = self.get_database('root_db', connstr = loc)
 
-
             # query current status
             res = self.exec_query(db, "select * from pgq_node.get_node_info(%s)", [self.queue_name])
             info = res[0]
@@ -276,7 +338,7 @@ class CascadeAdmin(skytools.AdminScript):
                 self.log.info("Root node not initialized?")
                 sys.exit(1)
 
-            self.log.debug("db='%s' -- type='%s' provider='%s'" % (loc, node_type, info['provider_location']))
+            self.log.debug("db='%s' -- type='%s' provider='%s'", loc, node_type, info['provider_location'])
             # configured db may not be root anymore, walk upwards then
             if node_type in ('root', 'combined-root'):
                 db.commit()
@@ -353,31 +415,67 @@ class CascadeAdmin(skytools.AdminScript):
         """Show set status."""
         self.load_local_info()
 
-        for mname, minf in self.queue_info.member_map.iteritems():
-            #inf = self.get_node_info(mname)
-            #self.queue_info.add_node(inf)
-            #continue
+        # prepare structs for workers
+        members = Queue.Queue()
+        for m in self.queue_info.member_map.itervalues():
+            members.put(m)
+        nodes = Queue.Queue()
 
-            if not self.node_alive(mname):
-                node = NodeInfo(self.queue_name, None, node_name = mname)
-                self.queue_info.add_node(node)
-                continue
+        # launch workers and wait
+        num_nodes = len(self.queue_info.member_map)
+        num_threads = max (min (num_nodes / 4, 100), 1)
+        tlist = []
+        for i in range(num_threads):
+            t = threading.Thread (target = self._cmd_status_worker, args = (members, nodes))
+            t.daemon = True
+            t.start()
+            tlist.append(t)
+        #members.join()
+        for t in tlist:
+            t.join()
+
+        while True:
             try:
-                db = self.get_database('look_db', connstr = minf.location, autocommit = 1)
-                curs = db.cursor()
-                curs.execute("select * from pgq_node.get_node_info(%s)", [self.queue_name])
-                node = NodeInfo(self.queue_name, curs.fetchone())
-                node.load_status(curs)
-                self.load_extra_status(curs, node)
-                self.queue_info.add_node(node)
-            except DBError, d:
-                msg = str(d).strip().split('\n', 1)[0]
-                print('Node %s failure: %s' % (mname, msg))
-                node = NodeInfo(self.queue_name, None, node_name = mname)
-                self.queue_info.add_node(node)
-            self.close_database('look_db')
+                node = nodes.get_nowait()
+            except Queue.Empty:
+                break
+            self.queue_info.add_node(node)
 
         self.queue_info.print_tree()
+
+    def _cmd_status_worker (self, members, nodes):
+        # members in, nodes out, both thread-safe
+        while True:
+            try:
+                m = members.get_nowait()
+            except Queue.Empty:
+                break
+            node = self.load_node_status (m.name, m.location)
+            nodes.put(node)
+            members.task_done()
+
+    def load_node_status (self, name, location):
+        """ Load node info & status """
+        # must be thread-safe (!)
+        if not self.node_alive(name):
+            node = NodeInfo(self.queue_name, None, node_name = name)
+            return node
+        try:
+            db = None
+            db = skytools.connect_database (location)
+            db.set_isolation_level (skytools.I_AUTOCOMMIT)
+            curs = db.cursor()
+            curs.execute("select * from pgq_node.get_node_info(%s)", [self.queue_name])
+            node = NodeInfo(self.queue_name, curs.fetchone())
+            node.load_status(curs)
+            self.load_extra_status(curs, node)
+        except DBError, d:
+            msg = str(d).strip().split('\n', 1)[0].strip()
+            print('Node %r failure: %s' % (name, msg))
+            node = NodeInfo(self.queue_name, None, node_name = name)
+        finally:
+            if db: db.close()
+        return node
 
     def cmd_node_status(self):
         """
@@ -402,6 +500,7 @@ class CascadeAdmin(skytools.AdminScript):
 
     def load_extra_status(self, curs, node):
         """Fetch extra info."""
+        # must be thread-safe (!)
         pass
 
     #
@@ -433,8 +532,8 @@ class CascadeAdmin(skytools.AdminScript):
         old_provider = cinfo['provider_node']
 
         if old_provider == new_provider:
-            self.log.info("Consumer '%s' at node '%s' has already '%s' as provider" % (
-                            consumer, node, new_provider))
+            self.log.info("Consumer '%s' at node '%s' has already '%s' as provider",
+                          consumer, node, new_provider)
             return
 
         # pause target node
@@ -558,9 +657,6 @@ class CascadeAdmin(skytools.AdminScript):
             except skytools.DBError, d:
                 self.log.warning("Failed to remove from '%s': %s", n.name, str(d))
 
-
-
-
     def node_depends(self, sub_node, top_node):
         cur_node = sub_node
         # walk upstream
@@ -598,12 +694,11 @@ class CascadeAdmin(skytools.AdminScript):
             self.log.info('new node seems paused, resuming')
             self.resume_node(new)
         while 1:
-            self.log.debug('waiting for catchup: need=%d, cur=%d' % (last_tick, info.completed_tick))
+            self.log.debug('waiting for catchup: need=%d, cur=%d', last_tick, info.completed_tick)
             time.sleep(1)
             info = self.load_node_info(new)
             if info.completed_tick >= last_tick:
                 return info
-
 
     def takeover_root(self, old_node_name, new_node_name, failover = False):
         """Root switchover."""
@@ -682,7 +777,7 @@ class CascadeAdmin(skytools.AdminScript):
 
     def cmd_takeover(self, old_node_name):
         """Generic node switchover."""
-        self.log.info("old: %s" % old_node_name)
+        self.log.info("old: %s", old_node_name)
         self.load_local_info()
         new_node_name = self.options.node
         if not new_node_name:
@@ -764,7 +859,7 @@ class CascadeAdmin(skytools.AdminScript):
         self.load_local_info()
 
         # tag node dead in memory
-        self.log.info("Tagging node '%s' as dead" % dead_node_name)
+        self.log.info("Tagging node '%s' as dead", dead_node_name)
         self.queue_info.tag_dead(dead_node_name)
 
         # tag node dead in local node
@@ -955,7 +1050,7 @@ class CascadeAdmin(skytools.AdminScript):
                 node_db.commit()
                 if len(cons_rows) == 1:
                     if prov_node:
-                        raise Exception('Unexcpeted situation: there are two gravestones - on nodes %s and %s' % (prov_node, node_name))
+                        raise Exception('Unexpected situation: there are two gravestones - on nodes %s and %s' % (prov_node, node_name))
                     prov_node = node_name
                     failover_tick = cons_rows[0]['last_tick']
                     self.log.info("Found gravestone on node: %s", node_name)
@@ -1065,7 +1160,7 @@ class CascadeAdmin(skytools.AdminScript):
             klist.sort()
             for k in klist:
                 v = stats[k]
-                self.log.info("  %s: %s", k, str(v))
+                self.log.info("  %s: %s", k, v)
         self.log.info("** Resurrection done, worker paused **")
 
     def resurrect_process_lost_events(self, db, failover_tick):
@@ -1163,7 +1258,7 @@ class CascadeAdmin(skytools.AdminScript):
         self.log.info("Deleting lost events")
         for i in range(ntables):
             del_count = 0
-            self.log.debug("Deleting events from table %d" % i)
+            self.log.debug("Deleting events from table %d", i)
             qtbl = "%s.%s" % (skytools.quote_ident(schema),
                               skytools.quote_ident(table + '_' + str(i)))
             q = "delete from " + qtbl + " where "
@@ -1247,9 +1342,9 @@ class CascadeAdmin(skytools.AdminScript):
         else:
             m = self.queue_info.get_member(node_name)
             if not m:
-                self.log.error("get_node_database: cannot resolve %s" % node_name)
+                self.log.error("get_node_database: cannot resolve %s", node_name)
                 sys.exit(1)
-            #self.log.info("%s: dead=%s" % (m.name, m.dead))
+            #self.log.info("%s: dead=%s", m.name, m.dead)
             if m.dead:
                 return None
             loc = m.location
@@ -1264,7 +1359,7 @@ class CascadeAdmin(skytools.AdminScript):
             res = False
         else:
             res = True
-        #self.log.warning('node_alive(%s) = %s' % (node_name, res))
+        #self.log.warning('node_alive(%s) = %s', node_name, res)
         return res
 
     def close_node_database(self, node_name):
@@ -1278,8 +1373,8 @@ class CascadeAdmin(skytools.AdminScript):
         """Execute SQL command on particular node."""
         db = self.get_node_database(node_name)
         if not db:
-            self.log.warning("ignoring cmd for dead node '%s': %s" % (
-                node_name, skytools.quote_statement(sql, args)))
+            self.log.warning("ignoring cmd for dead node '%s': %s",
+                    node_name, skytools.quote_statement(sql, args))
             return None
         return self.exec_cmd(db, sql, args, quiet = quiet, prefix=node_name)
 
@@ -1302,7 +1397,7 @@ class CascadeAdmin(skytools.AdminScript):
 
             if stat['uptodate']:
                 op = pause_flag and "paused" or "resumed"
-                self.log.info("Consumer '%s' on node '%s' %s" % (consumer, node, op))
+                self.log.info("Consumer '%s' on node '%s' %s", consumer, node, op)
                 return
             time.sleep(1)
         raise Exception('process canceled')
@@ -1349,7 +1444,7 @@ class CascadeAdmin(skytools.AdminScript):
         """Non-cached node info lookup."""
         db = self.get_node_database(node_name)
         if not db:
-            self.log.warning('load_node_info(%s): ignoring dead node' % node_name)
+            self.log.warning('load_node_info(%s): ignoring dead node', node_name)
             return None
         q = "select * from pgq_node.get_node_info(%s)"
         rows = self.exec_query(db, q, [self.queue_name])
@@ -1366,7 +1461,7 @@ class CascadeAdmin(skytools.AdminScript):
         qinf = QueueInfo(self.queue_name, info, member_list)
         if self.options.dead:
             for node in self.options.dead:
-                self.log.info("Assuming node '%s' as dead" % node)
+                self.log.info("Assuming node '%s' as dead", node)
                 qinf.tag_dead(node)
         return qinf
 

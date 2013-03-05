@@ -140,7 +140,7 @@ class LondisteSetup(CascadeAdmin):
             for tbl in args:
                 tbl = skytools.fq_name(tbl)
                 if (tbl in src_tbls) and not src_tbls[tbl]['local']:
-                    self.log.error("Table %s does not exist on provider, need to switch to different provider" % tbl)
+                    self.log.error("Table %s does not exist on provider, need to switch to different provider", tbl)
                     problems = True
             if problems:
                 self.log.error("Problems, canceling operation")
@@ -189,12 +189,12 @@ class LondisteSetup(CascadeAdmin):
 
         if create_flags:
             if tbl_exists:
-                self.log.info('Table %s already exist, not touching' % desc)
+                self.log.info('Table %s already exist, not touching', desc)
             else:
                 src_dest_table = src_tbls[tbl]['dest_table']
                 if not skytools.exists_table(src_curs, src_dest_table):
                     # table not present on provider - nowhere to get the DDL from
-                    self.log.warning('Table %s missing on provider, cannot create, skipping' % desc)
+                    self.log.warning('Table %s missing on provider, cannot create, skipping', desc)
                     return
                 schema = skytools.fq_name_parts(dest_table)[0]
                 if not skytools.exists_schema(dst_curs, schema):
@@ -276,7 +276,7 @@ class LondisteSetup(CascadeAdmin):
         for tbl in src_tbls.keys():
             q = "select * from londiste.global_add_table(%s, %s)"
             if tbl not in dst_tbls:
-                self.log.info("Table %s info missing from subscriber, adding" % tbl)
+                self.log.info("Table %s info missing from subscriber, adding", tbl)
                 self.exec_cmd(dst_curs, q, [self.set_name, tbl])
                 dst_tbls[tbl] = {'local': False, 'dest_table': tbl}
         for tbl in dst_tbls.keys():
@@ -317,7 +317,7 @@ class LondisteSetup(CascadeAdmin):
             " where table_name = %s and local"
         curs.execute(q, [self.set_name, tbl])
         if curs.rowcount == 0:
-            self.log.error("Table %s not found on this node" % tbl)
+            self.log.error("Table %s not found on this node", tbl)
             sys.exit(1)
 
         attrs, dest_table = curs.fetchone()
@@ -382,17 +382,17 @@ class LondisteSetup(CascadeAdmin):
         seq_exists = skytools.exists_sequence(dst_curs, seq)
         if create_flags:
             if seq_exists:
-                self.log.info('Sequence %s already exist, not creating' % seq)
+                self.log.info('Sequence %s already exist, not creating', seq)
             else:
                 if not skytools.exists_sequence(src_curs, seq):
                     # sequence not present on provider - nowhere to get the DDL from
-                    self.log.warning('Sequence "%s" missing on provider, skipping' % seq)
+                    self.log.warning('Sequence "%s" missing on provider, skipping', seq)
                     return
                 s = skytools.SeqStruct(src_curs, seq)
                 src_db.commit()
                 s.create(dst_curs, create_flags, log = self.log)
         elif not seq_exists:
-            self.log.warning('Sequence "%s" missing on subscriber, use --create if necessary' % seq)
+            self.log.warning('Sequence "%s" missing on subscriber, use --create if necessary', seq)
             return
 
         q = "select * from londiste.local_add_seq(%s, %s)"
@@ -410,7 +410,7 @@ class LondisteSetup(CascadeAdmin):
         for seq in src_seqs.keys():
             q = "select * from londiste.global_update_seq(%s, %s, %s)"
             if seq not in dst_seqs:
-                self.log.info("Sequence %s info missing from subscriber, adding" % seq)
+                self.log.info("Sequence %s info missing from subscriber, adding", seq)
                 self.exec_cmd(dst_curs, q, [self.set_name, seq, src_seqs[seq]['last_value']])
                 tmp = src_seqs[seq].copy()
                 tmp['local'] = False
@@ -504,7 +504,7 @@ class LondisteSetup(CascadeAdmin):
             res = self.exec_cmd(db, q, [self.queue_name, fname, sql, attrs.to_urlenc()], commit = False)
             ret = res[0]['ret_code']
             if ret >= 300:
-                self.log.warning("Skipping execution of '%s'" % fname)
+                self.log.warning("Skipping execution of '%s'", fname)
                 continue
             if attrs.need_execute(curs, local_tables, local_seqs):
                 self.log.info("%s: executing sql", fname)
@@ -535,7 +535,6 @@ class LondisteSetup(CascadeAdmin):
             res = self.exec_cmd(db, q, [self.queue_name], quiet = True)
             self.provider_location = res[0]['provider_location']
         return self.get_database('provider_db', connstr = self.provider_location)
-
 
     def expand_arg_list(self, db, kind, existing, args, needs_tbl=True):
         curs = db.cursor()
@@ -570,14 +569,12 @@ class LondisteSetup(CascadeAdmin):
             else:
                 return lst_missing
 
-
         allow_nonexist = not needs_tbl
         if existing:
             res = self.solve_globbing(args, lst_exists, map_exists, map_missing, allow_nonexist)
         else:
             res = self.solve_globbing(args, lst_missing, map_missing, map_exists, allow_nonexist)
         return res
-
 
     def solve_globbing(self, args, full_list, full_map, reverse_map, allow_nonexist):
         def glob2regex(s):
@@ -605,16 +602,16 @@ class LondisteSetup(CascadeAdmin):
                     res_list.append(a)
                     res_map[a] = 1
                 elif a in reverse_map:
-                    self.log.info("%s already processed" % a)
+                    self.log.info("%s already processed", a)
                 elif allow_nonexist:
                     res_list.append(a)
                     res_map[a] = 1
                 elif self.options.force:
-                    self.log.warning("%s not available, but --force is used" % a)
+                    self.log.warning("%s not available, but --force is used", a)
                     res_list.append(a)
                     res_map[a] = 1
                 else:
-                    self.log.warning("%s not available" % a)
+                    self.log.warning("%s not available", a)
                     err = 1
         if err:
             raise skytools.UsageError("Cannot proceed")
@@ -622,6 +619,7 @@ class LondisteSetup(CascadeAdmin):
 
     def load_extra_status(self, curs, node):
         """Fetch extra info."""
+        # must be thread-safe (!)
         CascadeAdmin.load_extra_status(self, curs, node)
         curs.execute("select * from londiste.get_table_list(%s)", [self.queue_name])
         n_ok = n_half = n_ign = 0

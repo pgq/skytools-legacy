@@ -73,9 +73,10 @@ tgz: config.mak clean
 	rm -f source.list
 	$(PYTHON) setup_skytools.py sdist -t source.cfg -m source.list
 
-debclean: distclean
-	rm -rf debian/tmp-* debian/build* debian/control debian/packages-tmp*
-	rm -f debian/files debian/rules debian/sub* debian/packages
+debclean: clean
+	rm -rf debian/tmp-* debian/build* debian/packages-tmp*
+	rm -f debian/files debian/sub* debian/packages
+	grep-dctrl -vP PGVER debian/control.in > debian/control
 
 boot: configure
 

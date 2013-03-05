@@ -34,9 +34,10 @@ ac_ver = m.group(1)
 sfx_scripts = [
     'python/londiste.py',
     'python/walmgr.py',
-    'scripts/scriptmgr.py',
-    'scripts/queue_splitter.py',
+    'scripts/data_maintainer.py',
     'scripts/queue_mover.py',
+    'scripts/queue_splitter.py',
+    'scripts/scriptmgr.py',
     'scripts/simple_consumer.py',
     'scripts/simple_local_consumer.py',
     'scripts/skytools_upgrade.py',

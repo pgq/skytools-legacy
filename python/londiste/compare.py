@@ -27,7 +27,7 @@ class Comparator(Syncer):
         dst_where = t2.plugin.get_copy_condition(src_curs, dst_curs)
         src_where = dst_where
 
-        self.log.info('Counting %s' % dst_tbl)
+        self.log.info('Counting %s', dst_tbl)
 
         # get common cols
         cols = self.calc_cols(src_curs, src_tbl, dst_curs, dst_tbl)
@@ -61,22 +61,22 @@ class Comparator(Syncer):
             f += ", checksum=%(chksum)s"
         f = self.cf.get('compare_fmt', f)
 
-        self.log.debug("srcdb: " + src_q)
+        self.log.debug("srcdb: %s", src_q)
         src_curs.execute(src_q)
         src_row = src_curs.fetchone()
         src_str = f % src_row
-        self.log.info("srcdb: %s" % src_str)
+        self.log.info("srcdb: %s", src_str)
         src_db.commit()
 
-        self.log.debug("dstdb: " + dst_q)
+        self.log.debug("dstdb: %s", dst_q)
         dst_curs.execute(dst_q)
         dst_row = dst_curs.fetchone()
         dst_str = f % dst_row
-        self.log.info("dstdb: %s" % dst_str)
+        self.log.info("dstdb: %s", dst_str)
         dst_db.commit()
 
         if src_str != dst_str:
-            self.log.warning("%s: Results do not match!" % dst_tbl)
+            self.log.warning("%s: Results do not match!", dst_tbl)
             return 1
         return 0
 

@@ -47,7 +47,9 @@ _symbols = {
     # skytools.parsing
     'dedent': 'skytools.parsing:dedent',
     'hsize_to_bytes': 'skytools.parsing:hsize_to_bytes',
+    'merge_connect_string': 'skytools.parsing:merge_connect_string',
     'parse_acl': 'skytools.parsing:parse_acl',
+    'parse_connect_string': 'skytools.parsing:parse_connect_string',
     'parse_logtriga_sql': 'skytools.parsing:parse_logtriga_sql',
     'parse_pgarray': 'skytools.parsing:parse_pgarray',
     'parse_sqltriga_sql': 'skytools.parsing:parse_sqltriga_sql',

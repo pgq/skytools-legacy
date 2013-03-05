@@ -72,8 +72,8 @@ class PartHandler(TableHandler):
         """Filter event by hash in extra3, apply only local part."""
         if ev.extra3:
             meta = skytools.db_urldecode(ev.extra3)
-            self.log.debug('part.process_event: hash=%d, max_part=%s, local_part=%d' %\
-                           (int(meta['hash']), self.max_part, self.local_part))
+            self.log.debug('part.process_event: hash=%d, max_part=%s, local_part=%d',
+                           int(meta['hash']), self.max_part, self.local_part)
             if (int(meta['hash']) & self.max_part) != self.local_part:
                 self.log.debug('part.process_event: not my event')
                 return
@@ -84,7 +84,7 @@ class PartHandler(TableHandler):
         """Prepare the where condition for copy and replay filtering"""
         self.load_part_info(dst_curs)
         w = "(%s & %d) = %d" % (self.hashexpr, self.max_part, self.local_part)
-        self.log.debug('part: copy_condition=%s' % w)
+        self.log.debug('part: copy_condition=%s', w)
         return w
 
     def load_part_info(self, curs):

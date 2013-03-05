@@ -95,7 +95,7 @@ def full_path(job, fn):
 
         # find home
         if user:
-            home = pwd.getpwuid(os.getuid()).pw_dir
+            home = pwd.getpwnam(user).pw_dir
         elif 'HOME' in os.environ:
             home = os.environ['HOME']
         else:
@@ -178,7 +178,7 @@ class ScriptMgr(skytools.DBScript):
                     got = 1
                     self.add_job(fn, sect)
             if not got:
-                self.log.warning('Cannot find service for %s' % fn)
+                self.log.warning('Cannot find service for %s', fn)
 
     def add_job(self, cf_file, service_name):
         svc = self.svc_map[service_name]
@@ -237,23 +237,23 @@ class ScriptMgr(skytools.DBScript):
         job = self.get_job_by_name (job_name)
         if isinstance (job, int):
             return job # ret.code
-        self.log.info('Starting %s' % job_name)
+        self.log.info('Starting %s', job_name)
         pidfile = job['pidfile']
         if not pidfile:
-            self.log.warning("No pidfile for %s, cannot launch" % job_name)
+            self.log.warning("No pidfile for %s, cannot launch", job_name)
             return 0
         if os.path.isfile(pidfile):
             if skytools.signal_pidfile(pidfile, 0):
-                self.log.warning("Script %s seems running" % job_name)
+                self.log.warning("Script %s seems running", job_name)
                 return 0
             else:
-                self.log.info("Ignoring stale pidfile for %s" % job_name)
+                self.log.info("Ignoring stale pidfile for %s", job_name)
         os.chdir(job['cwd'])
         cmd = "%(script)s %(config)s %(args)s -d" % job
         res = launch_cmd(job, cmd)
         self.log.debug(res)
         if res != 0:
-            self.log.error('startup failed: %s' % job_name)
+            self.log.error('startup failed: %s', job_name)
             return 1
         else:
             return 0
@@ -262,23 +262,23 @@ class ScriptMgr(skytools.DBScript):
         job = self.get_job_by_name (job_name)
         if isinstance (job, int):
             return job # ret.code
-        self.log.info('Stopping %s' % job_name)
+        self.log.info('Stopping %s', job_name)
         self.signal_job(job, signal.SIGINT)
 
     def cmd_reload(self, job_name):
         job = self.get_job_by_name (job_name)
         if isinstance (job, int):
             return job # ret.code
-        self.log.info('Reloading %s' % job_name)
+        self.log.info('Reloading %s', job_name)
         self.signal_job(job, signal.SIGHUP)
 
     def get_job_by_name (self, job_name):
         if job_name not in self.job_map:
-            self.log.error ("Unknown job: %s" % job_name)
+            self.log.error ("Unknown job: %s", job_name)
             return 1
         job = self.job_map[job_name]
         if job['disabled']:
-            self.log.info ("Skipping %s" % job_name)
+            self.log.info ("Skipping %s", job_name)
             return 0
         return job
 
@@ -290,7 +290,7 @@ class ScriptMgr(skytools.DBScript):
         while True:
             if skytools.signal_pidfile (job['pidfile'], 0):
                 if not msg:
-                    self.log.info ("Waiting for %s to stop" % job_name)
+                    self.log.info ("Waiting for %s to stop", job_name)
                     msg = True
                 time.sleep (0.1)
             else:
@@ -299,7 +299,7 @@ class ScriptMgr(skytools.DBScript):
     def signal_job(self, job, sig):
         pidfile = job['pidfile']
         if not pidfile:
-            self.log.warning("No pidfile for %s (%s)" % (job['job_name'], job['config']))
+            self.log.warning("No pidfile for %s (%s)", job['job_name'], job['config'])
             return
         if os.path.isfile(pidfile):
             pid = int(open(pidfile).read())
@@ -307,15 +307,15 @@ class ScriptMgr(skytools.DBScript):
                 # run sudo + kill to avoid killing unrelated processes
                 res = os.system("sudo -u %s kill %d" % (job['user'], pid))
                 if res:
-                    self.log.warning("Signaling %s failed" % (job['job_name'],))
+                    self.log.warning("Signaling %s failed", job['job_name'])
             else:
                 # direct kill
                 try:
                     os.kill(pid, sig)
                 except Exception, det:
-                    self.log.warning("Signaling %s failed: %s" % (job['job_name'], str(det)))
+                    self.log.warning("Signaling %s failed: %s", job['job_name'], det)
         else:
-            self.log.warning("Job %s not running" % job['job_name'])
+            self.log.warning("Job %s not running", job['job_name'])
 
     def work(self):
         self.set_single_loop(1)

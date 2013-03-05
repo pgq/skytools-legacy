@@ -11,7 +11,7 @@ It contains the following modules:
 
 === PgQ ===
 
-PgQ is a queuing system written in PL/pgsql, Python and C code. It is
+PgQ is a queuing system written in PL/pgSQL, Python and C code. It is
 based on snapshot-based event handling ideas from Slony-I, and is
 written for general usage.
 
@@ -53,8 +53,7 @@ Replication tool written in Python, using PgQ as event transport.
 Features:
 
 - Tables can be added one-by-one into set.
-- Initial COPY for one table does not block event replay for other
-  tables.
+- Initial COPY for one table does not block event replay for other tables.
 - Can compare tables on both sides.
 
 Documentation:
@@ -62,7 +61,7 @@ Documentation:
 - Londiste script usage: doc/londiste3.txt
   (also available as `man 1 londiste`)
 
-- Londiste HOWTOS: doc/howto/
+- Londiste HOWTOs: doc/howto/
 
 === walmgr ===
 
@@ -76,8 +75,7 @@ database server.
 == Source tree contents ==
 
 doc/::
-    Documentation in asciidoc format.  Source for both html
-    and man pages.
+    Documentation in AsciiDoc format.  Source for both html and man pages.
 
 python/::
     Python modules and primary executables - walmgr, londiste, qadmin, pgqadm.
@@ -108,7 +106,7 @@ sql/londiste/::
 
 sql/ticker/::
     PgQ ticker written in C.
- 
+
 scripts/::
     Python scripts with lesser priority.
 
@@ -117,7 +115,7 @@ lib/::
 
 debian/::
     Debian packaging.  This is for creating private packages,
-    official Debian packages uses it's own packagin code.
+    official Debian packages use their own packaging code.
 
 misc/::
     Random scripts used for building.
@@ -135,4 +133,4 @@ Londiste 3 in parallel with Londiste 2.
 5. Apply londiste.sql - this will throw error on CREATE SCHEMA, but should otherwise apply fine.
 6. Start pgqd.
 
-The files mentined above are installed under $PREFIX/share/skytools3/ directory.
+The files mentioned above are installed under $PREFIX/share/skytools3/ directory.
