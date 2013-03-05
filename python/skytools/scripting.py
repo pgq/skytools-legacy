@@ -227,7 +227,7 @@ class BaseScript(object):
     # >0 - sleep time if work() requests sleep
     # 0  - exit if work requests sleep
     # <0 - run work() once [same as looping=0]
-    loop_delay = 0
+    loop_delay = 1.0
 
     # 0 - run work() once
     # 1 - run work() repeatedly
@@ -466,7 +466,7 @@ class BaseScript(object):
             self.log.info ("Config reloaded")
         self.job_name = self.cf.get("job_name")
         self.pidfile = self.cf.getfile("pidfile", '')
-        self.loop_delay = self.cf.getfloat("loop_delay", 1.0)
+        self.loop_delay = self.cf.getfloat("loop_delay", self.loop_delay)
         self.exception_sleep = self.cf.getfloat("exception_sleep", 20)
 
     def hook_sighup(self, sig, frame):
