@@ -4,7 +4,7 @@
 
 Skytools modules use some other code to run, so you need to install the
 following dependencies on the system where you want to build and run
-skytool applications.
+skytools based applications.
 
 === Build dependencies ===
 
@@ -64,10 +64,10 @@ The following configure options are available:
 
 --prefix::
   Path prefix where to install skytools files (default: /usr/local)
-  
+
 --with-python::
   Name or full path of the Python executable to use. (default: python)
-  
+
 --with-pgconfig::
   Name or full path to pg_config (default: pg_config)
 
@@ -75,6 +75,16 @@ The following configure options are available:
   If asciidoc should be used to re-generate manpages.  Required when
   building from GIT as the generated pages are not in repo.
 
+== Building without Makefile ==
+
+It is possible to build and install Python part of Skytools only.
+This is useful when no required build / devel tools (dependencies)
+are available (typically on Windows platform).
+
+Commands to run vary across platforms but usually go like this:
+
+  $ [sudo] python setup_pkgloader.py install
+  $ [sudo] python setup_skytools.py install [--sk3-subdir]
 
 == Documentation ==
 
@@ -104,7 +114,7 @@ that simple anymore.
 But simple nonetheless: install PgQ on the machine where you want to
 run it, provider being the straightforward choice. Then install
 londiste only on the box from where you want to launch the replication
-process, a good default begin the subscriber box this time.
+process, a good default being the subscriber box this time.
 
 You can then install londiste on provider from the subscriber box with
 the +londiste.py+ command line tool.
@@ -112,4 +122,3 @@ the +londiste.py+ command line tool.
 == Usage ==
 
 Please refer to the documentation.
-
