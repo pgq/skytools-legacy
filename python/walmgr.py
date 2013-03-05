@@ -868,7 +868,7 @@ class WalMgr(skytools.DBScript):
             else:
                 # not possible to change archive_mode or wal_level (requires restart),
                 # so we just set the archive_command to /bin/true to avoid WAL pileup.
-                self.log.warning("database must be restarted to disable archiving")
+                self.log.info("database must be restarted to disable archiving")
                 self.log.info("Setting archive_command to /bin/true to avoid WAL pileup")
 
                 cf_params['archive_command'] = '/bin/true'
@@ -1931,7 +1931,7 @@ STOP TIME: %(stop_time)s
 
         if not setname and os.path.isdir(data_dir) and backup_datadir:
             # compatibility mode - restore without a set name and data directory exists
-            self.log.warning("Data directory already exists, moving it out of the way.")
+            self.log.info("Data directory already exists, moving it out of the way.")
             createbackup = True
 
         # move old data away
