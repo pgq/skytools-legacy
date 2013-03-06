@@ -41,7 +41,7 @@ class CascadedConsumer(BaseConsumer):
         p.add_option("--rewind", action = "store_true",
                 help = "change queue position according to destination")
         p.add_option("--reset", action = "store_true",
-                help = "reset queue pos on destination side")
+                help = "reset queue position on destination side")
         return p
 
     def startup(self):
@@ -291,4 +291,3 @@ class CascadedConsumer(BaseConsumer):
             self.log.warning("Failure to call pgq_node.set_consumer_error()")
         self.reset()
         BaseConsumer.exception_hook(self, det, emsg)
-

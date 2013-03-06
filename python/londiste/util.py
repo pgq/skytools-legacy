@@ -35,7 +35,7 @@ def find_copy_source(script, queue_name, copy_table_name, node_name, node_locati
         src_curs.execute(q, [queue_name])
         info = src_curs.fetchone()
         if info['ret_code'] >= 400:
-            raise skytools.UsageError("Node does not exists")
+            raise skytools.UsageError("Node does not exist")
 
         script.log.info("Checking if %s can be used for copy", info['node_name'])
 
@@ -69,4 +69,3 @@ def find_copy_source(script, queue_name, copy_table_name, node_name, node_locati
         node_name = info['provider_node']
         node_location = info['provider_location']
         worker_name = info['worker_name']
-

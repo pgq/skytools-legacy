@@ -32,26 +32,26 @@ Node Initialization:
   create-root   NAME [PUBLIC_CONNSTR]
   create-branch NAME [PUBLIC_CONNSTR] --provider=<public_connstr>
   create-leaf   NAME [PUBLIC_CONNSTR] --provider=<public_connstr>
-    Initializes node.
+    All of the above initialize a node
 
 Node Administration:
-  pause                 Pause node worker.
-  resume                Resume node worker.
-  wait-root             Wait until node has catched up to root
-  wait-provider         Wait until node has catched up to provider
+  pause                 Pause node worker
+  resume                Resume node worker
+  wait-root             Wait until node has caught up with root
+  wait-provider         Wait until node has caught up with provider
   status                Show cascade state
-  node-status           Show status of a local node
+  node-status           Show status of local node
   members               Show members in set
 
 Cascade layout change:
   change-provider --provider NEW_NODE
     Change where worker reads from
 
-  takeover FROMNODE [--all] [--dead]
-    Take other node position.
+  takeover FROM_NODE [--all] [--dead]
+    Take other node position
 
   drop-node NAME
-    Remove node from cascade.
+    Remove node from cascade
 
   tag-dead NODE ..
     Tag node as dead
@@ -64,7 +64,7 @@ standalone_usage = """
 setadm extra switches:
 
   pause/resume/change-provider:
-    --node=NODENAME | --consumer=CONSUMER_NAME
+    --node=NODE_NAME | --consumer=CONSUMER_NAME
 
   create-root/create-branch/create-leaf:
     --worker=WORKER_NAME
@@ -594,7 +594,6 @@ class CascadeAdmin(skytools.AdminScript):
         node = self.load_node_info(old_name)
         provider_node = node.provider_node
         subscriber_list = self.get_node_subscriber_list(old_name)
-
 
         # create copy of member info / subscriber+queue info
         step1 = 'select * from pgq_node.rename_node_step1(%s, %s, %s)'
@@ -1220,7 +1219,7 @@ class CascadeAdmin(skytools.AdminScript):
         #
         # This is done snapshots, to make sure we delete only events
         # that were dumped out previously.  This uses the long-tx
-        # resustant logic described in pgq.batch_event_sql().
+        # resistant logic described in pgq.batch_event_sql().
         #
 
         # find snapshots
@@ -1297,7 +1296,7 @@ class CascadeAdmin(skytools.AdminScript):
         else:
             sep = ','
 
-        # create orinary dict to avoid problems with row class and datetime
+        # create ordinary dict to avoid problems with row class and datetime
         d = {
             'ev_id': ev.ev_id,
             'ev_type': ev.ev_type,

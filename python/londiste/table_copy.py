@@ -214,7 +214,7 @@ class CopyTable(Replicator):
         if tbl_stat.copy_role == 'wait-replay':
             return
 
-        # if copy done, request immidiate tick from pgqadm,
+        # if copy done, request immediate tick from pgqd,
         # to make state juggling faster.  on mostly idle db-s
         # each step may take tickers idle_timeout secs, which is pain.
         q = "select pgq.force_tick(%s)"

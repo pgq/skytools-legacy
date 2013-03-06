@@ -24,7 +24,7 @@ TABLE_OK           = 5  # setup
 
 SYNC_OK   = 0  # continue with batch
 SYNC_LOOP = 1  # sleep, try again
-SYNC_EXIT = 2  # nothing to do, exit skript
+SYNC_EXIT = 2  # nothing to do, exit script
 
 MAX_PARALLEL_COPY = 8 # default number of allowed max parallel copy processes
 
@@ -54,7 +54,6 @@ class Counter(object):
             elif t.state == TABLE_OK:
                 self.ok += 1
 
-
     def get_copy_count(self):
         return self.copy + self.catching_up + self.wanna_sync + self.do_sync
 
@@ -81,7 +80,7 @@ class TableState(object):
         self.changed = 0
         # position in parallel copy work order
         self.copy_pos = 0
-        # max number of parallel copy processesses allowed
+        # max number of parallel copy processes allowed
         self.max_parallel_copy = MAX_PARALLEL_COPY
 
     def forget(self):
@@ -234,7 +233,7 @@ class TableState(object):
     def gc_snapshot(self, copy_thread, prev_tick, cur_tick, no_lag):
         """Remove attached snapshot if possible.
 
-        If the event processing is in current moment. the snapshot
+        If the event processing is in current moment, the snapshot
         is not needed beyond next batch.
 
         The logic is needed for mostly unchanging tables,
@@ -495,7 +494,7 @@ class Replicator(CascadedWorker):
                         self.log.info("Table %s not OK on provider, waiting", t.name)
                         continue
 
-                # dont allow more copies than configured
+                # don't allow more copies than configured
                 if npossible == 0:
                     break
                 npossible -= 1
@@ -507,7 +506,7 @@ class Replicator(CascadedWorker):
                 # failure inbetween
                 self.change_table_state(dst_db, t, TABLE_IN_COPY)
 
-                # the copy _may_ happen immidiately
+                # the copy _may_ happen immediately
                 self.launch_copy(t)
 
                 # there cannot be interesting events in current batch
@@ -515,7 +514,6 @@ class Replicator(CascadedWorker):
                 ret = SYNC_LOOP
 
         return ret
-
 
     def sync_from_copy_thread(self, cnt, src_db, dst_db):
         "Copy thread sync logic."
@@ -873,7 +871,7 @@ class Replicator(CascadedWorker):
             cmd.append('-v')
 
         # let existing copy finish and clean its pidfile,
-        # otherwise new copy will exit immidiately.
+        # otherwise new copy will exit immediately.
         # FIXME: should not happen on per-table pidfile ???
         copy_pidfile = "%s.copy.%s" % (self.pidfile, tbl_stat.name)
         while skytools.signal_pidfile(copy_pidfile, 0):
@@ -906,7 +904,7 @@ class Replicator(CascadedWorker):
                 dst_curs.execute("set client_encoding = %s", [src_enc])
 
     def copy_snapshot_cleanup(self, dst_db):
-        """Remove unnecassary snapshot info from tables."""
+        """Remove unnecessary snapshot info from tables."""
         no_lag = not self.work_state
         changes = False
         for t in self.table_list:

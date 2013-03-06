@@ -43,41 +43,41 @@ class LondisteSetup(CascadeAdmin):
 
         p = CascadeAdmin.init_optparse(self, parser)
         p.add_option("--expect-sync", action="store_true", dest="expect_sync",
-                    help = "no copy needed", default=False)
+                help = "no copy needed", default=False)
         p.add_option("--skip-truncate", action="store_true", dest="skip_truncate",
-                    help = "dont delete old data", default=False)
+                help = "do not delete old data", default=False)
         p.add_option("--find-copy-node", action="store_true", dest="find_copy_node",
                 help = "add: find table source for copy by walking upwards")
-        p.add_option("--copy-node", dest="copy_node",
+        p.add_option("--copy-node", metavar = "NODE", dest="copy_node",
                 help = "add: use NODE as source for initial copy")
         p.add_option("--force", action="store_true",
-                    help="force", default=False)
+                help="force", default=False)
         p.add_option("--all", action="store_true",
-                    help="include all tables", default=False)
+                help="include all tables", default=False)
         p.add_option("--wait-sync", action="store_true",
                 help = "add: wait until all tables are in sync"),
         p.add_option("--create", action="store_true",
-                    help="create, minimal", default=False)
+                help="create, minimal", default=False)
         p.add_option("--create-full", action="store_true",
-                    help="create, full")
+                help="create, full")
         p.add_option("--trigger-flags",
-                    help="Set trigger flags (BAIUDLQ)")
+                help="set trigger flags (BAIUDLQ)")
         p.add_option("--trigger-arg", action="append",
-                    help="Custom trigger arg")
+                help="custom trigger arg")
         p.add_option("--no-triggers", action="store_true",
-                    help="Custom trigger arg")
+                help="no triggers on table")
         p.add_option("--handler", action="store",
-                help="add: Custom handler for table")
+                help="add: custom handler for table")
         p.add_option("--handler-arg", action="append",
-                    help="add: Argument to custom handler")
+                help="add: argument to custom handler")
         p.add_option("--merge-all", action="store_true",
-                    help="merge tables from all source queues", default=False)
+                help="merge tables from all source queues", default=False)
         p.add_option("--no-merge", action="store_true",
-                    help="don't merge tables from source queues", default=False)
-        p.add_option("--max-parallel-copy", type = "int",
-                    help="max number of parallel copy processes")
-        p.add_option("--dest-table",
-                    help="add: name for actual table")
+                help="do not merge tables from source queues", default=False)
+        p.add_option("--max-parallel-copy", metavar = "NUM", type = "int",
+                help="max number of parallel copy processes")
+        p.add_option("--dest-table", metavar = "NAME",
+                help="add: name for actual table")
         return p
 
     def extra_init(self, node_type, node_db, provider_db):
