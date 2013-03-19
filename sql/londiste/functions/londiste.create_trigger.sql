@@ -150,14 +150,24 @@ begin
         _extra_args := array_append(_extra_args, quote_literal('deny'));
     end if;
 
-    -- if skip param given, rename previous skip triggers and prefix current
-    if _skip then
+    if _skip or lg_pos = 'after' then
         -- get count and name of existing skip triggers
         select count(*), min(t.tgname)
-        into _skip_trg_count, _skip_trg_name
-        from pg_catalog.pg_trigger t
-        where t.tgrelid = londiste.find_table_oid(i_dest_table)
-            and position(E'\\000SKIP\\000'::bytea in tgargs) > 0;
+            into _skip_trg_count, _skip_trg_name
+            from pg_catalog.pg_trigger t
+            where t.tgrelid = londiste.find_table_oid(i_dest_table)
+                and position(E'\\000SKIP\\000'::bytea in tgargs) > 0;
+    end if;
+
+    -- make sure new trigger won't be effectively inactive
+    if lg_pos = 'after' and _skip_trg_count > 0 then
+        select 403, 'AFTER trigger cannot work with SKIP trigger(s)'
+        into ret_code, ret_note;
+        return;
+    end if;
+
+    -- if skip param given, rename previous skip triggers and prefix current
+    if _skip then
         -- if no previous skip triggers, prefix name and add SKIP to args
         if _skip_trg_count = 0 then
             trigger_name := _skip_prefix || trigger_name;
