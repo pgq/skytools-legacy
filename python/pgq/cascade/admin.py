@@ -140,7 +140,7 @@ class CascadeAdmin(skytools.AdminScript):
     #
 
     def cmd_install(self):
-        db = self.get_database("db")
+        db = self.get_database(self.initial_db_name)
         self.install_code(db)
 
     def cmd_create_root(self, *args):
@@ -192,7 +192,7 @@ class CascadeAdmin(skytools.AdminScript):
             raise UsageError('No host= in public connect string, bad idea')
 
         # connect to database
-        db = self.get_database("db")
+        db = self.get_database(self.initial_db_name)
 
         # check if code is installed
         self.install_code(db)
@@ -962,7 +962,7 @@ class CascadeAdmin(skytools.AdminScript):
         root_node = self.find_root_node()
         self.log.info("Root is %s", root_node)
 
-        dst_db = self.get_database('db')
+        dst_db = self.get_database(self.initial_db_name)
         self.wait_for_node(dst_db, root_node)
 
     def cmd_wait_provider(self):
@@ -974,7 +974,7 @@ class CascadeAdmin(skytools.AdminScript):
             self.log.info("Current node is root, no need to wait")
             return
 
-        dst_db = self.get_database('db')
+        dst_db = self.get_database(self.initial_db_name)
         node = self.queue_info.local_node.provider_node
         self.log.info("Provider is %s", node)
         self.wait_for_node(dst_db, node)
