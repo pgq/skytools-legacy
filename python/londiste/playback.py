@@ -276,10 +276,6 @@ class Replicator(CascadedWorker):
         # target database
         db = dbname=somedb host=127.0.0.1
 
-        # public connect string for target node, which other nodes use
-        # to access this one.
-        #public_node_location =
-
         # how many tables can be copied in parallel
         #parallel_copies = 1
 
@@ -294,6 +290,22 @@ class Replicator(CascadedWorker):
         # workaround for hashtext change between 8.3 and 8.4
         #compare_sql = select count(1) as cnt, sum(('x'||substr(md5(t.*::text),1,16))::bit(64)::bigint) as chksum from only _TABLE_ t
         #compare_fmt = %(cnt)d rows, checksum=%(chksum)s
+
+        ## Parameters for initial node creation: create-root/branch/leaf ##
+
+        # These parameters can be given on either command-line or in config
+        # command-line values override config values.  Those values are
+        # used only during create time, otherwise they are loaded from database.
+
+        # Name for local node.
+        #node_name =
+
+        # public connect string for local node, which other nodes will use
+        # to connect to this one.
+        #public_node_location =
+
+        # connect string for existing node to use as provider
+        #initial_provider_location =
     """
 
     # batch info

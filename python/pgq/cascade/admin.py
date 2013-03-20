@@ -143,31 +143,44 @@ class CascadeAdmin(skytools.AdminScript):
         db = self.get_database("db")
         self.install_code(db)
 
-    def cmd_create_root(self, node_name, *args):
-        return self.create_node('root', node_name, args)
+    def cmd_create_root(self, *args):
+        return self.create_node('root', args)
 
     def cmd_create_branch(self, node_name, *args):
-        return self.create_node('branch', node_name, args)
+        return self.create_node('branch', args)
 
     def cmd_create_leaf(self, node_name, *args):
-        return self.create_node('leaf', node_name, args)
+        return self.create_node('leaf', args)
 
-    def create_node(self, node_type, node_name, args):
+    def create_node(self, node_type, args):
         """Generic node init."""
-        provider_loc = self.options.provider
 
         if node_type not in ('root', 'branch', 'leaf'):
             raise Exception('unknown node type')
 
-        # load public location
+        # load node name
+        if len(args) > 0:
+            node_name = args[0]
+        else:
+            node_name = self.cf.get('node_name', '')
+        if not node_name:
+            raise UsageError('Node public location must be given either in command line or config')
+
+        # load node public location
         if len(args) > 1:
-            raise UsageError('Too many args, only public connect string allowed')
-        elif len(args) == 1:
-            node_location = args[0]
+            node_location = args[1]
         else:
             node_location = self.cf.get('public_node_location', '')
         if not node_location:
             raise UsageError('Node public location must be given either in command line or config')
+
+        if len(args) > 2:
+            raise UsageError('Too many args, only node name and public connect string allowed')
+
+        # load provider
+        provider_loc = self.options.provider
+        if not provider_loc:
+            provider_loc = self.cf.get('initial_provider_location', '')
 
         # check if sane
         ok = 0
