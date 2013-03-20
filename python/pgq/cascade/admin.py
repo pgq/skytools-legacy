@@ -79,6 +79,8 @@ class CascadeAdmin(skytools.AdminScript):
     local_node = None
     root_node_name = None
 
+    commands_without_pidfile = ['status', 'node-status', 'node-info']
+
     def __init__(self, svc_name, dbname, args, worker_setup = False):
         skytools.AdminScript.__init__(self, svc_name, args)
         self.initial_db_name = dbname

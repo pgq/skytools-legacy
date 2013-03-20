@@ -16,15 +16,21 @@ class AdminScript(skytools.DBScript):
     name.  If class method 'cmd_' + arg exists, it is called,
     otherwise error is given.
     """
+    commands_without_pidfile = {}
     def __init__(self, service_name, args):
         """AdminScript init."""
         skytools.DBScript.__init__(self, service_name, args)
-        if self.pidfile:
-            self.pidfile = self.pidfile + ".admin"
 
         if len(self.args) < 2:
             self.log.error("need command")
             sys.exit(1)
+
+        cmd = self.args[1]
+        if cmd in self.commands_without_pidfile:
+            self.pidfile = None
+
+        if self.pidfile:
+            self.pidfile = self.pidfile + ".admin"
 
     def work(self):
         """Non-looping work function, calls command function."""

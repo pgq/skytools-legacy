@@ -17,6 +17,9 @@ class LondisteSetup(CascadeAdmin):
     initial_db_name = 'node_db'
     provider_location = None
 
+    commands_without_pidfile = CascadeAdmin.commands_without_pidfile + [
+            'tables', 'seqs', 'missing', 'show-handlers']
+
     def install_code(self, db):
         self.extra_objs = [
             skytools.DBSchema("londiste", sql_file = 'londiste.sql'),
