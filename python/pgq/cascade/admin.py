@@ -146,10 +146,10 @@ class CascadeAdmin(skytools.AdminScript):
     def cmd_create_root(self, *args):
         return self.create_node('root', args)
 
-    def cmd_create_branch(self, node_name, *args):
+    def cmd_create_branch(self, *args):
         return self.create_node('branch', args)
 
-    def cmd_create_leaf(self, node_name, *args):
+    def cmd_create_leaf(self, *args):
         return self.create_node('leaf', args)
 
     def create_node(self, node_type, args):
@@ -164,7 +164,7 @@ class CascadeAdmin(skytools.AdminScript):
         else:
             node_name = self.cf.get('node_name', '')
         if not node_name:
-            raise UsageError('Node public location must be given either in command line or config')
+            raise UsageError('Node name must be given either in command line or config')
 
         # load node public location
         if len(args) > 1:
