@@ -246,7 +246,7 @@ class CascadeAdmin(skytools.AdminScript):
 
             combined_set = None
 
-            provider_db = self.get_database('provider_db', connstr = provider_loc)
+            provider_db = self.get_database('provider_db', connstr = provider_loc, profile = 'remote')
             q = "select node_type, node_name from pgq_node.get_node_info(%s)"
             res = self.exec_query(provider_db, q, [self.queue_name])
             row = res[0]
@@ -297,7 +297,7 @@ class CascadeAdmin(skytools.AdminScript):
     def check_public_connstr(self, db, pub_connstr):
         """Look if public and local connect strings point to same db's.
         """
-        pub_db = self.get_database("pub_db", connstr = pub_connstr)
+        pub_db = self.get_database("pub_db", connstr = pub_connstr, profile = 'remote')
         curs1 = db.cursor()
         curs2 = pub_db.cursor()
         q = "select oid, datname, txid_current() as txid, txid_current_snapshot() as snap"\
@@ -339,12 +339,12 @@ class CascadeAdmin(skytools.AdminScript):
         """Find root node, having start point."""
         if initial_loc:
             loc = initial_loc
+            db = self.get_database('root_db', connstr = loc, profile = 'remote')
         else:
             loc = self.cf.get(self.initial_db_name)
-
-        while 1:
             db = self.get_database('root_db', connstr = loc)
 
+        while 1:
             # query current status
             res = self.exec_query(db, "select * from pgq_node.get_node_info(%s)", [self.queue_name])
             info = res[0]
@@ -367,6 +367,9 @@ class CascadeAdmin(skytools.AdminScript):
             if loc is None:
                 self.log.error("Sub node provider not initialized?")
                 sys.exit(1)
+
+            db = self.get_database('root_db', connstr = loc, profile = 'remote')
+
         raise Exception('process canceled')
 
     def find_root_node(self):
@@ -430,6 +433,8 @@ class CascadeAdmin(skytools.AdminScript):
         """Show set status."""
         self.load_local_info()
 
+        cstr_extra = self.cf.get('remote_extra_connstr', '')
+
         # prepare structs for workers
         members = Queue.Queue()
         for m in self.queue_info.member_map.itervalues():
@@ -441,7 +446,7 @@ class CascadeAdmin(skytools.AdminScript):
         num_threads = max (min (num_nodes / 4, 100), 1)
         tlist = []
         for i in range(num_threads):
-            t = threading.Thread (target = self._cmd_status_worker, args = (members, nodes))
+            t = threading.Thread (target = self._cmd_status_worker, args = (members, nodes, cstr_extra))
             t.daemon = True
             t.start()
             tlist.append(t)
@@ -458,14 +463,17 @@ class CascadeAdmin(skytools.AdminScript):
 
         self.queue_info.print_tree()
 
-    def _cmd_status_worker (self, members, nodes):
+    def _cmd_status_worker (self, members, nodes, cstr_extra):
         # members in, nodes out, both thread-safe
         while True:
             try:
                 m = members.get_nowait()
             except Queue.Empty:
                 break
-            node = self.load_node_status (m.name, m.location)
+            loc = m.location
+            if cstr_extra:
+                loc = loc + ' ' + cstr_extra
+            node = self.load_node_status (m.name, loc)
             nodes.put(node)
             members.task_done()
 
@@ -1362,7 +1370,7 @@ class CascadeAdmin(skytools.AdminScript):
             if m.dead:
                 return None
             loc = m.location
-            db = self.get_database('node.' + node_name, connstr = loc)
+            db = self.get_database('node.' + node_name, connstr = loc, profile = 'remote')
         return db
 
     def node_alive(self, node_name):

@@ -537,7 +537,7 @@ class LondisteSetup(CascadeAdmin):
             q = 'select * from pgq_node.get_node_info(%s)'
             res = self.exec_cmd(db, q, [self.queue_name], quiet = True)
             self.provider_location = res[0]['provider_location']
-        return self.get_database('provider_db', connstr = self.provider_location)
+        return self.get_database('provider_db', connstr = self.provider_location, profile = 'remote')
 
     def expand_arg_list(self, db, kind, existing, args, needs_tbl=True):
         curs = db.cursor()

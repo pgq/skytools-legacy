@@ -697,7 +697,7 @@ class DBScript(BaseScript):
         self._db_defaults[dbname] = kwargs
 
     def get_database(self, dbname, autocommit = 0, isolation_level = -1,
-                     cache = None, connstr = None):
+                     cache = None, connstr = None, profile = None):
         """Load cached database connection.
 
         User must not store it permanently somewhere,
@@ -727,12 +727,20 @@ class DBScript(BaseScript):
         if cache in self.db_cache:
             if connstr is None:
                 connstr = self.cf.get(dbname, '')
+            if profile:
+                extra = self.cf.get("%s_extra_connstr" % profile, '')
+                if extra:
+                    connstr += ' ' + extra
             dbc = self.db_cache[cache]
             if connstr:
                 dbc.check_connstr(connstr)
         else:
             if not connstr:
                 connstr = self.cf.get(dbname)
+            if profile:
+                extra = self.cf.get("%s_extra_connstr" % profile, '')
+                if extra:
+                    connstr += ' ' + extra
 
             # connstr might contain password, it is not a good idea to log it
             filtered_connstr = connstr

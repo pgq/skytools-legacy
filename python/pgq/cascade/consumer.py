@@ -64,7 +64,7 @@ class CascadedConsumer(BaseConsumer):
 
         dst_db = self.get_database(self.target_db)
         dst_curs = dst_db.cursor()
-        src_db = self.get_database(PDB, connstr = provider_loc)
+        src_db = self.get_database(PDB, connstr = provider_loc, profile = 'remote')
         src_curs = src_db.cursor()
 
         # check target info
@@ -99,7 +99,7 @@ class CascadedConsumer(BaseConsumer):
 
     def get_provider_db(self, state):
         provider_loc = state['provider_location']
-        return self.get_database(PDB, connstr = provider_loc)
+        return self.get_database(PDB, connstr = provider_loc, profile = 'remote')
 
     def unregister_consumer(self):
         dst_db = self.get_database(self.target_db)

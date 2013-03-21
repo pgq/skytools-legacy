@@ -276,6 +276,10 @@ class Replicator(CascadedWorker):
         # target database
         db = dbname=somedb host=127.0.0.1
 
+        # extra connect string parameters to add to node public connect strings.
+        # useful values: user= sslmode=
+        #remote_extra_connstr =
+
         # how many tables can be copied in parallel
         #parallel_copies = 1
 

@@ -263,7 +263,7 @@ class CascadedWorker(CascadedConsumer):
                 if n['dead']:
                     # ignore dead nodes
                     continue
-                wmdb = self.get_database('wmdb', connstr = n['node_location'], autocommit = 1)
+                wmdb = self.get_database('wmdb', connstr = n['node_location'], autocommit = 1, profile = 'remote')
                 wmcurs = wmdb.cursor()
                 q = 'select local_watermark from pgq_node.get_node_info(%s)'
                 wmcurs.execute(q, [self.queue_name])

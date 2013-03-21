@@ -166,10 +166,10 @@ class Syncer(skytools.DBScript):
 
     def process_one_table(self, tbl, t2, dst_db, provider_node, provider_loc):
 
-        lock_db = self.get_database('lock_db', connstr = provider_loc)
-        setup_db = self.get_database('setup_db', autocommit = 1, connstr = provider_loc)
+        lock_db = self.get_database('lock_db', connstr = provider_loc, profile = 'remote')
+        setup_db = self.get_database('setup_db', autocommit = 1, connstr = provider_loc, profile = 'remote')
 
-        src_db = self.get_database('provider_db', connstr = provider_loc,
+        src_db = self.get_database('provider_db', connstr = provider_loc, profile = 'remote',
                                    isolation_level = skytools.I_REPEATABLE_READ)
 
         setup_curs = setup_db.cursor()
