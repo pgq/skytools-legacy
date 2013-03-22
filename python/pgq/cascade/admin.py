@@ -449,7 +449,7 @@ class CascadeAdmin(skytools.AdminScript):
         num_threads = max (min (num_nodes / 4, 100), 1)
         tlist = []
         for i in range(num_threads):
-            t = threading.Thread (target = self._cmd_status_worker, args = (members, nodes, cstr_extra))
+            t = threading.Thread (target = self._cmd_status_worker, args = (members, nodes))
             t.daemon = True
             t.start()
             tlist.append(t)
@@ -466,7 +466,7 @@ class CascadeAdmin(skytools.AdminScript):
 
         self.queue_info.print_tree()
 
-    def _cmd_status_worker (self, members, nodes, cstr_extra):
+    def _cmd_status_worker (self, members, nodes):
         # members in, nodes out, both thread-safe
         while True:
             try:
