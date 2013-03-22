@@ -433,14 +433,10 @@ class CascadeAdmin(skytools.AdminScript):
         """Show set status."""
         self.load_local_info()
 
-        cstr_extra = self.cf.get('remote_extra_connstr', '')
-
-        # prepare structs for workers
+        # prepare data for workers
         members = Queue.Queue()
         for m in self.queue_info.member_map.itervalues():
-            cstr = m.location
-            if cstr_extra:
-                cstr += ' ' + cstr_extra
+            cstr = self.add_connect_string_profile(m.location, 'remote')
             members.put( (m.name, cstr) )
         nodes = Queue.Queue()
 

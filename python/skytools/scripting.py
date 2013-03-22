@@ -696,6 +696,15 @@ class DBScript(BaseScript):
     def set_database_defaults(self, dbname, **kwargs):
         self._db_defaults[dbname] = kwargs
 
+    def add_connect_string_profile(self, connstr, profile):
+        """Add extra profile info to connect string.
+        """
+        if profile:
+            extra = self.cf.get("%s_extra_connstr" % profile, '')
+            if extra:
+                connstr += ' ' + extra
+        return connstr
+
     def get_database(self, dbname, autocommit = 0, isolation_level = -1,
                      cache = None, connstr = None, profile = None):
         """Load cached database connection.
@@ -725,22 +734,16 @@ class DBScript(BaseScript):
             params['max_age'] = max_age
 
         if cache in self.db_cache:
+            dbc = self.db_cache[cache]
             if connstr is None:
                 connstr = self.cf.get(dbname, '')
-            if profile:
-                extra = self.cf.get("%s_extra_connstr" % profile, '')
-                if extra:
-                    connstr += ' ' + extra
-            dbc = self.db_cache[cache]
             if connstr:
+                connstr = self.add_connect_string_profile(connstr, profile)
                 dbc.check_connstr(connstr)
         else:
             if not connstr:
                 connstr = self.cf.get(dbname)
-            if profile:
-                extra = self.cf.get("%s_extra_connstr" % profile, '')
-                if extra:
-                    connstr += ' ' + extra
+            connstr = self.add_connect_string_profile(connstr, profile)
 
             # connstr might contain password, it is not a good idea to log it
             filtered_connstr = connstr
