@@ -438,7 +438,10 @@ class CascadeAdmin(skytools.AdminScript):
         # prepare structs for workers
         members = Queue.Queue()
         for m in self.queue_info.member_map.itervalues():
-            members.put(m)
+            cstr = m.location
+            if cstr_extra:
+                cstr += ' ' + cstr_extra
+            members.put( (m.name, cstr) )
         nodes = Queue.Queue()
 
         # launch workers and wait
@@ -467,13 +470,10 @@ class CascadeAdmin(skytools.AdminScript):
         # members in, nodes out, both thread-safe
         while True:
             try:
-                m = members.get_nowait()
+                node_name, node_connstr = members.get_nowait()
             except Queue.Empty:
                 break
-            loc = m.location
-            if cstr_extra:
-                loc = loc + ' ' + cstr_extra
-            node = self.load_node_status (m.name, loc)
+            node = self.load_node_status (node_name, node_connstr)
             nodes.put(node)
             members.task_done()
 
