@@ -1,23 +1,20 @@
 
-"""Module for parsing ISO 8601 format timestamps.
+"""Fill gaps in Python time API-s.
 
-Only fixed offset timezones are supported.
+parse_iso_timestamp:
+    Parse reasonable subset of ISO_8601 timestamp formats.
+    [ http://en.wikipedia.org/wiki/ISO_8601 ]
 
-http://en.wikipedia.org/wiki/ISO_8601
+datetime_to_timestamp:
+    Get POSIX timestamp from datetime() object.
+
 """
 
 import re
-
+import time
 from datetime import datetime, timedelta, tzinfo
 
-"""
-TODO:
-- support more combinations from ISO 8601 (only reasonable ones)
-- cache TZ objects
-- make it faster?
-"""
-
-__all__ = ['parse_iso_timestamp', 'FixedOffsetTimezone']
+__all__ = ['parse_iso_timestamp', 'FixedOffsetTimezone', 'datetime_to_timestamp']
 
 class FixedOffsetTimezone(tzinfo):
     """Fixed offset in minutes east from UTC."""
@@ -46,6 +43,17 @@ class FixedOffsetTimezone(tzinfo):
 
 ZERO = timedelta(0)
 
+#
+# Parse ISO_8601 timestamps.
+#
+
+"""
+TODO:
+- support more combinations from ISO 8601 (only reasonable ones)
+- cache TZ objects
+- make it faster?
+"""
+
 _iso_regex = r"""
     \s*
     (?P<year> \d\d\d\d) [-] (?P<month> \d\d) [-] (?P<day> \d\d) [ T]
@@ -66,6 +74,8 @@ def parse_iso_timestamp(s, default_tz = None):
 
     If the timezone offset is not present, use default_tz as tzinfo.
     By default its None, meaning the datetime object will be without tz.
+
+    Only fixed offset timezones are supported.
 
     >>> str(parse_iso_timestamp('2005-06-01 15:00'))
     '2005-06-01 15:00:00'
@@ -107,6 +117,47 @@ def parse_iso_timestamp(s, default_tz = None):
                 m.group('sec') and int(m.group('sec')) or 0,
                 m.group('ss') and int(m.group('ss').ljust(6, '0')) or 0,
                 tz)
+
+#
+# POSIX timestamp from datetime()
+#
+
+UTC = FixedOffsetTimezone(0)
+TZ_EPOCH = datetime.fromtimestamp(0, UTC)
+UTC_NOTZ_EPOCH = datetime.utcfromtimestamp(0)
+
+def datetime_to_timestamp(dt, local_time=True):
+    """Get posix timestamp from datetime() object.
+
+    if dt is without timezone, then local_time specifies
+    whether it's UTC or local time.
+
+    Returns seconds since epoch as float.
+
+    >>> datetime_to_timestamp(parse_iso_timestamp("2005-06-01 15:00:59.33 +02"))
+    1117630859.33
+    >>> datetime_to_timestamp(datetime.fromtimestamp(1117630859.33, UTC))
+    1117630859.33
+    >>> datetime_to_timestamp(datetime.fromtimestamp(1117630859.33))
+    1117630859.33
+    >>> now = datetime.utcnow()
+    >>> now2 = datetime.utcfromtimestamp(datetime_to_timestamp(now, False))
+    >>> now == now2
+    True
+    >>> now = datetime.now()
+    >>> now2 = datetime.fromtimestamp(datetime_to_timestamp(now))
+    >>> now == now2
+    True
+    """
+    if dt.tzinfo:
+        delta = dt - TZ_EPOCH
+        return delta.total_seconds()
+    elif local_time:
+        s = time.mktime(dt.timetuple())
+        return s + (dt.microsecond / 1000000.0)
+    else:
+        delta = dt - UTC_NOTZ_EPOCH
+        return delta.total_seconds()
 
 if __name__ == '__main__':
     import doctest

@@ -135,6 +135,7 @@ _symbols = {
     'mk_update_sql': 'skytools.sqltools:mk_update_sql',
     # skytools.timeutil
     'FixedOffsetTimezone': 'skytools.timeutil:FixedOffsetTimezone',
+    'datetime_to_timestamp': 'skytools.timeutil:datetime_to_timestamp',
     'parse_iso_timestamp': 'skytools.timeutil:parse_iso_timestamp',
     # skytools.utf8
     'safe_utf8_decode': 'skytools.utf8:safe_utf8_decode',
