@@ -25,6 +25,8 @@ def parse_pgarray(array):
     >>> parse_pgarray("[0,3]={1,2,3}")
     ['1', '2', '3']
     """
+    if array is None:
+        return None
     if not array or array[0] not in ("{", "[") or array[-1] != '}':
         raise Exception("bad array format: must be surrounded with {}")
     res = []
