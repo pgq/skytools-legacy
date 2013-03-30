@@ -81,6 +81,8 @@ class LondisteSetup(CascadeAdmin):
                 help="max number of parallel copy processes")
         p.add_option("--dest-table", metavar = "NAME",
                 help="add: name for actual table")
+        p.add_option("--skip-non-existing", action="store_true",
+                help="add: skip object that does not exist")
         return p
 
     def extra_init(self, node_type, node_db, provider_db):
@@ -184,6 +186,7 @@ class LondisteSetup(CascadeAdmin):
         src_curs = src_db.cursor()
         dst_curs = dst_db.cursor()
         tbl_exists = skytools.exists_table(dst_curs, dest_table)
+        dst_db.commit()
 
         if dest_table == tbl:
             desc = tbl
@@ -211,6 +214,9 @@ class LondisteSetup(CascadeAdmin):
                 if src_dest_table != dest_table:
                     newname = dest_table
                 s.create(dst_curs, create_flags, log = self.log, new_table_name = newname)
+        elif not tbl_exists and self.options.skip_non_existing:
+            self.log.warning('Table %s does not exist on local node, skipping', desc)
+            return
 
         tgargs = self.build_tgargs()
 
@@ -395,8 +401,11 @@ class LondisteSetup(CascadeAdmin):
                 src_db.commit()
                 s.create(dst_curs, create_flags, log = self.log)
         elif not seq_exists:
-            self.log.warning('Sequence "%s" missing on subscriber, use --create if necessary', seq)
-            return
+            if self.options.skip_non_existing:
+                self.log.warning('Sequence "%s" missing on local node, skipping', seq)
+                return
+            else:
+                raise skytools.UsageError("Sequence %r missing on local node", seq)
 
         q = "select * from londiste.local_add_seq(%s, %s)"
         self.exec_cmd(dst_curs, q, [self.set_name, seq])
