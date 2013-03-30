@@ -85,15 +85,9 @@ class PConf(SafeConfigParser):
         return res
 
 class GrantFu:
-    def __init__(self, cf_file, revoke):
+    def __init__(self, cf, revoke):
+        self.cf = cf
         self.revoke = revoke
-
-        # load config
-        self.cf = PConf()
-        self.cf.read(cf_file)
-        if not self.cf.has_section("GrantFu"):
-            print "Incorrect config file, GrantFu sction missing"
-            sys.exit(1)
 
         # avoid putting grantfu vars into defaults, thus into every section
         self.group_list = []
@@ -317,11 +311,26 @@ def main():
     if len(args) != 1:
         usage(1)
 
+    # load config
+    cf = PConf()
+    cf.read(args[0])
+    if not cf.has_section("GrantFu"):
+        print "Incorrect config file, GrantFu sction missing"
+        sys.exit(1)
+
     if tx:
         print "begin;\n"
 
-    g = GrantFu(args[0], revoke)
-    g.process()
+    # revokes and default grants
+    if revoke & (R_NEW | R_DEFS):
+        g = GrantFu(cf, revoke | R_ONLY)
+        g.process()
+        revoke = revoke & R_ONLY
+
+    # grants
+    if revoke & R_ONLY == 0:
+        g = GrantFu(cf, revoke & G_DEFS)
+        g.process()
 
     if tx:
         print "\ncommit;\n"
