@@ -189,7 +189,7 @@ class CascadeAdmin(skytools.AdminScript):
                 ok = 1
                 break
         if not ok:
-            raise UsageError('No host= in public connect string, bad idea')
+            self.log.warning('No host= in public connect string, bad idea')
 
         # connect to database
         db = self.get_database(self.initial_db_name)
