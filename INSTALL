@@ -13,7 +13,7 @@ skytools based applications.
 
 When building code from GIT:
 
-  git autoconf automake asciidoc xmlto
+  git autoconf automake asciidoc xmlto libtool
 
 === Runtime dependencies ===
 
