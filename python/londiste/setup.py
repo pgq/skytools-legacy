@@ -577,6 +577,9 @@ class LondisteSetup(CascadeAdmin):
             res = self.solve_globbing(args, lst_exists, map_exists, map_missing, allow_nonexist)
         else:
             res = self.solve_globbing(args, lst_missing, map_missing, map_exists, allow_nonexist)
+
+        if not res:
+            self.log.info("what to do ?")
         return res
 
     def solve_globbing(self, args, full_list, full_map, reverse_map, allow_nonexist):
