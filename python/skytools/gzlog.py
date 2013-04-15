@@ -1,8 +1,8 @@
 
 """Atomic append of gzipped data.
 
-The point is - if several gzip streams are concated, they
-are read back as one whose stream.
+The point is - if several gzip streams are concatenated,
+they are read back as one whole stream.
 """
 
 import gzip
@@ -22,7 +22,7 @@ def gzip_append(filename, data, level = 6):
     g.write(data)
     g.close()
     zdata = buf.getvalue()
-    
+
     # append, safely
     f = open(filename, "a+", 0)
     f.seek(0, 2)
@@ -36,4 +36,3 @@ def gzip_append(filename, data, level = 6):
         f.truncate()
         f.close()
         raise ex
-

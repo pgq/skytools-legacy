@@ -145,7 +145,7 @@ class BaseHandler:
 
     def real_copy(self, src_tablename, src_curs, dst_curs, column_list):
         """do actual table copy and return tuple with number of bytes and rows
-        copyed
+        copied
         """
         condition = self.get_copy_condition(src_curs, dst_curs)
         return skytools.full_copy(src_tablename, src_curs, dst_curs,
