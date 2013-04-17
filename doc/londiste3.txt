@@ -75,36 +75,41 @@ partial replication and custom handlers for replication.
 
 == NODE INITIALIZATION COMMANDS ==
 
-Initialization commands are the only ones that requires a connection
-string argument. It is the connection string that Londiste3 will store,
-other nodes will use it to connect to the current node.
+Initialization commands will set up "public connect string" for
+current node.  It is a connect string that other nodes will
+use to connect to current node.  The local Londiste itself
+uses 'db' option from config file to connect to local node,
+which can have different user rights than scripts coming
+over public connect string.
 
-=== create-root <node> <connstr> ===
+Connect strings can be set in either command line or config file.
+Command line overrides config.  Setting them up in config
+might be more comfortable.  See `londiste3 --ini` for details.
+
+=== create-root <node> [<public_connstr_for_node>] ===
 
 Initializes a Master node.
 
 The <node> is the name of the node, it should be unique.
-The <connstr> argument is the connection string to the database on the
-Master node.
 
-=== create-branch <node> <connstr> --provider=<public_connstr> ===
+=== create-branch <node> [<public_connstr_for_node>] [--provider=<connstr_to_provider>] ===
 
 Initializes a Slave node which can be used as a reference for other
 nodes.
 
 The <node> is the name of the node, it should be unique.
-The <connstr> argument is the connection string to the database on the
-current node and <public_connstr> is the connection string to the
+The <public_connstr_for_node> argument is the connection string to the database
+on the current node and <connstr_to_provider> is the connection string to the
 provider database (it can be a root node or a branch node).
 
-=== create-leaf <node> <connstr> --provider=<public_connstr> ===
+=== create-leaf <node> [<public_connstr_for_node>] [--provider=<connstr_to_provider>] ===
 
-Initializes a Slave node which can not be used as a reference for other
+Initializes a slave node which can not be used as a reference for other
 nodes.
 
 The <node> is the name of the node, it should be unique.
-The <connstr> argument is the connection string to the database on the
-current node and <public_connstr> is the connection string to the
+The <public_connstr_for_node> argument is the connection string to the database
+on the current node and <connstr_to_provider> is the connection string to the
 provider database (it can be a root node or a branch node).
 
   --merge='qname'::
