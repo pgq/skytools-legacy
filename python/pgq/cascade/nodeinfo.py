@@ -240,7 +240,7 @@ class QueueInfo:
         for ln in datalines:
             print(self._DATAFMT % (_setpfx(pfx, '|'), ln))
         datalines = node.get_infolines()
-        print("%s%s" % (_setpfx(pfx, '+--'), node.get_title()))
+        print("%s%s" % (_setpfx(pfx, '+--: '), node.get_title()))
 
         for i, n in enumerate(node.child_list):
             sfx = ((i < len(node.child_list) - 1) and '  |' or '   ')
