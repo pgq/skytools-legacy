@@ -39,8 +39,7 @@ class PartHandler(TableHandler):
 
         # primary key columns
         self.key = args.get('key')
-        if self.key is None:
-            raise Exception('Specify key field as key argument')
+        self._validate_key()
 
         # hash function & full expression
         hashfunc = args.get('hashfunc', self.DEFAULT_HASHFUNC)
@@ -48,6 +47,10 @@ class PartHandler(TableHandler):
                 skytools.quote_fqident(hashfunc),
                 skytools.quote_ident(self.key))
         self.hashexpr = args.get('hashexpr', self.hashexpr)
+
+    def _validate_key(self):
+        if self.key is None:
+            raise Exception('Specify key field as key argument')
 
     def reset(self):
         """Forget config info."""
@@ -57,7 +60,6 @@ class PartHandler(TableHandler):
 
     def add(self, trigger_arg_list):
         """Let trigger put hash into extra3"""
-
         arg = "ev_extra3='hash='||%s" % self.hashexpr
         trigger_arg_list.append(arg)
         TableHandler.add(self, trigger_arg_list)
@@ -70,13 +72,16 @@ class PartHandler(TableHandler):
 
     def process_event(self, ev, sql_queue_func, arg):
         """Filter event by hash in extra3, apply only local part."""
-        if ev.extra3:
+        if ev.extra3 and self.key is not None:
             meta = skytools.db_urldecode(ev.extra3)
             self.log.debug('part.process_event: hash=%d, max_part=%s, local_part=%d',
                            int(meta['hash']), self.max_part, self.local_part)
             if (int(meta['hash']) & self.max_part) != self.local_part:
                 self.log.debug('part.process_event: not my event')
                 return
+        self._process_event(ev, sql_queue_func, arg)
+
+    def _process_event(self, ev, sql_queue_func, arg):
         self.log.debug('part.process_event: my event, processing')
         TableHandler.process_event(self, ev, sql_queue_func, arg)
 
