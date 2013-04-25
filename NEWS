@@ -42,9 +42,9 @@
 
     * Refactor Consumer code.
     * Remove: pgqadm and related code, its unmaintained
-    * weeping change to postpone log string formatting
+    * Sweeping change to postpone log string formatting
     * docs: copy-condition removed from londiste3 man page
-    * Varios logging cleanups
+    * Various logging cleanups
     * Londiste: fix trigger generation when extra params that are add-table specific are used (introduced in commit 364ade9)
     * londiste: quote queue name in trigger args
     * londiste: actually execute the ENABLE/DISABLE RULE query in londiste.create_partition
