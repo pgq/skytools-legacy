@@ -28,10 +28,15 @@ logging.addLevelName(TRACE, 'TRACE')
 _service_name = 'unknown_svc'
 _job_name = 'unknown_job'
 _hostname = socket.gethostname()
+try:
+    _hostaddr = socket.gethostbyname(_hostname)
+except:
+    _hostaddr = "0.0.0.0"
 _log_extra = {
     'job_name': _job_name,
     'service_name': _service_name,
     'hostname': _hostname,
+    'hostaddr': _hostaddr,
 }
 def set_service_name(service_name, job_name):
     """Set info about current script."""
@@ -110,10 +115,7 @@ class UdpLogServerHandler(logging.handlers.DatagramHandler):
             msg = msg[:self.MAXMSG]
         txt_level = self._level_map.get(record.levelno, "ERROR")
         hostname = _hostname
-        try:
-            hostaddr = socket.gethostbyname(hostname)
-        except:
-            hostaddr = "0.0.0.0"
+        hostaddr = _hostaddr
         jobname = _job_name
         svcname = _service_name
         pkt = self._log_template % (time.time()*1000, txt_level, skytools.quote_json(msg),
