@@ -134,18 +134,24 @@ def datetime_to_timestamp(dt, local_time=True):
 
     Returns seconds since epoch as float.
 
-    >>> datetime_to_timestamp(parse_iso_timestamp("2005-06-01 15:00:59.33 +02"))
-    1117630859.33
-    >>> datetime_to_timestamp(datetime.fromtimestamp(1117630859.33, UTC))
-    1117630859.33
-    >>> datetime_to_timestamp(datetime.fromtimestamp(1117630859.33))
-    1117630859.33
+    >>> datetime_to_timestamp(parse_iso_timestamp("2005-06-01 15:00:59.5 +02"))
+    1117630859.5
+    >>> datetime_to_timestamp(datetime.fromtimestamp(1117630859.5, UTC))
+    1117630859.5
+    >>> datetime_to_timestamp(datetime.fromtimestamp(1117630859.5))
+    1117630859.5
     >>> now = datetime.utcnow()
     >>> now2 = datetime.utcfromtimestamp(datetime_to_timestamp(now, False))
+    >>> abs(now2.microsecond - now.microsecond) < 100
+    True
+    >>> now2 = now2.replace(microsecond = now.microsecond)
     >>> now == now2
     True
     >>> now = datetime.now()
     >>> now2 = datetime.fromtimestamp(datetime_to_timestamp(now))
+    >>> abs(now2.microsecond - now.microsecond) < 100
+    True
+    >>> now2 = now2.replace(microsecond = now.microsecond)
     >>> now == now2
     True
     """
