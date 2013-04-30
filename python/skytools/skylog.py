@@ -136,14 +136,9 @@ class UdpTNetStringsHandler(logging.handlers.DatagramHandler):
     # LogRecord fields to send
     send_fields = [
         'created', 'exc_text', 'levelname', 'levelno', 'message', 'msecs', 'name',
-        #'hostaddr', 'hostname', 'job_name', 'service_name'
-    ]
+        'hostaddr', 'hostname', 'job_name', 'service_name']
 
-    def __init__(self, host, port):
-        """ Initializes the handler with a specific host address and port.
-        """
-        logging.handlers.DatagramHandler.__init__(self, host, port)
-        self._udp_reset = 0
+    _udp_reset = 0
 
     def makePickle(self, record):
         """ Create message in TNetStrings format.
