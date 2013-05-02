@@ -2,6 +2,7 @@
 
 Parameters:
   key=COLUMN: column name to use for hashing
+  hash_key=COLUMN: column name to use for hashing (overrides 'key' parameter)
   hashfunc=NAME: function to use for hashing (default: partconf.get_hash_raw)
   hashexpr=EXPR: full expression to use for hashing (deprecated)
   encoding=ENC: validate and fix incoming data (only utf8 supported atm)
@@ -38,18 +39,18 @@ class PartHandler(TableHandler):
         self.local_part = None     # part number of local node
 
         # primary key columns
-        self.key = args.get('key')
-        self._validate_key()
+        self.hash_key = args.get('hash_key', args.get('key'))
+        self._validate_hash_key()
 
         # hash function & full expression
         hashfunc = args.get('hashfunc', self.DEFAULT_HASHFUNC)
         self.hashexpr = self.DEFAULT_HASHEXPR % (
                 skytools.quote_fqident(hashfunc),
-                skytools.quote_ident(self.key))
+                skytools.quote_ident(self.hash_key))
         self.hashexpr = args.get('hashexpr', self.hashexpr)
 
-    def _validate_key(self):
-        if self.key is None:
+    def _validate_hash_key(self):
+        if self.hash_key is None:
             raise Exception('Specify key field as key argument')
 
     def reset(self):
@@ -72,7 +73,7 @@ class PartHandler(TableHandler):
 
     def process_event(self, ev, sql_queue_func, arg):
         """Filter event by hash in extra3, apply only local part."""
-        if ev.extra3 and self.key is not None:
+        if ev.extra3 and self.hash_key is not None:
             meta = skytools.db_urldecode(ev.extra3)
             self.log.debug('part.process_event: hash=%d, max_part=%s, local_part=%d',
                            int(meta['hash']), self.max_part, self.local_part)

@@ -724,7 +724,7 @@ class Dispatcher (PartHandler):
             raise Exception('Bad argument %s value %r' % (name, val))
         return val
 
-    def _validate_key(self):
+    def _validate_hash_key(self):
         pass
 
     def reset(self):
@@ -737,7 +737,7 @@ class Dispatcher (PartHandler):
         if self.conf.table_mode != 'ignore':
             self.batch_info = batch_info
             self.dst_curs = dst_curs
-        if self.key is not None:
+        if self.hash_key is not None:
             super(Dispatcher, self).prepare_batch(batch_info, dst_curs)
 
     def filter_data(self, data):
@@ -920,7 +920,7 @@ class Dispatcher (PartHandler):
     def get_copy_condition(self, src_curs, dst_curs):
         """ Prepare where condition for copy and replay filtering.
         """
-        if self.key is not None:
+        if self.hash_key is not None:
             return super(Dispatcher, self).get_copy_condition(src_curs, dst_curs)
         return ''
 
