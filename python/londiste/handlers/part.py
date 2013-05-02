@@ -67,8 +67,9 @@ class PartHandler(TableHandler):
 
     def prepare_batch(self, batch_info, dst_curs):
         """Called on first event for this table in current batch."""
-        if not self.max_part:
-            self.load_part_info(dst_curs)
+        if self.hash_key is not None:
+            if not self.max_part:
+                self.load_part_info(dst_curs)
         TableHandler.prepare_batch(self, batch_info, dst_curs)
 
     def process_event(self, ev, sql_queue_func, arg):
@@ -88,6 +89,8 @@ class PartHandler(TableHandler):
 
     def get_copy_condition(self, src_curs, dst_curs):
         """Prepare the where condition for copy and replay filtering"""
+        if self.hash_key is None:
+            return TableHandler.get_copy_condition(self, src_curs, dst_curs)
         self.load_part_info(dst_curs)
         w = "(%s & %d) = %d" % (self.hashexpr, self.max_part, self.local_part)
         self.log.debug('part: copy_condition=%s', w)

@@ -725,7 +725,7 @@ class Dispatcher (PartHandler):
         return val
 
     def _validate_hash_key(self):
-        pass
+        pass # no need for hash key when not sharding
 
     def reset(self):
         """Called before starting to process a batch.
@@ -737,8 +737,7 @@ class Dispatcher (PartHandler):
         if self.conf.table_mode != 'ignore':
             self.batch_info = batch_info
             self.dst_curs = dst_curs
-        if self.hash_key is not None:
-            super(Dispatcher, self).prepare_batch(batch_info, dst_curs)
+        super(Dispatcher, self).prepare_batch(batch_info, dst_curs)
 
     def filter_data(self, data):
         """Process with fields skip and map"""
@@ -920,9 +919,7 @@ class Dispatcher (PartHandler):
     def get_copy_condition(self, src_curs, dst_curs):
         """ Prepare where condition for copy and replay filtering.
         """
-        if self.hash_key is not None:
-            return super(Dispatcher, self).get_copy_condition(src_curs, dst_curs)
-        return ''
+        return super(Dispatcher, self).get_copy_condition(src_curs, dst_curs)
 
     def real_copy(self, tablename, src_curs, dst_curs, column_list):
         """do actual table copy and return tuple with number of bytes and rows
