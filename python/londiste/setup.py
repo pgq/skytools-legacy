@@ -145,8 +145,11 @@ class LondisteSetup(CascadeAdmin):
             for tbl in args:
                 tbl = skytools.fq_name(tbl)
                 if (tbl in src_tbls) and not src_tbls[tbl]['local']:
-                    self.log.error("Table %s does not exist on provider, need to switch to different provider", tbl)
-                    problems = True
+                    if self.options.skip_non_existing:
+                        self.log.warning("Table %s does not exist on provider", tbl)
+                    else:
+                        self.log.error("Table %s does not exist on provider, need to switch to different provider", tbl)
+                        problems = True
             if problems:
                 self.log.error("Problems, canceling operation")
                 sys.exit(1)
