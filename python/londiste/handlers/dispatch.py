@@ -153,17 +153,20 @@ creating or coping initial data to destination table.  --expect-sync and
 --skip-truncate should be used and --create switch is to be avoided.
 """
 
-import sys
-import datetime
 import codecs
+import datetime
 import re
+import sys
+from functools import partial
+
 import skytools
-from londiste.handler import BaseHandler, EncodingValidator
 from skytools import quote_ident, quote_fqident, UsageError
 from skytools.dbstruct import *
 from skytools.utf8 import safe_utf8_decode
-from functools import partial
+
+from londiste.handler import EncodingValidator
 from londiste.handlers import handler_args, update
+from londiste.handlers.part import PartHandler
 
 
 __all__ = ['Dispatcher']
@@ -618,7 +621,7 @@ ROW_HANDLERS = {'plain': RowHandler,
 #------------------------------------------------------------------------------
 
 
-class Dispatcher(BaseHandler):
+class Dispatcher (PartHandler):
     """Partitioned loader.
     Splits events into partitions, if requested.
     Then applies them without further processing.
@@ -630,7 +633,7 @@ class Dispatcher(BaseHandler):
         # compat for dest-table
         dest_table = args.get('table', dest_table)
 
-        BaseHandler.__init__(self, table_name, args, dest_table)
+        super(Dispatcher, self).__init__(table_name, args, dest_table)
 
         # show args
         self.log.debug("dispatch.init: table_name=%r, args=%r", table_name, args)
@@ -641,11 +644,6 @@ class Dispatcher(BaseHandler):
         self.conf = self.get_config()
         hdlr_cls = ROW_HANDLERS[self.conf.row_mode]
         self.row_handler = hdlr_cls(self.log)
-        if self.conf.encoding:
-            self.encoding_validator = EncodingValidator(self.log,
-                                                        self.conf.encoding)
-        else:
-            self.encoding_validator = None
 
     def _parse_args_from_doc (self):
         doc = __doc__
@@ -717,8 +715,6 @@ class Dispatcher(BaseHandler):
                     conf.field_map[tmp[0]] = tmp[0]
                 else:
                     conf.field_map[tmp[0]] = tmp[1]
-        # encoding validator
-        conf.encoding = self.args.get('encoding')
         return conf
 
     def get_arg(self, name, value_list, default = None):
@@ -728,17 +724,20 @@ class Dispatcher(BaseHandler):
             raise Exception('Bad argument %s value %r' % (name, val))
         return val
 
+    def _validate_hash_key(self):
+        pass # no need for hash key when not sharding
+
     def reset(self):
         """Called before starting to process a batch.
         Should clean any pending data."""
-        BaseHandler.reset(self)
+        super(Dispatcher, self).reset()
 
     def prepare_batch(self, batch_info, dst_curs):
         """Called on first event for this table in current batch."""
         if self.conf.table_mode != 'ignore':
             self.batch_info = batch_info
             self.dst_curs = dst_curs
-        #BaseHandler.prepare_batch(self, batch_info, dst_curs)
+        super(Dispatcher, self).prepare_batch(batch_info, dst_curs)
 
     def filter_data(self, data):
         """Process with fields skip and map"""
@@ -763,7 +762,7 @@ class Dispatcher(BaseHandler):
             pkeys = [fmap[p] for p in pkeys if p in fmap]
         return pkeys
 
-    def process_event(self, ev, sql_queue_func, arg):
+    def _process_event(self, ev, sql_queue_func, arg):
         """Process a event.
         Event should be added to sql_queue or executed directly.
         """
@@ -798,13 +797,12 @@ class Dispatcher(BaseHandler):
             self.row_handler.add_table(dst, LOADERS[self.conf.load_mode],
                                     self.pkeys, self.conf)
         self.row_handler.process(dst, op, data)
-        #BaseHandler.process_event(self, ev, sql_queue_func, arg)
 
     def finish_batch(self, batch_info, dst_curs):
         """Called when batch finishes."""
         if self.conf.table_mode != 'ignore':
             self.row_handler.flush(dst_curs)
-        #BaseHandler.finish_batch(self, batch_info, dst_curs)
+        #super(Dispatcher, self).finish_batch(batch_info, dst_curs)
 
     def get_part_name(self):
         # if custom part name template given, use it
@@ -918,12 +916,17 @@ class Dispatcher(BaseHandler):
         if res:
             self.log.info("Dropped tables: %s", ", ".join(res))
 
+    def get_copy_condition(self, src_curs, dst_curs):
+        """ Prepare where condition for copy and replay filtering.
+        """
+        return super(Dispatcher, self).get_copy_condition(src_curs, dst_curs)
+
     def real_copy(self, tablename, src_curs, dst_curs, column_list):
         """do actual table copy and return tuple with number of bytes and rows
         copied
         """
         _src_cols = _dst_cols = column_list
-        condition = ''
+        condition = self.get_copy_condition (src_curs, dst_curs)
 
         if self.conf.skip_fields:
             _src_cols = [col for col in column_list
@@ -940,7 +943,8 @@ class Dispatcher(BaseHandler):
         else:
             _write_hook = None
 
-        return skytools.full_copy(tablename, src_curs, dst_curs, _src_cols, condition,
+        return skytools.full_copy(tablename, src_curs, dst_curs,
+                                  _src_cols, condition,
                                   dst_tablename = self.dest_table,
                                   dst_column_list = _dst_cols,
                                   write_hook = _write_hook)

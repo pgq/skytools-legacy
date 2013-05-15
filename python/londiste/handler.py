@@ -178,9 +178,9 @@ class TableHandler(BaseHandler):
 
         enc = args.get('encoding')
         if enc:
-            self.enc = EncodingValidator(self.log, enc)
+            self.encoding_validator = EncodingValidator(self.log, enc)
         else:
-            self.enc = None
+            self.encoding_validator = None
 
     def process_event(self, ev, sql_queue_func, arg):
         row = self.parse_row_data(ev)
@@ -212,13 +212,13 @@ class TableHandler(BaseHandler):
         if len(ev.type) == 1:
             if not self.allow_sql_event:
                 raise Exception('SQL events not supported by this handler')
-            if self.enc:
-                return self.enc.validate_string(ev.data, self.table_name)
+            if self.encoding_validator:
+                return self.encoding_validator.validate_string(ev.data, self.table_name)
             return ev.data
         else:
             row = skytools.db_urldecode(ev.data)
-            if self.enc:
-                return self.enc.validate_dict(row, self.table_name)
+            if self.encoding_validator:
+                return self.encoding_validator.validate_dict(row, self.table_name)
             return row
 
     def real_copy(self, src_tablename, src_curs, dst_curs, column_list):
@@ -226,9 +226,9 @@ class TableHandler(BaseHandler):
         copied
         """
 
-        if self.enc:
+        if self.encoding_validator:
             def _write_hook(obj, data):
-                return self.enc.validate_copy(data, column_list, src_tablename)
+                return self.encoding_validator.validate_copy(data, column_list, src_tablename)
         else:
             _write_hook = None
         condition = self.get_copy_condition(src_curs, dst_curs)
