@@ -46,7 +46,7 @@ class PartHandler(TableHandler):
         hashfunc = args.get('hashfunc', self.DEFAULT_HASHFUNC)
         self.hashexpr = self.DEFAULT_HASHEXPR % (
                 skytools.quote_fqident(hashfunc),
-                skytools.quote_ident(self.hash_key))
+                skytools.quote_ident(self.hash_key or ''))
         self.hashexpr = args.get('hashexpr', self.hashexpr)
 
     def _validate_hash_key(self):

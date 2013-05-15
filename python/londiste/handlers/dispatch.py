@@ -633,7 +633,7 @@ class Dispatcher (PartHandler):
         # compat for dest-table
         dest_table = args.get('table', dest_table)
 
-        super(Dispatcher, self).__init__(table_name, args, dest_table)
+        PartHandler.__init__(self, table_name, args, dest_table)
 
         # show args
         self.log.debug("dispatch.init: table_name=%r, args=%r", table_name, args)
@@ -730,14 +730,14 @@ class Dispatcher (PartHandler):
     def reset(self):
         """Called before starting to process a batch.
         Should clean any pending data."""
-        super(Dispatcher, self).reset()
+        PartHandler.reset(self)
 
     def prepare_batch(self, batch_info, dst_curs):
         """Called on first event for this table in current batch."""
         if self.conf.table_mode != 'ignore':
             self.batch_info = batch_info
             self.dst_curs = dst_curs
-        super(Dispatcher, self).prepare_batch(batch_info, dst_curs)
+        PartHandler.prepare_batch(self, batch_info, dst_curs)
 
     def filter_data(self, data):
         """Process with fields skip and map"""
@@ -802,7 +802,7 @@ class Dispatcher (PartHandler):
         """Called when batch finishes."""
         if self.conf.table_mode != 'ignore':
             self.row_handler.flush(dst_curs)
-        #super(Dispatcher, self).finish_batch(batch_info, dst_curs)
+        #PartHandler.finish_batch(self, batch_info, dst_curs)
 
     def get_part_name(self):
         # if custom part name template given, use it
@@ -919,7 +919,7 @@ class Dispatcher (PartHandler):
     def get_copy_condition(self, src_curs, dst_curs):
         """ Prepare where condition for copy and replay filtering.
         """
-        return super(Dispatcher, self).get_copy_condition(src_curs, dst_curs)
+        return PartHandler.get_copy_condition(self, src_curs, dst_curs)
 
     def real_copy(self, tablename, src_curs, dst_curs, column_list):
         """do actual table copy and return tuple with number of bytes and rows
