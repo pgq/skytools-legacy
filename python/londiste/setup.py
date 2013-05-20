@@ -436,6 +436,25 @@ class LondisteSetup(CascadeAdmin):
         """Reload data from provider node."""
         db = self.get_database('db')
         args = self.expand_arg_list(db, 'r', True, args)
+
+        if self.options.find_copy_node or self.options.copy_node:
+            q = "select table_name, table_attrs from londiste.get_table_list(%s) where local"
+            cur = db.cursor()
+            cur.execute(q, [self.set_name])
+            for row in cur.fetchall():
+                if row['table_name'] not in args:
+                    continue
+                attrs = skytools.db_urldecode (row['table_attrs'] or '')
+
+                if self.options.find_copy_node:
+                    attrs['copy_node'] = '?'
+                elif self.options.copy_node:
+                    attrs['copy_node'] = self.options.copy_node
+
+                attrs = skytools.db_urlencode (attrs)
+                q = "select * from londiste.local_set_table_attrs (%s, %s, %s)"
+                self.exec_cmd(db, q, [self.set_name, row['table_name'], attrs])
+
         q = "select * from londiste.local_set_table_state(%s, %s, null, null)"
         self.exec_cmd_many(db, q, [self.set_name], args)
 
