@@ -7,6 +7,7 @@ import sys, os, re, skytools
 
 from pgq.cascade.admin import CascadeAdmin
 from londiste.exec_attrs import ExecAttrs
+from londiste.util import find_copy_source
 
 import londiste.handler
 
@@ -137,6 +138,25 @@ class LondisteSetup(CascadeAdmin):
         needs_tbl = self.handler_needs_table()
         args = self.expand_arg_list(dst_db, 'r', False, args, needs_tbl)
 
+        # pick proper create flags
+        if self.options.create_full:
+            create_flags = skytools.T_ALL
+        elif self.options.create:
+            create_flags = skytools.T_TABLE | skytools.T_PKEY
+        else:
+            create_flags = 0
+
+        # search for usable copy node if requested & needed
+        if (self.options.find_copy_node and create_flags != 0
+                and needs_tbl and not self.is_root()):
+            src_name, src_loc, _ = find_copy_source(self, self.queue_name, args, None, self.provider_location)
+            self.options.copy_node = src_name
+            self.close_database('provider_db')
+            src_db = self.get_provider_db()
+            src_curs = src_db.cursor()
+            src_tbls = self.fetch_set_tables(src_curs)
+            src_db.commit()
+
         # dont check for exist/not here (root handling)
         if not self.is_root() and not self.options.expect_sync and not self.options.find_copy_node:
             problems = False
@@ -149,22 +169,9 @@ class LondisteSetup(CascadeAdmin):
                 self.log.error("Problems, canceling operation")
                 sys.exit(1)
 
-        # pick proper create flags
-        if self.options.create_full:
-            create_flags = skytools.T_ALL
-        elif self.options.create:
-            create_flags = skytools.T_TABLE | skytools.T_PKEY
-        else:
-            create_flags = 0
-
         # sanity check
         if self.options.dest_table and len(args) > 1:
             self.log.error("--dest-table can be given only for single table")
-            sys.exit(1)
-
-        # not implemented
-        if self.options.find_copy_node and create_flags != 0:
-            self.log.error("--find-copy-node does not work with --create")
             sys.exit(1)
 
         # seems ok
@@ -540,9 +547,8 @@ class LondisteSetup(CascadeAdmin):
         db.commit()
 
     def get_provider_db(self):
-
-        # use custom node for copy
         if self.options.copy_node:
+            # use custom node for copy
             source_node = self.options.copy_node
             m = self.queue_info.get_member(source_node)
             if not m:
@@ -556,6 +562,7 @@ class LondisteSetup(CascadeAdmin):
             q = 'select * from pgq_node.get_node_info(%s)'
             res = self.exec_cmd(db, q, [self.queue_name], quiet = True)
             self.provider_location = res[0]['provider_location']
+
         return self.get_database('provider_db', connstr = self.provider_location, profile = 'remote')
 
     def expand_arg_list(self, db, kind, existing, args, needs_tbl=True):
