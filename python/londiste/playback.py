@@ -874,7 +874,8 @@ class Replicator(CascadedWorker):
         # pass same verbosity options as main script got
         if self.options.quiet:
             cmd.append('-q')
-        cmd += self.options.verbose * ['-v']
+        if self.options.verbose:
+            cmd += ['-v'] * self.options.verbose
 
         # let existing copy finish and clean its pidfile,
         # otherwise new copy will exit immediately.
