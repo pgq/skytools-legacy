@@ -865,7 +865,7 @@ class Replicator(CascadedWorker):
         return None
 
     def launch_copy(self, tbl_stat):
-        """Run paraller worker for copy."""
+        """Run parallel worker for copy."""
         self.log.info("Launching copy process")
         script = sys.argv[0]
         conf = self.cf.filename
@@ -874,8 +874,7 @@ class Replicator(CascadedWorker):
         # pass same verbosity options as main script got
         if self.options.quiet:
             cmd.append('-q')
-        if self.options.verbose:
-            cmd.append('-v')
+        cmd += self.options.verbose * ['-v']
 
         # let existing copy finish and clean its pidfile,
         # otherwise new copy will exit immediately.

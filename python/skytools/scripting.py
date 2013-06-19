@@ -588,7 +588,10 @@ class BaseScript(object):
             self.reset()
             sys.exit(1)
         except Exception, d:
-            self.send_stats()
+            try: # this may fail too
+                self.send_stats()
+            except:
+                pass
             emsg = str(d).rstrip()
             self.reset()
             self.exception_hook(d, emsg)
