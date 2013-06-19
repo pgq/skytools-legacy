@@ -660,18 +660,19 @@ class LondisteSetup(CascadeAdmin):
         dst_curs = dst_db.cursor()
 
         partial = {}
-        done_pos = 1
         startup_info = 0
         while 1:
             dst_curs.execute(q, [self.queue_name])
             rows = dst_curs.fetchall()
             dst_db.commit()
 
+            total_count = 0
             cur_count = 0
             done_list = []
             for row in rows:
                 if not row['local']:
                     continue
+                total_count += 1
                 tbl = row['table_name']
                 if row['merge_state'] != 'ok':
                     partial[tbl] = 0
@@ -681,13 +682,14 @@ class LondisteSetup(CascadeAdmin):
                         partial[tbl] = 1
                         done_list.append(tbl)
 
+            done_count = total_count - cur_count
+
             if not startup_info:
-                self.log.info("%d table(s) to copy", len(partial))
+                self.log.info("%d/%d table(s) to copy", cur_count, total_count)
                 startup_info = 1
 
             for done in done_list:
-                self.log.info("%s: finished (%d/%d)", done, done_pos, len(partial))
-                done_pos += 1
+                self.log.info("%s: finished (%d/%d)", done, done_count, total_count)
 
             if cur_count == 0:
                 break
