@@ -444,6 +444,23 @@ class LondisteSetup(CascadeAdmin):
         db = self.get_database('db')
         args = self.expand_arg_list(db, 'r', True, args)
 
+        if not self.options.find_copy_node:
+            self.load_local_info()
+            src_db = self.get_provider_db()
+            src_curs = src_db.cursor()
+            src_tbls = self.fetch_set_tables(src_curs)
+            src_db.commit()
+
+            problems = 0
+            for tbl in args:
+                tbl = skytools.fq_name(tbl)
+                if tbl not in src_tbls or not src_tbls[tbl]['local']:
+                    self.log.error("Table %s does not exist on provider, need to switch to different provider", tbl)
+                    problems += 1
+            if problems > 0:
+                self.log.error("Problems, cancelling operation")
+                sys.exit(1)
+
         if self.options.find_copy_node or self.options.copy_node:
             q = "select table_name, table_attrs from londiste.get_table_list(%s) where local"
             cur = db.cursor()
