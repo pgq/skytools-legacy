@@ -36,14 +36,6 @@ Low::
   . Replay rest of batches fully
   . Promote to root
 
-* Load public connect string for local node:
-  - from .ini (db=, public_db=?)
-  - with query sql
-
-* Load provider connect string:
-  - from ini (not good)
-  - describe connstr + query to look up node names?
-
 * tests for things that have not their own regtests
   or are not tested enough during other tests:
   - pgq.RemoteConsumer
@@ -68,11 +60,6 @@ Low::
   That does not take account that some rows can be very large.
   So separate counter for len(ev_data) needs to be added, that flushes
   if buffer would go over some specified amount of memory.
-
-* cascade status: parallel info gathering.  Sequential for-loop over
-  nodes can be slow if there are many nodes or some of them are
-  generally slow  (GP, bad network, etc).  Perhaps we can use
-  psycopg2 async mode for that.  Or threading.
 
 == Low Priority ==
 

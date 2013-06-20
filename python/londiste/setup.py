@@ -82,6 +82,8 @@ class LondisteSetup(CascadeAdmin):
                 help="max number of parallel copy processes")
         p.add_option("--dest-table", metavar = "NAME",
                 help="add: name for actual table")
+        p.add_option("--skip-non-existing", action="store_true",
+                help="add: skip object that does not exist")
         return p
 
     def extra_init(self, node_type, node_db, provider_db):
@@ -163,8 +165,11 @@ class LondisteSetup(CascadeAdmin):
             for tbl in args:
                 tbl = skytools.fq_name(tbl)
                 if (tbl in src_tbls) and not src_tbls[tbl]['local']:
-                    self.log.error("Table %s does not exist on provider, need to switch to different provider", tbl)
-                    problems = True
+                    if self.options.skip_non_existing:
+                        self.log.warning("Table %s does not exist on provider", tbl)
+                    else:
+                        self.log.error("Table %s does not exist on provider, need to switch to different provider", tbl)
+                        problems = True
             if problems:
                 self.log.error("Problems, canceling operation")
                 sys.exit(1)
@@ -191,6 +196,7 @@ class LondisteSetup(CascadeAdmin):
         src_curs = src_db.cursor()
         dst_curs = dst_db.cursor()
         tbl_exists = skytools.exists_table(dst_curs, dest_table)
+        dst_db.commit()
 
         if dest_table == tbl:
             desc = tbl
@@ -218,6 +224,9 @@ class LondisteSetup(CascadeAdmin):
                 if src_dest_table != dest_table:
                     newname = dest_table
                 s.create(dst_curs, create_flags, log = self.log, new_table_name = newname)
+        elif not tbl_exists and self.options.skip_non_existing:
+            self.log.warning('Table %s does not exist on local node, skipping', desc)
+            return
 
         tgargs = self.build_tgargs()
 
@@ -402,8 +411,11 @@ class LondisteSetup(CascadeAdmin):
                 src_db.commit()
                 s.create(dst_curs, create_flags, log = self.log)
         elif not seq_exists:
-            self.log.warning('Sequence "%s" missing on subscriber, use --create if necessary', seq)
-            return
+            if self.options.skip_non_existing:
+                self.log.warning('Sequence "%s" missing on local node, skipping', seq)
+                return
+            else:
+                raise skytools.UsageError("Sequence %r missing on local node", seq)
 
         q = "select * from londiste.local_add_seq(%s, %s)"
         self.exec_cmd(dst_curs, q, [self.set_name, seq])
@@ -694,18 +706,19 @@ class LondisteSetup(CascadeAdmin):
         dst_curs = dst_db.cursor()
 
         partial = {}
-        done_pos = 1
         startup_info = 0
         while 1:
             dst_curs.execute(q, [self.queue_name])
             rows = dst_curs.fetchall()
             dst_db.commit()
 
+            total_count = 0
             cur_count = 0
             done_list = []
             for row in rows:
                 if not row['local']:
                     continue
+                total_count += 1
                 tbl = row['table_name']
                 if row['merge_state'] != 'ok':
                     partial[tbl] = 0
@@ -715,13 +728,14 @@ class LondisteSetup(CascadeAdmin):
                         partial[tbl] = 1
                         done_list.append(tbl)
 
+            done_count = total_count - cur_count
+
             if not startup_info:
-                self.log.info("%d table(s) to copy", len(partial))
+                self.log.info("%d/%d table(s) to copy", cur_count, total_count)
                 startup_info = 1
 
             for done in done_list:
-                self.log.info("%s: finished (%d/%d)", done, done_pos, len(partial))
-                done_pos += 1
+                self.log.info("%s: finished (%d/%d)", done, done_count, total_count)
 
             if cur_count == 0:
                 break

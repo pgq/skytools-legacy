@@ -1,4 +1,56 @@
 
+2013-04-17  -  SkyTools 3.1.4  -  "Boldly Going Nowhere"
+
+  = Features =
+
+    * londiste create-node: Creation data from config.  The need to 2 connection
+      string in command line was major usability problem in create-* commands.
+      Now initial setup can be described in config.
+    * newgrants: Londiste can read from provider using non-privileged user.
+    * scripts/data_maintainer.py: Generic script for processing
+      large data sets in small batches.
+
+  = Minor features =
+
+    * londiste status: significant speed up of getting status on big cascades
+    * londiste: remote_extra_connstr config option that will be added
+      to remote node connect strings.  Needed when more than several cascaded
+      scripts are running, with different privileges in local and remote node.
+    * scriptmgr: User switching with sudo.  Script sections can
+      contain user= option that makes scriptmgr launch sudo to run script.
+    * londiste compare: Added --count-only switch
+    * BaseScript: skylog_locations config options
+    * skytools.Config: New default variables: config_dir, config_file.
+    * Parse & merge Postgres connect strings
+    * skytools_upgrade: add force option
+    * londiste: new drop_obsolete_partitions(2) function
+    * londiste: added dispatch handler arg retention_period
+
+  = Fixes =
+
+    * londiste: Sync SQL keywords with 9.3git.
+    * handers/dispatch.py: 'keep_latest' row_mode processes now deletes properly.
+    * configure.ac: Check for -lrt - needed when building against libevent.
+    * adminscripts: Make info commands not use pidfile.  Otherwise they will
+      not run if some writing admin command is running.
+    * Londiste compare: It's now compatible with 8.2.
+    * londiste.create_partition: Set owner to match parent table.
+    * londiste.create_trigger: Fixed skip-trigger check compatibility with postgres 9.x.
+    * londiste.create_trigger: Added check for after-trigger being overshadowed by skip-trigger.
+
+  = Cleanups =
+
+    * Refactor Consumer code.
+    * Remove: pgqadm and related code, its unmaintained
+    * Sweeping change to postpone log string formatting
+    * docs: copy-condition removed from londiste3 man page
+    * Various logging cleanups
+    * Londiste: fix trigger generation when extra params that are add-table specific are used (introduced in commit 364ade9)
+    * londiste: quote queue name in trigger args
+    * londiste: actually execute the ENABLE/DISABLE RULE query in londiste.create_partition
+    * londiste/handlers/dispatch: fixed issue with missing part_func description
+    * londiste.handler: disable shortcut for specifying handler args together with its name
+
 2012-12-21  -  SkyTools 3.1.3  -  "Chainsaw-wielding Toothfairy"
 
   = Features =

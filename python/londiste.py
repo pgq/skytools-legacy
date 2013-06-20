@@ -148,6 +148,8 @@ class Londiste(skytools.DBScript):
                 help="don't merge tables from source queues", default=False)
         g.add_option("--max-parallel-copy", metavar = "NUM", type = "int",
                 help="max number of parallel copy processes")
+        g.add_option("--skip-non-existing", action="store_true",
+                help="add: skip object that does not exist")
         p.add_option_group(g)
 
         g = optparse.OptionGroup(p, "other options")

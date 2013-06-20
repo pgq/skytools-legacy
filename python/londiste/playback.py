@@ -201,10 +201,12 @@ class TableState(object):
         return self.max_parallel_copy and\
                     self.copy_pos >= self.max_parallel_copy
 
-    def interesting(self, ev, tick_id, copy_thread):
+    def interesting(self, ev, tick_id, copy_thread, copy_table_name):
         """Check if table wants this event."""
 
         if copy_thread:
+            if self.name != copy_table_name:
+                return False
             if self.state not in (TABLE_CATCHING_UP, TABLE_DO_SYNC):
                 return False
         else:
@@ -651,7 +653,7 @@ class Replicator(CascadedWorker):
     def handle_data_event(self, ev, dst_curs):
         """handle one truncate event"""
         t = self.get_table_by_name(ev.extra1)
-        if not t or not t.interesting(ev, self.cur_tick, self.copy_thread):
+        if not t or not t.interesting(ev, self.cur_tick, self.copy_thread, self.copy_table_name):
             self.stat_increase('ignored_events')
             return
 
@@ -667,7 +669,7 @@ class Replicator(CascadedWorker):
     def handle_truncate_event(self, ev, dst_curs):
         """handle one truncate event"""
         t = self.get_table_by_name(ev.extra1)
-        if not t or not t.interesting(ev, self.cur_tick, self.copy_thread):
+        if not t or not t.interesting(ev, self.cur_tick, self.copy_thread, self.copy_table_name):
             self.stat_increase('ignored_events')
             return
 
@@ -753,17 +755,6 @@ class Replicator(CascadedWorker):
         self.sql_list = []
 
         dst_curs.execute(buf)
-
-    def interesting(self, ev):
-        """See if event is interesting."""
-        if ev.type not in ('I', 'U', 'D', 'R'):
-            raise Exception('bug - bad event type in .interesting')
-        t = self.get_table_by_name(ev.extra1)
-        if not t:
-            return 0
-        if not t.interesting(ev, self.cur_tick, self.copy_thread):
-            return 0
-        return 1
 
     def add_set_table(self, dst_curs, tbl):
         """There was new table added to root, remember it."""
@@ -883,7 +874,8 @@ class Replicator(CascadedWorker):
         # pass same verbosity options as main script got
         if self.options.quiet:
             cmd.append('-q')
-        cmd += self.options.verbose * ['-v']
+        if self.options.verbose:
+            cmd += ['-v'] * self.options.verbose
 
         # let existing copy finish and clean its pidfile,
         # otherwise new copy will exit immediately.

@@ -285,6 +285,9 @@ class BaseConsumer(skytools.DBScript):
     def _launch_process_batch(self, db, batch_id, list):
         self.process_batch(db, batch_id, list)
 
+    def _make_event(self, queue_name, row):
+        return Event(queue_name, row)
+
     def _load_batch_events_old(self, curs, batch_id):
         """Fetch all events for this batch."""
 
@@ -298,7 +301,7 @@ class BaseConsumer(skytools.DBScript):
         # map them to python objects
         ev_list = []
         for r in rows:
-            ev = Event(self.queue_name, r)
+            ev = self._make_event(self.queue_name, r)
             ev_list.append(ev)
 
         return ev_list
