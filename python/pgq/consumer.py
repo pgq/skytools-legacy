@@ -61,7 +61,7 @@ class Consumer(BaseConsumer):
     _batch_walker_class = RetriableBatchWalker
 
     def _make_event(self, queue_name, row):
-        return RetriableWalkerEvent(self, queue_name, row)
+        return RetriableEvent(queue_name, row)
 
     def _flush_retry(self, curs, batch_id, list):
         """Tag retry events."""
