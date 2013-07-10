@@ -88,6 +88,12 @@ listed below.
     Remove .pgpass entry, which was used for streaming replication
     (used in Slave)
 
+  --synch-standby='synchronous_standby_names'::
+    Do the same thing as command synch-standby, but walmgr ini file is not used.
+    This option can be used when walmgr ini is not available. It tries to guess
+    the postgres config location, --pgdata option may also be needed.
+    (used in Master)
+
 == DAEMON OPTIONS ==
 
   -r, --reload::
@@ -150,6 +156,13 @@ Pauses WAL playback.
 === continue ===
 
 Continues previously paused WAL playback.
+
+=== createslave ===
+
+Creates backup from Master database using streaming replication.
+Also creates recovery.conf and starts slave standby.
+Backup is created with pg_basebackup and pg_receivexlog (available in 9.2 and
+up).
 
 == COMMON COMMANDS ==
 
