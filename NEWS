@@ -1,4 +1,48 @@
 
+2013-07-22  -  SkyTools 3.1.5  -  ""
+
+  = Features =
+
+    * walmgr: new command createslave and new option --synch-standby
+    * londiste: Dispatch handler extended to support sharding
+    * skytools.skylog: added UdpTNetStringsHandler
+
+  = Minor features =
+
+    * londiste add: --skip-non-existing option
+    * londiste add-table: --skip-non-existing ignores tables not on provider
+    * londiste add-table: --find-copy-node working with --create now
+    * londiste resync: supports --find-copy-node and --copy-node options now
+    * londiste resync: now checks if table is available on provider
+    * londiste --wait-sync: show progress in absolute numbers
+    * londiste.handlers.dispatch: added switch to ignore events aiming at obsolete (dropped) partitions
+    * querybuilder: show list of missing arguments on KeyError
+    * scripts/simple_local_consumer.py: added consumer_filter option
+    * skytools.sockutil.set_tcp_keepalive: accept socket object directly
+
+  = Fixes =
+
+    * londiste copy: fix data filtering when parallel_copies > 1
+    * londiste.playback: support multiple -v options for workers
+    * londiste.repair: made less verbose
+    * pgq.Consumer: non-lazy loading should use RetriableEvent
+    * pgq.logutriga: do not quote '-'
+    * grantfu: 2-pass processing
+
+  = Cleanups =
+
+    * londiste: inform about no tables passed on cmd line (thus nothing to do)
+    * doc: mention config option in create-* commands
+    * parse_pgarray: allow None
+    * londiste status: make node name easier to select
+    * scripts/data_maintainer.py: added suffix "3" to service name
+    * skytools.timeutil: make tests more robust
+    * londiste: changed handler argument 'key' to 'hash_key'
+    * londiste: moved hash_key logic from dispatch to part handler
+    * londiste.handlers: renamed handler 'part' to 'shard'
+    * pgq: Consumer class also need _make_event, for _load_batch_events_old()
+    * pgq: move RetriableEvent to consumer.py
+
 2013-04-17  -  SkyTools 3.1.4  -  "Boldly Going Nowhere"
 
   = Features =
@@ -106,7 +150,7 @@
     * Fix Londiste compare and repair to accept copy-condition from handler (Asko Oja)
     * londiste: don't filter EXECUTE or TRUNCATE events on merge node
     * qadmin: make "install pgq" also install pgq_coop
-    * Fix 2.1 to 3.0 upgade script, rename to pgq.upgrade_2.1_to_3.0.sql
+    * Fix 2.1 to 3.0 upgrade script, rename to pgq.upgrade_2.1_to_3.0.sql
     * Reorg of Londiste tests (Asko Oja)
     * Socket library autoconf (Tony Arkles)
     * pgq: quote internal table names
@@ -320,4 +364,3 @@
     * Londiste: handlers
     * QAdmin
     * pgqd
-
