@@ -38,11 +38,12 @@ create or replace function pgq_node.get_node_info(
 --      provider_node - provider node name
 --      provider_location - provider connect string
 --      combined_queue - queue name for target set
---      combined_type - node type of target setA
+--      combined_type - node type of target set
 --      worker_name - consumer name that maintains this node
 --      worker_paused - is worker paused
 --      worker_uptodate - is worker seen the changes
 --      worker_last_tick - last committed tick_id by worker
+--      node_attrs - urlencoded dict of random attrs for worker (eg. sync_watermark)
 -- ----------------------------------------------------------------------
 declare
     sql text;
