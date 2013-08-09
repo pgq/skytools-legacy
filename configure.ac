@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT(skytools, 3.1.4)
+AC_INIT(skytools, 3.1.5)
 AC_CONFIG_SRCDIR(python/londiste.py)
 AC_CONFIG_HEADER(lib/usual/config.h)
 AC_PREREQ([2.59])
@@ -157,4 +157,3 @@ AC_USUAL_CASSERT
 dnl Write result
 AC_CONFIG_FILES([config.mak])
 AC_OUTPUT
-
