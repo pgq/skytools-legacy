@@ -52,7 +52,7 @@ suitable for installation.  The following additional packages are needed
 to build the debian package:
 
   devscripts autotools-dev python-all-dev python-support xmlto asciidoc
-  libpq-dev postgresql-server-dev-all
+  libevent-dev libpq-dev postgresql-server-dev-all
 
 Then build:
 
