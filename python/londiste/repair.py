@@ -1,8 +1,7 @@
 
 """Repair data on subscriber.
 
-Walks tables by primary key and searcher
-missing inserts/updates/deletes.
+Walks tables by primary key and searches for missing inserts/updates/deletes.
 """
 
 import sys, os, skytools, subprocess
@@ -34,7 +33,7 @@ class Repairer(Syncer):
         return p
 
     def process_sync(self, t1, t2, src_db, dst_db):
-        """Actual comparision."""
+        """Actual comparison."""
 
         apply_db = None
 
@@ -58,6 +57,8 @@ class Repairer(Syncer):
 
         dump_src = dst_tbl + ".src"
         dump_dst = dst_tbl + ".dst"
+        dump_src_sorted = dump_src + ".sorted"
+        dump_dst_sorted = dump_dst + ".sorted"
 
         dst_where = t2.plugin.get_copy_condition(src_curs, dst_curs)
         src_where = dst_where
@@ -70,18 +71,20 @@ class Repairer(Syncer):
         dst_db.commit()
 
         self.log.info("Sorting src table: %s", dump_src)
-        self.do_sort(dump_src, dump_src + '.sorted')
+        self.do_sort(dump_src, dump_src_sorted)
         self.log.info("Sorting dst table: %s", dump_dst)
-        self.do_sort(dump_dst, dump_dst + '.sorted')
+        self.do_sort(dump_dst, dump_dst_sorted)
 
-        self.dump_compare(dst_tbl, dump_src + ".sorted", dump_dst + ".sorted")
+        self.dump_compare(dst_tbl, dump_src_sorted, dump_dst_sorted)
 
         os.unlink(dump_src)
         os.unlink(dump_dst)
-        os.unlink(dump_src + ".sorted")
-        os.unlink(dump_dst + ".sorted")
+        os.unlink(dump_src_sorted)
+        os.unlink(dump_dst_sorted)
 
     def do_sort(self, src, dst):
+        """ Sort contents of src file, write them to dst file. """
+
         p = subprocess.Popen(["sort", "--version"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         s_ver = p.communicate()[0]
         del p
@@ -153,7 +156,9 @@ class Repairer(Syncer):
         return row
 
     def dump_compare(self, tbl, src_fn, dst_fn):
-        """Dump + compare single table."""
+        """ Compare two table dumps, create sql file to fix target table
+            or apply changes to target table directly.
+        """
         self.log.info("Comparing dumps: %s", tbl)
         self.cnt_insert = 0
         self.cnt_update = 0
@@ -248,7 +253,7 @@ class Repairer(Syncer):
 
     def show_fix(self, tbl, q, desc):
         """Print/write/apply repair sql."""
-        self.log.info("missed %s: %s", desc, q)
+        self.log.debug("missed %s: %s", desc, q)
         if self.apply_curs:
             self.apply_curs.execute(q)
         else:
@@ -262,7 +267,7 @@ class Repairer(Syncer):
         list.append(s)
 
     def addcmp(self, list, f, v):
-        """Add quoted comparision."""
+        """Add quoted comparison."""
         if v is None:
             s = "%s is null" % f
         else:

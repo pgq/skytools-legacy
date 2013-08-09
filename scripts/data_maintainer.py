@@ -7,7 +7,7 @@ either one by one or in batches.
 
 Config template::
 
-    [data_maintainer]
+    [data_maintainer3]
     job_name        = dm_remove_expired_services
 
     dbread          = dbname=sourcedb_test
@@ -81,7 +81,7 @@ class DataMaintainer (skytools.DBScript):
     loop_delay = -1
 
     def __init__(self, args):
-        super(DataMaintainer, self).__init__("data_maintainer", args)
+        super(DataMaintainer, self).__init__("data_maintainer3", args)
 
         # query for fetching the PK-s of the data set to be maintained
         self.sql_pk = self.cf.get("sql_get_pk_list")

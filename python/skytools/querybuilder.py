@@ -319,8 +319,11 @@ class PLPyQuery:
                 arg_list = [arg_dict.get(k) for k in self.arg_map]
             return plpy.execute(self.plan, arg_list)
         except KeyError:
-            plpy.error("Missing argument: QUERY: %s  ARGS: %s VALUES: %s" % (
-                repr(self.sql), repr(self.arg_map), repr(arg_dict)))
+            need = set(self.arg_map)
+            got = set(arg_dict.keys())
+            missing = list(need.difference(got))
+            plpy.error("Missing arguments: [%s]  QUERY: %s" % (
+                ','.join(missing), repr(self.sql)))
 
     def __repr__(self):
         return 'PLPyQuery<%s>' % self.sql
@@ -341,7 +344,7 @@ def plpy_exec(gd, sql, args, all_keys_required = True):
     >>> res = plpy_exec(GD, "select {arg1}, {arg2:int4}, {arg1}", {'arg1': '3', 'arg2': '4'})
     DBG: plpy.execute(('PLAN', 'select $1, $2, $3', ['text', 'int4', 'text']), ['3', '4', '3'])
     >>> res = plpy_exec(GD, "select {arg1}, {arg2:int4}, {arg1}", {'arg1': '3'})
-    DBG: plpy.error("Missing argument: QUERY: 'select {arg1}, {arg2:int4}, {arg1}'  ARGS: ['arg1', 'arg2', 'arg1'] VALUES: {'arg1': '3'}")
+    DBG: plpy.error("Missing arguments: [arg2]  QUERY: 'select {arg1}, {arg2:int4}, {arg1}'")
     >>> res = plpy_exec(GD, "select {arg1}, {arg2:int4}, {arg1}", {'arg1': '3'}, False)
     DBG: plpy.execute(('PLAN', 'select $1, $2, $3', ['text', 'int4', 'text']), ['3', None, '3'])
     """

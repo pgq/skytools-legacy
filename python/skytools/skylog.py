@@ -1,10 +1,21 @@
 """Our log handlers for Python's logging package.
 """
 
-import os, time, socket
-import logging, logging.handlers
+import logging
+import logging.handlers
+import os
+import socket
+import time
 
 import skytools
+
+# use fast implementation if available, otherwise fall back to reference one
+try:
+    import tnetstring as tnetstrings
+    tnetstrings.parse = tnetstrings.pop
+except ImportError:
+    import skytools.tnetstrings as tnetstrings
+    tnetstrings.dumps = tnetstrings.dump
 
 __all__ = ['getLogger']
 
@@ -17,10 +28,15 @@ logging.addLevelName(TRACE, 'TRACE')
 _service_name = 'unknown_svc'
 _job_name = 'unknown_job'
 _hostname = socket.gethostname()
+try:
+    _hostaddr = socket.gethostbyname(_hostname)
+except:
+    _hostaddr = "0.0.0.0"
 _log_extra = {
     'job_name': _job_name,
     'service_name': _service_name,
     'hostname': _hostname,
+    'hostaddr': _hostaddr,
 }
 def set_service_name(service_name, job_name):
     """Set info about current script."""
@@ -64,6 +80,7 @@ class EasyRotatingFileHandler(logging.handlers.RotatingFileHandler):
         fn = os.path.expanduser(filename)
         logging.handlers.RotatingFileHandler.__init__(self, fn, maxBytes=maxBytes, backupCount=backupCount)
 
+
 # send JSON message over UDP
 class UdpLogServerHandler(logging.handlers.DatagramHandler):
     """Sends log records over UDP to logserver in JSON format."""
@@ -98,10 +115,7 @@ class UdpLogServerHandler(logging.handlers.DatagramHandler):
             msg = msg[:self.MAXMSG]
         txt_level = self._level_map.get(record.levelno, "ERROR")
         hostname = _hostname
-        try:
-            hostaddr = socket.gethostbyname(hostname)
-        except:
-            hostaddr = "0.0.0.0"
+        hostaddr = _hostaddr
         jobname = _job_name
         svcname = _service_name
         pkt = self._log_template % (time.time()*1000, txt_level, skytools.quote_json(msg),
@@ -113,6 +127,40 @@ class UdpLogServerHandler(logging.handlers.DatagramHandler):
         sock = self.makeSocket()
         sock.sendto(s, (self.host, self.port))
         sock.close()
+
+
+# send TNetStrings message over UDP
+class UdpTNetStringsHandler(logging.handlers.DatagramHandler):
+    """ Sends log records in TNetStrings format over UDP. """
+
+    # LogRecord fields to send
+    send_fields = [
+        'created', 'exc_text', 'levelname', 'levelno', 'message', 'msecs', 'name',
+        'hostaddr', 'hostname', 'job_name', 'service_name']
+
+    _udp_reset = 0
+
+    def makePickle(self, record):
+        """ Create message in TNetStrings format.
+        """
+        msg = {}
+        self.format(record) # render 'message' attribute and others
+        for k in self.send_fields:
+            msg[k] = record.__dict__[k]
+        tnetstr = tnetstrings.dumps(msg)
+        return tnetstr
+
+    def send(self, s):
+        """ Cache socket for a moment, then recreate it.
+        """
+        now = time.time()
+        if now - 1 > self._udp_reset:
+            if self.sock:
+                self.sock.close()
+            self.sock = self.makeSocket()
+            self._udp_reset = now
+        self.sock.sendto(s, (self.host, self.port))
+
 
 class LogDBHandler(logging.handlers.SocketHandler):
     """Sends log records into PostgreSQL server.
@@ -234,6 +282,7 @@ class LogDBHandler(logging.handlers.SocketHandler):
             query = "select * from log.add(%s, %s, %s)"
             logcur.execute(query, [type, service, msg])
 
+
 # fix unicode bug in SysLogHandler
 class SysLogHandler(logging.handlers.SysLogHandler):
     """Fixes unicode bug in logging.handlers.SysLogHandler."""
@@ -300,6 +349,7 @@ class SysLogHostnameHandler(SysLogHandler):
                                _service_name,
                                msg)
         return msg
+
 
 try:
     from logging import LoggerAdapter

@@ -98,7 +98,7 @@ static int pgq_urlencode(char *dst, const uint8 *src, int srclen)
 		} else if ((c >= '0' && c <= '9')
 			   || (c >= 'A' && c <= 'Z')
 			   || (c >= 'a' && c <= 'z')
-			   || c == '_' || c == '.') {
+			   || c == '_' || c == '.' || c == '-') {
 			*p++ = c;
 		} else {
 			*p++ = '%';

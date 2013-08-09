@@ -5,7 +5,7 @@ import sys
 DEFAULT_HANDLERS = [
     'londiste.handlers.qtable',
     'londiste.handlers.applyfn',
-    'londiste.handlers.part',
+    'londiste.handlers.shard',
     'londiste.handlers.multimaster',
     'londiste.handlers.vtable',
 
