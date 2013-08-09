@@ -319,6 +319,9 @@ Do full copy of the table, again.
   --max-parallel-copy='max_parallel_copy'::
     Max number of parallel copy processes.
 
+  --skip-non-existing::
+    Skip objects that do not exist.
+
 Trigger creation flags (default: AIUDL):
 
 - I - ON INSERT

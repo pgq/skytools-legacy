@@ -105,7 +105,7 @@ class ShardHandler (TableHandler):
             raise Exception('Error loading shard info')
 
 class PartHandler (ShardHandler):
-    __doc__ = '\n'.join(["Deprecated compat name for shard handler."] + __doc__.splitlines()[1:])
+    __doc__ = "Deprecated compat name for shard handler.\n" + __doc__.split('\n',1)[1]
     handler_name = 'part'
 
 # register handler class
