@@ -42,7 +42,8 @@ begin
 
     -- event seq
     execute 'grant select on ' || pgq.quote_fqname(q.queue_event_seq) || ' to public';
-    
+    execute 'grant usage on ' || pgq.quote_fqname(q.queue_event_seq) || ' to pgq_admin';
+
     -- set grants on parent table
     perform pgq._grant_perms_from('pgq', 'event_template', dst_schema, dst_table);
 
