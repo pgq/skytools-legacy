@@ -552,7 +552,7 @@ class BaseStruct(object):
         #print "Loading %s, name=%s, args=%s" % (repr(eclass), repr(name), repr(args))
         sql = eclass.get_load_sql(curs.connection.server_version)
         curs.execute(sql % args)
-        for row in curs.dictfetchall():
+        for row in curs.fetchall():
             elem_list.append(eclass(name, row))
         return elem_list
 

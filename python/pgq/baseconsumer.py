@@ -48,7 +48,7 @@ class BaseBatchWalker(object):
 
         q = "fetch %d from %s" % (self.fetch_size, self.sql_cursor)
         while 1:
-            rows = self.curs.dictfetchall()
+            rows = self.curs.fetchall()
             if not len(rows):
                 break
 
@@ -296,7 +296,7 @@ class BaseConsumer(skytools.DBScript):
         if self.consumer_filter is not None:
             sql += " where %s" % self.consumer_filter
         curs.execute(sql)
-        rows = curs.dictfetchall()
+        rows = curs.fetchall()
 
         # map them to python objects
         ev_list = []

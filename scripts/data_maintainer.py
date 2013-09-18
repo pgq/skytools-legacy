@@ -126,7 +126,7 @@ class DataMaintainer (skytools.DBScript):
             bcur = bdb.cursor()
             bcur.execute(self.sql_before)
             if bcur.statusmessage.startswith('SELECT'):
-                res = bcur.dictfetchall()
+                res = bcur.fetchall()
                 assert len(res)==1, "Result of a 'before' query must be 1 row"
                 bres = res[0].copy()
 
@@ -153,7 +153,7 @@ class DataMaintainer (skytools.DBScript):
             rcur.execute("FETCH FORWARD %s FROM data_maint_cur" % self.fetchcnt)
             self.log.debug(rcur.query)
             self.log.debug(rcur.statusmessage)
-            res = rcur.dictfetchall()
+            res = rcur.fetchall()
             count, lastitem = self.process_batch(res, mcur, bres)
             total_count += count
             if not self.autocommit:
@@ -202,7 +202,7 @@ class DataMaintainer (skytools.DBScript):
                 mcur.execute(self.sql_modify, item)
                 self.log.debug(mcur.query)
                 if mcur.statusmessage.startswith('SELECT'): # if select was used we can expect some result
-                    mres = mcur.dictfetchall()
+                    mres = mcur.fetchall()
                     for r in mres:
                         if 'stats' in r: # if specially handled column 'stats' is present
                             for k, v in skytools.db_urldecode(r['stats']).items():
