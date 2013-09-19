@@ -237,7 +237,7 @@ class DirectLoader(BaseLoader):
                   'D': skytools.mk_delete_sql}
         if self.data:
             curs.execute("\n".join(mk_sql[op](row, self.table, self.pkeys)
-                for op, row in self.data))
+                                   for op, row in self.data))
 
 
 class BaseBulkCollectingLoader(BaseLoader):
@@ -923,9 +923,7 @@ class Dispatcher (ShardHandler):
         sql = "select " + func + " (%s, %s, %s)"
         self.log.debug("func: %s, args: %s", func, args)
         curs.execute(sql, args)
-        res = []
-        for row in curs.fetchall():
-            res.append(row[0])
+        res = [row[0] for row in curs.fetchall()]
         if res:
             self.log.info("Dropped tables: %s", ", ".join(res))
 

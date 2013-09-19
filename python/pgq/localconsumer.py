@@ -128,8 +128,7 @@ class LocalConsumer(BaseConsumer):
         raise Exception('process_local_event not implemented')
 
     def is_batch_done(self):
-        """Helper function to keep track of last successful batch
-        in external database.
+        """Helper function to keep track of last successful batch in external database.
         """
 
         local_tick = self.load_local_tick()
@@ -154,8 +153,7 @@ class LocalConsumer(BaseConsumer):
                         prev_tick, cur_tick, local_tick))
 
     def set_batch_done(self):
-        """Helper function to set last successful batch
-        in external database.
+        """Helper function to set last successful batch in external database.
         """
         tick_id = self.batch_info['tick_id']
         self.save_local_tick(tick_id)

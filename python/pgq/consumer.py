@@ -16,7 +16,7 @@ EV_DONE = 1
 
 
 class RetriableEvent(Event):
-    """Event which can be retryed
+    """Event which can be retried
 
     Consumer is supposed to tag them after processing.
     """
@@ -128,4 +128,3 @@ class Consumer(BaseConsumer):
         """Tag event for retry. (internal)"""
         cx.execute("select pgq.event_retry(%s, %s, %s)",
                     [batch_id, ev_id, retry_time])
-
