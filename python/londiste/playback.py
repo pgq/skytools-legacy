@@ -789,7 +789,7 @@ class Replicator(CascadedWorker):
 
         new_list = []
         new_map = {}
-        for row in curs.dictfetchall():
+        for row in curs.fetchall():
             if not row['local']:
                 continue
             t = self.get_table_by_name(row['table_name'])
@@ -929,7 +929,7 @@ class Replicator(CascadedWorker):
         # restore fkeys -- one at a time
         q = "select * from londiste.get_valid_pending_fkeys(%s)"
         dst_curs.execute(q, [self.set_name])
-        fkey_list = dst_curs.dictfetchall()
+        fkey_list = dst_curs.fetchall()
         for row in fkey_list:
             self.log.info('Creating fkey: %(fkey_name)s (%(from_table)s --> %(to_table)s)' % row)
             q2 = "select londiste.restore_table_fkey(%(from_table)s, %(fkey_name)s)"
@@ -945,7 +945,7 @@ class Replicator(CascadedWorker):
         dst_curs = dst_db.cursor()
         q = "select * from londiste.find_table_fkeys(%s)"
         dst_curs.execute(q, [table_name])
-        fkey_list = dst_curs.dictfetchall()
+        fkey_list = dst_curs.fetchall()
         for row in fkey_list:
             self.log.info('Dropping fkey: %s' % row['fkey_name'])
             q2 = "select londiste.drop_table_fkey(%(from_table)s, %(fkey_name)s)"
