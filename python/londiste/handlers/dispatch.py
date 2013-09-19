@@ -913,6 +913,8 @@ class Dispatcher (ShardHandler):
             self.drop_obsolete_partitions (self.dest_table, self.conf.retention_period, self.conf.period)
             if self.conf.ignore_old_events and not skytools.exists_table(curs, dst):
                 self.ignored_tables.add(dst) # must have been just dropped
+                if dst in self.row_handler.table_map:
+                    del self.row_handler.table_map[dst]
 
     def drop_obsolete_partitions (self, parent_table, retention_period, partition_period):
         """ Drop obsolete partitions of partition-by-date parent table.
