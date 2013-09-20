@@ -5,6 +5,7 @@ usr/bin/queue_mover3
 usr/bin/queue_splitter3
 usr/bin/simple_consumer3
 usr/bin/simple_local_consumer3
+usr/bin/data_maintainer3
 debian/skytools.ini /etc
 usr/lib/python*/site-packages/skytools-3.0/londiste
 usr/share/skytools3
