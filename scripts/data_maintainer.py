@@ -113,7 +113,7 @@ class DataMaintainer (skytools.DBScript):
         self.autocommit = self.cf.getint("autocommit", 1)
 
         # delay in seconds after each commit
-        self.commit_delay =  self.cf.getfloat("commit_delay", 0.0)
+        self.commit_delay = self.cf.getfloat("commit_delay", 0.0)
 
     def work(self):
         self.log.info('Starting..')
@@ -169,34 +169,26 @@ class DataMaintainer (skytools.DBScript):
                 time.sleep(self.commit_delay)
             if time.time() - lap_time > 60.0: # if one minute has passed print running totals
                 self.log.info("--- Running count: %s duration: %s ---",
-                        total_count,  datetime.timedelta(0, round(time.time() - started)))
+                        total_count, datetime.timedelta(0, round(time.time() - started)))
                 lap_time = time.time()
 
         rcur.execute("CLOSE data_maint_cur")
         if not self.withhold:
             dbr.rollback()
         self.log.info("--- Total count: %s duration: %s ---",
-                total_count,  datetime.timedelta(0, round(time.time() - started)))
+                total_count, datetime.timedelta(0, round(time.time() - started)))
 
         if self.sql_after and (self.after_zero_rows > 0 or total_count > 0):
             adb = self.get_database("dbafter", autocommit=1)
             acur = adb.cursor()
-
-            # FIXME: neither of those can be None?
-            if bres != None and lastitem != None:
-                bres.update(lastitem)
-                lastitem = bres
-            if lastitem != None:
-                acur.execute(self.sql_after, lastitem)
-            else:
-                acur.execute(self.sql_after)
+            acur.execute(self.sql_after, lastitem)
 
     def process_batch(self, res, mcur, bres):
         """ Process events in autocommit mode reading results back and trying to make some sense out of them
         """
         try:
             count = 0
-            item = bres
+            item = bres.copy()
             for i in res:   # for each row in read query result
                 item.update(i)
                 mcur.execute(self.sql_modify, item)
