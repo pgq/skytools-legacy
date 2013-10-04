@@ -40,6 +40,8 @@ class LondisteSetup(CascadeAdmin):
 
         self.set_name = self.queue_name
 
+        self.lock_timeout = self.cf.getfloat('lock_timeout', 10)
+
         londiste.handler.load_handler_modules(self.cf)
 
     def init_optparse(self, parser=None):
@@ -116,6 +118,13 @@ class LondisteSetup(CascadeAdmin):
 
     def is_root(self):
         return self.queue_info.local_node.type == 'root'
+
+    def set_lock_timeout(self, curs):
+        ms = int(1000 * self.lock_timeout)
+        if ms > 0:
+            q = "SET LOCAL statement_timeout = %d" % ms
+            self.log.debug(q)
+            curs.execute(q)
 
     def cmd_add_table(self, *args):
         """Attach table(s) to local node."""
@@ -197,6 +206,8 @@ class LondisteSetup(CascadeAdmin):
         dst_curs = dst_db.cursor()
         tbl_exists = skytools.exists_table(dst_curs, dest_table)
         dst_db.commit()
+
+        self.set_lock_timeout(dst_curs)
 
         if dest_table == tbl:
             desc = tbl
