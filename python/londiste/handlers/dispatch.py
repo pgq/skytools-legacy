@@ -142,6 +142,10 @@ ignore_old_events:
     * 0 - handle all events in the same way (default)
     * 1 - ignore events coming for obsolete partitions
 
+ignore_truncate:
+    * 0 - process truncate event (default)
+    * 1 - ignore truncate event
+
 encoding:
     name of destination encoding. handler replaces all invalid encoding symbols
     and logs them as warnings

@@ -651,7 +651,7 @@ class Replicator(CascadedWorker):
         self.current_event = None
 
     def handle_data_event(self, ev, dst_curs):
-        """handle one truncate event"""
+        """handle one data event"""
         t = self.get_table_by_name(ev.extra1)
         if not t or not t.interesting(ev, self.cur_tick, self.copy_thread, self.copy_table_name):
             self.stat_increase('ignored_events')
@@ -674,6 +674,16 @@ class Replicator(CascadedWorker):
             return
 
         fqname = skytools.quote_fqident(t.dest_table)
+
+        try:
+            p = self.used_plugins[ev.extra1]
+        except KeyError:
+            p = t.get_plugin()
+            self.used_plugins[ev.extra1] = p
+
+        if p.conf.get('ignore_truncate'):
+            self.log.info("ignoring truncate for %s", fqname)
+            return
 
         #
         # Always use CASCADE, because without it the

@@ -176,6 +176,7 @@ class TableHandler(BaseHandler):
     Parameters:
       encoding=ENC - Validate and fix incoming data from encoding.
                      Only 'utf8' is supported at the moment.
+      ignore_truncate=BOOL - Ignore truncate event. Default: 0; Values: 0,1.
     """
     handler_name = 'londiste'
 
@@ -195,6 +196,11 @@ class TableHandler(BaseHandler):
             self.encoding_validator = EncodingValidator(self.log, enc)
         else:
             self.encoding_validator = None
+
+    def get_config (self):
+        conf = BaseHandler.get_config(self)
+        conf.ignore_truncate = self.get_arg('ignore_truncate', [0, 1], 0)
+        return conf
 
     def process_event(self, ev, sql_queue_func, arg):
         row = self.parse_row_data(ev)
