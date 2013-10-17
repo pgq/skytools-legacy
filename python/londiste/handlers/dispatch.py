@@ -646,7 +646,6 @@ class Dispatcher (ShardHandler):
         self.dst_curs = None
         self.pkeys = None
         # config
-        self.conf = self.get_config()
         hdlr_cls = ROW_HANDLERS[self.conf.row_mode]
         self.row_handler = hdlr_cls(self.log)
 
@@ -675,7 +674,7 @@ class Dispatcher (ShardHandler):
 
     def get_config(self):
         """Processes args dict"""
-        conf = skytools.dbdict()
+        conf = ShardHandler.get_config(self)
         # set table mode
         conf.table_mode = self.get_arg('table_mode', TABLE_MODES)
         conf.analyze = self.get_arg('analyze', [0, 1])
@@ -722,13 +721,6 @@ class Dispatcher (ShardHandler):
                 else:
                     conf.field_map[tmp[0]] = tmp[1]
         return conf
-
-    def get_arg(self, name, value_list, default = None):
-        default = default or value_list[0]
-        val = type(default)(self.args.get(name, default))
-        if val not in value_list:
-            raise Exception('Bad argument %s value %r' % (name, val))
-        return val
 
     def _validate_hash_key(self):
         pass # no need for hash key when not sharding
