@@ -3,7 +3,7 @@
 
 == Introduction ==
 
-In this howto we will set up a replication scheme , where data is collected
+In this howto we will set up a replication scheme, where data is collected
 from multiple "partition" databases into a single table on "full" database.
 
 This situation is common when using PL/Proxy or other similar partitioning
@@ -41,9 +41,9 @@ logfile = log/%(job_name)s.log
 pidfile = pid/%(job_name)s.pid
 ----
 
-These ini files are then used for setting up the nodes and adding tables to root node
+These ini files are then used for setting up the nodes and adding tables to root node.
 
-Set up the root nodes on part1 and part2
+Set up the root nodes on part1 and part2:
 
 ----
 $ londiste3 -v conf/l3_part1_q_part1.ini create-root part1_root dbname=part1
@@ -56,7 +56,7 @@ On the full database, which will hold data from both partitions you need to
 set up two londiste nodes, one for each of the partition nodes.
 These will act as the receiving nodes to replicate to.
 
-These look very similar and differ only in queue name
+These look very similar and differ only in queue name:
 
 File `conf/l3_part1_q_full1.ini`:
 ----
@@ -85,15 +85,15 @@ $ londiste3 -v conf/l3_part1_q_full1.ini create-leaf merge_part1_full1 dbname=fu
 $ londiste3 -v conf/l3_part2_q_full1.ini create-leaf merge_part2_full1 dbname=full1 --provider=dbname=part2
 ----
 
-and later also for launching the replication worker daemons
+And later also for launching the replication worker daemons.
 
-But before launching the workers you need to start the pgqd or the "ticker daemon"
+But before launching the workers you need to start the pgqd or the "ticker daemon":
 
 ----
 $ pgqd -v -d conf/pgqd.ini
 ----
 
-the `conf/pgqd.ini` file for the command above looks like this:
+The `conf/pgqd.ini` file for the command above looks like this:
 
 ----
 [pgqd]
@@ -103,7 +103,7 @@ pidfile = pid/pgqd.pid
 ----
 
 Now that the ticker is running, it's time to launch londiste3 workers which will
-do tha actual replication:
+do the actual replication:
 
 ----
 $ londiste3 -v -d conf/l3_part1_q_full1.ini worker
@@ -112,7 +112,7 @@ $ londiste3 -v -d conf/l3_part2_q_full1.ini worker
 
 === Setting up the tables ===
 
-in order to have something to replicate, we need some tables, so let's create
+In order to have something to replicate, we need some tables, so let's create
 them on partition nodes:
 
 ----
@@ -120,14 +120,14 @@ $ psql -d "part1" -c "create table mydata (id int4 primary key, data text)"
 $ psql -d "part2" -c "create table mydata (id int4 primary key, data text)"
 ----
 
-and then add them to set of replicated tables on the root node
+And then add them to set of replicated tables on the root node:
 
 ----
 $ londiste3 -v conf/l3_part1_q_part1.ini add-table mydata
 $ londiste3 -v conf/l3_part2_q_part2.ini add-table mydata
 ----
 
-Now we need some data in these tables, as replicating empty tables is no fun
+Now we need some data in these tables, as replicating empty tables is no fun:
 
 ----
 $ psql -d "part1" -c "insert into mydata values (1, 'part1')"
@@ -145,10 +145,10 @@ $ psql -d "full1" -c "select * from londiste.table_info order by queue_name"
 (2 rows)
 ----
 
-Now lets subscribe them on full database. As the table is not yet created on
+Now let's subscribe them on full database. As the table is not yet created on
 full1, we specify `--create` so londiste creates the table on leaf node based on
 structure that is on root. The switch `--merge-all` tells londiste to add the table to all
-queues which have it on root side, not just the one from the .ini file 
+queues which have it on root side, not just the one from the .ini file.
 
 ----
 $ londiste3 -v conf/l3_part1_q_full1.ini add-table mydata --create --merge-all
@@ -191,14 +191,14 @@ $ psql -d "full1" -c "select * from mydata order by id"
 (4 rows)
 ----
 
-the rows fith ids 1 and 2 where replicated during initial copy, the ones with
+The rows with ids 1 and 2 where replicated during initial copy, the ones with
 5 and 6 were captured by triggers into event log on partition database and then
 replicated to full1 using the standard replication process.
 
 === checking subscription ===
 
-Just to check if we really did achieve what we wanted, we  see which tables
-are present and fully sobscribed ('ok')
+Just to check if we really did achieve what we wanted, we see which tables
+are present and fully subscribed ('ok'):
 
 ----
 $ psql -d "full1" -c "select * from londiste.table_info order by queue_name"
@@ -209,9 +209,9 @@ $ psql -d "full1" -c "select * from londiste.table_info order by queue_name"
 (2 rows)
 ----
 
-ok, here we have the table public.mydata subscribed from 2 queues and it's
-merge_state is 'ok', meaning the initial copy process has been successfull
+Ok, here we have the table public.mydata subscribed from 2 queues and its
+merge_state is 'ok', meaning the initial copy process has been successfull.
 
 
-That's it , we have successfully set up replication from two partition
+That's it, we have successfully set up replication from two partition
 databases to one single full database.

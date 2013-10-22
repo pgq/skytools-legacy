@@ -1,5 +1,5 @@
 
-= How to Set up Cascaded Replication in londiste =
+= How to Set up Cascaded Replication in Londiste =
 
 == Basic cluster setup ==
 
@@ -17,7 +17,7 @@ pidfile = pid/pgqd.pid
 ----
 
 The ini files for databases are are created similar to the one below, only
-the "db1" part changes
+the "db1" part changes.
 
 ----
 $ cat conf/londiste_db1.ini
@@ -32,7 +32,7 @@ pgq_autocommit = 1
 pgq_lazy_fetch = 0
 ----
 
-After creating the ini files we are ready to install londiste3 and initialize nodes
+After creating the ini files we are ready to install londiste3 and initialize nodes.
 
 ----
 $ londiste3 -q conf/londiste_db1.ini create-root node1 dbname=db1
@@ -42,7 +42,7 @@ $ londiste3 -q conf/londiste_db4.ini create-branch node4 dbname=db4 --provider=d
 $ londiste3 -q conf/londiste_db5.ini create-branch node5 dbname=db5 --provider=dbname=db3
 ----
 
-Now that schemas are installed, we can start the ticker
+Now that schemas are installed, we can start the ticker.
 
 ----
 $ pgqd -q -d conf/pgqd.ini
@@ -69,7 +69,7 @@ node1 (root)
 ----
 
 And you need a londiste worker process on each node to actually carry out
-the actions
+the actions.
 
 ----
 $ londiste3 -q -d conf/londiste_db1.ini worker
@@ -83,7 +83,7 @@ $ londiste3 -q -d conf/londiste_db5.ini worker
 
 Now let's play with data.
 
-Create table on root node and fill couple of rows
+Create table on root node and fill couple of rows.
 
 ----
 $ psql -d db1 -c "create table mytable (id serial primary key, data text)"
@@ -93,20 +93,20 @@ $ psql -d db1 -c "insert into mytable (data) values ('row3')"
 $ psql -d db1 -c "insert into mytable (data) values ('row4')"
 ----
 
-Creat some load on table
+Create some load on table.
 
 ----
 $ ./loadgen.py -d conf/gen1.ini
 ----
 
-Register table on root node
+Register table on root node.
 
 ----
 $ londiste3 -q conf/londiste_db1.ini add-table mytable
 $ londiste3 -q conf/londiste_db1.ini add-seq mytable_id_seq
 ----
 
-Register table on other node with creation
+Register table on other node with creation.
 
 ----
 $ psql -d db2 -c "create sequence mytable_id_seq"
@@ -133,7 +133,6 @@ $ londiste3 -q conf/londiste_db5.ini add-table mytable --create-full
 The main advantage of skytools3 cascaded replication is how easy it is to
 change the replication topology.
 
-
 ----
 $ londiste3 -q conf/londiste_db4.ini change-provider --provider=node2
 $ londiste3 -q conf/londiste_db4.ini status
@@ -157,7 +156,7 @@ node1 (root)
                               ERR: londiste_db5: duplicate key value violates unique constraint "mytable_pkey"
 ----
 
-Now let's move it to node 3
+Now let's move it to node 3:
 
 ----
 $ londiste3 -q conf/londiste_db4.ini change-provider --provider=node3
@@ -180,7 +179,6 @@ node1 (root)
                               Tables: 1/0/0
                               Lag: 12s, Tick: 53
 ----
-
 
 
 ----
@@ -230,7 +228,7 @@ node1 (root)
                               Lag: 3s, Tick: 65
 ----
 
-The takeover command is in fact the only way to change the root node
+The takeover command is in fact the only way to change the root node.
 
 ----
 $ londiste3 -q conf/londiste_db2.ini takeover node1

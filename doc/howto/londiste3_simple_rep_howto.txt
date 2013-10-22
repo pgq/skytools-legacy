@@ -4,7 +4,7 @@
 
 This sample does the following actions:
 
- * sets up te databases 
+ * sets up the databases
    - creates a database 'l3simple_db1', which will be master
    - populates this with pgbench schema and data
    - adds primary and foreign keys to make the db more realistic
@@ -14,9 +14,9 @@ This sample does the following actions:
    - creates a leaf node on 'l3simple_db2'
    - starts the ticker daemon
    - adds all tables to replication set on both databases
-   - waits the replication to complete
+   - waits for the replication to complete
 
-It also runs pgbench a to test that the replication actually happens and works properly.
+It also runs pgbench to test that the replication actually happens and works properly.
 
 
 == Set up schema for root database ==
@@ -31,7 +31,7 @@ CREATE DATABASE l3simple_db1;
 === Set up pgbench schema ===
 
 In this HowTo we are using pgbench for setting up the schema,
-populating it with sampledata and later running SQL loads to be replicated.
+populating it with sample data and later running SQL loads to be replicated.
 
 
 Run command :
@@ -116,14 +116,13 @@ Initialize node in target database:
 londiste3 st3simple/st3_l3simple_db2.ini create-leaf node2 dbname=l3simple_db2 --provider=dbname=l3simple_db1
 ----
 
-Launch worker daemon for target database.
+Launch worker daemon for target database:
 
 ----
 londiste3 -d st3simple/st3_l3simple_db2.ini worker
 ----
 
-Create config file `st3simple/pgqd.ini`
-for PgQ ticker daemon:
+Create config file `st3simple/pgqd.ini` for PgQ ticker daemon:
 
 ----
 [pgqd]
@@ -145,10 +144,10 @@ run the following command in background:
 /usr/lib/postgresql/9.1/bin/pgbench -T 120 -c 5 l3simple_db1 -f /tmp/throttled.pgbench
 ----
 
-the /tmp/throttled.pgbench contains the standard pgbencg workload, except that
-ther are random length waits between commands.
+The /tmp/throttled.pgbench contains the standard pgbench workload, except that
+there are random length waits between commands.
 
-Now add all the tables to replication, first on root node and then on the leaf 
+Now add all the tables to replication, first on root node and then on the leaf:
 
 Run command :
 ----
@@ -162,14 +161,13 @@ londiste3 st3simple/st3_l3simple_db2.ini add-table --all
 To test our newly set up replication
 
 The following command will run pgbench full speed with 5 parallel
-database connections generating database traffic
-for 10 seconds
+database connections generating database traffic for 10 seconds:
 
 ----
 /usr/lib/postgresql/9.1/bin/pgbench -T 10 -c 5 l3simple_db2
 ----
 
-After this is done, you can check that the tables on both sides have the same data with
+After this is done, you can check that the tables on both sides have the same data:
 
 ----
 londiste3 st3simple/st3_l3simple_db2.ini compare
@@ -178,7 +176,7 @@ londiste3 st3simple/st3_l3simple_db2.ini compare
 Compare command will establish the same logical point in time on provider and
 subscriber nodes and then count and checksum the rows on both sides.
 
-The result will look like this
+The result will look like this:
 
 ----
 2011-12-25 08:24:42,138 29189 INFO Locking public.pgbench_accounts
@@ -203,10 +201,9 @@ The result will look like this
 2011-12-25 08:24:56,740 29189 INFO dstdb: 20 rows, checksum=518235101
 ----
 
-the "checksum" is computed by adding up hashtext() sums for all database rows. 
+The "checksum" is computed by adding up hashtext() sums for all database rows.
 
 
 == Done ==
 
 The setup of simple 2 node cluster is done.
-
