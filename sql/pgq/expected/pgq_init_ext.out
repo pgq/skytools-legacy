@@ -15,7 +15,7 @@ create extension pgq from 'unpackaged';
 select array_length(extconfig, 1) from pg_catalog.pg_extension where extname = 'pgq';
  array_length 
 --------------
-            6
+            7
 (1 row)
 
 select pgq.create_queue('testqueue2');
@@ -44,6 +44,6 @@ create extension pgq;
 select array_length(extconfig, 1) from pg_catalog.pg_extension where extname = 'pgq';
  array_length 
 --------------
-            6
+            7
 (1 row)
 

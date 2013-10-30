@@ -8,6 +8,6 @@ SELECT pg_catalog.pg_extension_config_dump('pgq.subscription', '');
 SELECT pg_catalog.pg_extension_config_dump('pgq.event_template', '');
 SELECT pg_catalog.pg_extension_config_dump('pgq.retry_queue', '');
 
----- pg_dump is broken and cannot handle dumpable sequences
--- SELECT pg_catalog.pg_extension_config_dump('pgq.batch_id_seq', '');
+-- This needs pg_dump 9.1.7+
+SELECT pg_catalog.pg_extension_config_dump('pgq.batch_id_seq', '');
 
