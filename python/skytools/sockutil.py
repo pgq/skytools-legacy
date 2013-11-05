@@ -51,16 +51,21 @@ def set_tcp_keepalive(fd, keepalive = True,
 
     # turn on keepalive on the connection
     if keepalive:
+        DARWIN_TCP_KEEPALIVE = 0x10
+
         s.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
         if hasattr(socket, 'TCP_KEEPCNT'):
-            s.setsockopt(socket.IPPROTO_TCP, getattr(socket, 'TCP_KEEPIDLE'), tcp_keepidle)
             s.setsockopt(socket.IPPROTO_TCP, getattr(socket, 'TCP_KEEPCNT'), tcp_keepcnt)
-            s.setsockopt(socket.IPPROTO_TCP, getattr(socket, 'TCP_KEEPINTVL'), tcp_keepintvl)
+            if hasattr(socket, 'TCP_KEEPINTVL'):
+                s.setsockopt(socket.IPPROTO_TCP, getattr(socket, 'TCP_KEEPINTVL'), tcp_keepintvl)
+            if hasattr(socket, 'TCP_KEEPIDLE'):
+                s.setsockopt(socket.IPPROTO_TCP, getattr(socket, 'TCP_KEEPIDLE'), tcp_keepidle)
+            elif sys.platform == 'darwin':
+                s.setsockopt(socket.IPPROTO_TCP, DARWIN_TCP_KEEPALIVE, tcp_keepidle)
         elif hasattr(socket, 'TCP_KEEPALIVE'):
             s.setsockopt(socket.IPPROTO_TCP, getattr(socket, 'TCP_KEEPALIVE'), tcp_keepidle)
         elif sys.platform == 'darwin':
-            TCP_KEEPALIVE = 0x10
-            s.setsockopt(socket.IPPROTO_TCP, TCP_KEEPALIVE, tcp_keepidle)
+            s.setsockopt(socket.IPPROTO_TCP, DARWIN_TCP_KEEPALIVE, tcp_keepidle)
         elif sys.platform == 'win32':
             #s.ioctl(SIO_KEEPALIVE_VALS, (1, tcp_keepidle*1000, tcp_keepintvl*1000))
             pass
