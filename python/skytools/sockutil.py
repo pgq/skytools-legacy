@@ -24,7 +24,6 @@ def set_tcp_keepalive(fd, keepalive = True,
      - Linux: (7200, 9, 75) - can configure all.
      - MacOS: (7200, 8, 75) - can configure only tcp_keepidle.
      - Win32: (7200, 5|10, 1) - can configure tcp_keepidle and tcp_keepintvl.
-       Python needs SIO_KEEPALIVE_VALS support in socket.ioctl to enable it.
 
     Our defaults: (240, 4, 15).
 
@@ -49,28 +48,34 @@ def set_tcp_keepalive(fd, keepalive = True,
     if type(s.getsockname()) != type(()):
         return
 
-    # turn on keepalive on the connection
-    if keepalive:
-        DARWIN_TCP_KEEPALIVE = 0x10
-
-        s.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
-        if hasattr(socket, 'TCP_KEEPCNT'):
-            s.setsockopt(socket.IPPROTO_TCP, getattr(socket, 'TCP_KEEPCNT'), tcp_keepcnt)
-            if hasattr(socket, 'TCP_KEEPINTVL'):
-                s.setsockopt(socket.IPPROTO_TCP, getattr(socket, 'TCP_KEEPINTVL'), tcp_keepintvl)
-            if hasattr(socket, 'TCP_KEEPIDLE'):
-                s.setsockopt(socket.IPPROTO_TCP, getattr(socket, 'TCP_KEEPIDLE'), tcp_keepidle)
-            elif sys.platform == 'darwin':
-                s.setsockopt(socket.IPPROTO_TCP, DARWIN_TCP_KEEPALIVE, tcp_keepidle)
-        elif hasattr(socket, 'TCP_KEEPALIVE'):
-            s.setsockopt(socket.IPPROTO_TCP, getattr(socket, 'TCP_KEEPALIVE'), tcp_keepidle)
-        elif sys.platform == 'darwin':
-            s.setsockopt(socket.IPPROTO_TCP, DARWIN_TCP_KEEPALIVE, tcp_keepidle)
-        elif sys.platform == 'win32':
-            #s.ioctl(SIO_KEEPALIVE_VALS, (1, tcp_keepidle*1000, tcp_keepintvl*1000))
-            pass
-    else:
+    # no keepalive?
+    if not keepalive:
         s.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 0)
+        return
+
+    # basic keepalive
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+
+    # detect available options
+    TCP_KEEPCNT = getattr(socket, 'TCP_KEEPCNT', None)
+    TCP_KEEPINTVL = getattr(socket, 'TCP_KEEPINTVL', None)
+    TCP_KEEPIDLE = getattr(socket, 'TCP_KEEPIDLE', None)
+    TCP_KEEPALIVE = getattr(socket, 'TCP_KEEPALIVE', None)
+    SIO_KEEPALIVE_VALS = getattr(socket, 'SIO_KEEPALIVE_VALS', None)
+    if TCP_KEEPIDLE is None and TCP_KEEPALIVE is None and sys.platform == 'darwin':
+        TCP_KEEPALIVE = 0x10
+
+    # configure
+    if TCP_KEEPCNT is not None:
+        s.setsockopt(socket.IPPROTO_TCP, TCP_KEEPCNT, tcp_keepcnt)
+    if TCP_KEEPINTVL is not None:
+        s.setsockopt(socket.IPPROTO_TCP, TCP_KEEPINTVL, tcp_keepintvl)
+    if TCP_KEEPIDLE is not None:
+        s.setsockopt(socket.IPPROTO_TCP, TCP_KEEPIDLE, tcp_keepidle)
+    elif TCP_KEEPALIVE is not None:
+        s.setsockopt(socket.IPPROTO_TCP, TCP_KEEPALIVE, tcp_keepidle)
+    elif SIO_KEEPALIVE_VALS is not None:
+        s.ioctl(SIO_KEEPALIVE_VALS, (1, tcp_keepidle*1000, tcp_keepintvl*1000))
 
 
 def set_nonblocking(fd, onoff=True):
