@@ -44,7 +44,7 @@ class Event(object):
         return self._event_row[_fldmap[key]]
 
     # would be better in RetriableEvent only since we don't care but
-    # unfortunatelly it needs to be defined here due to compatibility concerns
+    # unfortunately it needs to be defined here due to compatibility concerns
     def tag_done(self):
         pass
 
@@ -58,7 +58,7 @@ class Event(object):
     def items(self): return self._event_row.items()
     def iterkeys(self): return self._event_row.iterkeys()
     def itervalues(self): return self._event_row.itervalues()
+
     def __str__(self):
         return "<id=%d type=%s data=%s e1=%s e2=%s e3=%s e4=%s>" % (
                 self.id, self.type, self.data, self.extra1, self.extra2, self.extra3, self.extra4)
-

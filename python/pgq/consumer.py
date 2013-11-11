@@ -20,11 +20,10 @@ class RetriableEvent(Event):
 
     Consumer is supposed to tag them after processing.
     """
-
     __slots__ = ('_status', )
 
     def __init__(self, queue_name, row):
-        super(RetriableEvent, self).__init__(self, queue_name, row)
+        super(RetriableEvent, self).__init__(queue_name, row)
         self._status = EV_DONE
 
     def tag_done(self):
@@ -45,14 +44,17 @@ class RetriableWalkerEvent(RetriableEvent):
     tag_done() events don't need to be remembered.
     """
     __slots__ = ('_walker', )
-    def __init__(self, walker, queue, row):
-        Event.__init__(self, queue, row)
+
+    def __init__(self, walker, queue_name, row):
+        super(RetriableWalkerEvent, self).__init__(queue_name, row)
         self._walker = walker
 
     def tag_done(self):
         self._walker.tag_event_done(self)
+
     def get_status(self):
         self._walker.get_status(self)
+
     def tag_retry(self, retry_time = 60):
         self._walker.tag_event_retry(self, retry_time)
 
