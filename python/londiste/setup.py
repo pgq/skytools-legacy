@@ -45,7 +45,7 @@ class LondisteSetup(CascadeAdmin):
         londiste.handler.load_handler_modules(self.cf)
 
     def init_optparse(self, parser=None):
-        """Add londiste switches to cascadeadmin ones."""
+        """Add londiste switches to CascadeAdmin ones."""
 
         p = CascadeAdmin.init_optparse(self, parser)
         p.add_option("--expect-sync", action="store_true", dest="expect_sync",

@@ -906,11 +906,12 @@ class Dispatcher (ShardHandler):
         self.log.info("Created table: %s", dst)
 
         if self.conf.retention_period:
-            self.drop_obsolete_partitions (self.dest_table, self.conf.retention_period, self.conf.period)
-            if self.conf.ignore_old_events and not skytools.exists_table(curs, dst):
-                self.ignored_tables.add(dst) # must have been just dropped
-                if dst in self.row_handler.table_map:
-                    del self.row_handler.table_map[dst]
+            dropped = self.drop_obsolete_partitions (self.dest_table, self.conf.retention_period, self.conf.period)
+            if self.conf.ignore_old_events and dropped:
+                for tbl in dropped:
+                    self.ignored_tables.add(tbl)
+                    if tbl in self.row_handler.table_map:
+                        del self.row_handler.table_map[tbl]
 
     def drop_obsolete_partitions (self, parent_table, retention_period, partition_period):
         """ Drop obsolete partitions of partition-by-date parent table.
@@ -924,6 +925,7 @@ class Dispatcher (ShardHandler):
         res = [row[0] for row in curs.fetchall()]
         if res:
             self.log.info("Dropped tables: %s", ", ".join(res))
+        return res
 
     def get_copy_condition(self, src_curs, dst_curs):
         """ Prepare where condition for copy and replay filtering.
