@@ -11,7 +11,7 @@ begin
     if TG_OP = 'DELETE' then
         perform londiste.drop_table_triggers(OLD.queue_name, OLD.table_name);
     end if;
-    return null;
+    return OLD;
 end;
 $$ language plpgsql;
 
