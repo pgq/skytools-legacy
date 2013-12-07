@@ -28,6 +28,18 @@ begin
         alter table londiste.table_info add column dest_table text;
     end if;
 
+    -- table_info: change trigger timing
+    perform 1 from information_schema.triggers
+      where event_object_schema = 'londiste'
+        and event_object_table = 'table_info'
+        and trigger_name = 'table_info_trigger_sync'
+        and condition_timing = 'AFTER';
+    if found then
+        drop trigger table_info_trigger_sync on londiste.table_info;
+        create trigger table_info_trigger_sync before delete on londiste.table_info
+            for each row execute procedure londiste.table_info_trigger();
+    end if;
+
     -- applied_execute.dest_table
     perform 1 from information_schema.columns
       where table_schema = 'londiste'
