@@ -176,8 +176,8 @@ class DataMaintainer (skytools.DBScript):
         # query for fetching the PK-s of the data set to be maintained
         self.sql_pk = self.cf.get("sql_get_pk_list", "")
 
-        if not self.sql_pk and not self.fileread:
-            raise ValueError("Either fileread or sql_get_pk_list must be specified in the configuration file")
+        if (int(bool(self.sql_pk)) + int(bool(self.fileread))) in (0,2):
+            raise skytools.UsageError("Either fileread or sql_get_pk_list must be specified in the configuration file")
 
         # query for changing data tuple ( autocommit )
         self.sql_modify = self.cf.get("sql_modify")
@@ -258,7 +258,7 @@ class DataMaintainer (skytools.DBScript):
                 dbw.commit()
             self.stat_put("duration", time.time() - self.fetch_started)
             self.send_stats()
-            if len(res) < self.fetchcnt or not self.looping:
+            if len(res) < self.fetchcnt or self.last_sigint:
                 break
             if self.commit_delay > 0.0:
                 time.sleep(self.commit_delay)
@@ -266,7 +266,7 @@ class DataMaintainer (skytools.DBScript):
                 self.throttle(tcur)
             self._print_count("--- Running count: %s duration: %s ---")
 
-        if not self.looping:
+        if self.last_sigint:
             self.log.info("Exiting on user request")
 
         self.datasource.close()
@@ -304,7 +304,7 @@ class DataMaintainer (skytools.DBScript):
                 else:
                     count += 1
                     self.stat_increase("count")
-                if not self.looping:
+                if self.last_sigint:
                     break
             return count, item
         except: # process has crashed, run sql_crash and re-raise the exception
@@ -315,7 +315,7 @@ class DataMaintainer (skytools.DBScript):
             raise
 
     def throttle(self, tcur):
-        while self.looping:
+        while not self.last_sigint:
             tcur.execute(self.sql_throttle)
             _r = tcur.fetchall()
             assert len(_r) == 1 and len(_r[0]) == 1, "Result of 'throttle' query must be 1 value"
