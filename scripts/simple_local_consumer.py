@@ -59,7 +59,7 @@ class SimpleLocalConsumer(pgq.LocalConsumer):
         payload['pgq.ev_extra4'] = ev.ev_extra4
 
         self.log.debug(self.dst_query, payload)
-        curs.execute(self.dst_query, payload)
+        self.execute_with_retry(curs, self.dst_query, payload)
         if curs.statusmessage[:6] == 'SELECT':
             res = curs.fetchall()
             self.log.debug(res)

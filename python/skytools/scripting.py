@@ -921,6 +921,34 @@ class DBScript(BaseScript):
             # error is already logged
             sys.exit(1)
 
+    def execute_with_retry (self, cursor, stmt, args, exceptions = None):
+        """ Execute SQL and retry if it fails.
+        """
+        self.sql_retry_max_count = self.cf.getint("sql_retry_max_count", 10)
+        self.sql_retry_max_time = self.cf.getint("sql_retry_max_time", 300)
+        self.sql_retry_formula_a = self.cf.getint("sql_retry_formula_a", 1)
+        self.sql_retry_formula_b = self.cf.getint("sql_retry_formula_b", 5)
+        self.sql_retry_formula_cap = self.cf.getint("sql_retry_formula_cap", 60)
+        import psycopg2
+        elist = exceptions or (psycopg2.OperationalError,)
+        stime = time.time()
+        tried = 0
+        while True:
+            try:
+                cursor.execute (stmt, args)
+                break
+            except elist:
+                if tried >= self.sql_retry_max_count or time.time() - stime >= self.sql_retry_max_time:
+                    raise
+            except:
+                raise
+            # y = a + bx , apply cap
+            y = self.sql_retry_formula_a + self.sql_retry_formula_b * tried
+            if self.sql_retry_formula_cap is not None and y > self.sql_retry_formula_cap:
+                y = self.sql_retry_formula_cap
+            self.sleep(y)
+            tried += 1
+
     def listen(self, dbname, channel):
         """Make connection listen for specific event channel.
 
