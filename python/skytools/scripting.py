@@ -921,9 +921,12 @@ class DBScript(BaseScript):
             # error is already logged
             sys.exit(1)
 
-    def execute_with_retry (self, conn_or_curs, stmt, args, exceptions = None):
+    def execute_with_retry (self, dbname, stmt, args, exceptions = None):
         """ Execute SQL and retry if it fails.
+        Note that dbname must have been used with get_database() just before.
         """
+        dbc = self.db_cache[dbname]
+        assert dbc.isolation_level == 0 # autocommit
         self.sql_retry_max_count = self.cf.getint("sql_retry_max_count", 10)
         self.sql_retry_max_time = self.cf.getint("sql_retry_max_time", 300)
         self.sql_retry_formula_a = self.cf.getint("sql_retry_formula_a", 1)
@@ -936,12 +939,8 @@ class DBScript(BaseScript):
         while True:
             try:
                 if tried > 0:
-                    conn = getattr(conn_or_curs, 'connection', conn_or_curs)
-                    self.close_database(conn.my_name)
-                    conn = self.get_database(conn.my_name, conn.autocommit, conn.isolation_level) # , connstr = conn.dsn
-                    curs = conn.cursor()
-                else:
-                    curs = conn_or_curs if hasattr(conn_or_curs, 'connection') else conn_or_curs.cursor()
+                    dbc.reset()
+                curs = dbc.get_connection(dbc.isolation_level).cursor()
                 curs.execute (stmt, args)
                 break
             except elist:
@@ -955,6 +954,7 @@ class DBScript(BaseScript):
                 y = self.sql_retry_formula_cap
             self.sleep(y)
             tried += 1
+        return tried, curs
 
     def listen(self, dbname, channel):
         """Make connection listen for specific event channel.
