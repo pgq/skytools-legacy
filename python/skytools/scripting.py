@@ -921,7 +921,7 @@ class DBScript(BaseScript):
             # error is already logged
             sys.exit(1)
 
-    def execute_with_retry (self, cursor, stmt, args, exceptions = None):
+    def execute_with_retry (self, conn_or_curs, stmt, args, exceptions = None):
         """ Execute SQL and retry if it fails.
         """
         self.sql_retry_max_count = self.cf.getint("sql_retry_max_count", 10)
@@ -935,7 +935,14 @@ class DBScript(BaseScript):
         tried = 0
         while True:
             try:
-                cursor.execute (stmt, args)
+                if tried > 0:
+                    conn = getattr(conn_or_curs, 'connection', conn_or_curs)
+                    self.close_database(conn.my_name)
+                    conn = self.get_database(conn.my_name, conn.autocommit, conn.isolation_level) # , connstr = conn.dsn
+                    curs = conn.cursor()
+                else:
+                    curs = conn_or_curs if hasattr(conn_or_curs, 'connection') else conn_or_curs.cursor()
+                curs.execute (stmt, args)
                 break
             except elist:
                 if tried >= self.sql_retry_max_count or time.time() - stime >= self.sql_retry_max_time:
