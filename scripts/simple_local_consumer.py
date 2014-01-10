@@ -38,9 +38,6 @@ class SimpleLocalConsumer(pgq.LocalConsumer):
             self.consumer_filter = self.cf.get("consumer_filter", "")
 
     def process_local_event(self, db, batch_id, ev):
-        # initiate db connection
-        self.get_database('dst_db', autocommit = 1)
-
         if ev.ev_type[:2] not in ('I:', 'U:', 'D:'):
             return
 
