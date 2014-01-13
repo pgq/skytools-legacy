@@ -41,6 +41,8 @@ class LocalConsumer(BaseConsumer):
         super(LocalConsumer, self).reload()
 
         self.local_tracking_file = self.cf.getfile('local_tracking_file')
+        if not os.path.exists(os.path.dirname(self.local_tracking_file)):
+            raise skytools.UsageError ("path does not exist: %s" % self.local_tracking_file)
 
     def init_optparse(self, parser = None):
         p = super(LocalConsumer, self).init_optparse(parser)
