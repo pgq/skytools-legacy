@@ -784,7 +784,6 @@ class Dispatcher (ShardHandler):
         if not op in self.conf.event_types:
             #self.log.debug('dispatch.process_event: ignored event type')
             return
-        self.log.debug('dispatch.process_event: %s/%s', ev.ev_type, ev.ev_data)
         if self.pkeys is None:
             self.pkeys = self.filter_pkeys(pkeys.split(','))
         data = self.filter_data(data)
