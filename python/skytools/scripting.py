@@ -477,6 +477,9 @@ class BaseScript(object):
         self.pidfile = self.cf.getfile("pidfile", '')
         self.loop_delay = self.cf.getfloat("loop_delay", self.loop_delay)
         self.exception_sleep = self.cf.getfloat("exception_sleep", 20)
+        self.exception_quiet = self.cf.getbool("exception_quiet", False)
+        self.exception_grace = self.cf.getfloat("exception_grace", 5*60)
+        self.exception_reset = self.cf.getfloat("exception_reset", 15*60)
 
     def hook_sighup(self, sig, frame):
         "Internal SIGHUP handler.  Minimal code here."
@@ -569,12 +572,14 @@ class BaseScript(object):
 
         return state
 
+    last_func_fail = None
     def run_func_safely(self, func, prefer_looping = False):
         "Run users work function, safely."
-        cname = None
-        emsg = None
         try:
-            return func()
+            r = func()
+            if self.last_func_fail and time.time() > self.last_func_fail + self.exception_reset:
+                self.last_func_fail = None
+            return r
         except UsageError, d:
             self.log.error(str(d))
             sys.exit(1)
@@ -601,6 +606,8 @@ class BaseScript(object):
                 self.send_stats()
             except:
                 pass
+            if self.last_func_fail is None:
+                self.last_func_fail = time.time()
             emsg = str(d).rstrip()
             self.reset()
             self.exception_hook(d, emsg)
@@ -627,8 +634,12 @@ class BaseScript(object):
         @param det: exception details
         @param emsg: exception msg
         """
-        self.log.exception("Job %s crashed: %s" % (
-                   self.job_name, emsg))
+        lm = "Job %s crashed: %s" % (self.job_name, emsg)
+        if not self.exception_quiet or (self.last_func_fail
+                and time.time() > self.last_func_fail + self.exception_grace):
+            self.log.exception(lm)
+        else:
+            self.log.warning(lm)
 
     def work(self):
         """Here should user's processing happen.
@@ -810,8 +821,13 @@ class DBScript(BaseScript):
             sql = getattr(curs, 'query', None) or '?'
             if len(sql) > 200: # avoid logging londiste huge batched queries
                 sql = sql[:60] + " ..."
-            self.log.exception("Job %s got error on connection '%s': %s.   Query: %s" % (
-                self.job_name, cname, emsg, sql))
+            lm = "Job %s got error on connection '%s': %s.   Query: %s" % (
+                self.job_name, cname, emsg, sql)
+            if not self.exception_quiet or (self.last_func_fail
+                    and time.time() > self.last_func_fail + self.exception_grace):
+                self.log.exception(lm)
+            else:
+                self.log.warning(lm)
         else:
             BaseScript.exception_hook(self, d, emsg)
 
