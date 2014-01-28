@@ -3,9 +3,18 @@
 
 """
 
-import sys, os, signal, optparse, time, errno, select
-import logging, logging.handlers, logging.config
+import errno
+import logging
+import logging.config
+import logging.handlers
+import optparse
+import os
+import select
+import signal
+import sys
+import time
 
+import psycopg2
 import skytools
 import skytools.skylog
 
@@ -921,6 +930,48 @@ class DBScript(BaseScript):
             # error is already logged
             sys.exit(1)
 
+    def execute_with_retry (self, dbname, stmt, args, exceptions = None):
+        """ Execute SQL and retry if it fails.
+        Return number of retries and current valid cursor, or raise an exception.
+        """
+        sql_retry = self.cf.getbool("sql_retry", False)
+        sql_retry_max_count = self.cf.getint("sql_retry_max_count", 10)
+        sql_retry_max_time = self.cf.getint("sql_retry_max_time", 300)
+        sql_retry_formula_a = self.cf.getint("sql_retry_formula_a", 1)
+        sql_retry_formula_b = self.cf.getint("sql_retry_formula_b", 5)
+        sql_retry_formula_cap = self.cf.getint("sql_retry_formula_cap", 60)
+        elist = exceptions or (psycopg2.OperationalError,)
+        stime = time.time()
+        tried = 0
+        dbc = None
+        while True:
+            try:
+                if dbc is None:
+                    if dbname not in self.db_cache:
+                        self.get_database(dbname, autocommit=1)
+                    dbc = self.db_cache[dbname]
+                    if dbc.isolation_level != skytools.I_AUTOCOMMIT:
+                        raise skytools.UsageError ("execute_with_retry: autocommit required")
+                else:
+                    dbc.reset()
+                curs = dbc.get_connection(dbc.isolation_level).cursor()
+                curs.execute (stmt, args)
+                break
+            except elist, e:
+                if not sql_retry or tried >= sql_retry_max_count or time.time() - stime >= sql_retry_max_time:
+                    raise
+                self.log.info("Job %s got error on connection %s: %s" % (self.job_name, dbname, e))
+            except:
+                raise
+            # y = a + bx , apply cap
+            y = sql_retry_formula_a + sql_retry_formula_b * tried
+            if sql_retry_formula_cap is not None and y > sql_retry_formula_cap:
+                y = sql_retry_formula_cap
+            tried += 1
+            self.log.info("Retry #%i in %i seconds ...", tried, y)
+            self.sleep(y)
+        return tried, curs
+
     def listen(self, dbname, channel):
         """Make connection listen for specific event channel.
 
@@ -960,7 +1011,6 @@ class DBCachedConn(object):
         self.conn = None
         self.conn_time = 0
         self.max_age = max_age
-        self.autocommit = -1
         self.isolation_level = -1
         self.verbose = verbose
         self.setup_func = setup_func
