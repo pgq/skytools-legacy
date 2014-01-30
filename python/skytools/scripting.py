@@ -477,7 +477,7 @@ class BaseScript(object):
         self.pidfile = self.cf.getfile("pidfile", '')
         self.loop_delay = self.cf.getfloat("loop_delay", self.loop_delay)
         self.exception_sleep = self.cf.getfloat("exception_sleep", 20)
-        self.exception_quiet = self.cf.getbool("exception_quiet", False)
+        self.exception_quiet = self.cf.getlist("exception_quiet", [])
         self.exception_grace = self.cf.getfloat("exception_grace", 5*60)
         self.exception_reset = self.cf.getfloat("exception_reset", 15*60)
 
@@ -626,6 +626,10 @@ class BaseScript(object):
             if ex.errno != errno.EINTR:
                 raise
 
+    def _is_quiet_exception(self, ex):
+        return ((self.exception_quiet == ["ALL"] or ex.__class__.__name__ in self.exception_quiet)
+                and self.last_func_fail and time.time() < self.last_func_fail + self.exception_grace)
+
     def exception_hook(self, det, emsg):
         """Called on after exception processing.
 
@@ -635,11 +639,10 @@ class BaseScript(object):
         @param emsg: exception msg
         """
         lm = "Job %s crashed: %s" % (self.job_name, emsg)
-        if not self.exception_quiet or (self.last_func_fail
-                and time.time() > self.last_func_fail + self.exception_grace):
-            self.log.exception(lm)
-        else:
+        if self._is_quiet_exception(det):
             self.log.warning(lm)
+        else:
+            self.log.exception(lm)
 
     def work(self):
         """Here should user's processing happen.
@@ -823,11 +826,10 @@ class DBScript(BaseScript):
                 sql = sql[:60] + " ..."
             lm = "Job %s got error on connection '%s': %s.   Query: %s" % (
                 self.job_name, cname, emsg, sql)
-            if not self.exception_quiet or (self.last_func_fail
-                    and time.time() > self.last_func_fail + self.exception_grace):
-                self.log.exception(lm)
-            else:
+            if self._is_quiet_exception(d):
                 self.log.warning(lm)
+            else:
+                self.log.exception(lm)
         else:
             BaseScript.exception_hook(self, d, emsg)
 
