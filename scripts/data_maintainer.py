@@ -292,7 +292,7 @@ class DataMaintainer (skytools.DBScript):
                     mres = mcur.fetchall()
                     for r in mres:
                         if 'stats' in r: # if specially handled column 'stats' is present
-                            for k, v in skytools.db_urldecode(r['stats']).items():
+                            for k, v in skytools.db_urldecode(r['stats'] or '').items():
                                 self.stat_increase(k, int(v))
                         self.log.debug(r)
                 else:
