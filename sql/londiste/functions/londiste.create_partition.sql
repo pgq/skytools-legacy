@@ -8,10 +8,10 @@ create or replace function londiste.create_partition(
     i_part_period text
 ) returns int as $$
 ------------------------------------------------------------------------
--- Function: public.create_partition
+-- Function: londiste.create_partition
 --
 --      Creates inherited child table if it does not exist by copying parent table's structure.
---      Locks parent table to avoid parallel creation.
+--      Locks londiste.table_info table to avoid parallel creation of any partitions.
 --
 -- Elements that are copied over by "LIKE x INCLUDING ALL":
 --      * Defaults
@@ -91,7 +91,8 @@ begin
     fq_part := quote_ident(part_schema) || '.' || quote_ident(part_name);
 
     -- allow only single creation at a time, without affecting DML operations
-    execute 'lock table ' || fq_table || ' in share update exclusive mode';
+    -- (changed from locking parent table to avoid deadlocks from concurrent workers)
+    execute 'lock table londiste.table_info in share update exclusive mode';
     parent_oid := fq_table::regclass::oid;
 
     -- check if part table exists
