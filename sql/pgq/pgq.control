@@ -1,6 +1,6 @@
 # pgq extension
 comment = 'Generic queue for PostgreSQL'
-default_version = '3.1.6'
+default_version = '3.2'
 relocatable = false
 superuser = true
 schema = 'pg_catalog'
