@@ -1,4 +1,42 @@
 
+2014-03-31  -  SkyTools 3.2  -  "Hit any user to continue"
+
+  = Features =
+
+    * scripts/data_maintainer.py: can use csv file as source
+    * debian: support Postgres 9.3, 9.4
+
+  = Minor features =
+
+    * londiste: added ignore_truncate handler option
+    * londiste add-table: added lock_timeout option to avoid possible locking issues
+    * scripts/data_maintainer.py: added dynamic throttling support (via sql)
+    * skytools.scripting: added options to lower log level for exceptions
+    * skytools.scripting: simple retriable execute (for sql)
+
+  = Fixes =
+
+    * londiste.create_partition: fixed to avoid deadlocks from concurrent workers
+    * londiste.handlers.dispatch: fixed "ignore events aiming at obsolete partitions" bug
+    * pgq.cascade.admin: do not allow subscribing to itself (same node)
+    * pgq.consumer: fixed RetriableEvent and RetriableWalkerEvent
+    * skytools.dbstruct: quote sequence names
+    * skytools.set_tcp_keepalive: add compat with newer OSX, simplify, enable win32
+    * scripts/data_maintainer.py: fixed to survive null in stats column of sql_modify
+    * sql/londiste: fixed londiste.table_info trigger issue
+    * sql/pgq: fix retry-queue vs. newgrants
+    * sql/pgq: tag pgq.batch_id_seq as dumpable (extension)
+
+  = Cleanups =
+
+    * londiste.drop_obsolete_partitions: drop tables in alphabetical order (that is from the oldest)
+    * londiste.handlers: removed duplicate debug logging
+    * londiste: moved config processing from dispatch to base handler
+    * pgq.localconsumer: added file path check on config load
+    * scripts/data_maintainer.py: clean-up
+    * debian: include data_maintainer3 in package
+    * Get rid of dictfetch*() usage, it's obsolete.
+
 2013-07-31  -  SkyTools 3.1.5  -  "Caution, Blind Man Driving"
 
   = Features =

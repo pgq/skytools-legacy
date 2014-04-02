@@ -18,7 +18,7 @@ pgbench.
 
 === Create databases ===
 
-Create root database that will contain all data and two shard databases
+Create root database that will contain all data and two shard databases.
 
 Run the following SQL: 
 ----
@@ -29,7 +29,7 @@ psql -c "CREATE DATABASE sharddb_1;"
 
 Deploy hash function everywhere. This is needed because internal hashtext
 function was changed between 8.3 and 8.4 versions and may be changed again
-in future withoud consideration for it's users.
+in future without consideration for its users.
 
 ---
 psql rootdb < /usr/share/postgresql/8.4/contrib/hashlib.sql 
@@ -40,14 +40,14 @@ psql sharddb_1 < /usr/share/postgresql/8.4/contrib/hashlib.sql
 === Set up pgbench schema ===
 
 In this HowTo we are using pgbench for setting up the schema,
-populating it with sampledata and later running SQL loads to be replicated.
+populating it with sample data and later running SQL loads to be replicated.
 
-This command will create pgbanch tables and fill them with data:
+This command will create pgbench tables and fill them with data:
 ----
 /usr/lib/postgresql/8.4/bin/pgbench -i -s 2 -F 80 rootdb
 ----
 
-Write partconf.sql that will be deployed to all db's
+Write partconf.sql that will be deployed to all databases:
 ----
 CREATE SCHEMA partconf;
 CREATE TABLE partconf.conf (
@@ -71,7 +71,7 @@ $_$
 LANGUAGE sql;
 ----
 
-Populate shard configuration tables. These values are used inside part.py
+Populate shard configuration tables. These values are used inside part.py.
 
 ----
 psql rootdb < partconf.sql
@@ -81,7 +81,7 @@ psql sharddb_0 -c "insert into partconf.conf(part_nr, max_part) values(0,1);"
 psql sharddb_1 -c "insert into partconf.conf(part_nr, max_part) values(1,1);"
 ----
 
-Next create configuration files file for root node and both partitions
+Next create configuration files for root node and both partitions.
 
 st3partsplit/st3_rootdb.ini
 ----
@@ -124,7 +124,7 @@ And start the worker on root:
 londiste3 -d st3partsplit/st3_rootdb.ini worker
 ----
 
-And create leaf nodes and start the workers on partitions :
+And create leaf nodes and start the workers on partitions:
 
 ----
 londiste3 st3partsplit/st3_sharddb_0.ini create-leaf node2_0 dbname=sharddb_0 --provider=dbname=rootdb
@@ -137,7 +137,7 @@ londiste3 st3partsplit/st3_sharddb_1.ini create-leaf node2_1 dbname=sharddb_1 --
 londiste3 -d st3partsplit/st3_sharddb_1.ini worker
 ----
 
-Create config file st3partsplit/pgqd.ini for `pgqd` ("the ticker")
+Create config file st3partsplit/pgqd.ini for `pgqd` ("the ticker"):
 ----
 [pgqd]
 
@@ -146,7 +146,7 @@ pidfile = st3partsplit/pid/pgqd.pid
 
 ----
 
-Start the ticker process :
+Start the ticker process:
 ----
 pgqd -d st3partsplit/pgqd.ini
 ----
@@ -157,8 +157,7 @@ which means Londiste takes schema from root node and
 creates tables on target nodes automatically.
 
 The `--handler=part` tells londiste to use the `part` handler for replication,
-the `--handler-arg=key=*id` specifyies which key field to partition on.
-
+the `--handler-arg=key=*id` specifies which key field to partition on.
 
 
 Run command the following commands :
@@ -183,14 +182,13 @@ database connections for 10 seconds.
 /usr/lib/postgresql/8.4/bin/pgbench -T 10 -c 5 rootdb
 ----
 
-After this is done, you can check that the tables on both sides hanve the same data with
+After this is done, you can check that the tables on both sides have the same data:
 
 ----
 londiste3 st3partsplit/st3_sharddb_0.ini compare
 londiste3 st3partsplit/st3_sharddb_0.ini compare
 ----
 
-Except of course that they dont - each partition will only have roughly half
+Except of course that they don't - each partition will only have roughly half
 the data from the root. But the row counts and checksums of the partitions
 should both add up to the numbers on the master.
-

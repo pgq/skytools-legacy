@@ -1,0 +1,4 @@
+usr/lib/postgresql/9.4/lib/pgq_triggers.so
+usr/lib/postgresql/9.4/lib/pgq_lowlevel.so
+usr/share/postgresql/9.4/contrib
+usr/share/postgresql/9.4/extension

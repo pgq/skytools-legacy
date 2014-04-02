@@ -54,6 +54,7 @@ begin
          where t.schemaname = _schema
            and t.tablename ~ ('^'|| _table || _expr ||'$')
            and t.tablename < _table || to_char (now() - i_retention_period, _dfmt)
+         order by 1
     loop
         execute 'drop table '|| _part;
         return next _part;

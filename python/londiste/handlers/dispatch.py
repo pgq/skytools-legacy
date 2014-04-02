@@ -142,6 +142,10 @@ ignore_old_events:
     * 0 - handle all events in the same way (default)
     * 1 - ignore events coming for obsolete partitions
 
+ignore_truncate:
+    * 0 - process truncate event (default)
+    * 1 - ignore truncate event
+
 encoding:
     name of destination encoding. handler replaces all invalid encoding symbols
     and logs them as warnings
@@ -237,7 +241,7 @@ class DirectLoader(BaseLoader):
                   'D': skytools.mk_delete_sql}
         if self.data:
             curs.execute("\n".join(mk_sql[op](row, self.table, self.pkeys)
-                for op, row in self.data))
+                                   for op, row in self.data))
 
 
 class BaseBulkCollectingLoader(BaseLoader):
@@ -646,7 +650,6 @@ class Dispatcher (ShardHandler):
         self.dst_curs = None
         self.pkeys = None
         # config
-        self.conf = self.get_config()
         hdlr_cls = ROW_HANDLERS[self.conf.row_mode]
         self.row_handler = hdlr_cls(self.log)
 
@@ -675,7 +678,7 @@ class Dispatcher (ShardHandler):
 
     def get_config(self):
         """Processes args dict"""
-        conf = skytools.dbdict()
+        conf = ShardHandler.get_config(self)
         # set table mode
         conf.table_mode = self.get_arg('table_mode', TABLE_MODES)
         conf.analyze = self.get_arg('analyze', [0, 1])
@@ -722,13 +725,6 @@ class Dispatcher (ShardHandler):
                 else:
                     conf.field_map[tmp[0]] = tmp[1]
         return conf
-
-    def get_arg(self, name, value_list, default = None):
-        default = default or value_list[0]
-        val = type(default)(self.args.get(name, default))
-        if val not in value_list:
-            raise Exception('Bad argument %s value %r' % (name, val))
-        return val
 
     def _validate_hash_key(self):
         pass # no need for hash key when not sharding
@@ -788,7 +784,6 @@ class Dispatcher (ShardHandler):
         if not op in self.conf.event_types:
             #self.log.debug('dispatch.process_event: ignored event type')
             return
-        self.log.debug('dispatch.process_event: %s/%s', ev.ev_type, ev.ev_data)
         if self.pkeys is None:
             self.pkeys = self.filter_pkeys(pkeys.split(','))
         data = self.filter_data(data)
@@ -926,9 +921,7 @@ class Dispatcher (ShardHandler):
         sql = "select " + func + " (%s, %s, %s)"
         self.log.debug("func: %s, args: %s", func, args)
         curs.execute(sql, args)
-        res = []
-        for row in curs.fetchall():
-            res.append(row[0])
+        res = [row[0] for row in curs.fetchall()]
         if res:
             self.log.info("Dropped tables: %s", ", ".join(res))
         return res

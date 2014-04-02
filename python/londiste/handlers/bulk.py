@@ -98,7 +98,6 @@ class BulkLoader(BaseHandler):
         op = ev.ev_type[0]
         if op not in 'IUD':
             raise Exception('Unknown event type: '+ev.ev_type)
-        self.log.debug('bulk.process_event: %s/%s', ev.ev_type, ev.ev_data)
         # pkey_list = ev.ev_type[2:].split(',')
         data = skytools.db_urldecode(ev.ev_data)
 

@@ -552,7 +552,7 @@ class BaseStruct(object):
         #print "Loading %s, name=%s, args=%s" % (repr(eclass), repr(name), repr(args))
         sql = eclass.get_load_sql(curs.connection.server_version)
         curs.execute(sql % args)
-        for row in curs.dictfetchall():
+        for row in curs.fetchall():
             elem_list.append(eclass(name, row))
         return elem_list
 
@@ -637,8 +637,9 @@ class TableStruct(BaseStruct):
         # load seqs
         for col in self.col_list:
             if col.seqname:
+                fqname = quote_fqident(col.seqname)
                 owner = self.fqname + '.' + quote_ident(col.name)
-                seq_args = { 'fqname': col.seqname, 'owner': skytools.quote_literal(owner) }
+                seq_args = { 'fqname': fqname, 'owner': skytools.quote_literal(owner) }
                 self.seq_list += self._load_elem(curs, col.seqname, seq_args, TSeq)
         self.object_list += self.seq_list
 

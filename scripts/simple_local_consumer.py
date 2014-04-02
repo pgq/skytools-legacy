@@ -38,8 +38,6 @@ class SimpleLocalConsumer(pgq.LocalConsumer):
             self.consumer_filter = self.cf.get("consumer_filter", "")
 
     def process_local_event(self, db, batch_id, ev):
-        curs = self.get_database('dst_db', autocommit = 1).cursor()
-
         if ev.ev_type[:2] not in ('I:', 'U:', 'D:'):
             return
 
@@ -59,7 +57,7 @@ class SimpleLocalConsumer(pgq.LocalConsumer):
         payload['pgq.ev_extra4'] = ev.ev_extra4
 
         self.log.debug(self.dst_query, payload)
-        curs.execute(self.dst_query, payload)
+        retries, curs = self.execute_with_retry('dst_db', self.dst_query, payload)
         if curs.statusmessage[:6] == 'SELECT':
             res = curs.fetchall()
             self.log.debug(res)

@@ -6,6 +6,7 @@ Parameters:
   hashfunc=NAME: function to use for hashing (default: partconf.get_hash_raw)
   hashexpr=EXPR: full expression to use for hashing (deprecated)
   encoding=ENC: validate and fix incoming data (only utf8 supported atm)
+  ignore_truncate=BOOL: ignore truncate event, default: 0, values: 0,1
 
 On root node:
 * Hash of key field will be added to ev_extra3.

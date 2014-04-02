@@ -546,6 +546,9 @@ class CascadeAdmin(skytools.AdminScript):
         if not node or not consumer:
             node, consumer = self.find_consumer(node = node, consumer = consumer)
 
+        if node == new_provider:
+            raise UsageError ("cannot subscribe to itself")
+
         cmap = self.get_node_consumer_map(node)
         cinfo = cmap[consumer]
         old_provider = cinfo['provider_node']

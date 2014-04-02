@@ -44,7 +44,7 @@ class PGQStatus(skytools.DBScript):
                     ival('q.queue_ticker_idle_period'),
                )
         cx.execute(q)
-        event_rows = cx.dictfetchall()
+        event_rows = cx.fetchall()
 
         q = """select queue_name, consumer_name, %s, %s, pending_events
                from pgq.get_consumer_info()""" % (
@@ -52,7 +52,7 @@ class PGQStatus(skytools.DBScript):
                 ival('last_seen'),
               )
         cx.execute(q)
-        consumer_rows = cx.dictfetchall()
+        consumer_rows = cx.fetchall()
 
         print("\n%-33s %9s %13s %6s %6s %5s" % ('Event queue',
                             'Rotation', 'Ticker', 'TLag', 'EPS', 'New'))

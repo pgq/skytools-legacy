@@ -3,8 +3,10 @@ create or replace function londiste.upgrade_schema()
 returns int4 as $$
 -- updates table structure if necessary
 declare
+    pgversion int;
     cnt int4 = 0;
 begin
+    show server_version_num into pgversion;
 
     -- table_info: check (dropped_ddl is null or merge_state in ('in-copy', 'catching-up'))
     perform 1 from information_schema.check_constraints
@@ -26,6 +28,26 @@ begin
         and column_name = 'dest_table';
     if not found then
         alter table londiste.table_info add column dest_table text;
+    end if;
+
+    -- table_info: change trigger timing
+    if pgversion >= 90100 then
+        perform 1 from information_schema.triggers
+          where event_object_schema = 'londiste'
+            and event_object_table = 'table_info'
+            and trigger_name = 'table_info_trigger_sync'
+            and action_timing = 'AFTER';
+    else
+        perform 1 from information_schema.triggers
+          where event_object_schema = 'londiste'
+            and event_object_table = 'table_info'
+            and trigger_name = 'table_info_trigger_sync'
+            and condition_timing = 'AFTER';
+    end if;
+    if found then
+        drop trigger table_info_trigger_sync on londiste.table_info;
+        create trigger table_info_trigger_sync before delete on londiste.table_info
+            for each row execute procedure londiste.table_info_trigger();
     end if;
 
     -- applied_execute.dest_table

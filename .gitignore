@@ -11,6 +11,7 @@
 *.xml
 .deps
 .DS_Store
+.idea
 config.mak
 config.log
 config.status

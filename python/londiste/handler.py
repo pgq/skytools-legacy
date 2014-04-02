@@ -78,6 +78,7 @@ class BaseHandler:
         self.fq_dest_table = skytools.quote_fqident(self.dest_table)
         self.args = args
         self._check_args (args)
+        self.conf = self.get_config()
 
     def _parse_args_from_doc (self):
         doc = self.__doc__ or ""
@@ -110,6 +111,19 @@ class BaseHandler:
         invalid = set(passed_arg_names) - set(self.valid_arg_names)
         if invalid:
             raise ValueError ("Invalid handler argument: %s" % list(invalid))
+
+    def get_arg (self, name, value_list, default = None):
+        """ Return arg value or default; also check if value allowed. """
+        default = default or value_list[0]
+        val = type(default)(self.args.get(name, default))
+        if val not in value_list:
+            raise Exception('Bad argument %s value %r' % (name, val))
+        return val
+
+    def get_config (self):
+        """ Process args dict (into handler config). """
+        conf = skytools.dbdict()
+        return conf
 
     def add(self, trigger_arg_list):
         """Called when table is added.
@@ -162,6 +176,7 @@ class TableHandler(BaseHandler):
     Parameters:
       encoding=ENC - Validate and fix incoming data from encoding.
                      Only 'utf8' is supported at the moment.
+      ignore_truncate=BOOL - Ignore truncate event. Default: 0; Values: 0,1.
     """
     handler_name = 'londiste'
 
@@ -181,6 +196,11 @@ class TableHandler(BaseHandler):
             self.encoding_validator = EncodingValidator(self.log, enc)
         else:
             self.encoding_validator = None
+
+    def get_config (self):
+        conf = BaseHandler.get_config(self)
+        conf.ignore_truncate = self.get_arg('ignore_truncate', [0, 1], 0)
+        return conf
 
     def process_event(self, ev, sql_queue_func, arg):
         row = self.parse_row_data(ev)

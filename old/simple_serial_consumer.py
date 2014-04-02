@@ -83,7 +83,7 @@ class SimpleSerialConsumer(pgq.SerialConsumer):
             self.log.debug(self.dst_query % payload)
             curs.execute(self.dst_query, payload)
             try:
-                res = curs.dictfetchone()
+                res = curs.fetchone()
                 self.log.debug(res)
             except:
                 pass
