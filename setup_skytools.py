@@ -193,7 +193,7 @@ if BUILD_C_MOD:
 # run actual setup
 setup(
     name = "skytools",
-    license = "BSD",
+    license = "ISC",
     version = ac_ver,
     maintainer = "Marko Kreen",
     maintainer_email = "markokr@gmail.com",
