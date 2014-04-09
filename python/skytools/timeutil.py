@@ -16,6 +16,20 @@ from datetime import datetime, timedelta, tzinfo
 
 __all__ = ['parse_iso_timestamp', 'FixedOffsetTimezone', 'datetime_to_timestamp']
 
+try:
+    timedelta.total_seconds # new in 2.7
+except AttributeError:
+    def total_seconds(td):
+        return float (td.microseconds + (td.seconds + td.days * 24 * 3600) * 10**6) / 10**6
+
+    import ctypes
+    _get_dict = ctypes.pythonapi._PyObject_GetDictPtr
+    _get_dict.restype = ctypes.POINTER(ctypes.py_object)
+    _get_dict.argtypes = [ctypes.py_object]
+    d = _get_dict(timedelta)[0]
+    d['total_seconds'] = total_seconds
+
+
 class FixedOffsetTimezone(tzinfo):
     """Fixed offset in minutes east from UTC."""
     __slots__ = ('__offset', '__name')
