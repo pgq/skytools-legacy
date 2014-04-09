@@ -20,7 +20,7 @@ from subprocess import Popen
 INSTALL_SCRIPTS = 1
 INSTALL_SQL = 1
 
-# dont build C module on win32 as it's unlikely to have dev env
+# don't build C module on win32 as it's unlikely to have dev env
 BUILD_C_MOD = 1
 if sys.platform == 'win32':
     BUILD_C_MOD = 0
@@ -53,19 +53,19 @@ if not INSTALL_SCRIPTS:
 
 # sql files we want to access from python
 sql_files = [
-   'sql/pgq/pgq.sql',
-   'sql/londiste/londiste.sql',
-   'sql/pgq_node/pgq_node.sql',
-   'sql/pgq_coop/pgq_coop.sql',
-   'sql/pgq_ext/pgq_ext.sql',
+    'sql/pgq/pgq.sql',
+    'sql/londiste/londiste.sql',
+    'sql/pgq_node/pgq_node.sql',
+    'sql/pgq_coop/pgq_coop.sql',
+    'sql/pgq_ext/pgq_ext.sql',
 
-   'sql/pgq/pgq.upgrade.sql',
-   'sql/pgq_node/pgq_node.upgrade.sql',
-   'sql/londiste/londiste.upgrade.sql',
-   'sql/pgq_coop/pgq_coop.upgrade.sql',
-   'sql/pgq_ext/pgq_ext.upgrade.sql',
-   'upgrade/final/pgq.upgrade_2.1_to_3.0.sql',
-   'upgrade/final/londiste.upgrade_2.1_to_3.1.sql',
+    'sql/pgq/pgq.upgrade.sql',
+    'sql/pgq_node/pgq_node.upgrade.sql',
+    'sql/londiste/londiste.upgrade.sql',
+    'sql/pgq_coop/pgq_coop.upgrade.sql',
+    'sql/pgq_ext/pgq_ext.upgrade.sql',
+    'upgrade/final/pgq.upgrade_2.1_to_3.0.sql',
+    'upgrade/final/londiste.upgrade_2.1_to_3.1.sql',
 ]
 
 # sql files for special occasions
@@ -87,7 +87,7 @@ def getvar(name, default):
         pass
     return default
 
-# dont rename scripts on win32
+# don't rename scripts on win32
 if sys.platform == 'win32':
     DEF_SUFFIX = '.py'
     DEF_NOSUFFIX = '.py'
@@ -100,7 +100,7 @@ DEF_SUFFIX = getvar('SUFFIX', DEF_SUFFIX)
 DEF_SKYLOG = getvar('SKYLOG', '0') != '0'
 DEF_SK3_SUBDIR = getvar('SK3_SUBDIR', '0') != '0'
 
-# create sql files if they dont exist
+# create sql files if they don't exist
 def make_sql():
     for fn in sql_files:
         if not os.path.isfile(fn):
@@ -155,8 +155,8 @@ class sk3_build_scripts(build_scripts):
 # wrap generic install command
 class sk3_install(install):
     user_options = install.user_options + [
-            ('sk3-subdir', None, 'install modules into "skytools-3.0" subdir'),
-            ('skylog', None, 'use "skylog" logging by default'),
+        ('sk3-subdir', None, 'install modules into "skytools-3.0" subdir'),
+        ('skylog', None, 'use "skylog" logging by default'),
     ]
     boolean_options = ['sk3-subdir', 'skylog']
     sk3_subdir = DEF_SK3_SUBDIR
@@ -187,26 +187,28 @@ if BUILD_C_MOD:
     ext = [
         Extension("skytools._cquoting", ['python/modules/cquoting.c']),
         Extension("skytools._chashtext", ['python/modules/hashtext.c']),
-        ]
+    ]
     c_modules.extend(ext)
 
 # run actual setup
 setup(
     name = "skytools",
-    license = "BSD",
+    license = "ISC",
     version = ac_ver,
     maintainer = "Marko Kreen",
     maintainer_email = "markokr@gmail.com",
     url = "http://pgfoundry.org/projects/skytools/",
+    description = "SkyTools - tools for PostgreSQL",
+    platforms = "POSIX, MacOS, Windows",
     package_dir = {'': 'python'},
     packages = ['skytools', 'londiste', 'londiste.handlers', 'pgq', 'pgq.cascade'],
     data_files = [
-      ('share/doc/skytools3/conf', [
-        'python/conf/wal-master.ini',
-        'python/conf/wal-slave.ini',
+        ('share/doc/skytools3/conf', [
+            'python/conf/wal-master.ini',
+            'python/conf/wal-slave.ini',
         ]),
-      ('share/skytools3', sql_files),
-      #('share/skytools3/extra', extra_sql_files),
+        ('share/skytools3', sql_files),
+        #('share/skytools3/extra', extra_sql_files),
     ],
     ext_modules = c_modules,
     scripts = sfx_scripts + nosfx_scripts,
@@ -215,4 +217,10 @@ setup(
         'build_scripts': sk3_build_scripts,
         'install': sk3_install,
     },
+    long_description = """
+This is a package of tools developed at Skype for replication and failover.
+It includes a generic queuing framework (PgQ), easy-to-use replication
+implementation (Londiste), tool for managing WAL based standby servers,
+utility library for Python scripts, selection of scripts for specific jobs.
+"""
 )
