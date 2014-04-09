@@ -1,4 +1,16 @@
 
+2014-04-09  -  SkyTools 3.2.1
+
+  = Fixes =
+
+    * skytools.scripting: moved psycopg2 reference to actual script using it
+    * skytools.timeutil: fixed for Python versions less than 2.7
+
+  = Cleanups =
+
+    * libusual: updated to the latest version (that is already 9 months old)
+    * setup*.py: fixes; updated to point to correct licence
+
 2014-03-31  -  SkyTools 3.2  -  "Hit any user to continue"
 
   = Features =
