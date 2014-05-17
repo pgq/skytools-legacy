@@ -86,11 +86,11 @@ select * from londiste.get_table_list('aset');
 (0 rows)
 
 select ev_id, ev_type, ev_data, ev_extra1 from pgq.event_template;
- ev_id |        ev_type        |       ev_data        |    ev_extra1    
--------+-----------------------+----------------------+-----------------
-     1 | londiste.add-table    | public.testdata      | 
-     2 | I:id                  | id=1&txt=test%2ddata | public.testdata
-     3 | londiste.remove-table | public.testdata      | 
+ ev_id |        ev_type        |      ev_data       |    ev_extra1    
+-------+-----------------------+--------------------+-----------------
+     1 | londiste.add-table    | public.testdata    | 
+     2 | I:id                  | id=1&txt=test-data | public.testdata
+     3 | londiste.remove-table | public.testdata    | 
 (3 rows)
 
 select * from londiste.local_show_missing('aset');
@@ -143,11 +143,9 @@ select tgname from pg_trigger where tgrelid = 'public.trg_test'::regclass order 
 
 delete from londiste.table_info where table_name = 'public.trg_test';
 select tgname from pg_trigger where tgrelid = 'public.trg_test'::regclass order by 1;
-         tgname          
--------------------------
- _londiste_aset
- _londiste_aset_truncate
-(2 rows)
+ tgname 
+--------
+(0 rows)
 
 -- handler test
 create table hdlr_test (
