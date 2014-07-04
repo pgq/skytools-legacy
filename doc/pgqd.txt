@@ -60,6 +60,7 @@ Switches:
   # log into syslog
   #syslog = 1
   #syslog_ident = pgqd
+  #syslog_facility = local0
   
   ## optional timeouts ##
   
