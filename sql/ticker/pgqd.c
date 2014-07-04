@@ -51,6 +51,7 @@ static const struct CfKey conf_params[] = {
 	CF_REL("database_list", CF_STR, database_list, 0, NULL),
 	CF_ABS("syslog", CF_INT, cf_syslog, 0, "1"),
 	CF_ABS("syslog_ident", CF_STR, cf_syslog_ident, 0, "pgqd"),
+	CF_ABS("syslog_facility", CF_STR, cf_syslog_facility, 0, "daemon"),
 	CF_REL("check_period", CF_TIME_DOUBLE, check_period, 0, "60"),
 	CF_REL("maint_period", CF_TIME_DOUBLE, maint_period, 0, "120"),
 	CF_REL("retry_period", CF_TIME_DOUBLE, retry_period, 0, "30"),
