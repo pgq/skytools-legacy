@@ -572,7 +572,7 @@ class LondisteSetup(CascadeAdmin):
             q = "select * from londiste.execute_start(%s, %s, %s, true, %s)"
             res = self.exec_cmd(db, q, [self.queue_name, fname, sql, attrs.to_urlenc()], commit = False)
             ret = res[0]['ret_code']
-            if ret >= 300:
+            if ret > 200:
                 self.log.warning("Skipping execution of '%s'", fname)
                 continue
             if attrs.need_execute(curs, local_tables, local_seqs):
