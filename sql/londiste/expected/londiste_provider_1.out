@@ -85,11 +85,11 @@ select * from londiste.get_table_list('aset');
 (0 rows)
 
 select ev_id, ev_type, ev_data, ev_extra1 from pgq.event_template;
- ev_id |        ev_type        |       ev_data        |    ev_extra1    
--------+-----------------------+----------------------+-----------------
-     1 | londiste.add-table    | public.testdata      | 
-     2 | I:id                  | id=1&txt=test%2ddata | public.testdata
-     3 | londiste.remove-table | public.testdata      | 
+ ev_id |        ev_type        |      ev_data       |    ev_extra1    
+-------+-----------------------+--------------------+-----------------
+     1 | londiste.add-table    | public.testdata    | 
+     2 | I:id                  | id=1&txt=test-data | public.testdata
+     3 | londiste.remove-table | public.testdata    | 
 (3 rows)
 
 select * from londiste.local_show_missing('aset');
@@ -140,10 +140,9 @@ select tgname from pg_trigger where tgrelid = 'public.trg_test'::regclass order 
 
 delete from londiste.table_info where table_name = 'public.trg_test';
 select tgname from pg_trigger where tgrelid = 'public.trg_test'::regclass order by 1;
-     tgname     
-----------------
- _londiste_aset
-(1 row)
+ tgname 
+--------
+(0 rows)
 
 -- handler test
 create table hdlr_test (
@@ -180,3 +179,12 @@ select ev_id, ev_type, ev_data, ev_extra1, ev_extra4 from pgq.event_template whe
      9 | I:id    | id=3&txt=data3 | public.hdlr_test | 
 (3 rows)
 
+-- test proper trigger creation with add-table specific args
+select * from londiste.local_add_table('aset', 'public.trg_test', array['ev_extra4=''test='' || txt', 'expect_sync', 'skip']);
+ ret_code |           ret_note           
+----------+------------------------------
+      200 | Table added: public.trg_test
+(1 row)
+
+insert into trg_test values (2, 'data2');
+ERROR:  SKIP does not work in AFTER trigger.
