@@ -11,14 +11,14 @@
 --                                Root node sends minimal tick_id that must be kept.
 --
 --      pgq.tick-id             - ev_data: tick_id,  extra1: queue_name
---                                Partition node inserts it's tick-id into combined queue.
+--                                Partition node inserts its tick-id into combined queue.
 --
 -- ----------------------------------------------------------------------
 
 create schema pgq_node;
 
 -- ----------------------------------------------------------------------
--- Table: pgq_node.location
+-- Table: pgq_node.node_location
 --
 --      Static table that just lists all members in set.
 --
@@ -46,7 +46,6 @@ create table pgq_node.node_location (
 --      queue_name          - cascaded queue name
 --      node_type           - local node type
 --      node_name           - local node name
---      provider_node       - provider node name
 --      worker_name         - consumer name that maintains this node
 --      combined_queue      - on 'leaf' the target combined set name
 --      node_attrs          - urlencoded fields for worker
@@ -93,7 +92,6 @@ create table pgq_node.local_state (
     provider_node   text not null,
     last_tick_id    bigint not null,
     cur_error       text,
-
     paused          boolean not null default false,
     uptodate        boolean not null default false,
 
@@ -103,7 +101,7 @@ create table pgq_node.local_state (
 );
 
 -- ----------------------------------------------------------------------
--- Table: pgq_node.subscriber
+-- Table: pgq_node.subscriber_info
 --
 --      List of nodes that subscribe to local node.
 --
@@ -119,6 +117,7 @@ create table pgq_node.subscriber_info (
     watermark_name      text not null,
 
     primary key (queue_name, subscriber_node),
+    foreign key (queue_name) references pgq_node.node_info,
     foreign key (queue_name, subscriber_node) references pgq_node.node_location,
     foreign key (worker_name) references pgq.consumer (co_name),
     foreign key (watermark_name) references pgq.consumer (co_name)
