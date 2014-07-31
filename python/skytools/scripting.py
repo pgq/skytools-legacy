@@ -671,7 +671,7 @@ class BaseScript(object):
         In case of daemon, if will be called in same process as work(),
         unlike __init__().
         """
-        pass
+        self.log.info("Script finished, exiting")
 
     # define some aliases (short-cuts / backward compatibility cruft)
     stat_add = stat_put                 # Old, deprecated function.
