@@ -6,8 +6,8 @@ returns integer as $$
 -- ----------------------------------------------------------------------
 -- Function: pgq.unregister_consumer(2)
 --
---      Unsubscriber consumer from the queue.  Also consumer's
---      retry events are deleted.
+--      Unsubscribe consumer from the queue.
+--      Also consumer's retry events are deleted.
 --
 -- Parameters:
 --      x_queue_name        - Name of the queue
@@ -36,7 +36,7 @@ begin
        and s.sub_consumer = c.co_id
        and q.queue_name = x_queue_name
        and c.co_name = x_consumer_name
-       for update of s;
+       for update of s, c;
     if not found then
         return 0;
     end if;
@@ -51,7 +51,6 @@ begin
         delete from pgq.subscription
               where sub_id = x_sub_id
                 and sub_consumer = _consumer_id;
-
         return 1;
     else
         -- delete main consumer (including possible subconsumers)
@@ -63,7 +62,10 @@ begin
         -- this will drop subconsumers too
         delete from pgq.subscription
             where sub_id = x_sub_id;
-    
+
+        delete from pgq.consumer
+            where co_id = _consumer_id;
+
         return _sub_id_cnt;
     end if;
 
