@@ -656,9 +656,12 @@ class CascadeAdmin(skytools.AdminScript):
 
         try:
             # unregister node location from root node (event will be added to queue)
-            root_db = self.find_root_db()
-            q = "select * from pgq_node.unregister_location(%s, %s)"
-            self.exec_cmd(root_db, q, [self.queue_name, node_name])
+            if node and node.type == 'root':
+                pass
+            else:
+                root_db = self.find_root_db()
+                q = "select * from pgq_node.unregister_location(%s, %s)"
+                self.exec_cmd(root_db, q, [self.queue_name, node_name])
         except skytools.DBError, d:
             self.log.warning("Unregister from root failed: %s", str(d))
 
