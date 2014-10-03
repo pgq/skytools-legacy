@@ -21,8 +21,8 @@ as $$
 --    Names of partitions to be dropped
 -------------------------------------------------------------------------------
 declare
-    _schema text not null := lower (split_part (i_parent_table, '.', 1));
-    _table  text not null := lower (split_part (i_parent_table, '.', 2));
+    _schema text not null := split_part (i_parent_table, '.', 1);
+    _table  text not null := split_part (i_parent_table, '.', 2);
     _part   text;
     _expr   text;
     _dfmt   text;
