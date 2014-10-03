@@ -849,8 +849,13 @@ class Dispatcher (ShardHandler):
         else if part function present in db, call it
         else clone master table"""
         curs = self.dst_curs
+        if (self.conf.ignore_old_events and self.conf.retention_period and
+                self.is_obsolete_partition (dst, self.conf.retention_period, self.conf.period)):
+            self.ignored_tables.add(dst)
+            return
         if skytools.exists_table(curs, dst):
             return
+
         dst = quote_fqident(dst)
         vals = {'dest': dst,
                 'part': dst,
@@ -924,6 +929,20 @@ class Dispatcher (ShardHandler):
         res = [row[0] for row in curs.fetchall()]
         if res:
             self.log.info("Dropped tables: %s", ", ".join(res))
+        return res
+
+    def is_obsolete_partition (self, partition_table, retention_period, partition_period):
+        """ Test partition name of partition-by-date parent table.
+        """
+        curs = self.dst_curs
+        func = "londiste.is_obsolete_partition"
+        args = [partition_table, retention_period, partition_period]
+        sql = "select " + func + " (%s, %s, %s)"
+        self.log.debug("func: %s, args: %s", func, args)
+        curs.execute(sql, args)
+        res = curs.fetchone()[0]
+        if res:
+            self.log.info("Ignored table: %s", partition_table)
         return res
 
     def get_copy_condition(self, src_curs, dst_curs):
