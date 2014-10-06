@@ -957,7 +957,7 @@ class DBScript(BaseScript):
         sql_retry_formula_a = self.cf.getint("sql_retry_formula_a", 1)
         sql_retry_formula_b = self.cf.getint("sql_retry_formula_b", 5)
         sql_retry_formula_cap = self.cf.getint("sql_retry_formula_cap", 60)
-        elist = exceptions or tuple([])
+        elist = exceptions or tuple()
         stime = time.time()
         tried = 0
         dbc = None
