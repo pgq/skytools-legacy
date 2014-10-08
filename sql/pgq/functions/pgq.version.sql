@@ -7,7 +7,7 @@ returns text as $$
 --      version and only bumped when database code changes.
 -- ----------------------------------------------------------------------
 begin
-    return '3.2';
+    return '3.2.3';
 end;
 $$ language plpgsql;
 

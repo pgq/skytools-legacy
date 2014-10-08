@@ -844,7 +844,8 @@ class CascadeAdmin(skytools.AdminScript):
         # switch subscribers around
         if self.options.all or failover:
             for n in self.find_subscribers_for(old_node_name):
-                self.node_change_provider(n, new_node_name)
+                if n != new_node_name:
+                    self.node_change_provider(n, new_node_name)
 
     def find_provider(self, node_name):
         if self.node_alive(node_name):
@@ -861,7 +862,7 @@ class CascadeAdmin(skytools.AdminScript):
         return self.find_root_node()
 
     def find_subscribers_for(self, parent_node_name):
-        """Find subscribers for particular node node."""
+        """Find subscribers for particular node."""
 
         # use dict to eliminate duplicates
         res = {}
