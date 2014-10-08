@@ -1,8 +1,8 @@
 
 EXTENSION = londiste
 
-EXT_VERSION = 3.2
-EXT_OLD_VERSIONS = 3.1 3.1.1 3.1.3 3.1.4 3.1.6
+EXT_VERSION = 3.2.3
+EXT_OLD_VERSIONS = 3.1 3.1.1 3.1.3 3.1.4 3.1.6 3.2
 
 base_regress = londiste_provider londiste_subscriber \
 	       londiste_fkeys londiste_execute londiste_seqs londiste_merge \

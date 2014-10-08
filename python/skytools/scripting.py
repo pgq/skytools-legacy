@@ -671,7 +671,7 @@ class BaseScript(object):
         In case of daemon, if will be called in same process as work(),
         unlike __init__().
         """
-        pass
+        self.log.info("Script finished, exiting")
 
     # define some aliases (short-cuts / backward compatibility cruft)
     stat_add = stat_put                 # Old, deprecated function.
@@ -957,7 +957,7 @@ class DBScript(BaseScript):
         sql_retry_formula_a = self.cf.getint("sql_retry_formula_a", 1)
         sql_retry_formula_b = self.cf.getint("sql_retry_formula_b", 5)
         sql_retry_formula_cap = self.cf.getint("sql_retry_formula_cap", 60)
-        elist = exceptions or tuple([])
+        elist = exceptions or tuple()
         stime = time.time()
         tried = 0
         dbc = None

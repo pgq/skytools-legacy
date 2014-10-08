@@ -5,14 +5,14 @@
 This sample does the following actions:
 
  * sets up the databases
-   - creates a database 'l3simple_db1', which will be master
+   - creates a database 'l3simple', on host which will be master
    - populates this with pgbench schema and data
    - adds primary and foreign keys to make the db more realistic
-   - makes a copy of the database ('l3simple_db2') to be used as slave
+   - makes a copy of the database on another node to be used as slave
  * sets up replication from the master to slave database
-   - creates the root node on 'l3simple_db1'
-   - creates a leaf node on 'l3simple_db2'
-   - starts the ticker daemon
+   - creates the root node on the master node
+   - creates a leaf node on the slave node
+   - starts the ticker daemon on the master node
    - adds all tables to replication set on both databases
    - waits for the replication to complete
 
@@ -25,7 +25,7 @@ It also runs pgbench to test that the replication actually happens and works pro
 
 Run the following SQL: 
 ----
-CREATE DATABASE l3simple_db1;
+CREATE DATABASE l3simple;
 ----
 
 === Set up pgbench schema ===
@@ -36,7 +36,7 @@ populating it with sample data and later running SQL loads to be replicated.
 
 Run command :
 ----
-/usr/lib/postgresql/9.1/bin/pgbench -i -s 2 -F 80 l3simple_db1
+pgbench -i -s 2 -F 80 l3simple
 ----
 
 === And add primary and foreign keys needed for replication ===
@@ -63,7 +63,7 @@ ALTER TABLE pgbench_history ADD CONSTRAINT pgbench_history_accounts_fk FOREIGN K
 then load it into database:
 
 ----
-psql l3simple_db1 -f /tmp/prepare_pgbenchdb_for_londiste.sql
+psql l3simple -f /tmp/prepare_pgbenchdb_for_londiste.sql
 ----
 
 
@@ -74,7 +74,7 @@ psql -d postgres -c "CREATE DATABASE l3simple_db2;"
 pg_dump -s l3simple_db1 | psql l3simple_db2
 ----
 
-Create configuration file st3simple/st3_l3simple_db1.ini
+Create configuration file st3simple/st3_l3simple_primary.ini
 
 ----
 [londiste3]
@@ -86,40 +86,42 @@ pidfile = st3simple/pid/st3_l3simple_db1.pid
 ----
 
 
+REMINDER: open trust to the leaf host in pg_hba.conf, or add a user to auth as and include in the connstring
+
 Create Londiste root node:
 
 ----
-londiste3 st3simple/st3_l3simple_db1.ini create-root node1 dbname=l3simple_db1
+londiste3 st3simple/st3_l3simple_primary.ini create-root node1 "dbname=l3simple host=10.199.59.194"
 ----
 
 Run worker daemon for root node:
 
 ----
-londiste3 -d st3simple/st3_l3simple_db1.ini worker
+londiste3 -d st3simple/st3_l3simple_primary.ini worker
 ----
 
-Create configuration file st3simple/st3_l3simple_db2.ini
+Create configuration file st3simple/st3_l3simple_leaf.ini
 for worker daemon on target node:
 
 ----
 [londiste3]
-job_name = st3_l3simple_db2
-db = dbname=l3simple_db2
+job_name = st3_l3simple_leaf
+db = dbname=l3simple
 queue_name = replika
-logfile = st3simple/log/st3_l3simple_db2.log
-pidfile = st3simple/pid/st3_l3simple_db2.pid
+logfile = st3simple/log/st3_l3simple_leaf.log
+pidfile = st3simple/pid/st3_l3simple_leaf.pid
 ----
 
 Initialize node in target database:
 
 ----
-londiste3 st3simple/st3_l3simple_db2.ini create-leaf node2 dbname=l3simple_db2 --provider=dbname=l3simple_db1
+londiste3 st3simple/st3_l3simple_leaf.ini create-leaf node2 dbname=l3simple --provider="dbname=l3simple host=10.199.59.194"
 ----
 
 Launch worker daemon for target database:
 
 ----
-londiste3 -d st3simple/st3_l3simple_db2.ini worker
+londiste3 -d st3simple/st3_l3simple_leaf.ini worker
 ----
 
 Create config file `st3simple/pgqd.ini` for PgQ ticker daemon:
@@ -141,7 +143,7 @@ To generate some data traffic on the master database while replicating,
 run the following command in background:
 
 ----
-/usr/lib/postgresql/9.1/bin/pgbench -T 120 -c 5 l3simple_db1 -f /tmp/throttled.pgbench
+pgbench -T 120 -c 5 l3simple -f /tmp/throttled.pgbench
 ----
 
 The /tmp/throttled.pgbench contains the standard pgbench workload, except that
@@ -151,8 +153,8 @@ Now add all the tables to replication, first on root node and then on the leaf:
 
 Run command :
 ----
-londiste3 st3simple/st3_l3simple_db1.ini add-table --all
-londiste3 st3simple/st3_l3simple_db2.ini add-table --all
+londiste3 st3simple/st3_l3simple_primary.ini add-table --all
+londiste3 st3simple/st3_l3simple_leaf.ini add-table --all
 ----
 
 
@@ -164,13 +166,13 @@ The following command will run pgbench full speed with 5 parallel
 database connections generating database traffic for 10 seconds:
 
 ----
-/usr/lib/postgresql/9.1/bin/pgbench -T 10 -c 5 l3simple_db2
+pgbench -T 10 -c 5 l3simple
 ----
 
 After this is done, you can check that the tables on both sides have the same data:
 
 ----
-londiste3 st3simple/st3_l3simple_db2.ini compare
+londiste3 st3simple/st3_l3simple_leaf.ini compare
 ----
 
 Compare command will establish the same logical point in time on provider and
@@ -207,3 +209,4 @@ The "checksum" is computed by adding up hashtext() sums for all database rows.
 == Done ==
 
 The setup of simple 2 node cluster is done.
+

@@ -726,7 +726,7 @@ class Replicator(CascadedWorker):
         res = self.exec_cmd(dst_curs, q, [self.queue_name, fname, sql, s_attrs], commit = False)
         ret = res[0]['ret_code']
         if ret > 200:
-            self.log.info("Skipping execution of '%s'", fname)
+            self.log.warning("Skipping execution of '%s'", fname)
             if pgver >= 80300:
                 dst_curs.execute("set local session_replication_role = 'replica'")
             return

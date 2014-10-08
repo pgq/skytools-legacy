@@ -1821,7 +1821,7 @@ STOP TIME: %(stop_time)s
             self.log.info("%s: not found (ignored)", srcname)
 
             # remove PG_RECEIVEXLOG file if it's present
-            if os.path.isfile(prxlogfile):
+            if os.path.isfile(prxlogfile) and not srcname.endswith('.history'):
                 os.remove(prxlogfile)
 
             sys.exit(1)

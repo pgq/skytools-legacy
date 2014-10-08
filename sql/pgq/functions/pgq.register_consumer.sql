@@ -55,7 +55,7 @@ returns integer as $$
 declare
     tmp         text;
     last_tick   bigint;
-    x_queue_id          integer;
+    x_queue_id  integer;
     x_consumer_id integer;
     queue integer;
     sub record;
@@ -68,7 +68,8 @@ begin
 
     -- get consumer and create if new
     select co_id into x_consumer_id from pgq.consumer
-        where co_name = x_consumer_name;
+        where co_name = x_consumer_name
+        for update;
     if not found then
         insert into pgq.consumer (co_name) values (x_consumer_name);
         x_consumer_id := currval('pgq.consumer_co_id_seq');
