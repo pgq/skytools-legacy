@@ -1,15 +1,27 @@
 
-2014-04-10  -  SkyTools 3.2.2
+2014-10-08  -  SkyTools 3.2.3
+
+  = Minor features =
+
+    * pgq: added support for syslog facility
+    * pgq.cascade.admin: allow drop-node of root
 
   = Fixes =
 
+    * londiste.handlers.dispatch: improved handling of obsolete partitions
+    * londiste.playback: skip execution of sql script when already executed
+    * pgq.cascade.admin: fixed takeover issue "cannot subscribe to itself"
+    * pgq: clean up pgq.consumer when consumer is unregistered
     * skytools.scripting: moved psycopg2 reference to actual script using it
     * skytools.timeutil: fixed for Python versions less than 2.7
+    * walmgr: ignore .history files when removing PG_RECEIVEXLOG file
 
   = Cleanups =
 
-    * libusual: updated to the latest version (that is already 9 months old)
+    * skytools.scripting: added log msg about script's normal shutdown
+    * libusual: updated to the latest version (that was already 9 months old)
     * setup*.py: fixes; updated to point to correct licence
+    * Improved docs and tests.
 
 2014-03-31  -  SkyTools 3.2  -  "Hit any user to continue"
 
