@@ -339,6 +339,10 @@ class DataMaintainer (skytools.DBScript):
             self.log.info(text, self.total_count, datetime.timedelta(0, round(time.time() - self.started)))
             self.lap_time = time.time()
 
+    def shutdown(self):
+        super(DataMaintainer, self).shutdown()
+        self.log.info("Script finished, exiting")
+
 
 if __name__ == '__main__':
     script = DataMaintainer(sys.argv[1:])
