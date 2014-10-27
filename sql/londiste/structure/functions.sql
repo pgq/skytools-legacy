@@ -52,5 +52,7 @@ select londiste.upgrade_schema();
 
 -- Group: Utility functions for handlers
 \i functions/londiste.create_partition.sql
+\i functions/londiste.is_obsolete_partition.sql
+\i functions/londiste.list_obsolete_partitions.sql
 \i functions/londiste.drop_obsolete_partitions.sql
 
