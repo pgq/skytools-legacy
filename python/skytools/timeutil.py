@@ -73,7 +73,8 @@ _iso_regex = r"""
     (?P<year> \d\d\d\d) [-] (?P<month> \d\d) [-] (?P<day> \d\d) [ T]
     (?P<hour> \d\d) [:] (?P<min> \d\d)
     (?: [:] (?P<sec> \d\d ) (?: [.,] (?P<ss> \d+))? )?
-    (?: \s*  (?P<tzsign> [-+]) (?P<tzhr> \d\d) (?: [:]? (?P<tzmin> \d\d))? )?
+    (?: \s*  (?P<tzsign> [-+]) (?P<tzhr> \d\d) (?: [:]? (?P<tzmin> \d\d))?
+      | (?P<tzname> Z ) )?
     \s* $
     """
 _iso_rc = None
@@ -104,6 +105,8 @@ def parse_iso_timestamp(s, default_tz = None):
     '2005-06-01 15:00:59.330000+02:00'
     >>> parse_iso_timestamp('2005-06-01 15:00-0530').strftime('%Y-%m-%d %H:%M %z %Z')
     '2005-06-01 15:00 -0530 -05:30'
+    >>> parse_iso_timestamp('2014-10-27T11:59:13Z').strftime('%Y-%m-%d %H:%M:%S %z %Z')
+    '2014-10-27 11:59:13 +0000 +00'
     """
 
     global _iso_rc
@@ -122,6 +125,8 @@ def parse_iso_timestamp(s, default_tz = None):
         if m.group('tzsign') == '-':
             tzofs = -tzofs
         tz = FixedOffsetTimezone(tzofs)
+    elif m.group('tzname'):
+        tz = UTC
 
     return datetime(int(m.group('year')),
                 int(m.group('month')),
