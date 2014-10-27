@@ -1,5 +1,5 @@
 
-2014-10-08  -  SkyTools 3.2.3
+2014-10-27  -  SkyTools 3.2.4
 
   = Minor features =
 
@@ -18,7 +18,7 @@
 
   = Cleanups =
 
-    * skytools.scripting: added log msg about script's normal shutdown
+    * scripts/data_maintainer.py: added log msg about script's normal shutdown
     * libusual: updated to the latest version (that was already 9 months old)
     * setup*.py: fixes; updated to point to correct licence
     * Improved docs and tests.
