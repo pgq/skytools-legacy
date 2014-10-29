@@ -36,7 +36,8 @@ declare
 begin
     select node_type, worker_name into n_type, w_name
         from pgq_node.node_info
-        where queue_name = i_queue_name;
+        where queue_name = i_queue_name
+        for update;
     if not found then
         select 404, 'Node not initialized for queue: ' || i_queue_name
           into ret_code, ret_note;
