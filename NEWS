@@ -1,5 +1,5 @@
 
-2014-10-27  -  SkyTools 3.2.4
+2014-10-29  -  SkyTools 3.2.5
 
   = Minor features =
 
@@ -14,6 +14,7 @@
     * pgq: clean up pgq.consumer when consumer is unregistered
     * skytools.scripting: moved psycopg2 reference to actual script using it
     * skytools.timeutil: fixed for Python versions less than 2.7
+    * skytools.timeutil: fixed handling of Z in parse_iso_timestamp
     * walmgr: ignore .history files when removing PG_RECEIVEXLOG file
 
   = Cleanups =
