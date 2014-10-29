@@ -1,6 +1,6 @@
 # pgq_node
 comment = 'Cascaded queue infrastructure'
-default_version = '3.2'
+default_version = '3.2.5'
 relocatable = false
 superuser = true
 schema = 'pg_catalog'

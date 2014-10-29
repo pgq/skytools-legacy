@@ -30,12 +30,12 @@ begin
         return;
     end if;
 
-    perform pgq.unregister_consumer(i_queue_name, n_wm_name);
-    perform pgq.unregister_consumer(i_queue_name, worker_name);
-
     delete from pgq_node.subscriber_info
         where queue_name = i_queue_name
             and subscriber_node = i_remote_node_name;
+
+    perform pgq.unregister_consumer(i_queue_name, n_wm_name);
+    perform pgq.unregister_consumer(i_queue_name, worker_name);
 
     select 200, 'Subscriber unregistered: '||i_remote_node_name
         into ret_code, ret_note;
