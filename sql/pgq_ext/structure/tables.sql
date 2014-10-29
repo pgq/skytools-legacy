@@ -1,14 +1,14 @@
 -- ----------------------------------------------------------------------
 -- Section: Tables
 --
---      The pgq_ext schema exists to help in making sure that allenents get
---      processed and they get processed only once
+--      The pgq_ext schema exists to help in making sure that all events get
+--      processed and they get processed only once.
 --
--- Simple quidelines for avoiding duplicate events:
+-- Simple guidelines for avoiding duplicate events:
 -- 
 --      It is pretty burdensome to check if event is already processed,
---      especially on bulk data moving.  Here's a way how checking
---      individual event checks can be avoided by tracking processing of batches.
+--      especially on bulk data moving.  Here's a way how individual
+--      event checks can be avoided by tracking processing of batches.
 -- 
 --      First, consumer must guarantee that it processes all events in one tx.
 -- 
