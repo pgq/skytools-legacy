@@ -63,8 +63,12 @@ begin
         delete from pgq.subscription
             where sub_id = x_sub_id;
 
-        delete from pgq.consumer
-            where co_id = _consumer_id;
+        perform 1 from pgq.subscription
+            where sub_consumer = _consumer_id;
+        if not found then
+            delete from pgq.consumer
+                where co_id = _consumer_id;
+        end if;
 
         return _sub_id_cnt;
     end if;
