@@ -644,6 +644,7 @@ class CascadeAdmin(skytools.AdminScript):
 
         self.load_local_info()
 
+        node = None
         try:
             node = self.load_node_info(node_name)
             if node:
