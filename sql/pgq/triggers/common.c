@@ -284,7 +284,7 @@ static void fill_tbl_info(Relation rel, struct PgqTableInfo *info)
 	values[0] = ObjectIdGetDatum(rel->rd_id);
 	res = SPI_execute_plan(pkey_plan, values, NULL, false, 0);
 	if (res != SPI_OK_SELECT)
-		elog(ERROR, "pkey_plan exec failed");
+		elog(ERROR, "pkey_plan exec failed: %d", res);
 
 	/*
 	 * Fill info
