@@ -282,8 +282,8 @@ class BaseConsumer(skytools.DBScript):
                 [self.queue_name, self.consumer_name])
         db.commit()
 
-    def _launch_process_batch(self, db, batch_id, list):
-        self.process_batch(db, batch_id, list)
+    def _launch_process_batch(self, db, batch_id, ev_list):
+        self.process_batch(db, batch_id, ev_list)
 
     def _make_event(self, queue_name, row):
         return Event(queue_name, row)
@@ -329,7 +329,7 @@ class BaseConsumer(skytools.DBScript):
         self.batch_info = inf
         return self.batch_info['batch_id']
 
-    def _finish_batch(self, curs, batch_id, list):
+    def _finish_batch(self, curs, batch_id, ev_list):
         """Tag events and notify that the batch is done."""
 
         curs.execute("select pgq.finish_batch(%s)", [batch_id])
@@ -344,7 +344,7 @@ class BaseConsumer(skytools.DBScript):
     def stat_end(self, count):
         t = time.time()
         self.stat_put('count', count)
-        self.stat_put('duration', round(t - self.stat_batch_start,4))
+        self.stat_put('duration', round(t - self.stat_batch_start, 4))
         if count > 0: # reset timer if we got some events
             self.stat_put('idle', round(self.stat_batch_start - self.idle_start,4))
             self.idle_start = t
