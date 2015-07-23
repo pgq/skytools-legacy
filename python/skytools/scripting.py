@@ -266,6 +266,7 @@ class BaseScript(object):
         self.service_name = service_name
         self.go_daemon = 0
         self.need_reload = 0
+        self.exception_count = 0
         self.stat_dict = {}
         self.log_level = logging.INFO
 
@@ -578,6 +579,8 @@ class BaseScript(object):
             r = func()
             if self.last_func_fail and time.time() > self.last_func_fail + self.exception_reset:
                 self.last_func_fail = None
+            # set exception count to 0 after success
+            self.exception_count = 0
             return r
         except UsageError, d:
             self.log.error(str(d))
@@ -613,7 +616,9 @@ class BaseScript(object):
         # reset and sleep
         self.reset()
         if prefer_looping and self.looping and self.loop_delay > 0:
-            self.sleep(self.exception_sleep)
+            # increase exception count & sleep
+            self.exception_count += 1
+            self.sleep_on_exception()
             return -1
         sys.exit(1)
 
@@ -624,6 +629,15 @@ class BaseScript(object):
         except IOError, ex:
             if ex.errno != errno.EINTR:
                 raise
+
+    def sleep_on_exception(self):
+        """Make script sleep for some amount of time when an exception occurs.
+
+        To implement more advance exception sleeping like exponential backoff you
+        can override this method. Also note that you can use self.exception_count
+        to track the number of consecutive exceptions.
+        """
+        self.sleep(self.exception_sleep)
 
     def _is_quiet_exception(self, ex):
         return ((self.exception_quiet == ["ALL"] or ex.__class__.__name__ in self.exception_quiet)
