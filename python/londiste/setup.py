@@ -312,7 +312,7 @@ class LondisteSetup(CascadeAdmin):
         for tbl in dst_tbls.keys():
             q = "select * from londiste.global_remove_table(%s, %s)"
             if tbl not in src_tbls:
-                self.log.info("Table %s gone but exists on subscriber, removing")
+                self.log.info("Table %s gone but exists on subscriber, removing", tbl)
                 self.exec_cmd(dst_curs, q, [self.set_name, tbl])
                 del dst_tbls[tbl]
 
@@ -451,7 +451,7 @@ class LondisteSetup(CascadeAdmin):
         for seq in dst_seqs.keys():
             q = "select * from londiste.global_remove_seq(%s, %s)"
             if seq not in src_seqs:
-                self.log.info("Sequence %s gone but exists on subscriber, removing")
+                self.log.info("Sequence %s gone but exists on subscriber, removing", seq)
                 self.exec_cmd(dst_curs, q, [self.set_name, seq])
                 del dst_seqs[seq]
 
