@@ -192,8 +192,8 @@ static int process_update(PgqTriggerEvent *ev, StringInfo sql)
 
 			/*
 			 * If we have an equal operator, use that to do binary
-			 * comparision. Else get the string representation of both
-			 * attributes and do string comparision.
+			 * comparison. Else get the string representation of both
+			 * attributes and do string comparison.
 			 */
 			if (OidIsValid(opr_oid)) {
 				if (DatumGetBool(FunctionCall2(opr_finfo_p, old_value, new_value)))

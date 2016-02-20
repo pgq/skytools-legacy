@@ -296,8 +296,8 @@ static int process_update(ArgCache *cs, TriggerData *tg, char *attkind)
 
 			/*
 			 * If we have an equal operator, use that to do binary
-			 * comparision. Else get the string representation of both
-			 * attributes and do string comparision.
+			 * comparison. Else get the string representation of both
+			 * attributes and do string comparison.
 			 */
 			if (OidIsValid(opr_oid))
 			{

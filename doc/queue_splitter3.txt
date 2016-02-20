@@ -70,7 +70,7 @@ include::common.switches.txt[]
 
 == USECASE ==
 
-How to to process events created in secondary database
+How to process events created in secondary database
 with several queues but have only one queue in primary
 database.  This also shows how to insert events into
 queues with regular SQL easily.

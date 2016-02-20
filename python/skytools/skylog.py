@@ -193,7 +193,7 @@ class LogDBHandler(logging.handlers.SocketHandler):
 
         self.stat_cache = {}
         self.stat_flush_period = 60
-        # send first stat line immidiately
+        # send first stat line immediately
         self.last_stat_flush = 0
 
     def createSocket(self):

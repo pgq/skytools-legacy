@@ -30,7 +30,7 @@ class TableRepair:
         self.apply_cursor = None
 
     def do_repair(self, src_db, dst_db, where, pfx = 'repair', apply_fixes = False):
-        """Actual comparision."""
+        """Actual comparison."""
 
         self.reset()
 
@@ -244,7 +244,7 @@ class TableRepair:
         list.append(s)
 
     def addcmp(self, list, f, v):
-        """Add quoted comparision."""
+        """Add quoted comparison."""
         if v is None:
             s = "%s is null" % f
         else:
@@ -562,7 +562,7 @@ class Checker(Syncer):
                     self.reset()
 
     def do_compare(self, tbl, src_db, dst_db, where):
-        """Actual comparision."""
+        """Actual comparison."""
 
         src_curs = src_db.cursor()
         dst_curs = dst_db.cursor()

@@ -11,7 +11,7 @@
 /*
  * Small SQL tokenizer.  For cases where flex/bison is overkill.
  *
- * To simplify futher processing, it merges words separated
+ * To simplify further processing, it merges words separated
  * with dots together.  That also means it does not support
  * whitespace/comments before and after dot.
  *

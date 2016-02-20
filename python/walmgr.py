@@ -959,7 +959,7 @@ class WalMgr(skytools.DBScript):
     def remote_xlock(self):
         """
         Obtain the backup lock to ensure that several backups are not
-        run in parralel. If someone already has the lock we check if
+        run in parallel. If someone already has the lock we check if
         this is from a previous (failed) backup. If that is the case,
         the lock is released and re-obtained.
         """

@@ -53,7 +53,7 @@ or with plain `diff`:
 
 === Initial cloning ===
 
-libusual is used as git subproject, so after inital clone
+libusual is used as git subproject, so after initial clone
 submodule update should be done:
 
   $ git clone git://github.com/markokr/skytools.git
@@ -136,7 +136,7 @@ requires the completion script from above:
 
   PS1='\h:\w$(__git_ps1 " (%s)")\$ '
 
-==== Developement tasks ====
+==== Development tasks ====
 
 First, do the initial cloning as described above.
 

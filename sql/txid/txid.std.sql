@@ -77,7 +77,7 @@ CREATE OR REPLACE FUNCTION txid_snapshot_xip(txid_snapshot)
 
 
 --
--- Special comparision functions used by the remote worker
+-- Special comparison functions used by the remote worker
 -- for sync chunk selection
 --
 CREATE OR REPLACE FUNCTION txid_visible_in_snapshot(bigint, txid_snapshot)
