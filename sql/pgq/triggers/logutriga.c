@@ -95,8 +95,8 @@ static int is_interesting_change(PgqTriggerEvent *ev, TriggerData *tg)
 
 			/*
 			 * If we have an equal operator, use that to do binary
-			 * comparision. Else get the string representation of both
-			 * attributes and do string comparision.
+			 * comparison. Else get the string representation of both
+			 * attributes and do string comparison.
 			 */
 			if (OidIsValid(opr_oid)) {
 				if (DatumGetBool(FunctionCall2(opr_finfo_p, old_value, new_value)))

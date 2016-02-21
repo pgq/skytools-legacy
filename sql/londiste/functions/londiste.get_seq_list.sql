@@ -10,7 +10,7 @@ returns setof record as $$
 --
 --      Returns registered seqs on this Londiste node.
 --
--- Result fiels:
+-- Result fields:
 --      seq_name    - fully qualified name of sequence
 --      last_value  - last globally published value
 --      local       - is locally registered

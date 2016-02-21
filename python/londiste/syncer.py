@@ -282,7 +282,7 @@ class Syncer(skytools.DBScript):
         # now wait until consumer has updated target table until locking
         self.log.info('Syncing %s', dst_tbl)
 
-        # consumer must get futher than this tick
+        # consumer must get further than this tick
         tick_id = self.force_tick(setup_curs)
         # try to force second tick also
         self.force_tick(setup_curs)
@@ -315,7 +315,7 @@ class Syncer(skytools.DBScript):
         lock_curs = lock_db.cursor()
         self.log.info('Syncing %s', dst_tbl)
 
-        # consumer must get futher than this tick
+        # consumer must get further than this tick
         tick_id = self.force_tick(setup_curs, False)
 
         # now wait

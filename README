@@ -111,7 +111,7 @@ scripts/::
     Python scripts with lesser priority.
 
 lib/::
-    libusual C libary, for pgqd.
+    libusual C library, for pgqd.
 
 debian/::
     Debian packaging.  This is for creating private packages,

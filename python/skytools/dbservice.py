@@ -283,7 +283,7 @@ class DBService:
 
     def retval(self, service_name = None, params = None, **kvargs):
         """ Return collected resultsets and append to the end messages to the users
-            Method is called usually as last statment in dbservice to return the results
+            Method is called usually as last statement in dbservice to return the results
             Also converts results into desired format
         """
         params = params or kvargs
@@ -527,7 +527,7 @@ class ServiceContext(DBService):
 
     def tapi_do(self, tablename, row, **fields):
         """ Convenience function for just doing the change without creating tapi object first
-            Fields object may contain aditional overriding values that are aplied before do
+            Fields object may contain aditional overriding values that are applied before do
         """
         tapi =  TableAPI(self, tablename, self._changelog(fields))
         row = row or dbdict()

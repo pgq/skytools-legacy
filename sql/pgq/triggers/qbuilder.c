@@ -64,7 +64,7 @@ static void qb_handle_ident(struct QueryBuilder *q, const char *ident, int len, 
 		}
 	}
 
-	/* new referece? */
+	/* new reference? */
 	if (local_idx < 0) {
 		if (q->nargs >= FUNC_MAX_ARGS)
 			elog(ERROR, "Too many args");

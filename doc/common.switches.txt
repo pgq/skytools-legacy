@@ -28,5 +28,5 @@ id specified there.
 	stop program safely (send SIGINT)
 
   -k, --kill::
-	kill program immidiately (send SIGTERM)
+	kill program immediately (send SIGTERM)
 

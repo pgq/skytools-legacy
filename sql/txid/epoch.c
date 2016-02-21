@@ -24,7 +24,7 @@ txid txid_convert_xid(TransactionId xid, TxidEpoch *state)
 {
 	uint64 epoch;
 
-	/* avoid issues with the the special meaning of 0 */
+	/* avoid issues with the special meaning of 0 */
 	if (xid == InvalidTransactionId)
 		return MAX_INT64;
 
