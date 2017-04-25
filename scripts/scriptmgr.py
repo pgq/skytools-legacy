@@ -205,6 +205,7 @@ class ScriptMgr(skytools.DBScript):
         self.job_map[job['job_name']] = job
 
     def cmd_status (self, jobs):
+        err = 0
         for jn in jobs:
             try:
                 job = self.job_map[jn]
@@ -219,10 +220,13 @@ class ScriptMgr(skytools.DBScript):
 
             if not pidfile:
                 print(" pidfile? [%s] %s" % (svc, name))
-            elif os.path.isfile(pidfile):
+            elif os.path.isfile(pidfile) and skytools.signal_pidfile(pidfile, 0):
                 print(" OK       [%s] %s" % (svc, name))
             else:
+                err += 1
                 print(" STOPPED  [%s] %s" % (svc, name))
+
+        return err
 
     def cmd_info (self, jobs):
         for jn in jobs:
@@ -343,7 +347,10 @@ class ScriptMgr(skytools.DBScript):
                     jobs.append(job['job_name'])
 
         if cmd == "status":
-            self.cmd_status(jobs)
+            err = self.cmd_status(jobs)
+            if err > 0:
+                self.log.error('some scripts are not running')
+                sys.exit(1)
             return
         elif cmd == "info":
             self.cmd_info(jobs)
